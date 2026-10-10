@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Logic tính điểm (Trọng), C# thuần: không database, không gọi ra ngoài. -->
+</Project>

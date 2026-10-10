@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Lớp Services (Vy): nghiệp vụ, DTO, validator, client gọi service khác, publish event. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Auth.Repository\Auth.Repository.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.Contracts\Exe.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="BCrypt.Net-Next" />
+  </ItemGroup>
+</Project>

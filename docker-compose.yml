@@ -1,0 +1,206 @@
+# Chạy toàn hệ thống: docker compose up -d --build
+# Biến môi trường lấy từ file .env (copy từ .env.example); thiếu thì dùng giá trị mặc định sau dấu ":-".
+
+x-dotnet-env: &dotnet-env
+  ASPNETCORE_ENVIRONMENT: Development
+  ConnectionStrings__Redis: redis:6379
+  Jwt__Issuer: exe-auth
+  Jwt__Audience: exe-api
+  Jwt__Key: ${JWT_KEY:-dev-only-jwt-key-change-me-0123456789abcdef}
+
+x-dotnet-service: &dotnet-service
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+    start_period: 20s
+
+services:
+  # ---------------------------------------------------------------- hạ tầng
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:-Exe@Passw0rd2025}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # giao diện web xem email
+
+  # ---------------------------------------------------------------- backend
+  api-gateway:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/ApiGateway/Exe.ApiGateway/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      <<: *dotnet-env
+      ReverseProxy__Clusters__auth__Destinations__d1__Address: http://auth-service:8080/
+      ReverseProxy__Clusters__user__Destinations__d1__Address: http://user-service:8080/
+      ReverseProxy__Clusters__project__Destinations__d1__Address: http://project-service:8080/
+      ReverseProxy__Clusters__group__Destinations__d1__Address: http://group-service:8080/
+      ReverseProxy__Clusters__notification__Destinations__d1__Address: http://notification-service:8080/
+      ReverseProxy__Clusters__report__Destinations__d1__Address: http://report-service:8080/
+    depends_on:
+      - auth-service
+      - user-service
+      - project-service
+      - group-service
+      - notification-service
+      - report-service
+
+  auth-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Auth/Auth.API/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeAuthDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/User/User.API/Dockerfile
+    ports:
+      - "5002:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeUserDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  project-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Project/Project.API/Dockerfile
+    ports:
+      - "5003:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeProjectDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  group-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Group/Group.API/Dockerfile
+    ports:
+      - "5004:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeGroupDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Notification/Notification.API/Dockerfile
+    ports:
+      - "5006:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeNotificationDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  report-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Report/Report.API/Dockerfile
+    ports:
+      - "5007:8080"
+    environment:
+      <<: *dotnet-env
+      ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeReportDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  matching-service:
+    <<: *dotnet-service
+    build:
+      context: ./backend
+      dockerfile: src/Services/Matching/Matching.Grpc/Dockerfile
+    ports:
+      - "5005:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "--http2-prior-knowledge", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------------------------------------------------------------- frontend
+  # TODO(Tú): bỏ comment khi frontend/ có Dockerfile
+  # web:
+  #   build:
+  #     context: ./frontend
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - api-gateway
+
+volumes:
+  sqlserver-data:
+  redis-data:

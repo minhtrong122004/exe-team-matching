@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- gRPC host (Trọng). Chỉ HTTP/2, không TLS. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Matching.Services\Matching.Services.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.Contracts\Exe.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
+  </ItemGroup>
+</Project>

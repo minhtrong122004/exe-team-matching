@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Lớp Repository (Vy): Entities, Enums, Data (DbContext, seed), Migrations, repository. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

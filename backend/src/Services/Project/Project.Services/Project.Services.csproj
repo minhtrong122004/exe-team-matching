@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Lớp Services (Tú): nghiệp vụ, DTO, validator, client gọi service khác, publish event. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Project.Repository\Project.Repository.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.Contracts\Exe.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+</Project>

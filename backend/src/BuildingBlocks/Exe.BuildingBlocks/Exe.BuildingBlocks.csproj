@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Phần hạ tầng dùng chung cho mọi service (KHÔNG chứa nghiệp vụ). Xem CLAUDE.md mục 4, 11. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- API Gateway (Vy): YARP, chỉ định tuyến + kiểm tra JWT. Không chứa nghiệp vụ. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" />
+  </ItemGroup>
+</Project>
