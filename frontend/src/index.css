@@ -1,0 +1,415 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* FPT Education Brand Identity */
+  --fpt-orange: #f26f21;
+  --fpt-orange-hover: #d95a12;
+  --fpt-orange-light: #fff5ee;
+  --fpt-blue: #0054a6;
+  --fpt-green: #008837;
+  --fpt-navy: #0a192f;
+  --fpt-navy-card: #132742;
+
+  --primary: #f26f21;
+  --primary-hover: #e05e10;
+  --primary-light: #fff7ed;
+  --primary-border: #fed7aa;
+  
+  --secondary: #2563eb;
+  --secondary-hover: #1d4ed8;
+  --secondary-light: #eff6ff;
+
+  --bg-main: #f4f6fa;
+  --bg-card: #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-sidebar-hover: #f8fafc;
+  --bg-sidebar-active: #fff7ed;
+  --bg-header: #ffffff;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --text-white: #ffffff;
+
+  --border-light: #eaedf2;
+  --border-medium: #cbd5e1;
+
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --info: #06b6d4;
+  --info-light: #ecfeff;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] {
+  --bg-main: #141a26;
+  --bg-card: #1c2436;
+  --bg-card-hover: #222c40;
+  --bg-sidebar: #101622;
+  --bg-sidebar-hover: #192336;
+  --bg-sidebar-active: rgba(242, 111, 33, 0.18);
+  --bg-header: #141a26;
+  --bg-input: #101622;
+  
+  --text-main: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-light: #64748b;
+  --text-white: #ffffff;
+
+  --border-light: #253046;
+  --border-medium: #2e3d57;
+}
+
+[data-theme='dark'] body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+[data-theme='dark'] .card {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main);
+}
+
+[data-theme='dark'] .card:hover {
+  background-color: var(--bg-card-hover) !important;
+  border-color: #3b4c6b !important;
+}
+
+[data-theme='dark'] h1, 
+[data-theme='dark'] h2, 
+[data-theme='dark'] h3, 
+[data-theme='dark'] h4 {
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] p {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .modal-content {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] .form-control {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-light) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme='dark'] .form-control::placeholder {
+  color: #64748b;
+}
+
+[data-theme='dark'] select.form-control option {
+  background-color: #101622;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .badge-domain {
+  background: rgba(242, 111, 33, 0.18) !important;
+  color: #fb923c !important;
+  border-color: rgba(242, 111, 33, 0.35) !important;
+}
+
+[data-theme='dark'] .badge-draft {
+  background: rgba(148, 163, 184, 0.15) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.25) !important;
+}
+
+[data-theme='dark'] .badge-recruiting {
+  background: rgba(6, 182, 212, 0.18) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(6, 182, 212, 0.35) !important;
+}
+
+[data-theme='dark'] .badge-active {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+[data-theme='dark'] .badge-completed {
+  background: rgba(99, 102, 241, 0.18) !important;
+  color: #818cf8 !important;
+  border-color: rgba(99, 102, 241, 0.35) !important;
+}
+
+[data-theme='dark'] .badge-cancelled {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+[data-theme='dark'] .badge-tag {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+[data-theme='dark'] .fpt-portal-badge {
+  background: rgba(242, 111, 33, 0.18) !important;
+  border-color: rgba(242, 111, 33, 0.35) !important;
+  color: #fb923c !important;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.925rem;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Common UI Utilities */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #f26f21 0%, #ea580c 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(242, 111, 33, 0.25);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 4px 8px rgba(242, 111, 33, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  color: var(--text-main);
+}
+.btn-secondary:hover {
+  background: var(--bg-sidebar-hover);
+  border-color: var(--border-medium);
+}
+
+[data-theme='dark'] .btn-secondary {
+  background: #1c2638 !important;
+  border-color: #2b3952 !important;
+  color: #f1f5f9 !important;
+}
+[data-theme='dark'] .btn-secondary:hover {
+  background: #24324a !important;
+  border-color: #3d5073 !important;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  transition: all var(--transition-normal);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge-draft { background: #f1f5f9; color: #475569; }
+.badge-recruiting { background: #ecfeff; color: #0891b2; border: 1px solid #a5f3fc; }
+.badge-active { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.badge-completed { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.badge-cancelled { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+.badge-domain {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+  font-weight: 500;
+}
+
+.badge-tag {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: #ffffff;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(242, 111, 33, 0.15);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  max-width: 650px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  animation: modalIn 200ms ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* FPT Signature Brand Elements */
+.fpt-tricolor-bar {
+  height: 3.5px;
+  width: 100%;
+  background: linear-gradient(90deg, #0054a6 0%, #0054a6 33.3%, #f26f21 33.3%, #f26f21 66.6%, #008837 66.6%, #008837 100%);
+}
+
+.fpt-portal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #fff5ee;
+  border: 1px solid #fed7aa;
+  color: #c2410c;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
