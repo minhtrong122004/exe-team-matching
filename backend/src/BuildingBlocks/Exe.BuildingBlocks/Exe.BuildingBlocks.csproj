@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Phần hạ tầng dùng chung cho mọi service (KHÔNG chứa nghiệp vụ). Xem CLAUDE.md mục 4, 11. -->
+  <!-- Phần hạ tầng dùng chung cho mọi service (KHÔNG chứa nghiệp vụ). Xem README.md và CLAUDE.md mục 4, 11. -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
@@ -9,5 +9,6 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 </Project>

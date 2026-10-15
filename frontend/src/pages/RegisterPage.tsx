@@ -36,7 +36,8 @@ export const RegisterPage: React.FC = () => {
       navigate('/projects');
     } catch (err: any) {
       setError(
-        err.response?.data?.title ||
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
           err.response?.data?.message ||
           'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin.'
       );

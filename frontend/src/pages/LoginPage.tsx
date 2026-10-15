@@ -33,7 +33,8 @@ export const LoginPage: React.FC = () => {
       navigate('/projects');
     } catch (err: any) {
       setError(
-        err.response?.data?.title ||
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
           err.response?.data?.message ||
           'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc dùng nút Đăng nhập nhanh demo bên dưới.'
       );

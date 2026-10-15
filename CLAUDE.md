@@ -109,7 +109,7 @@ exe-team-matching/
 │   │   │   ├── Exe.BuildingBlocks/    # phần dùng chung (không chứa nghiệp vụ)
 │   │   │   │   ├── EventBus/          # IEventPublisher, RedisStreamsEventBus, EventConsumerBase<T>
 │   │   │   │   ├── Auth/              # extension AddExeJwtAuthentication()
-│   │   │   │   ├── Web/               # ExceptionHandlingMiddleware, ProblemDetails, CurrentUser
+│   │   │   │   ├── Web/               # GlobalExceptionHandler, ProblemDetails, exception dùng chung, ICurrentUser
 │   │   │   │   ├── Paging/            # PagedRequest, PagedResult<T>
 │   │   │   │   └── Persistence/       # extension MigrateDatabase<TContext>()
 │   │   │   └── Exe.Contracts/         # chỉ chứa contract dùng chung
@@ -343,9 +343,12 @@ Admin: `GET /auth/accounts` (search, role, isActive, phân trang) · `PUT /auth/
 ### Quy ước
 - Danh từ số nhiều, kebab-case, không dùng động từ trong đường dẫn, trừ các thao tác chuyển trạng thái (`/accept`, `/reject`, `/cancel`, `/leave`).
 - Tham số phân trang: `page` (mặc định 1), `pageSize` (mặc định 10, tối đa 50), `sortBy`, `sortDir` (`asc|desc`).
-- Response phân trang: `{ "items": [...], "page": 1, "pageSize": 10, "totalCount": 42, "totalPages": 5 }`.
-- Lỗi theo chuẩn RFC 7807 ProblemDetails, thêm field `code`:
-  `{ "status": 409, "title": "Group is full", "code": "GROUP_FULL", "traceId": "..." }`.
+- Response phân trang: `{ "items": [...], "page": 1, "pageSize": 10, "totalCount": 42, "totalPages": 5, "hasPrevious": false, "hasNext": true }`.
+- Lỗi theo chuẩn RFC 9457 ProblemDetails (`Content-Type: application/problem+json`), thêm field mở rộng `code`, `traceId`, `correlationId`:
+  `{ "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10", "title": "Conflict", "status": 409, "detail": "Group is full.", "instance": "PUT /api/join-requests/.../accept", "code": "GROUP_FULL", "traceId": "..." }`.
+  - `title`: tiêu đề chung theo status (`Not Found`, `Conflict`...), **không đổi** giữa các lần lỗi. `detail`: thông báo cụ thể của lần lỗi này.
+  - Lỗi validate (400) có thêm `"errors": { "maxMembers": ["Must be between 4 and 6."] }`.
+  - Frontend **hiển thị `detail`** cho người dùng và **rẽ nhánh theo `code`**, không so sánh chuỗi `title`/`detail`.
 - Mã trạng thái: 200, 201 (+ header `Location`), 204, 400 (dữ liệu không hợp lệ), 401, 403, 404, 409 (vi phạm business rule), 500.
 - JSON dạng camelCase; enum trả về dạng chuỗi.
 
@@ -361,7 +364,8 @@ Admin: `GET /auth/accounts` (search, role, isActive, phân trang) · `PUT /auth/
   `[JOB] InvitationExpiryJob expired=3`
   `[GRPC] CalculateMatch userId=... groupId=... score=78.5 duration=...ms`
 - **Correlation ID:** đọc header `X-Correlation-Id` hoặc tự tạo; truyền tiếp vào các lời gọi HTTP và envelope của event.
-- **Xử lý lỗi:** một `ExceptionHandlingMiddleware` chuyển `ValidationException → 400`, `NotFoundException → 404`, `ForbiddenException → 403`, `BusinessRuleException(code) → 409`, còn lại → 500 (không trả stack trace).
+- **Xử lý lỗi:** `GlobalExceptionHandler` (cơ chế `IExceptionHandler` + `AddProblemDetails()` có sẵn của ASP.NET Core) trong `BuildingBlocks/Web`, bật bằng `AddExeServiceDefaults()`. Lớp Services chỉ cần `throw`, controller không try/catch:
+  FluentValidation `ValidationException → 400 VALIDATION_ERROR`, `BadRequestException → 400`, `UnauthorizedException → 401`, `ForbiddenException → 403`, `NotFoundException → 404`, `BusinessRuleException(code, message) → 409 <code>`, còn lại → 500 `INTERNAL_ERROR` (không trả stack trace). 401/403 của JWT và route không tồn tại cũng trả ProblemDetails. Không tự tạo class exception trùng tên trong service; dùng exception của `Exe.BuildingBlocks.Web`. Cách dùng chi tiết: `backend/src/BuildingBlocks/Exe.BuildingBlocks/README.md`.
 - **Migrations:** mỗi service có EF Core migrations riêng; tự chạy khi khởi động nếu `ASPNETCORE_ENVIRONMENT=Development`. Thử kết nối lại trong lúc SQL Server đang khởi động.
 - **Dữ liệu mẫu (Development):** danh sách kỹ năng (React, .NET, Java, Python, UI/UX, Figma, Content Marketing, SEO, Business Analysis, Sales…); tài khoản `admin@exe.local / Admin@123`, `lecturer@exe.local / Lecturer@123`, `student1..8@exe.local / Student@123` với nhiều chuyên ngành khác nhau.
 - **Health check:** `GET /health` ở mọi service; `docker compose` dùng để kiểm tra container.
@@ -417,7 +421,7 @@ Mọi package Microsoft (`Microsoft.EntityFrameworkCore.*`, `Microsoft.AspNetCor
 - [ ] Gateway cấu hình đủ route ở mục 3
 - [ ] Event bus Redis Streams trong BuildingBlocks, chạy được một luồng: `UserRegistered` → User + Notification
 - [ ] Matching gRPC server có `CalculateMatch` chạy được; Group gọi nó từ `GET /groups/{id}/match-score`
-- [ ] Middleware xử lý lỗi chung, ProblemDetails, helper phân trang, Swagger ở mọi REST service
+- [ ] Xử lý lỗi chung (GlobalExceptionHandler + ProblemDetails), helper phân trang, Swagger ở mọi REST service
 - [ ] README có đủ khung 6 mục theo mục 17 (nội dung chi tiết bổ sung dần)
 
 ### Frontend (điều kiện hoàn thành)

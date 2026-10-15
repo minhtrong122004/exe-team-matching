@@ -1,3 +1,5 @@
+using Exe.BuildingBlocks.Paging;
+using Exe.BuildingBlocks.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Project.Repository.Data;
 using Project.Repository.Entities;
@@ -19,13 +21,13 @@ public class ProjectRepository : IProjectRepository
         _db = db;
     }
 
-    public async Task<(IEnumerable<ProjectEntity> Items, int TotalCount)> GetPagedAsync(
+    public Task<PagedResult<ProjectEntity>> GetPagedAsync(
         string? search,
         ProjectDomain? domain,
         ProjectStatus? status,
         Guid? ownerId,
-        string sortBy,
-        bool ascending,
+        string? sortBy,
+        bool descending,
         int page,
         int pageSize,
         CancellationToken ct = default)
@@ -54,26 +56,18 @@ public class ProjectRepository : IProjectRepository
         if (ownerId.HasValue)
             query = query.Where(p => p.OwnerId == ownerId.Value);
 
-        // ── Đếm tổng trước khi phân trang (để trả về TotalCount) ────────────
-        var totalCount = await query.CountAsync(ct);
-
         // ── Sắp xếp (Sort) ──────────────────────────────────────────────────
-        query = sortBy.ToLowerInvariant() switch
+        query = sortBy?.ToLowerInvariant() switch
         {
-            "title"     => ascending ? query.OrderBy(p => p.Title)     : query.OrderByDescending(p => p.Title),
-            "domain"    => ascending ? query.OrderBy(p => p.Domain)    : query.OrderByDescending(p => p.Domain),
-            "status"    => ascending ? query.OrderBy(p => p.Status)    : query.OrderByDescending(p => p.Status),
-            "updatedat" => ascending ? query.OrderBy(p => p.UpdatedAt) : query.OrderByDescending(p => p.UpdatedAt),
-            _           => ascending ? query.OrderBy(p => p.CreatedAt) : query.OrderByDescending(p => p.CreatedAt)
+            "title"     => query.OrderBy(p => p.Title, descending),
+            "domain"    => query.OrderBy(p => p.Domain, descending),
+            "status"    => query.OrderBy(p => p.Status, descending),
+            "updatedat" => query.OrderBy(p => p.UpdatedAt, descending),
+            _           => query.OrderBy(p => p.CreatedAt, descending)
         };
 
-        // ── Phân trang (Pagination) ──────────────────────────────────────────
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(ct);
-
-        return (items, totalCount);
+        // ── Đếm tổng + phân trang (BuildingBlocks) ──────────────────────────
+        return query.ToPagedResultAsync(page, pageSize, ct);
     }
 
     public async Task<ProjectEntity?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -91,7 +85,8 @@ public class ProjectRepository : IProjectRepository
 
     public async Task UpdateAsync(ProjectEntity project, CancellationToken ct = default)
     {
-        _db.Projects.Update(project);
+        // Entity đã được track từ GetByIdAsync → EF tự phát hiện thay đổi (kể cả tag thêm/xóa).
+        // Không gọi _db.Projects.Update(): nó đánh dấu tag mới là Modified (UPDATE) thay vì Added (INSERT).
         await _db.SaveChangesAsync(ct);
     }
 
