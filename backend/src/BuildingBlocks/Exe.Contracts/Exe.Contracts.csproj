@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Chỉ chứa contract dùng chung: record event (Events/) và file proto (Protos/). -->
+  <!-- Chỉ chứa contract dùng chung: record event (Events/) và file proto (Protos/). Không chứa logic. -->
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Core.Api" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Sinh cả server base (Matching.Grpc) và client (Group.Services) -->
+    <Protobuf Include="Protos\matching.proto" GrpcServices="Both" />
   </ItemGroup>
 </Project>
