@@ -1,0 +1,42 @@
+syntax = "proto3";
+option csharp_namespace = "Exe.Contracts.Matching";
+package matching.v1;
+
+// Matching Service (gRPC, stateless). Chỉ Group Service gọi.
+// Group gom đủ dữ liệu (hồ sơ sinh viên, nhu cầu nhóm) rồi gửi kèm trong request.
+service MatchingService {
+  rpc CalculateMatch (MatchRequest) returns (MatchResult);
+  rpc RankGroups (RankGroupsRequest) returns (RankGroupsResponse);
+  rpc RankCandidates (RankCandidatesRequest) returns (RankCandidatesResponse);
+}
+
+message StudentProfile {
+  string user_id = 1;
+  string major = 2;
+  repeated string skills = 3;
+  repeated string interests = 4;   // lĩnh vực dự án quan tâm
+  string availability = 5;
+}
+
+message GroupNeed {
+  string group_id = 1;
+  repeated string required_majors = 2;
+  repeated string required_skills = 3;
+  string project_domain = 4;
+}
+
+message MatchRequest { StudentProfile student = 1; GroupNeed group = 2; }
+
+message MatchResult {
+  string user_id = 1;
+  string group_id = 2;
+  double score = 3;                 // 0–100
+  repeated string matched_skills = 4;
+  repeated string missing_skills = 5;
+}
+
+message RankGroupsRequest { StudentProfile student = 1; repeated GroupNeed groups = 2; int32 top = 3; }
+message RankGroupsResponse { repeated MatchResult results = 1; }
+
+message RankCandidatesRequest { GroupNeed group = 1; repeated StudentProfile candidates = 2; int32 top = 3; }
+message RankCandidatesResponse { repeated MatchResult results = 1; }
