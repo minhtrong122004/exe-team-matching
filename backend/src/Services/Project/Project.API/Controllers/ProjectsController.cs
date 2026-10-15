@@ -1,16 +1,15 @@
+using Exe.BuildingBlocks.Paging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Project.Repository.Enums;
 using Project.Services.DTOs;
-using Project.Services.Exceptions;
 using Project.Services.Interfaces;
-using System.Security.Claims;
 
 namespace Project.API.Controllers;
 
 /// <summary>
 /// Quản lý ý tưởng dự án EXE.
 /// Tất cả route đi qua API Gateway: http://localhost:5000/api/projects
+/// Lỗi (400/401/403/404) trả về ProblemDetails do GlobalExceptionHandler (BuildingBlocks) xử lý.
 /// </summary>
 [ApiController]
 [Route("api/projects")]
@@ -31,26 +30,17 @@ public class ProjectsController : ControllerBase
     // ─────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Lấy danh sách ý tưởng dự án EXE có phân trang, tìm kiếm và lọc.
-    /// Công khai — không yêu cầu đăng nhập.
+    /// Lấy danh sách ý tưởng dự án EXE có phân trang, tìm kiếm, lọc và sắp xếp.
+    /// sortBy: title | domain | status | updatedAt | createdAt (mặc định, sortDir=desc).
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(PagedProjectResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetProjects(
-        [FromQuery] string?       search   = null,
-        [FromQuery] ProjectDomain? domain  = null,
-        [FromQuery] ProjectStatus? status  = null,
-        [FromQuery] Guid?         ownerId  = null,
-        [FromQuery] string        sortBy   = "createdAt",
-        [FromQuery] string        sortDir  = "desc",
-        [FromQuery] int           page     = 1,
-        [FromQuery] int           pageSize = 10,
+    [ProducesResponseType<PagedResult<ProjectSummaryResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ProjectSummaryResponse>>> GetProjects(
+        [FromQuery] ProjectQuery query,
         CancellationToken ct = default)
     {
-        var query = new GetProjectsQuery(search, domain, status, ownerId, sortBy, sortDir, page, pageSize);
-        var result = await _projectService.GetProjectsAsync(query, ct);
-        return Ok(result);
+        return Ok(await _projectService.GetProjectsAsync(query, ct));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -60,12 +50,11 @@ public class ProjectsController : ControllerBase
     /// <summary>Lấy chi tiết một ý tưởng dự án theo ID.</summary>
     [HttpGet("{id:guid}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProjectById(Guid id, CancellationToken ct = default)
+    [ProducesResponseType<ProjectResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectResponse>> GetProjectById(Guid id, CancellationToken ct = default)
     {
-        var result = await _projectService.GetProjectByIdAsync(id, ct);
-        return Ok(result);
+        return Ok(await _projectService.GetProjectByIdAsync(id, ct));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -77,16 +66,14 @@ public class ProjectsController : ControllerBase
     /// Yêu cầu đăng nhập — OwnerId lấy từ JWT token.
     /// </summary>
     [HttpPost]
-    [Authorize]
-    [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> CreateProject(
+    [ProducesResponseType<ProjectResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ProjectResponse>> CreateProject(
         [FromBody] CreateProjectRequest request,
         CancellationToken ct = default)
     {
-        var currentUserId = GetCurrentUserId();
-        var result = await _projectService.CreateProjectAsync(request, currentUserId, ct);
+        var result = await _projectService.CreateProjectAsync(request, ct);
 
         _logger.LogInformation(
             "Project created: projectId={ProjectId}, ownerId={OwnerId}, title={Title}",
@@ -105,23 +92,19 @@ public class ProjectsController : ControllerBase
     /// Yêu cầu đăng nhập và phải là chủ dự án.
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize]
-    [ProducesResponseType(typeof(ProjectResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateProject(
+    [ProducesResponseType<ProjectResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProjectResponse>> UpdateProject(
         Guid id,
         [FromBody] UpdateProjectRequest request,
         CancellationToken ct = default)
     {
-        var currentUserId = GetCurrentUserId();
-        var result = await _projectService.UpdateProjectAsync(id, request, currentUserId, ct);
+        var result = await _projectService.UpdateProjectAsync(id, request, ct);
 
-        _logger.LogInformation(
-            "Project updated: projectId={ProjectId}, updatedBy={UserId}",
-            id, currentUserId);
+        _logger.LogInformation("Project updated: projectId={ProjectId}", id);
 
         return Ok(result);
     }
@@ -135,36 +118,16 @@ public class ProjectsController : ControllerBase
     /// Yêu cầu đăng nhập và phải là chủ dự án.
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteProject(Guid id, CancellationToken ct = default)
     {
-        var currentUserId = GetCurrentUserId();
-        await _projectService.DeleteProjectAsync(id, currentUserId, ct);
+        await _projectService.DeleteProjectAsync(id, ct);
 
-        _logger.LogInformation(
-            "Project deleted: projectId={ProjectId}, deletedBy={UserId}",
-            id, currentUserId);
+        _logger.LogInformation("Project deleted: projectId={ProjectId}", id);
 
         return NoContent();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Private helpers
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /// <summary>Lấy UserId của người dùng đang đăng nhập từ JWT claim 'sub'.</summary>
-    private Guid GetCurrentUserId()
-    {
-        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier)
-               ?? User.FindFirstValue("sub");
-
-        if (Guid.TryParse(sub, out var userId))
-            return userId;
-
-        throw new UnauthorizedAccessException("Invalid or missing user identity in token.");
     }
 }
