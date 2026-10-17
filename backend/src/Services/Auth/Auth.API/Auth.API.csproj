@@ -1,4 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <UserSecretsId>1ee503fb-247b-4990-899e-906cb42962c9</UserSecretsId>
+  </PropertyGroup>
   <!-- Lớp API (Vy): Controllers, Workers (BackgroundService), Program.cs. -->
   <ItemGroup>
     <ProjectReference Include="..\Auth.Services\Auth.Services.csproj" />
