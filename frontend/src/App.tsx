@@ -6,10 +6,10 @@ import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import {
   GroupsPage,
   MyGroupPage,
-  ProfilePage,
   JoinRequestsPage,
   InvitationsPage,
   NotificationsPage,
