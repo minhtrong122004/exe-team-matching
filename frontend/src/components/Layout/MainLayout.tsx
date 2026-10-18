@@ -33,7 +33,7 @@ interface NavSection {
 }
 
 export const MainLayout: React.FC = () => {
-  const { user, logout, mockLoginAs } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -69,14 +69,6 @@ export const MainLayout: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const handleRoleSwitch = (role: UserRole) => {
-    mockLoginAs(role);
-    setUserMenuOpen(false);
-    if (role === 'Admin') navigate('/admin/accounts');
-    else if (role === 'Lecturer') navigate('/reports');
-    else navigate('/projects');
   };
 
   // Grouped navigation with /profile accessible to ALL roles
@@ -619,61 +611,42 @@ export const MainLayout: React.FC = () => {
                   >
                     <div
                       style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--text-light, #94a3b8)',
-                        textTransform: 'uppercase',
-                        fontWeight: 700,
-                        marginBottom: '0.4rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.775rem',
+                        padding: '0.25rem 0.2rem',
                       }}
                     >
-                      Chuyển vai trò Demo
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button
-                        onClick={() => handleRoleSwitch('Student')}
+                      <span style={{ color: 'var(--text-light, #94a3b8)', fontWeight: 600 }}>
+                        Vai trò xác thực:
+                      </span>
+                      <span
                         style={{
-                          flex: 1,
-                          padding: '0.35rem 0',
+                          padding: '0.2rem 0.6rem',
                           borderRadius: 6,
-                          fontSize: '0.725rem',
                           fontWeight: 700,
-                          background: user?.role === 'Student' ? '#ea580c' : 'var(--bg-sidebar-hover, #f1f5f9)',
-                          color: user?.role === 'Student' ? '#ffffff' : 'var(--text-muted, #475569)',
-                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          background:
+                            user?.role === 'Admin'
+                              ? '#fef2f2'
+                              : user?.role === 'Lecturer'
+                              ? '#eff6ff'
+                              : '#fff7ed',
+                          color:
+                            user?.role === 'Admin'
+                              ? '#dc2626'
+                              : user?.role === 'Lecturer'
+                              ? '#2563eb'
+                              : '#ea580c',
                         }}
                       >
-                        Sinh viên
-                      </button>
-                      <button
-                        onClick={() => handleRoleSwitch('Lecturer')}
-                        style={{
-                          flex: 1,
-                          padding: '0.35rem 0',
-                          borderRadius: 6,
-                          fontSize: '0.725rem',
-                          fontWeight: 700,
-                          background: user?.role === 'Lecturer' ? '#0054a6' : 'var(--bg-sidebar-hover, #f1f5f9)',
-                          color: user?.role === 'Lecturer' ? '#ffffff' : 'var(--text-muted, #475569)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        G.Viên
-                      </button>
-                      <button
-                        onClick={() => handleRoleSwitch('Admin')}
-                        style={{
-                          flex: 1,
-                          padding: '0.35rem 0',
-                          borderRadius: 6,
-                          fontSize: '0.725rem',
-                          fontWeight: 700,
-                          background: user?.role === 'Admin' ? '#dc2626' : 'var(--bg-sidebar-hover, #f1f5f9)',
-                          color: user?.role === 'Admin' ? '#ffffff' : 'var(--text-muted, #475569)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Admin
-                      </button>
+                        {user?.role === 'Admin'
+                          ? 'Quản trị viên'
+                          : user?.role === 'Lecturer'
+                          ? 'Giảng viên'
+                          : 'Sinh viên'}
+                      </span>
                     </div>
                   </div>
 

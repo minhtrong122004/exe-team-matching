@@ -20,34 +20,59 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { login, mockLoginAs } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeLogin = async (loginEmail: string, loginPass: string) => {
     setError(null);
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/projects');
+      const authUser = await login(loginEmail, loginPass);
+      // Điều hướng theo vai trò thực tế trả về từ Backend JWT
+      if (authUser.role === 'Admin') {
+        navigate('/admin/accounts');
+      } else if (authUser.role === 'Lecturer') {
+        navigate('/reports');
+      } else {
+        navigate('/projects');
+      }
     } catch (err: any) {
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          err.response?.data?.message ||
-          'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc dùng nút Đăng nhập nhanh demo bên dưới.'
-      );
+      if (err.response?.status === 401) {
+        setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
+      } else if (err.response?.status === 403) {
+        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
+      } else if (err.response?.data?.title || err.response?.data?.message) {
+        setError(err.response?.data?.title || err.response?.data?.message);
+      } else {
+        setError('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra API Gateway.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = (role: UserRole) => {
-    mockLoginAs(role);
-    if (role === 'Admin') navigate('/admin/accounts');
-    else if (role === 'Lecturer') navigate('/reports');
-    else navigate('/projects');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Vui lòng nhập đầy đủ email và mật khẩu.');
+      return;
+    }
+    await executeLogin(email, password);
+  };
+
+  // Đăng nhập nhanh bằng tài khoản seeded chính thức trên Backend (không dùng mock local)
+  const handleQuickLogin = async (role: UserRole) => {
+    const credentials: Record<UserRole, { email: string; pass: string }> = {
+      Admin: { email: 'admin.dev@exe.local', pass: 'ExeAdmin@SecurePass2026!' },
+      Lecturer: { email: 'lecturer@fpt.edu.vn', pass: 'Lecturer@123' },
+      Student: { email: 'student@fpt.edu.vn', pass: 'Student@123' },
+    };
+
+    const cred = credentials[role];
+    setEmail(cred.email);
+    setPassword(cred.pass);
+    await executeLogin(cred.email, cred.pass);
   };
 
   return (
@@ -337,6 +362,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="sinhvien@fpt.edu.vn"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                   style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
                 />
@@ -355,6 +381,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                   style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
                 />
