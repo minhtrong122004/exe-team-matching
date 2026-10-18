@@ -59,6 +59,9 @@ public static class JwtAuthenticationExtensions
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, CurrentUser>();
+
         return services;
     }
 }

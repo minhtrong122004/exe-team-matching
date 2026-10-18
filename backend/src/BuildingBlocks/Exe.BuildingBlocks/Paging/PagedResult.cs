@@ -15,4 +15,8 @@ public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSi
         new(Items.Select(selector).ToList(), Page, PageSize, TotalCount);
 
     public static PagedResult<T> Empty(int page, int pageSize) => new([], page, pageSize, 0);
+
+    /// <summary>Factory method khởi tạo PagedResult tương thích với Auth và User Service.</summary>
+    public static PagedResult<T> Create(IReadOnlyList<T> items, int page, int pageSize, int totalCount) =>
+        new(items, page, pageSize, totalCount);
 }

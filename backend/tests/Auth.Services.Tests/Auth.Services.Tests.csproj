@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Services\Auth\Auth.Services\Auth.Services.csproj" />
+    <ProjectReference Include="..\..\src\Services\Auth\Auth.API\Auth.API.csproj" />
+    <ProjectReference Include="..\..\src\Services\Auth\Auth.Repository\Auth.Repository.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Exe.Contracts\Exe.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>
