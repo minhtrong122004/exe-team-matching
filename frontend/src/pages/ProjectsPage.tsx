@@ -142,7 +142,7 @@ export const ProjectsPage: React.FC = () => {
       resetForm();
       fetchProjects();
     } catch (err: any) {
-      alert(err.response?.data?.title || 'Không thể tạo dự án, vui lòng thử lại.');
+      alert(err.response?.data?.detail || err.response?.data?.title || 'Không thể tạo dự án, vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
@@ -155,7 +155,7 @@ export const ProjectsPage: React.FC = () => {
       await apiClient.delete(`/projects/${id}`);
       fetchProjects();
     } catch (err: any) {
-      alert(err.response?.data?.title || 'Lỗi khi xóa dự án.');
+      alert(err.response?.data?.detail || err.response?.data?.title || 'Lỗi khi xóa dự án.');
     }
   };
 

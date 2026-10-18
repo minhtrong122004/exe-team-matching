@@ -28,13 +28,20 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (AppException ex)
+        catch (Exe.BuildingBlocks.Exceptions.AppException ex)
         {
             _logger.LogWarning("AppException on {Method} {Path}: {Message} [Code: {Code}]",
                 context.Request.Method, context.Request.Path, ex.Message, ex.ErrorCode);
 
             await WriteProblemDetailsResponseAsync(context, (int)ex.StatusCode, ex.Message, ex.ErrorCode,
-                ex is ValidationException vex && vex.Errors.Count > 0 ? vex.Errors : null);
+                ex is Exe.BuildingBlocks.Exceptions.ValidationException vex && vex.Errors.Count > 0 ? vex.Errors : null);
+        }
+        catch (Exe.BuildingBlocks.Web.AppException ex)
+        {
+            _logger.LogWarning("AppException on {Method} {Path}: {Message} [Code: {Code}]",
+                context.Request.Method, context.Request.Path, ex.Message, ex.Code);
+
+            await WriteProblemDetailsResponseAsync(context, ex.StatusCode, ex.Message, ex.Code);
         }
         catch (FluentValidation.ValidationException ex)
         {

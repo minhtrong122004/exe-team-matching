@@ -1,3 +1,4 @@
+using Exe.BuildingBlocks.Paging;
 using Project.Repository.Enums;
 
 namespace Project.Services.DTOs;
@@ -29,17 +30,25 @@ public record UpdateProjectRequest(
 // QUERY PARAMS — tham số lọc / phân trang khi lấy danh sách
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// <summary>Tham số lọc & phân trang khi gọi GET /api/projects.</summary>
-public record GetProjectsQuery(
-    string? Search = null,
-    ProjectDomain? Domain = null,
-    ProjectStatus? Status = null,
-    Guid? OwnerId = null,
-    string SortBy = "createdAt",
-    string SortDir = "desc",
-    int Page = 1,
-    int PageSize = 10
-);
+/// <summary>
+/// GET /api/projects?search=&amp;domain=&amp;status=&amp;ownerId=&amp;sortBy=&amp;sortDir=&amp;page=&amp;pageSize=
+/// Page, PageSize, SortBy, SortDir kế thừa từ PagedRequest (BuildingBlocks).
+/// </summary>
+public class ProjectQuery : PagedRequest
+{
+    public ProjectQuery()
+    {
+        SortBy = "createdAt"; // mặc định: mới nhất trước
+        SortDir = "desc";
+    }
+
+    /// <summary>Tìm trong Title và Problem.</summary>
+    public string? Search { get; set; }
+
+    public ProjectDomain? Domain { get; set; }
+    public ProjectStatus? Status { get; set; }
+    public Guid? OwnerId { get; set; }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RESPONSE DTOs — dữ liệu trả về cho client
@@ -59,7 +68,7 @@ public record ProjectResponse(
     DateTime UpdatedAt
 );
 
-/// <summary>Thông tin tóm gọn của dự án — dùng trong danh sách GET /projects.</summary>
+/// <summary>Thông tin tóm gọn của dự án — dùng trong danh sách GET /projects (bọc trong PagedResult).</summary>
 public record ProjectSummaryResponse(
     Guid Id,
     Guid OwnerId,
@@ -68,13 +77,4 @@ public record ProjectSummaryResponse(
     string Status,
     List<string> Tags,
     DateTime CreatedAt
-);
-
-/// <summary>Response phân trang chuẩn dùng trong toàn hệ thống (CLAUDE.md mục 10).</summary>
-public record PagedProjectResponse(
-    IEnumerable<ProjectSummaryResponse> Items,
-    int Page,
-    int PageSize,
-    int TotalCount,
-    int TotalPages
 );
