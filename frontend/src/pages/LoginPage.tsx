@@ -11,7 +11,6 @@ import {
   Zap,
   Users,
 } from 'lucide-react';
-import type { UserRole } from '../types';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 
 export const LoginPage: React.FC = () => {
@@ -20,34 +19,45 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { login, mockLoginAs } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeLogin = async (loginEmail: string, loginPass: string) => {
     setError(null);
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/projects');
+      const authUser = await login(loginEmail, loginPass);
+      // Điều hướng theo vai trò thực tế trả về từ Backend JWT
+      if (authUser.role === 'Admin') {
+        navigate('/admin/accounts');
+      } else if (authUser.role === 'Lecturer') {
+        navigate('/reports');
+      } else {
+        navigate('/projects');
+      }
     } catch (err: any) {
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          err.response?.data?.message ||
-          'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản hoặc dùng nút Đăng nhập nhanh demo bên dưới.'
-      );
+      if (err.response?.status === 401) {
+        setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
+      } else if (err.response?.status === 403) {
+        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
+      } else if (err.response?.data?.title || err.response?.data?.message) {
+        setError(err.response?.data?.title || err.response?.data?.message);
+      } else {
+        setError('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra API Gateway.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = (role: UserRole) => {
-    mockLoginAs(role);
-    if (role === 'Admin') navigate('/admin/accounts');
-    else if (role === 'Lecturer') navigate('/reports');
-    else navigate('/projects');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setError('Vui lòng nhập đầy đủ email và mật khẩu.');
+      return;
+    }
+    await executeLogin(email, password);
   };
 
   return (
@@ -337,6 +347,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="sinhvien@fpt.edu.vn"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
                   style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
                 />
@@ -355,6 +366,7 @@ export const LoginPage: React.FC = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
                   style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
                 />
@@ -389,90 +401,8 @@ export const LoginPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Quick Demo Login Cards */}
-          <div
-            style={{
-              marginTop: '2.25rem',
-              padding: '1.25rem',
-              borderRadius: 14,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                color: '#64748b',
-                letterSpacing: '0.05em',
-                marginBottom: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              <Sparkles size={14} color="#f26f21" />
-              Đăng nhập nhanh (Dành cho Demo / Thuyết trình):
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Student')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #fed7aa',
-                  color: '#c2410c',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Sinh viên
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Lecturer')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #c7d2fe',
-                  color: '#4338ca',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Giảng viên
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Admin')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #fecaca',
-                  color: '#b91c1c',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Quản trị viên
-              </button>
-            </div>
-          </div>
-
           {/* Footer Copyright */}
-          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
             © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
           </div>
         </div>

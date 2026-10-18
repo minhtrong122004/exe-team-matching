@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API Gateway Base URL (mặc định cổng 5000 qua YARP gateway)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+// API Gateway Base URL (mặc định /api qua Vite dev proxy hoặc VITE_API_BASE_URL)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -22,7 +22,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Flag tránh gọi refresh lặp vô tận
+// Flag tránh gọi refresh lặp vô tận và hàng đợi request đồng thời
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
@@ -40,71 +40,104 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
-// Response interceptor: tự động bắt lỗi 401 và làm mới refresh token
+export const clearAuthSession = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user');
+  delete apiClient.defaults.headers.common['Authorization'];
+  window.dispatchEvent(new Event('auth:logout'));
+};
+
+// Response interceptor: tự động bắt lỗi 401 và làm mới refresh token an toàn
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Tránh thử refresh nếu bản thân request là /auth/login hoặc /auth/refresh
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/login') &&
-      !originalRequest.url?.includes('/auth/refresh')
-    ) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return apiClient(originalRequest);
-          })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (!refreshToken) {
-        // Không có refresh token -> xóa phiên và chuyển về login
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
-      try {
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-          refreshToken,
-        });
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        localStorage.setItem('access_token', accessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refresh_token', newRefreshToken);
-        }
-
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        processQueue(null, accessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return apiClient(originalRequest);
-      } catch (refreshErr) {
-        processQueue(refreshErr, null);
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        return Promise.reject(refreshErr);
-      } finally {
-        isRefreshing = false;
-      }
+    // Bỏ qua nếu không có response hoặc không phải lỗi 401
+    if (!error.response || error.response.status !== 401) {
+      return Promise.reject(error);
     }
 
-    return Promise.reject(error);
+    // Không thử refresh nếu bản thân request là auth endpoint công khai / đặc thù
+    const url = originalRequest.url || '';
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/logout');
+
+    if (originalRequest._retry || isAuthEndpoint) {
+      return Promise.reject(error);
+    }
+
+    // Nếu đang trong quá trình refresh, xếp request vào hàng đợi
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          if (token && originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return apiClient(originalRequest);
+        })
+        .catch((err) => Promise.reject(err));
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    const currentRefreshToken = localStorage.getItem('refresh_token');
+    if (!currentRefreshToken) {
+      // Không có refresh token -> dọn dẹp phiên và từ chối
+      clearAuthSession();
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
+      isRefreshing = false;
+      return Promise.reject(error);
+    }
+
+    try {
+      // Gọi trực tiếp axios không qua apiClient để tránh loop interceptor
+      const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        refreshToken: currentRefreshToken,
+      });
+
+      // Kiểm tra: nếu trong lúc chờ refresh mà user đã bấm đăng xuất, hủy lưu token muộn
+      if (!localStorage.getItem('refresh_token')) {
+        processQueue(new Error('User logged out during refresh'), null);
+        return Promise.reject(new Error('Session terminated during token refresh'));
+      }
+
+      const { accessToken, refreshToken: newRefreshToken, user: updatedUser } = response.data;
+
+      localStorage.setItem('access_token', accessToken);
+      if (newRefreshToken) {
+        localStorage.setItem('refresh_token', newRefreshToken);
+      }
+      if (updatedUser) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      processQueue(null, accessToken);
+
+      if (originalRequest.headers) {
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+      }
+      return apiClient(originalRequest);
+    } catch (refreshErr) {
+      processQueue(refreshErr, null);
+      clearAuthSession();
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
+      return Promise.reject(refreshErr);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 

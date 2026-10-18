@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import {
   Mail,
   Download,
-  Lock,
-  Unlock,
   Zap,
 } from 'lucide-react';
 
@@ -251,115 +248,7 @@ export const MyGroupPage: React.FC = () => {
   );
 };
 
-// ── 3. PROFILE PAGE ─────────────────────────────────────────────────────────
-export const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
-  const [major, setMajor] = useState('SE');
-  const [availability, setAvailability] = useState('LookingForTeam');
-  const [bio, setBio] = useState(
-    user?.role === 'Lecturer'
-      ? 'Giảng viên hướng dẫn chuyên trách môn Khởi nghiệp EXE Đại học FPT.'
-      : user?.role === 'Admin'
-      ? 'Quản trị viên kỹ thuật hệ thống Cổng Ghép nhóm Đa ngành Khởi nghiệp EXE.'
-      : 'Sinh viên chuyên ngành Kỹ thuật phần mềm Đại học FPT đam mê khởi nghiệp công nghệ.'
-  );
 
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          {user?.role === 'Lecturer'
-            ? 'Hồ sơ Giảng viên & Cố vấn Đề tài'
-            : user?.role === 'Admin'
-            ? 'Hồ sơ Quản trị viên Hệ thống'
-            : 'Hồ sơ Cá nhân & Kỹ năng'}
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          {user?.role === 'Lecturer'
-            ? 'Thông tin giảng viên hướng dẫn, bộ môn phụ trách và các lĩnh vực cố vấn cho sinh viên EXE'
-            : user?.role === 'Admin'
-            ? 'Thông tin tài khoản quản trị kỹ thuật, phân quyền và giám sát hệ thống'
-            : 'Thông tin chuyên ngành, kỹ năng và lĩnh vực quan tâm giúp hệ thống Matching gợi ý nhóm chính xác nhất'}
-        </p>
-      </div>
-
-      <div className="card" style={{ maxWidth: 700, padding: '1.75rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Họ và tên</label>
-            <input type="text" className="form-control" value={user?.fullName || ''} disabled />
-          </div>
-
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">
-              {user?.role === 'Lecturer' ? 'Mã giảng viên' : user?.role === 'Admin' ? 'Mã quản trị' : 'Mã sinh viên'}
-            </label>
-            <input type="text" className="form-control" value={user?.studentCode || (user?.role === 'Lecturer' ? 'GV8812' : user?.role === 'Admin' ? 'AD001' : 'SE185102')} disabled />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Email tài khoản</label>
-          <input type="email" className="form-control" value={user?.email || ''} disabled />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Cơ sở trực thuộc</label>
-          <input type="text" className="form-control" value={user?.campus || 'TP. Hồ Chí Minh (HCM)'} disabled />
-        </div>
-
-        {user?.role === 'Student' && (
-          <>
-            <div className="form-group">
-              <label className="form-label">Chuyên ngành (Major)</label>
-              <select className="form-control" value={major} onChange={(e) => setMajor(e.target.value)}>
-                <option value="SE">SE — Software Engineering (Lập trình phần mềm)</option>
-                <option value="AI">AI — Artificial Intelligence (Trí tuệ nhân tạo)</option>
-                <option value="IA">IA — Information Assurance (An toàn thông tin)</option>
-                <option value="GD">GD — Graphic Design (Thiết kế đồ họa / UI-UX)</option>
-                <option value="MKT">MKT — Digital Marketing (Tiếp thị số)</option>
-                <option value="IB">IB — International Business (Kinh doanh quốc tế)</option>
-                <option value="Other">Other — Khác</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Trạng thái tìm nhóm (Availability)</label>
-              <select className="form-control" value={availability} onChange={(e) => setAvailability(e.target.value)}>
-                <option value="LookingForTeam">Đang tìm nhóm (Looking for team)</option>
-                <option value="InTeam">Đã có nhóm (In a team)</option>
-                <option value="NotLooking">Tạm ngưng tìm (Not looking)</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        {user?.role === 'Lecturer' && (
-          <div className="form-group">
-            <label className="form-label">Bộ môn / Lĩnh vực cố vấn đề tài</label>
-            <input type="text" className="form-control" value="Bộ môn Khởi nghiệp EXE • EdTech, FinTech, AI & Hệ thống thông tin" disabled />
-          </div>
-        )}
-
-        {user?.role === 'Admin' && (
-          <div className="form-group">
-            <label className="form-label">Phạm vi quản trị</label>
-            <input type="text" className="form-control" value="Toàn quyền quản trị tài khoản, kiểm duyệt đề tài và cấu hình môn học EXE" disabled />
-          </div>
-        )}
-
-        <div className="form-group">
-          <label className="form-label">Giới thiệu ngắn (Bio)</label>
-          <textarea className="form-control" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
-        </div>
-
-        <button className="btn btn-primary" onClick={() => alert('Đã cập nhật hồ sơ thành công!')}>
-          Lưu hồ sơ
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // ── 4. JOIN REQUESTS PAGE ───────────────────────────────────────────────────
 export const JoinRequestsPage: React.FC = () => {
@@ -656,69 +545,3 @@ export const ReportsPage: React.FC = () => {
   );
 };
 
-// ── 8. ADMIN ACCOUNTS PAGE ──────────────────────────────────────────────────
-export const AdminAccountsPage: React.FC = () => {
-  const [accounts, setAccounts] = useState([
-    { id: '1', email: 'student.a@fpt.edu.vn', name: 'Nguyễn Văn A', role: 'Student', isActive: true },
-    { id: '2', email: 'lecturer@fpt.edu.vn', name: 'TS. Trần Văn B', role: 'Lecturer', isActive: true },
-    { id: '3', email: 'troublemaker@fpt.edu.vn', name: 'Lê Văn C', role: 'Student', isActive: false },
-  ]);
-
-  const toggleStatus = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((acc) => (acc.id === id ? { ...acc, isActive: !acc.isActive } : acc))
-    );
-  };
-
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Quản trị Tài khoản Hệ thống
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Quản lý, phân quyền và khóa/mở khóa tài khoản người dùng (Auth Service Admin API)
-        </p>
-      </div>
-
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', color: 'var(--text-main)' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--border-light, #e2e8f0)', color: 'var(--text-muted, #64748b)', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-              <th style={{ padding: '0.75rem 1rem' }}>Họ và tên</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Email</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Vai trò</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Trạng thái</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((acc) => (
-              <tr key={acc.id} style={{ borderBottom: '1px solid var(--border-light, #f1f5f9)' }}>
-                <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>{acc.name}</td>
-                <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{acc.email}</td>
-                <td style={{ padding: '1rem' }}>
-                  <span className="badge badge-draft">{acc.role}</span>
-                </td>
-                <td style={{ padding: '1rem' }}>
-                  <span className={`badge badge-${acc.isActive ? 'active' : 'cancelled'}`}>
-                    {acc.isActive ? 'Hoạt động' : 'Bị khóa'}
-                  </span>
-                </td>
-                <td style={{ padding: '1rem', textAlign: 'right' }}>
-                  <button
-                    className={`btn btn-sm ${acc.isActive ? 'btn-secondary' : 'btn-primary'}`}
-                    onClick={() => toggleStatus(acc.id)}
-                  >
-                    {acc.isActive ? <Lock size={14} /> : <Unlock size={14} />}
-                    {acc.isActive ? 'Khóa' : 'Mở khóa'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};

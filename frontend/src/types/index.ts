@@ -1,19 +1,14 @@
-export type UserRole = 'Student' | 'Lecturer' | 'Admin';
+export * from './auth';
+export * from './user';
 
 export interface User {
   id: string;
   email: string;
   fullName: string;
-  role: UserRole;
+  role: import('./auth').UserRole;
   studentCode?: string;
   campus?: string;
   major?: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
 }
 
 export type ProjectDomain = 
@@ -68,6 +63,8 @@ export interface PagedResult<T> {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
 }
 
 export type GroupStatus = 'Recruiting' | 'Full' | 'Locked' | 'Disbanded';
