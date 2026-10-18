@@ -34,13 +34,16 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Nhập JWT Bearer token theo định dạng: Bearer {token}"
+        Description = "Nhập JWT Access Token (chỉ cần dán chuỗi token, Swagger UI sẽ tự động thêm Bearer prefix)."
     });
 
-    var requirement = new OpenApiSecurityRequirement();
-    var schemeRef = new OpenApiSecuritySchemeReference("Bearer");
-    requirement.Add(schemeRef, new List<string>());
-    options.AddSecurityRequirement(_ => requirement);
+    options.AddSecurityRequirement(doc =>
+    {
+        var req = new OpenApiSecurityRequirement();
+        var schemeRef = new OpenApiSecuritySchemeReference("Bearer", doc);
+        req.Add(schemeRef, new List<string>());
+        return req;
+    });
 });
 
 builder.Services.AddHealthChecks();

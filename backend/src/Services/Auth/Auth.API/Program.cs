@@ -6,6 +6,8 @@ using Exe.BuildingBlocks.Auth;
 using Exe.BuildingBlocks.EventBus;
 using Exe.BuildingBlocks.Web;
 
+using Microsoft.OpenApi;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Controllers & JSON Serialization ──────────────────────────────────────────
@@ -17,7 +19,33 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "EXE Team Matching - Auth Service API",
+        Version = "v1",
+        Description = "Microservice xác thực, phân quyền RBAC và quản lý phiên đăng nhập (PRN232 Final Assignment)."
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Nhập JWT Access Token (chỉ cần dán chuỗi token, Swagger UI sẽ tự động thêm Bearer prefix)."
+    });
+
+    options.AddSecurityRequirement(doc =>
+    {
+        var req = new OpenApiSecurityRequirement();
+        var schemeRef = new OpenApiSecuritySchemeReference("Bearer", doc);
+        req.Add(schemeRef, new List<string>());
+        return req;
+    });
+});
 builder.Services.AddHealthChecks();
 
 // ── Database & Persistence (Stage D1.1) ──────────────────────────────────────
