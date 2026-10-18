@@ -11,7 +11,6 @@ import {
   Zap,
   Users,
 } from 'lucide-react';
-import type { UserRole } from '../types';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 
 export const LoginPage: React.FC = () => {
@@ -59,20 +58,6 @@ export const LoginPage: React.FC = () => {
       return;
     }
     await executeLogin(email, password);
-  };
-
-  // Đăng nhập nhanh bằng tài khoản seeded chính thức trên Backend (không dùng mock local)
-  const handleQuickLogin = async (role: UserRole) => {
-    const credentials: Record<UserRole, { email: string; pass: string }> = {
-      Admin: { email: 'admin.dev@exe.local', pass: 'ExeAdmin@SecurePass2026!' },
-      Lecturer: { email: 'lecturer@fpt.edu.vn', pass: 'Lecturer@123' },
-      Student: { email: 'student@fpt.edu.vn', pass: 'Student@123' },
-    };
-
-    const cred = credentials[role];
-    setEmail(cred.email);
-    setPassword(cred.pass);
-    await executeLogin(cred.email, cred.pass);
   };
 
   return (
@@ -416,90 +401,8 @@ export const LoginPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Quick Demo Login Cards */}
-          <div
-            style={{
-              marginTop: '2.25rem',
-              padding: '1.25rem',
-              borderRadius: 14,
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                color: '#64748b',
-                letterSpacing: '0.05em',
-                marginBottom: '0.75rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              <Sparkles size={14} color="#f26f21" />
-              Đăng nhập nhanh (Dành cho Demo / Thuyết trình):
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Student')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #fed7aa',
-                  color: '#c2410c',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Sinh viên
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Lecturer')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #c7d2fe',
-                  color: '#4338ca',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Giảng viên
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('Admin')}
-                style={{
-                  padding: '0.65rem 0.5rem',
-                  borderRadius: 8,
-                  background: '#ffffff',
-                  border: '1px solid #fecaca',
-                  color: '#b91c1c',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Quản trị viên
-              </button>
-            </div>
-          </div>
-
           {/* Footer Copyright */}
-          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
             © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
           </div>
         </div>

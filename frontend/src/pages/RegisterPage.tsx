@@ -382,7 +382,7 @@ export const RegisterPage: React.FC = () => {
                 />
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
-                Ví dụ hợp lệ: <code style={{ color: '#f26f21', fontWeight: 600 }}>Student@123</code>
+                Ví dụ: <code style={{ color: '#f26f21', fontWeight: 600 }}>Abc@123456</code>
               </div>
             </div>
 
