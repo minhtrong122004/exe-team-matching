@@ -63,6 +63,8 @@ export interface PagedResult<T> {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  hasPrevious?: boolean;
+  hasNext?: boolean;
 }
 
 export type GroupStatus = 'Recruiting' | 'Full' | 'Locked' | 'Disbanded';

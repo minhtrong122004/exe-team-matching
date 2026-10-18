@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import {
   Mail,
   Download,
-  Lock,
-  Unlock,
   Zap,
 } from 'lucide-react';
 
@@ -547,69 +545,3 @@ export const ReportsPage: React.FC = () => {
   );
 };
 
-// ── 8. ADMIN ACCOUNTS PAGE ──────────────────────────────────────────────────
-export const AdminAccountsPage: React.FC = () => {
-  const [accounts, setAccounts] = useState([
-    { id: '1', email: 'student.a@fpt.edu.vn', name: 'Nguyễn Văn A', role: 'Student', isActive: true },
-    { id: '2', email: 'lecturer@fpt.edu.vn', name: 'TS. Trần Văn B', role: 'Lecturer', isActive: true },
-    { id: '3', email: 'troublemaker@fpt.edu.vn', name: 'Lê Văn C', role: 'Student', isActive: false },
-  ]);
-
-  const toggleStatus = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((acc) => (acc.id === id ? { ...acc, isActive: !acc.isActive } : acc))
-    );
-  };
-
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Quản trị Tài khoản Hệ thống
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Quản lý, phân quyền và khóa/mở khóa tài khoản người dùng (Auth Service Admin API)
-        </p>
-      </div>
-
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem', color: 'var(--text-main)' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--border-light, #e2e8f0)', color: 'var(--text-muted, #64748b)', fontSize: '0.8rem', textTransform: 'uppercase' }}>
-              <th style={{ padding: '0.75rem 1rem' }}>Họ và tên</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Email</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Vai trò</th>
-              <th style={{ padding: '0.75rem 1rem' }}>Trạng thái</th>
-              <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {accounts.map((acc) => (
-              <tr key={acc.id} style={{ borderBottom: '1px solid var(--border-light, #f1f5f9)' }}>
-                <td style={{ padding: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>{acc.name}</td>
-                <td style={{ padding: '1rem', color: 'var(--text-muted)' }}>{acc.email}</td>
-                <td style={{ padding: '1rem' }}>
-                  <span className="badge badge-draft">{acc.role}</span>
-                </td>
-                <td style={{ padding: '1rem' }}>
-                  <span className={`badge badge-${acc.isActive ? 'active' : 'cancelled'}`}>
-                    {acc.isActive ? 'Hoạt động' : 'Bị khóa'}
-                  </span>
-                </td>
-                <td style={{ padding: '1rem', textAlign: 'right' }}>
-                  <button
-                    className={`btn btn-sm ${acc.isActive ? 'btn-secondary' : 'btn-primary'}`}
-                    onClick={() => toggleStatus(acc.id)}
-                  >
-                    {acc.isActive ? <Lock size={14} /> : <Unlock size={14} />}
-                    {acc.isActive ? 'Khóa' : 'Mở khóa'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API Gateway Base URL (mặc định cổng 5000 qua YARP gateway)
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+// API Gateway Base URL (mặc định /api qua Vite dev proxy hoặc VITE_API_BASE_URL)
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -83,7 +83,7 @@ const PROFICIENCY_LABELS: Record<number, { text: string; color: string }> = {
 };
 
 export const ProfilePage: React.FC = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, updateUserData } = useAuth();
 
   // State hồ sơ
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -175,8 +175,10 @@ export const ProfilePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchProfile();
-    fetchSkillsCatalog();
+    queueMicrotask(() => {
+      fetchProfile();
+      fetchSkillsCatalog();
+    });
   }, [fetchProfile, fetchSkillsCatalog]);
 
   // Validate form cập nhật hồ sơ
@@ -244,6 +246,12 @@ export const ProfilePage: React.FC = () => {
     try {
       const response = await apiClient.put<UserProfileResponse>('/users/me', payload);
       setProfile(response.data);
+      updateUserData({
+        fullName: response.data.fullName,
+        studentCode: response.data.studentCode || undefined,
+        campus: response.data.campus || undefined,
+        major: response.data.major || undefined,
+      });
       setSuccessMsg('Hồ sơ của bạn đã được cập nhật thành công lên hệ thống!');
       setIsEditing(false);
       // Cập nhật lại thông tin trong form

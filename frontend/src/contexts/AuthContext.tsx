@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (email: string, password: string, fullName: string) => Promise<AuthUserDto>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
+  updateUserData: (partial: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +29,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const updateUserData = useCallback((partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...partial };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const refreshCurrentUser = useCallback(async () => {
     const token = localStorage.getItem('access_token');
@@ -177,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         refreshCurrentUser,
+        updateUserData,
       }}
     >
       {children}

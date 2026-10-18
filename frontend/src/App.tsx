@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import {
   GroupsPage,
   MyGroupPage,
@@ -14,7 +15,6 @@ import {
   InvitationsPage,
   NotificationsPage,
   ReportsPage,
-  AdminAccountsPage,
 } from './pages/PlaceholderPages';
 
 export const App: React.FC = () => {
