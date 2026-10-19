@@ -9,6 +9,7 @@ import {
   Calendar,
   Trash2,
   X,
+  Edit3,
 } from 'lucide-react';
 
 const DOMAINS: ProjectDomain[] = [
@@ -44,11 +45,13 @@ export const ProjectsPage: React.FC = () => {
 
   // Modal create/edit
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [problem, setProblem] = useState('');
   const [solution, setSolution] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<ProjectDomain>('EdTech');
+  const [selectedStatus, setSelectedStatus] = useState<ProjectStatus>('Draft');
   const [tagsInput, setTagsInput] = useState('');
 
   // Detail Modal
@@ -121,7 +124,25 @@ export const ProjectsPage: React.FC = () => {
     fetchProjects();
   }, [search, domain, status, page]);
 
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingProject(null);
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (proj: ProjectItem, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingProject(proj);
+    setTitle(proj.title);
+    setProblem(proj.problem || '');
+    setSolution(proj.solution || '');
+    setSelectedDomain(proj.domain as ProjectDomain);
+    setSelectedStatus(proj.status as ProjectStatus);
+    setTagsInput(proj.tags.join(', '));
+    setIsModalOpen(true);
+  };
+
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -130,19 +151,32 @@ export const ProjectsPage: React.FC = () => {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
-      await apiClient.post('/projects', {
-        title,
-        problem,
-        solution,
-        domain: selectedDomain,
-        tags,
-      });
+      if (editingProject) {
+        // UPDATE
+        await apiClient.put(`/projects/${editingProject.id}`, {
+          title,
+          problem,
+          solution,
+          domain: selectedDomain,
+          status: selectedStatus,
+          tags,
+        });
+      } else {
+        // CREATE
+        await apiClient.post('/projects', {
+          title,
+          problem,
+          solution,
+          domain: selectedDomain,
+          tags,
+        });
+      }
 
       setIsModalOpen(false);
       resetForm();
       fetchProjects();
     } catch (err: any) {
-      alert(err.response?.data?.detail || err.response?.data?.title || 'Không thể tạo dự án, vui lòng thử lại.');
+      alert(err.response?.data?.detail || err.response?.data?.title || (editingProject ? 'Không thể cập nhật dự án.' : 'Không thể tạo dự án, vui lòng thử lại.'));
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +198,9 @@ export const ProjectsPage: React.FC = () => {
     setProblem('');
     setSolution('');
     setSelectedDomain('EdTech');
+    setSelectedStatus('Draft');
     setTagsInput('');
+    setEditingProject(null);
   };
 
   return (
@@ -193,7 +229,7 @@ export const ProjectsPage: React.FC = () => {
 
         {user?.role === 'Student' && (
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenCreate}
             className="btn btn-primary"
             style={{ padding: '0.65rem 1.25rem' }}
           >
@@ -387,13 +423,46 @@ export const ProjectsPage: React.FC = () => {
                     </div>
 
                     {isOwner && (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <button
+                          onClick={(e) => handleOpenEdit(proj, e)}
+                          title="Chỉnh sửa ý tưởng"
+                          style={{
+                            color: '#f26f21',
+                            padding: '0.35rem 0.5rem',
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            background: 'rgba(242, 111, 33, 0.1)',
+                            border: '1px solid rgba(242, 111, 33, 0.25)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Edit3 size={13} />
+                          Sửa
+                        </button>
                         <button
                           onClick={(e) => handleDelete(proj.id, e)}
                           title="Xóa ý tưởng"
-                          style={{ color: '#ef4444', padding: '0.2rem' }}
+                          style={{
+                            color: '#ef4444',
+                            padding: '0.35rem 0.5rem',
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            cursor: 'pointer',
+                          }}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={13} />
+                          Xóa
                         </button>
                       </div>
                     )}
@@ -428,9 +497,9 @@ export const ProjectsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Đề xuất ý tưởng mới */}
+      {/* Modal Tạo mới / Chỉnh sửa Ý tưởng */}
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-overlay" onClick={() => { setIsModalOpen(false); resetForm(); }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div
               style={{
@@ -442,14 +511,14 @@ export const ProjectsPage: React.FC = () => {
               }}
             >
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)' }}>
-                Đề xuất Ý tưởng Dự án EXE
+                {editingProject ? 'Chỉnh sửa Ý tưởng Dự án EXE' : 'Đề xuất Ý tưởng Dự án EXE'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ color: 'var(--text-muted, #94a3b8)', cursor: 'pointer' }}>
+              <button onClick={() => { setIsModalOpen(false); resetForm(); }} style={{ color: 'var(--text-muted, #94a3b8)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateProject} style={{ padding: '1.5rem' }}>
+            <form onSubmit={handleSaveProject} style={{ padding: '1.5rem' }}>
               <div className="form-group">
                 <label className="form-label">Tên ý tưởng dự án *</label>
                 <input
@@ -462,19 +531,38 @@ export const ProjectsPage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Lĩnh vực (Domain) *</label>
-                <select
-                  className="form-control"
-                  value={selectedDomain}
-                  onChange={(e) => setSelectedDomain(e.target.value as ProjectDomain)}
-                >
-                  {DOMAINS.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: editingProject ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Lĩnh vực (Domain) *</label>
+                  <select
+                    className="form-control"
+                    value={selectedDomain}
+                    onChange={(e) => setSelectedDomain(e.target.value as ProjectDomain)}
+                  >
+                    {DOMAINS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {editingProject && (
+                  <div className="form-group">
+                    <label className="form-label">Trạng thái (Status) *</label>
+                    <select
+                      className="form-control"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value as ProjectStatus)}
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -525,7 +613,7 @@ export const ProjectsPage: React.FC = () => {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { setIsModalOpen(false); resetForm(); }}
                 >
                   Hủy
                 </button>
@@ -534,7 +622,7 @@ export const ProjectsPage: React.FC = () => {
                   className="btn btn-primary"
                   disabled={submitting}
                 >
-                  {submitting ? 'Đang lưu...' : 'Công bố ý tưởng'}
+                  {submitting ? 'Đang lưu...' : editingProject ? 'Lưu thay đổi' : 'Công bố ý tưởng'}
                 </button>
               </div>
             </form>
@@ -636,14 +724,30 @@ export const ProjectsPage: React.FC = () => {
                 }}
               >
                 <div>Ngày tạo: {new Date(selectedProject.createdAt).toLocaleString('vi-VN')}</div>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => {
-                    alert('Chức năng liên kết nhóm: Group Service sẽ kết nối tới ý tưởng dự án này!');
-                  }}
-                >
-                  Tạo nhóm cho dự án này
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {user?.id === selectedProject.ownerId && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        const proj = selectedProject;
+                        setSelectedProject(null);
+                        handleOpenEdit(proj);
+                      }}
+                      style={{ color: '#f26f21', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    >
+                      <Edit3 size={14} />
+                      Chỉnh sửa
+                    </button>
+                  )}
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      alert('Chức năng liên kết nhóm: Group Service sẽ kết nối tới ý tưởng dự án này!');
+                    }}
+                  >
+                    Tạo nhóm cho dự án này
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -1,0 +1,699 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "EXE Team Matching - Project Service API",
+    "description": "Microservice quan ly y tuong du an khoi nghiep EXE (PRN232 Final Assignment). Tat ca route di qua Ocelot API Gateway tai http://localhost:5000/api/projects. Loi tra ve theo chuan ProblemDetails RFC 9457.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Ocelot API Gateway"
+    },
+    {
+      "url": "http://localhost:5003",
+      "description": "Direct Project Service (Dev)"
+    }
+  ],
+  "paths": {
+    "/api/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Lay danh sach y tuong du an EXE co phan trang, tim kiem, loc va sap xep",
+        "description": "Public endpoint (AllowAnonymous). Ho tro tim kiem theo text trong tieu de/van de, loc theo domain/status/ownerId, phan trang va sap xep.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Tim trong Title va Problem",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "description": "Loc theo linh vuc du an",
+            "required": false,
+            "schema": {
+              "": "#/components/schemas/ProjectDomain"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Loc theo trang thai vong doi du an",
+            "required": false,
+            "schema": {
+              "": "#/components/schemas/ProjectStatus"
+            }
+          },
+          {
+            "name": "ownerId",
+            "in": "query",
+            "description": "Loc theo ID chu so huu y tuong",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Trang can lay (bat dau tu 1)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "So phan tu moi trang (1..100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "Truong sap xep: title | domain | status | updatedAt | createdAt",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "createdAt"
+            }
+          },
+          {
+            "name": "sortDir",
+            "in": "query",
+            "description": "Chieu sap xep: asc | desc",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "desc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay danh sach thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProjectSummaryResponsePagedResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Tao y tuong du an EXE moi",
+        "description": "Yeu cau dang nhap (Bearer Token). OwnerId tu dong trich xuat tu sub/nameid trong JWT token.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/CreateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tao y tuong thanh cong (kem Header Location)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Du lieu khong hop le (Validation Error theo FluentValidation)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc (Thieu hoac sai JWT Token)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Lay chi tiet mot y tuong du an theo ID",
+        "description": "Public endpoint. Tra ve day du thong tin chi tiet y tuong du an bao gom mo ta van de, giai phap, tags.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID dinh danh cua du an",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tim thay thong tin du an",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Khong tim thay du an voi ID tuong ung",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Cap nhat thong tin y tuong du an",
+        "description": "Yeu cau dang nhap. Chi chu so huu (OwnerId) cua du an moi co quyen cap nhat.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID du an can cap nhat",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "": "#/components/schemas/UpdateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cap nhat thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProjectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Du lieu khong hop le",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua dang nhap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen (Ban khong phai chu du an nay)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Khong tim thay du an can cap nhat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Xoa y tuong du an",
+        "description": "Yeu cau dang nhap. Chi chu so huu (OwnerId) cua du an moi co quyen xoa.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID du an can xoa",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Xoa du an thanh cong (No Content)"
+          },
+          "401": {
+            "description": "Chua dang nhap",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen (Ban khong phai chu du an nay)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Khong tim thay du an can xoa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProjectDomain": {
+        "type": "string",
+        "description": "Linh vuc / nganh nghe cua y tuong du an EXE",
+        "enum": [
+          "EdTech",
+          "FinTech",
+          "ECommerce",
+          "FnB",
+          "Health",
+          "Tourism",
+          "Other"
+        ]
+      },
+      "ProjectStatus": {
+        "type": "string",
+        "description": "Trang thai vong doi cua du an (Draft, Recruiting, Active, Completed, Cancelled)",
+        "enum": [
+          "Draft",
+          "Recruiting",
+          "Active",
+          "Completed",
+          "Cancelled"
+        ]
+      },
+      "CreateProjectRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "problem",
+          "solution",
+          "domain"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Tieu de y tuong du an"
+          },
+          "problem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Van de thuc te ma du an giai quyet"
+          },
+          "solution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Giai phap de xuat"
+          },
+          "domain": {
+            "": "#/components/schemas/ProjectDomain"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Danh sach the / tu khoa gan voi du an"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateProjectRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "problem",
+          "solution",
+          "domain",
+          "status"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Tieu de y tuong du an"
+          },
+          "problem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Van de thuc te ma du an giai quyet"
+          },
+          "solution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Giai phap de xuat"
+          },
+          "domain": {
+            "": "#/components/schemas/ProjectDomain"
+          },
+          "status": {
+            "": "#/components/schemas/ProjectStatus"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Danh sach the / tu khoa gan voi du an"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID duy nhat cua du an"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID sinh vien chu so huu y tuong"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "description": "Tieu de du an"
+          },
+          "problem": {
+            "type": "string",
+            "nullable": true,
+            "description": "Van de dat ra"
+          },
+          "solution": {
+            "type": "string",
+            "nullable": true,
+            "description": "Giai phap de xuat"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true,
+            "description": "Linh vuc du an"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "Trang thai du an"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Cac tags / cong nghe"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Thoi diem tao"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Thoi diem cap nhat gan nhat"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID duy nhat cua du an"
+          },
+          "ownerId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID chu so huu"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "description": "Tieu de du an"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true,
+            "description": "Linh vuc"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "Trang thai"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Cac tags"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Thoi diem tao"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProjectSummaryResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "": "#/components/schemas/ProjectSummaryResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Nhap JWT Bearer token theo dinh dang: Bearer {token}",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {}
+  ],
+  "tags": [
+    {
+      "name": "Projects",
+      "description": "Quan ly y tuong du an EXE"
+    }
+  ]
+}
