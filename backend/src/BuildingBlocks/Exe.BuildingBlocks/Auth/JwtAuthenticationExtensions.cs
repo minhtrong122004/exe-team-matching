@@ -25,6 +25,8 @@ public static class JwtAuthenticationExtensions
             throw new InvalidOperationException(
                 "Jwt:Key must be at least 32 bytes. Set it in appsettings.Development.json or the Jwt__Key environment variable.");
 
+        services.AddProblemDetails();
+
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
