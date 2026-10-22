@@ -179,6 +179,8 @@ public class AdminAccountService : IAdminAccountService
             RegistrationFullName = request.FullName.Trim(),
             Role = AccountRole.Lecturer,
             IsActive = true,
+            EmailConfirmed = true,
+            EmailConfirmedAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };

@@ -124,6 +124,8 @@ public partial class AdminBootstrapService : IAdminBootstrapService
                 RegistrationFullName = fullName,
                 Role = AccountRole.Admin,
                 IsActive = true,
+                EmailConfirmed = true,
+                EmailConfirmedAt = now,
                 CreatedAt = now,
                 UpdatedAt = now
             };

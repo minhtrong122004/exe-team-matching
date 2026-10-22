@@ -36,6 +36,14 @@ namespace Auth.Repository.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<bool>("EmailConfirmed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("EmailConfirmedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -66,6 +74,68 @@ namespace Auth.Repository.Migrations
                         .HasDatabaseName("IX_Accounts_Email");
 
                     b.ToTable("Accounts", (string)null);
+                });
+
+            modelBuilder.Entity("Auth.Repository.Entities.EmailVerificationChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("OtpHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("ResendAvailableAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Salt")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId")
+                        .HasDatabaseName("IX_EmailVerificationChallenges_AccountId");
+
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_EmailVerificationChallenges_Email");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("IX_EmailVerificationChallenges_ExpiresAt");
+
+                    b.ToTable("EmailVerificationChallenges", (string)null);
                 });
 
             modelBuilder.Entity("Auth.Repository.Entities.OutboxMessage", b =>
@@ -151,6 +221,17 @@ namespace Auth.Repository.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Auth.Repository.Entities.EmailVerificationChallenge", b =>
+                {
+                    b.HasOne("Auth.Repository.Entities.Account", "Account")
+                        .WithMany("VerificationChallenges")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
             modelBuilder.Entity("Auth.Repository.Entities.RefreshToken", b =>
                 {
                     b.HasOne("Auth.Repository.Entities.Account", "Account")
@@ -172,6 +253,8 @@ namespace Auth.Repository.Migrations
             modelBuilder.Entity("Auth.Repository.Entities.Account", b =>
                 {
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("VerificationChallenges");
                 });
 #pragma warning restore 612, 618
         }

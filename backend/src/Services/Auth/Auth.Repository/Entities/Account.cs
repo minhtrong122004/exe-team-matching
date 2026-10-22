@@ -38,6 +38,16 @@ public class Account
     public bool IsActive { get; set; } = true;
 
     /// <summary>
+    /// Trạng thái đã xác thực email thành công hay chưa. false = đang chờ xác thực OTP.
+    /// </summary>
+    public bool EmailConfirmed { get; set; } = false;
+
+    /// <summary>
+    /// Thời điểm xác thực email thành công (UTC).
+    /// </summary>
+    public DateTime? EmailConfirmedAt { get; set; }
+
+    /// <summary>
     /// Thời điểm tạo tài khoản (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -52,4 +62,9 @@ public class Account
     /// Danh sách Refresh Token thuộc về tài khoản này.
     /// </summary>
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    /// <summary>
+    /// Danh sách các yêu cầu xác thực email OTP thuộc về tài khoản này.
+    /// </summary>
+    public ICollection<EmailVerificationChallenge> VerificationChallenges { get; set; } = new List<EmailVerificationChallenge>();
 }

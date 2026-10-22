@@ -15,12 +15,30 @@ public class AuthControllerTests
 {
     private class FakeAuthService : IAuthService
     {
-        public Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
+        public Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
         {
-            return Task.FromResult(new AuthResponse(
-                "fake-jwt-access-token",
-                "fake-refresh-token",
-                new AuthUserDto(Guid.NewGuid(), request.Email, request.FullName, "Student")
+            return Task.FromResult(new RegisterResponse(
+                "Đăng ký thành công",
+                request.Email,
+                DateTime.UtcNow.AddMinutes(5)
+            ));
+        }
+
+        public Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new VerifyEmailResponse(
+                "Xác thực thành công",
+                request.Email
+            ));
+        }
+
+        public Task<ResendVerificationResponse> ResendVerificationAsync(ResendVerificationRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ResendVerificationResponse(
+                "Mã mới đã gửi",
+                request.Email,
+                60,
+                DateTime.UtcNow.AddMinutes(5)
             ));
         }
 
@@ -93,21 +111,55 @@ public class AuthControllerTests
     }
 
     [Fact]
-    public async Task Register_Returns201Created_WithAuthResponse()
+    public async Task Register_Returns201Created_WithRegisterResponse()
     {
-        // 15. AuthController status codes
         var fakeAuth = new FakeAuthService();
         var fakeAdmin = new FakeAdminAccountService();
         var fakeCurrentUser = new FakeCurrentUser();
         var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
 
-        var request = new RegisterRequest("sv@fpt.edu.vn", "Password@123", "Sinh Vien");
+        var request = new RegisterRequest("sv@gmail.com", "Password@123", "Sinh Vien");
         var result = await controller.Register(request, CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status201Created, objectResult.StatusCode);
-        var authResponse = Assert.IsType<AuthResponse>(objectResult.Value);
-        Assert.Equal("sv@fpt.edu.vn", authResponse.User.Email);
+        var registerResponse = Assert.IsType<RegisterResponse>(objectResult.Value);
+        Assert.Equal("sv@gmail.com", registerResponse.Email);
+    }
+
+    [Fact]
+    public async Task VerifyEmail_Returns200OK_WithVerifyEmailResponse()
+    {
+        var fakeAuth = new FakeAuthService();
+        var fakeAdmin = new FakeAdminAccountService();
+        var fakeCurrentUser = new FakeCurrentUser();
+        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
+
+        var request = new VerifyEmailRequest("sv@gmail.com", "123456");
+        var result = await controller.VerifyEmail(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+        var verifyResponse = Assert.IsType<VerifyEmailResponse>(okResult.Value);
+        Assert.Equal("sv@gmail.com", verifyResponse.Email);
+    }
+
+    [Fact]
+    public async Task ResendVerification_Returns200OK_WithResendVerificationResponse()
+    {
+        var fakeAuth = new FakeAuthService();
+        var fakeAdmin = new FakeAdminAccountService();
+        var fakeCurrentUser = new FakeCurrentUser();
+        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
+
+        var request = new ResendVerificationRequest("sv@gmail.com");
+        var result = await controller.ResendVerification(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+        var resendResponse = Assert.IsType<ResendVerificationResponse>(okResult.Value);
+        Assert.Equal("sv@gmail.com", resendResponse.Email);
+        Assert.Equal(60, resendResponse.ResendCooldownSeconds);
     }
 
     [Fact]

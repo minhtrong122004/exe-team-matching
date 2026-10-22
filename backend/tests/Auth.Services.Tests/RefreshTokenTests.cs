@@ -2,6 +2,7 @@ using Auth.Repository.Entities;
 using Auth.Repository.Enums;
 using Auth.Services.DTOs;
 using Auth.Services.Implementations;
+using Auth.Services.Interfaces;
 using Auth.Services.Security;
 using Auth.Services.Tests.TestDoubles;
 using Auth.Services.Validators;
@@ -17,6 +18,9 @@ public class RefreshTokenTests
     private readonly FakeRefreshTokenRepository _refreshTokenRepo = new();
     private readonly FakeOutboxRepository _outboxRepo = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
+    private readonly FakeEmailVerificationChallengeRepository _challengeRepo = new();
+    private readonly IOtpService _otpService = new OtpService();
+    private readonly FakeEmailSender _emailSender = new();
     private readonly IPasswordHasher _passwordHasher = new BCryptPasswordHasher();
     private readonly ITokenService _tokenService;
     private readonly IOptions<JwtOptions> _jwtOptions;
@@ -41,14 +45,19 @@ public class RefreshTokenTests
             _accountRepo,
             _refreshTokenRepo,
             _outboxRepo,
+            _challengeRepo,
             _unitOfWork,
             _passwordHasher,
             _tokenService,
+            _otpService,
+            _emailSender,
             _jwtOptions,
             new RegisterRequestValidator(),
             new LoginRequestValidator(),
             new RefreshTokenRequestValidator(),
             new LogoutRequestValidator(),
+            new VerifyEmailRequestValidator(),
+            new ResendVerificationRequestValidator(),
             new NullLogger<AuthService>()
         );
     }
@@ -66,6 +75,8 @@ public class RefreshTokenTests
             RegistrationFullName = "Sinh Viên Refresh",
             Role = AccountRole.Student,
             IsActive = true,
+            EmailConfirmed = true,
+            EmailConfirmedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         await _accountRepo.AddAsync(account);

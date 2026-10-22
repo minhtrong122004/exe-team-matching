@@ -1,5 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User, AuthResponse, AuthUserDto, AccountResponse, UserProfileResponse } from '../types';
+import type {
+  User,
+  AuthResponse,
+  AuthUserDto,
+  AccountResponse,
+  UserProfileResponse,
+  RegisterResponse,
+  VerifyEmailResponse,
+  ResendVerificationResponse,
+} from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
 
 interface AuthContextType {
@@ -7,7 +16,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUserDto>;
-  register: (email: string, password: string, fullName: string) => Promise<AuthUserDto>;
+  register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
+  verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
+  resendVerification: (email: string) => Promise<ResendVerificationResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   updateUserData: (partial: Partial<User>) => void;
@@ -193,23 +204,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     fullName: string
-  ): Promise<AuthUserDto> => {
-    // Đăng ký tài khoản sinh viên mới (Role luôn cố định là "Student" theo CLAUDE.md)
-    const response = await apiClient.post<AuthResponse>('/auth/register', {
+  ): Promise<RegisterResponse> => {
+    // Đăng ký tài khoản sinh viên mới (Gate C, D, H).
+    // Phản hồi trả về thông tin chờ xác thực OTP, tuyệt đối không lưu token vào localStorage trước khi xác thực.
+    const response = await apiClient.post<RegisterResponse>('/auth/register', {
       email: email.trim(),
       password,
       fullName: fullName.trim(),
       role: 'Student',
     });
 
-    const { accessToken, refreshToken, user: authUser } = response.data;
+    return response.data;
+  };
 
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-    localStorage.setItem('user', JSON.stringify(authUser));
+  const verifyEmail = async (email: string, otp: string): Promise<VerifyEmailResponse> => {
+    const response = await apiClient.post<VerifyEmailResponse>('/auth/verify-email', {
+      email: email.trim(),
+      otp: otp.trim(),
+    });
+    return response.data;
+  };
 
-    setUser(authUser);
-    return authUser;
+  const resendVerification = async (email: string): Promise<ResendVerificationResponse> => {
+    const response = await apiClient.post<ResendVerificationResponse>('/auth/resend-verification', {
+      email: email.trim(),
+    });
+    return response.data;
   };
 
   const logout = async (): Promise<void> => {
@@ -235,6 +255,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         register,
+        verifyEmail,
+        resendVerification,
         logout,
         refreshCurrentUser,
         updateUserData,
