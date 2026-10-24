@@ -442,18 +442,6 @@ export const MainLayout: React.FC = () => {
               }}
             >
               <Bell size={18} />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 7,
-                  right: 7,
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: '#f26f21',
-                  boxShadow: `0 0 0 2px ${isDarkMode ? '#1e293b' : '#ffffff'}`,
-                }}
-              />
             </button>
 
             {/* ══════════════════════════════════════════════════════════
