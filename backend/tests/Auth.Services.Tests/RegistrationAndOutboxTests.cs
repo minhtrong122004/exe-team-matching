@@ -60,6 +60,8 @@ public class RegistrationAndOutboxTests
             new LogoutRequestValidator(),
             new VerifyEmailRequestValidator(),
             new ResendVerificationRequestValidator(),
+            new ForgotPasswordRequestValidator(),
+            new ResetPasswordRequestValidator(),
             new NullLogger<AuthService>()
         );
     }

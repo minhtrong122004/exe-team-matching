@@ -23,27 +23,27 @@ public class EmailVerificationChallengeRepository : IEmailVerificationChallengeR
         await _db.EmailVerificationChallenges.AddAsync(challenge, ct);
     }
 
-    public async Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, CancellationToken ct = default)
+    public async Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         return await _db.EmailVerificationChallenges
-            .Where(c => c.AccountId == accountId && !c.IsUsed)
+            .Where(c => c.AccountId == accountId && c.Purpose == purpose && !c.IsUsed)
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, CancellationToken ct = default)
+    public async Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
         return await _db.EmailVerificationChallenges
-            .Where(c => c.Email == normalizedEmail && !c.IsUsed)
+            .Where(c => c.Email == normalizedEmail && c.Purpose == purpose && !c.IsUsed)
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task InvalidatePreviousChallengesAsync(Guid accountId, CancellationToken ct = default)
+    public async Task InvalidatePreviousChallengesAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         var activeChallenges = await _db.EmailVerificationChallenges
-            .Where(c => c.AccountId == accountId && !c.IsUsed)
+            .Where(c => c.AccountId == accountId && c.Purpose == purpose && !c.IsUsed)
             .ToListAsync(ct);
 
         foreach (var c in activeChallenges)
@@ -52,11 +52,11 @@ public class EmailVerificationChallengeRepository : IEmailVerificationChallengeR
         }
     }
 
-    public async Task<int> CountResendsInLastHourAsync(Guid accountId, CancellationToken ct = default)
+    public async Task<int> CountResendsInLastHourAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
         return await _db.EmailVerificationChallenges
-            .CountAsync(c => c.AccountId == accountId && c.CreatedAt >= oneHourAgo, ct);
+            .CountAsync(c => c.AccountId == accountId && c.Purpose == purpose && c.CreatedAt >= oneHourAgo, ct);
     }
 
     public async Task UpdateAsync(EmailVerificationChallenge challenge, CancellationToken ct = default)

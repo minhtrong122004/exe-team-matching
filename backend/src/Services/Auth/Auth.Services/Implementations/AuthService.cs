@@ -37,6 +37,8 @@ public class AuthService : IAuthService
     private readonly IValidator<LogoutRequest> _logoutValidator;
     private readonly IValidator<VerifyEmailRequest> _verifyEmailValidator;
     private readonly IValidator<ResendVerificationRequest> _resendVerificationValidator;
+    private readonly IValidator<ForgotPasswordRequest> _forgotPasswordValidator;
+    private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -56,6 +58,8 @@ public class AuthService : IAuthService
         IValidator<LogoutRequest> logoutValidator,
         IValidator<VerifyEmailRequest> verifyEmailValidator,
         IValidator<ResendVerificationRequest> resendVerificationValidator,
+        IValidator<ForgotPasswordRequest> forgotPasswordValidator,
+        IValidator<ResetPasswordRequest> resetPasswordValidator,
         ILogger<AuthService> logger)
     {
         _accountRepository = accountRepository;
@@ -74,6 +78,8 @@ public class AuthService : IAuthService
         _logoutValidator = logoutValidator;
         _verifyEmailValidator = verifyEmailValidator;
         _resendVerificationValidator = resendVerificationValidator;
+        _forgotPasswordValidator = forgotPasswordValidator;
+        _resetPasswordValidator = resetPasswordValidator;
         _logger = logger;
     }
 
@@ -139,7 +145,7 @@ public class AuthService : IAuthService
         }
 
         // 4. Hủy bỏ mọi challenge cũ chưa sử dụng của tài khoản này
-        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, ct);
+        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, Auth.Repository.Enums.ChallengePurpose.EmailVerification, ct);
 
         // 5. Sinh mã OTP 6 số ngẫu nhiên CSPRNG và băm kèm salt (Gate E)
         var otp = _otpService.GenerateSixDigitOtp();
@@ -200,7 +206,7 @@ public class AuthService : IAuthService
             return new VerifyEmailResponse("Tài khoản của bạn đã được xác thực trước đó. Vui lòng đăng nhập.", account.Email);
         }
 
-        var challenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ct);
+        var challenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, Auth.Repository.Enums.ChallengePurpose.EmailVerification, ct);
         if (challenge == null)
         {
             throw new BadRequestException("Không tìm thấy yêu cầu xác thực email hoặc mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại mã mới.", "CHALLENGE_NOT_FOUND");
@@ -309,7 +315,7 @@ public class AuthService : IAuthService
         var now = DateTime.UtcNow;
 
         // 1. Kiểm tra Cooldown 60s
-        var activeChallenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ct);
+        var activeChallenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, Auth.Repository.Enums.ChallengePurpose.EmailVerification, ct);
         if (activeChallenge != null && activeChallenge.ResendAvailableAt.HasValue && activeChallenge.ResendAvailableAt.Value > now)
         {
             var remainingSeconds = (int)Math.Ceiling((activeChallenge.ResendAvailableAt.Value - now).TotalSeconds);
@@ -318,7 +324,7 @@ public class AuthService : IAuthService
         }
 
         // 2. Kiểm tra giới hạn 5 lần/giờ
-        var resendsInLastHour = await _challengeRepository.CountResendsInLastHourAsync(account.Id, ct);
+        var resendsInLastHour = await _challengeRepository.CountResendsInLastHourAsync(account.Id, Auth.Repository.Enums.ChallengePurpose.EmailVerification, ct);
         if (resendsInLastHour >= 5)
         {
             _logger.LogWarning("Hourly resend limit exceeded for Account {AccountId} ({Count} resends)", account.Id, resendsInLastHour);
@@ -326,7 +332,7 @@ public class AuthService : IAuthService
         }
 
         // 3. Vô hiệu hóa mọi challenge cũ
-        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, ct);
+        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, Auth.Repository.Enums.ChallengePurpose.EmailVerification, ct);
 
         // 4. Sinh mã OTP mới và băm kèm salt
         var otp = _otpService.GenerateSixDigitOtp();
@@ -521,6 +527,189 @@ public class AuthService : IAuthService
             await _unitOfWork.SaveChangesAsync(ct);
             _logger.LogInformation("Refresh token revoked due to logout for AccountId {AccountId}", token.AccountId);
         }
+    }
+
+    /// <summary>
+    /// Gửi mã OTP đặt lại mật khẩu qua Brevo Email (Giai đoạn 2 - Password Recovery).
+    /// </summary>
+    public async Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _forgotPasswordValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var account = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
+
+        // Security: Không tiết lộ email có tồn tại trong hệ thống hay không để chống account enumeration
+        if (account == null || !account.IsActive || !account.EmailConfirmed)
+        {
+            _logger.LogInformation("Password reset requested for non-existent or unconfirmed account: {Email}", normalizedEmail);
+            return new ForgotPasswordResponse(
+                "Nếu email của bạn tồn tại và đã được kích hoạt trong hệ thống, mã xác thực OTP đặt lại mật khẩu đã được gửi đến hộp thư.",
+                normalizedEmail,
+                60,
+                DateTime.UtcNow.AddMinutes(5)
+            );
+        }
+
+        // Kiểm tra cooldown 60s
+        var activeChallenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ChallengePurpose.PasswordReset, ct);
+        if (activeChallenge != null && activeChallenge.ResendAvailableAt.HasValue && activeChallenge.ResendAvailableAt.Value > DateTime.UtcNow)
+        {
+            var remainingSeconds = (int)Math.Ceiling((activeChallenge.ResendAvailableAt.Value - DateTime.UtcNow).TotalSeconds);
+            throw new BadRequestException(
+                $"Vui lòng đợi {remainingSeconds} giây trước khi yêu cầu gửi lại mã OTP đặt lại mật khẩu.",
+                "RESEND_COOLDOWN");
+        }
+
+        // Rate limiting: Tối đa 5 lần gửi lại mã trong 1 giờ
+        var resendsInLastHour = await _challengeRepository.CountResendsInLastHourAsync(account.Id, ChallengePurpose.PasswordReset, ct);
+        if (resendsInLastHour >= 5)
+        {
+            throw new BadRequestException(
+                "Bạn đã yêu cầu gửi mã quá nhiều lần trong 1 giờ qua. Vui lòng thử lại sau.",
+                "TOO_MANY_RESENDS");
+        }
+
+        // Vô hiệu hóa mọi challenge PasswordReset cũ
+        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, ChallengePurpose.PasswordReset, ct);
+
+        // Sinh mã OTP 6 số CSPRNG ngẫu nhiên và băm kèm salt
+        var otp = _otpService.GenerateSixDigitOtp();
+        var (otpHash, salt) = _otpService.HashOtp(otp);
+        var now = DateTime.UtcNow;
+
+        var newChallenge = new EmailVerificationChallenge
+        {
+            Id = Guid.NewGuid(),
+            AccountId = account.Id,
+            Email = normalizedEmail,
+            Purpose = ChallengePurpose.PasswordReset,
+            OtpHash = otpHash,
+            Salt = salt,
+            ExpiresAt = now.AddMinutes(5),
+            ResendAvailableAt = now.AddSeconds(60),
+            FailedAttempts = 0,
+            IsUsed = false,
+            CreatedAt = now
+        };
+
+        await _challengeRepository.AddAsync(newChallenge, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        // Gửi email qua Brevo
+        await _emailSender.SendPasswordResetOtpAsync(normalizedEmail, account.RegistrationFullName, otp, ct);
+
+        _logger.LogInformation("Password reset OTP generated and email dispatched to {Email}", normalizedEmail);
+
+        return new ForgotPasswordResponse(
+            "Mã xác thực OTP đặt lại mật khẩu đã được gửi đến email của bạn.",
+            normalizedEmail,
+            60,
+            newChallenge.ExpiresAt
+        );
+    }
+
+    /// <summary>
+    /// Đặt lại mật khẩu bằng mã OTP và thiết lập mật khẩu mới (Giai đoạn 2 - Password Recovery).
+    /// </summary>
+    public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _resetPasswordValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var account = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
+        if (account == null)
+        {
+            throw new NotFoundException("Tài khoản không tồn tại trong hệ thống.", "ACCOUNT_NOT_FOUND");
+        }
+
+        if (!account.IsActive)
+        {
+            throw new ForbiddenException("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", "ACCOUNT_LOCKED");
+        }
+
+        var challenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ChallengePurpose.PasswordReset, ct);
+        if (challenge == null || challenge.IsUsed)
+        {
+            throw new BadRequestException(
+                "Không tìm thấy yêu cầu đặt lại mật khẩu hợp lệ hoặc mã OTP đã được sử dụng. Vui lòng yêu cầu mã mới.",
+                "CHALLENGE_NOT_FOUND");
+        }
+
+        if (challenge.FailedAttempts >= 5)
+        {
+            challenge.IsUsed = true;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            throw new ForbiddenException(
+                "Bạn đã nhập sai mã OTP quá 5 lần. Yêu cầu đặt lại mật khẩu này đã bị khóa vì lý do an toàn. Vui lòng yêu cầu mã mới.",
+                "MAX_FAILED_ATTEMPTS");
+        }
+
+        if (challenge.ExpiresAt <= DateTime.UtcNow)
+        {
+            challenge.IsUsed = true;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            throw new BadRequestException(
+                "Mã OTP đã hết hạn (quá 5 phút). Vui lòng yêu cầu gửi lại mã mới.",
+                "OTP_EXPIRED");
+        }
+
+        var isOtpValid = _otpService.VerifyOtp(request.Otp, challenge.OtpHash, challenge.Salt);
+        if (!isOtpValid)
+        {
+            challenge.FailedAttempts++;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            var remainingAttempts = Math.Max(0, 5 - challenge.FailedAttempts);
+            if (remainingAttempts <= 0)
+            {
+                challenge.IsUsed = true;
+                await _challengeRepository.UpdateAsync(challenge, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+
+                throw new ForbiddenException(
+                    "Bạn đã nhập sai mã OTP quá 5 lần. Yêu cầu đặt lại mật khẩu này đã bị khóa vì lý do an toàn.",
+                    "MAX_FAILED_ATTEMPTS");
+            }
+
+            throw new BadRequestException(
+                $"Mã OTP không chính xác. Bạn còn lại {remainingAttempts} lần thử.",
+                "INVALID_OTP");
+        }
+
+        // OTP hợp lệ: Đổi mật khẩu
+        challenge.IsUsed = true;
+        challenge.UsedAt = DateTime.UtcNow;
+        await _challengeRepository.UpdateAsync(challenge, ct);
+
+        account.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        account.UpdatedAt = DateTime.UtcNow;
+        await _accountRepository.UpdateAsync(account, ct);
+
+        // Thu hồi toàn bộ Refresh Tokens cũ để force logout trên mọi thiết bị
+        await _refreshTokenRepository.RevokeAllForAccountAsync(account.Id, "Password reset by user", ct);
+
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Password reset successfully for account {AccountId} ({Email})", account.Id, normalizedEmail);
+
+        return new ResetPasswordResponse(
+            "Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới ngay bây giờ.",
+            normalizedEmail
+        );
     }
 
     public async Task<AccountResponse> GetCurrentAccountAsync(Guid accountId, CancellationToken ct = default)

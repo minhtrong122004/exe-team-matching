@@ -20,5 +20,9 @@ public interface IAuthService
 
     Task LogoutAsync(LogoutRequest request, CancellationToken ct = default);
 
+    Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default);
+
+    Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
+
     Task<AccountResponse> GetCurrentAccountAsync(Guid accountId, CancellationToken ct = default);
 }

@@ -112,6 +112,13 @@ namespace Auth.Repository.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(64)");
 
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasDefaultValue("EmailVerification");
+
                     b.Property<DateTime?>("ResendAvailableAt")
                         .HasColumnType("datetime2");
 
@@ -134,6 +141,9 @@ namespace Auth.Repository.Migrations
 
                     b.HasIndex("ExpiresAt")
                         .HasDatabaseName("IX_EmailVerificationChallenges_ExpiresAt");
+
+                    b.HasIndex("Email", "Purpose")
+                        .HasDatabaseName("IX_EmailVerificationChallenges_Email_Purpose");
 
                     b.ToTable("EmailVerificationChallenges", (string)null);
                 });

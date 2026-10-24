@@ -8,6 +8,9 @@ import type {
   RegisterResponse,
   VerifyEmailResponse,
   ResendVerificationResponse,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
 } from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
 
@@ -19,6 +22,8 @@ interface AuthContextType {
   register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
   verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
   resendVerification: (email: string) => Promise<ResendVerificationResponse>;
+  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   updateUserData: (partial: Partial<User>) => void;
@@ -232,6 +237,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return response.data;
   };
 
+  const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
+    const response = await apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', {
+      email: email.trim(),
+    });
+    return response.data;
+  };
+
+  const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', {
+      email: data.email.trim(),
+      otp: data.otp.trim(),
+      newPassword: data.newPassword,
+      confirmNewPassword: data.confirmNewPassword,
+    });
+    return response.data;
+  };
+
   const logout = async (): Promise<void> => {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
@@ -257,6 +279,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         verifyEmail,
         resendVerification,
+        forgotPassword,
+        resetPassword,
         logout,
         refreshCurrentUser,
         updateUserData,

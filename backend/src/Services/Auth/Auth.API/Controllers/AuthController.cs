@@ -77,6 +77,36 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Gửi mã OTP đặt lại mật khẩu qua email (Brevo Transactional Email).
+    /// Hỗ trợ chống dò quét tài khoản (User Enumeration Protection) và Cooldown 60s.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ForgotPasswordResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken ct)
+    {
+        var result = await _authService.ForgotPasswordAsync(request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Đặt lại mật khẩu tài khoản bằng mã OTP 6 số.
+    /// Thu hồi tất cả Refresh Token của tài khoản để bảo mật phiên đăng nhập.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ResetPasswordResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken ct)
+    {
+        var result = await _authService.ResetPasswordAsync(request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Đăng nhập tài khoản bằng email và mật khẩu.
     /// </summary>
     [HttpPost("login")]

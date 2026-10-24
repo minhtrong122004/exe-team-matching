@@ -6,11 +6,12 @@ namespace Auth.Services.Interfaces;
 public interface IEmailSender
 {
     /// <summary>
-    /// Gửi mã xác thực OTP 6 số tới địa chỉ email người dùng.
+    /// Gửi mã xác thực OTP 6 số tới địa chỉ email người dùng để kích hoạt tài khoản.
     /// </summary>
-    /// <param name="recipientEmail">Email người nhận</param>
-    /// <param name="recipientName">Họ và tên người nhận</param>
-    /// <param name="otp">Mã xác thực 6 chữ số</param>
-    /// <param name="ct">CancellationToken</param>
     Task SendVerificationOtpAsync(string recipientEmail, string recipientName, string otp, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gửi mã OTP 6 số phục vụ yêu cầu đặt lại mật khẩu tài khoản.
+    /// </summary>
+    Task SendPasswordResetOtpAsync(string recipientEmail, string recipientName, string otp, CancellationToken ct = default);
 }
