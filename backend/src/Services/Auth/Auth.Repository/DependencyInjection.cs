@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IEmailVerificationChallengeRepository, EmailVerificationChallengeRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;

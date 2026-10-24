@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
           {/* Public Authentication routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
 
           {/* Protected Application routes wrapped in MainLayout */}
           <Route element={<ProtectedRoute />}>

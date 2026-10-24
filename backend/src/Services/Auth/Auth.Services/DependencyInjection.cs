@@ -16,6 +16,11 @@ public static class DependencyInjection
         // ── Security & Cryptography ──────────────────────────────────────────
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+
+        // ── Email Integration (Gate F) ───────────────────────────────────────
+        services.AddHttpClient(BrevoEmailSender.HttpClientName);
+        services.AddScoped<IEmailSender, BrevoEmailSender>();
 
         // ── Business Services ────────────────────────────────────────────────
         services.AddScoped<IAuthService, AuthService>();

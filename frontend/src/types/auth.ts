@@ -73,9 +73,6 @@ export interface CreateLecturerRequest {
   fullName: string;
 }
 
-/// <summary>
-/// Tham số truy vấn danh sách tài khoản phân trang (GET /api/auth/accounts).
-/// </summary>
 export interface GetAccountsQuery {
   search?: string;
   role?: UserRole;
@@ -84,4 +81,46 @@ export interface GetAccountsQuery {
   sortDir?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
+}
+
+/// <summary>
+/// DTO phản hồi sau khi đăng ký tài khoản (Gate H).
+/// </summary>
+export interface RegisterResponse {
+  message: string;
+  email: string;
+  expiresAt: string;
+}
+
+/// <summary>
+/// DTO yêu cầu xác thực email bằng mã OTP (POST /api/auth/verify-email).
+/// </summary>
+export interface VerifyEmailRequest {
+  email: string;
+  otp: string;
+}
+
+/// <summary>
+/// DTO phản hồi sau khi xác thực email thành công (POST /api/auth/verify-email).
+/// </summary>
+export interface VerifyEmailResponse {
+  message: string;
+  email: string;
+}
+
+/// <summary>
+/// DTO yêu cầu gửi lại mã xác thực OTP (POST /api/auth/resend-verification).
+/// </summary>
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+/// <summary>
+/// DTO phản hồi sau khi gửi lại mã xác thực OTP (POST /api/auth/resend-verification).
+/// </summary>
+export interface ResendVerificationResponse {
+  message: string;
+  email: string;
+  resendCooldownSeconds: number;
+  expiresAt: string;
 }

@@ -32,3 +32,31 @@ public record AccountResponse(
     DateTime CreatedAt,
     DateTime? UpdatedAt = null
 );
+
+/// <summary>
+/// DTO phản hồi sau khi gửi yêu cầu đăng ký tài khoản (Gate H).
+/// Tuyệt đối không trả về AccessToken hay RefreshToken trước khi xác thực email.
+/// </summary>
+public record RegisterResponse(
+    string Message,
+    string Email,
+    DateTime ExpiresAt
+);
+
+/// <summary>
+/// DTO phản hồi sau khi xác thực OTP thành công (Gate H).
+/// </summary>
+public record VerifyEmailResponse(
+    string Message,
+    string Email
+);
+
+/// <summary>
+/// DTO phản hồi sau khi yêu cầu gửi lại mã xác thực OTP (Gate H).
+/// </summary>
+public record ResendVerificationResponse(
+    string Message,
+    string Email,
+    int ResendCooldownSeconds,
+    DateTime ExpiresAt
+);

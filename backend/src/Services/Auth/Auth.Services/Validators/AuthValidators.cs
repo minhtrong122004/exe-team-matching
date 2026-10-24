@@ -83,3 +83,30 @@ public class LogoutRequestValidator : AbstractValidator<LogoutRequest>
             .NotEmpty().WithMessage("Refresh token không được để trống.");
     }
 }
+
+public class VerifyEmailRequestValidator : AbstractValidator<VerifyEmailRequest>
+{
+    public VerifyEmailRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email không được để trống.")
+            .EmailAddress().WithMessage("Định dạng email không hợp lệ.")
+            .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
+
+        RuleFor(x => x.Otp)
+            .NotEmpty().WithMessage("Mã xác thực OTP không được để trống.")
+            .Length(6).WithMessage("Mã xác thực OTP phải gồm đúng 6 chữ số.")
+            .Matches(@"^\d{6}$").WithMessage("Mã xác thực OTP chỉ bao gồm các chữ số (0-9).");
+    }
+}
+
+public class ResendVerificationRequestValidator : AbstractValidator<ResendVerificationRequest>
+{
+    public ResendVerificationRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email không được để trống.")
+            .EmailAddress().WithMessage("Định dạng email không hợp lệ.")
+            .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
+    }
+}
