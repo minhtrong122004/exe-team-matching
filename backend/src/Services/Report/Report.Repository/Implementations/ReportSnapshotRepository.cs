@@ -16,11 +16,32 @@ public class ReportSnapshotRepository : IReportSnapshotRepository
         _db = db;
     }
 
-    public Task<PagedResult<ReportSnapshot>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default) =>
-        _db.ReportSnapshots
-            .AsNoTracking()
+    public Task<PagedResult<ReportSnapshot>> GetPagedAsync(
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _db.ReportSnapshots.AsNoTracking();
+
+        if (from.HasValue)
+        {
+            query = query.Where(x => x.GeneratedAt >= from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(x => x.GeneratedAt <= to.Value);
+        }
+
+        return query
             .OrderByDescending(x => x.GeneratedAt)
             .ToPagedResultAsync(page, pageSize, ct);
+    }
+
+    public Task<ReportSnapshot?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        _db.ReportSnapshots.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
 
     public async Task AddAsync(ReportSnapshot snapshot, CancellationToken ct = default) =>
         await _db.ReportSnapshots.AddAsync(snapshot, ct);

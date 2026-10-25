@@ -747,6 +747,35 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
+  const handleGenerateSnapshot = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await reportsApi.generateSnapshot();
+      await loadReportData();
+      setActiveTab('snapshots');
+    } catch {
+      setError('Chỉ Quản trị viên (Admin) mới có quyền tạo Snapshot thủ công.');
+      setLoading(false);
+    }
+  };
+
+  const handleExportSnapshotCsv = async (snapshotId: string) => {
+    try {
+      const blob = await reportsApi.exportSnapshotCsv(snapshotId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `exe-report-snapshot-${snapshotId.slice(0, 8)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Không thể xuất file CSV của bản chụp này.');
+    }
+  };
+
   const totalStudents = summary?.totalStudents ?? 0;
   const studentsInGroup = summary?.studentsInGroup ?? 0;
   const studentsWithoutGroup = summary?.studentsWithoutGroup ?? 0;
@@ -776,7 +805,7 @@ export const ReportsPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.6rem' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
           <button
             className="btn btn-secondary"
             onClick={() => void loadReportData()}
@@ -784,6 +813,14 @@ export const ReportsPage: React.FC = () => {
           >
             <RefreshCw size={17} />
             Làm mới
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => void handleGenerateSnapshot()}
+            disabled={loading}
+          >
+            <Zap size={17} color="#f26f21" />
+            Chụp Snapshot ngay
           </button>
           <button
             className="btn btn-primary"
@@ -1063,9 +1100,18 @@ export const ReportsPage: React.FC = () => {
                     SV: {snap.totalStudents} (Có nhóm: {snap.studentsInGroup}, Chưa: {snap.studentsWithoutGroup})
                   </div>
                 </div>
-                <span className="badge badge-domain">
-                  Nhóm: {snap.totalGroups} (Đủ: {snap.fullGroups})
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className="badge badge-domain">
+                    Nhóm: {snap.totalGroups} (Đủ: {snap.fullGroups})
+                  </span>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => void handleExportSnapshotCsv(snap.id)}
+                  >
+                    <Download size={14} />
+                    CSV
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -25,7 +25,14 @@ public sealed class FakeStudentStatRepository : IStudentStatRepository
         if (!string.IsNullOrWhiteSpace(major))
         {
             var m = major.Trim();
-            query = query.Where(x => string.Equals(x.Major, m, StringComparison.OrdinalIgnoreCase));
+            if (string.Equals(m, "Unassigned", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => string.IsNullOrWhiteSpace(x.Major));
+            }
+            else
+            {
+                query = query.Where(x => string.Equals(x.Major, m, StringComparison.OrdinalIgnoreCase));
+            }
         }
 
         var ordered = query.OrderBy(x => x.FullName).ToList();
@@ -86,12 +93,31 @@ public sealed class FakeReportSnapshotRepository : IReportSnapshotRepository
 {
     public List<ReportSnapshot> Items { get; } = [];
 
-    public Task<PagedResult<ReportSnapshot>> GetPagedAsync(int page, int pageSize, CancellationToken ct = default)
+    public Task<PagedResult<ReportSnapshot>> GetPagedAsync(
+        DateTime? from,
+        DateTime? to,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var ordered = Items.OrderByDescending(x => x.GeneratedAt).ToList();
+        var query = Items.AsEnumerable();
+        if (from.HasValue)
+        {
+            query = query.Where(x => x.GeneratedAt >= from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(x => x.GeneratedAt <= to.Value);
+        }
+
+        var ordered = query.OrderByDescending(x => x.GeneratedAt).ToList();
         var paged = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         return Task.FromResult(new PagedResult<ReportSnapshot>(paged, page, pageSize, ordered.Count));
     }
+
+    public Task<ReportSnapshot?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        Task.FromResult(Items.FirstOrDefault(x => x.Id == id));
 
     public Task AddAsync(ReportSnapshot snapshot, CancellationToken ct = default)
     {

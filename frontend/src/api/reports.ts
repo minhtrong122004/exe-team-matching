@@ -14,13 +14,30 @@ export const reportsApi = {
     return response.data;
   },
 
-  getSnapshots: async (params: { page?: number; pageSize?: number } = {}): Promise<
-    PagedResult<ReportSnapshotResponse>
-  > => {
+  getSnapshots: async (
+    params: { from?: string; to?: string; page?: number; pageSize?: number } = {}
+  ): Promise<PagedResult<ReportSnapshotResponse>> => {
     const response = await apiClient.get<PagedResult<ReportSnapshotResponse>>(
       '/reports/snapshots',
       { params }
     );
+    return response.data;
+  },
+
+  getSnapshotById: async (id: string): Promise<ReportSnapshotResponse> => {
+    const response = await apiClient.get<ReportSnapshotResponse>(`/reports/snapshots/${id}`);
+    return response.data;
+  },
+
+  generateSnapshot: async (): Promise<ReportSnapshotResponse> => {
+    const response = await apiClient.post<ReportSnapshotResponse>('/reports/snapshots/generate');
+    return response.data;
+  },
+
+  exportSnapshotCsv: async (id: string): Promise<Blob> => {
+    const response = await apiClient.get<Blob>(`/reports/snapshots/${id}/export`, {
+      responseType: 'blob',
+    });
     return response.data;
   },
 

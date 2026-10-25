@@ -1,4 +1,5 @@
 using System.Text;
+using Exe.BuildingBlocks.Web;
 using Report.Repository.Entities;
 using Report.Repository.Enums;
 using Report.Services.DTOs;
@@ -65,6 +66,41 @@ public class ReportServiceTests
         Assert.Equal(3, snapshot.TotalStudents);
         Assert.Equal(2, snapshot.TotalGroups);
         Assert.Equal(1, _unitOfWork.SaveChangesCount);
+    }
+
+    [Fact]
+    public async Task GetSnapshotByIdAsync_WhenFound_ReturnsSnapshotDto()
+    {
+        var created = await _sut.CreateSnapshotAsync();
+
+        var fetched = await _sut.GetSnapshotByIdAsync(created.Id);
+
+        Assert.Equal(created.Id, fetched.Id);
+        Assert.Equal(3, fetched.TotalStudents);
+    }
+
+    [Fact]
+    public async Task GetSnapshotByIdAsync_WhenMissing_ThrowsNotFoundException()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() => _sut.GetSnapshotByIdAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ExportSnapshotCsvAsync_IncludesUtf8BomAndSnapshotId()
+    {
+        var created = await _sut.CreateSnapshotAsync();
+
+        var csv = await _sut.ExportSnapshotCsvAsync(created.Id);
+
+        Assert.Equal("text/csv; charset=utf-8", csv.ContentType);
+        Assert.StartsWith("exe-report-snapshot-", csv.FileName);
+        Assert.Equal(0xEF, csv.Content[0]);
+        Assert.Equal(0xBB, csv.Content[1]);
+        Assert.Equal(0xBF, csv.Content[2]);
+
+        var text = Encoding.UTF8.GetString(csv.Content[3..]);
+        Assert.Contains(created.Id.ToString(), text);
+        Assert.Contains("TotalStudents,3", text);
     }
 
     [Fact]

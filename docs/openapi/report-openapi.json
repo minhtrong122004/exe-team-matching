@@ -1,60 +1,33 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "EXE Team Matching - Report Service API",
-    "description": "Microservice thong ke, bao cao va xuat CSV danh cho Giang vien va Quan tri vien (PRN232 Final Assignment - Phu). Tat ca route di qua Ocelot API Gateway tai http://localhost:5000/api/reports. Loi tra ve theo chuan ProblemDetails RFC 9457.",
+    "title": "Report Service",
     "version": "v1"
   },
-  "servers": [
-    {
-      "url": "http://localhost:5000",
-      "description": "Ocelot API Gateway"
-    },
-    {
-      "url": "http://localhost:5007",
-      "description": "Direct Report Service (Dev)"
-    }
-  ],
   "paths": {
     "/api/reports/summary": {
       "get": {
         "tags": [
           "Reports"
         ],
-        "summary": "Tong quan hien tai: tong SV, SV co nhom / chua co nhom, tong nhom, theo nganh",
-        "description": "Yeu cau vai tro Lecturer hoac Admin. Tong hop so lieu tu bang StudentStats va GroupStats.",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
+        "summary": "Tổng quan hiện tại: tổng SV, SV có nhóm / chưa có nhóm, tổng nhóm, theo ngành.",
         "responses": {
           "200": {
-            "description": "Lay tong quan thanh cong",
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSummaryResponse"
+                }
+              },
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReportSummaryResponse"
                 }
-              }
-            }
-          },
-          "401": {
-            "description": "Chua xac thuc",
-            "content": {
-              "application/json": {
+              },
+              "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ReportSummaryResponse"
                 }
               }
             }
@@ -67,60 +40,246 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Danh sach cac ban chup thong ke dinh ky (ReportSnapshot)",
-        "description": "Yeu cau vai tro Lecturer hoac Admin. Tra ve cac ban chup do ReportSnapshotWorker tao dinh ky, sap xep moi nhat truoc.",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
+        "summary": "Danh sách các bản chụp thống kê định kỳ (lọc từ ngày đến ngày, phân trang).",
         "parameters": [
           {
-            "name": "page",
+            "name": "From",
             "in": "query",
-            "required": false,
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
+              "type": "string",
+              "format": "date-time"
             }
           },
           {
-            "name": "pageSize",
+            "name": "To",
             "in": "query",
-            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "NormalizedPage",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "NormalizedPageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "IsDescending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lay danh sach ban chup thanh cong",
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponsePagedResult"
+                }
+              },
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponsePagedResult"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReportSnapshotResponsePagedResult"
                 }
               }
             }
-          },
-          "401": {
-            "description": "Chua xac thuc",
+          }
+        }
+      }
+    },
+    "/api/reports/snapshots/{id}": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Chi tiết một bản chụp thống kê theo ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              },
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/reports/snapshots/{id}/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Xuất một bản chụp thống kê theo ID ra file CSV (UTF-8 BOM).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/snapshots/generate": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Chạy job tạo bản chụp báo cáo ngay lập tức (chỉ Admin, dùng khi demo thay vì chờ lịch).",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponse"
+                }
+              }
+            }
           },
           "403": {
-            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
+            "description": "Forbidden",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
                 }
@@ -135,41 +294,15 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Xuat bao cao tong hop ra file CSV (UTF-8 BOM)",
-        "description": "Yeu cau vai tro Lecturer hoac Admin. File CSV co UTF-8 BOM de mo dung tieng Viet trong Microsoft Excel.",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
+        "summary": "Xuất báo cáo tổng hợp hiện tại ra file CSV (UTF-8 BOM, mở đúng tiếng Việt trong Excel).",
         "responses": {
           "200": {
-            "description": "Tep CSV bao cao tong hop",
+            "description": "OK",
             "content": {
               "text/csv": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Chua xac thuc",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -182,50 +315,84 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Danh sach sinh vien chua co nhom (loc theo nganh, phan trang)",
-        "description": "Yeu cau vai tro Lecturer hoac Admin.",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
+        "summary": "Danh sách sinh viên chưa có nhóm (lọc theo ngành, phân trang).",
         "parameters": [
           {
-            "name": "major",
+            "name": "Major",
             "in": "query",
-            "description": "Loc theo ma nganh (SE | AI | IA | GD | MKT | IB | Other)",
-            "required": false,
             "schema": {
-              "type": "string",
-              "nullable": true
+              "type": "string"
             }
           },
           {
-            "name": "page",
+            "name": "Page",
             "in": "query",
-            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
-            "name": "pageSize",
+            "name": "PageSize",
             "in": "query",
-            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "NormalizedPage",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "NormalizedPageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "IsDescending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lay danh sach sinh vien chua co nhom thanh cong",
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentWithoutGroupResponsePagedResult"
+                }
+              },
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentWithoutGroupResponsePagedResult"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/StudentWithoutGroupResponsePagedResult"
                 }
@@ -240,49 +407,84 @@
         "tags": [
           "Reports"
         ],
-        "summary": "Danh sach nhom va si so (loc theo trang thai, phan trang)",
-        "description": "Yeu cau vai tro Lecturer hoac Admin.",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
+        "summary": "Danh sách nhóm và sĩ số (lọc theo trạng thái, phân trang).",
         "parameters": [
           {
-            "name": "status",
+            "name": "Status",
             "in": "query",
-            "description": "Loc theo trang thai nhom (Recruiting | Full | Locked | Archived)",
-            "required": false,
             "schema": {
               "$ref": "#/components/schemas/GroupStatStatus"
             }
           },
           {
-            "name": "page",
+            "name": "Page",
             "in": "query",
-            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 1
+              "format": "int32"
             }
           },
           {
-            "name": "pageSize",
+            "name": "PageSize",
             "in": "query",
-            "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
-              "default": 20
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDir",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "NormalizedPage",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "NormalizedPageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "IsDescending",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lay danh sach nhom thanh cong",
+            "description": "OK",
             "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupReportItemResponsePagedResult"
+                }
+              },
               "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupReportItemResponsePagedResult"
+                }
+              },
+              "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GroupReportItemResponsePagedResult"
                 }
@@ -295,20 +497,93 @@
   },
   "components": {
     "schemas": {
+      "GroupReportItemResponse": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "leaderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxMembers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GroupReportItemResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupReportItemResponse"
+            },
+            "nullable": true
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrevious": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "GroupStatStatus": {
-        "type": "string",
         "enum": [
           "Recruiting",
           "Full",
           "Locked",
           "Archived"
-        ]
+        ],
+        "type": "string"
       },
       "MajorBreakdownItem": {
         "type": "object",
         "properties": {
           "major": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "totalStudents": {
             "type": "integer",
@@ -325,45 +600,32 @@
         },
         "additionalProperties": false
       },
-      "ReportSummaryResponse": {
+      "ProblemDetails": {
         "type": "object",
         "properties": {
-          "generatedAt": {
+          "type": {
             "type": "string",
-            "format": "date-time"
+            "nullable": true
           },
-          "totalStudents": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
-          "studentsInGroup": {
-            "type": "integer",
-            "format": "int32"
+          "detail": {
+            "type": "string",
+            "nullable": true
           },
-          "studentsWithoutGroup": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalGroups": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "recruitingGroups": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "fullGroups": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "byMajor": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MajorBreakdownItem"
-            }
+          "instance": {
+            "type": "string",
+            "nullable": true
           }
         },
-        "additionalProperties": false
+        "additionalProperties": { }
       },
       "ReportSnapshotResponse": {
         "type": "object",
@@ -404,7 +666,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MajorBreakdownItem"
-            }
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -416,7 +679,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ReportSnapshotResponse"
-            }
+            },
+            "nullable": true
           },
           "page": {
             "type": "integer",
@@ -432,13 +696,57 @@
           },
           "totalPages": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "readOnly": true
           },
           "hasPrevious": {
-            "type": "boolean"
+            "type": "boolean",
+            "readOnly": true
           },
           "hasNext": {
-            "type": "boolean"
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsInGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsWithoutGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recruitingGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byMajor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MajorBreakdownItem"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -451,10 +759,12 @@
             "format": "uuid"
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "fullName": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "major": {
             "type": "string",
@@ -474,7 +784,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StudentWithoutGroupResponse"
-            }
+            },
+            "nullable": true
           },
           "page": {
             "type": "integer",
@@ -489,130 +800,39 @@
             "format": "int32"
           },
           "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hasPrevious": {
-            "type": "boolean"
-          },
-          "hasNext": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GroupReportItemResponse": {
-        "type": "object",
-        "properties": {
-          "groupId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "leaderId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "memberCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "maxMembers": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "status": {
-            "type": "string"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GroupReportItemResponsePagedResult": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GroupReportItemResponse"
-            }
-          },
-          "page": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "hasPrevious": {
-            "type": "boolean"
-          },
-          "hasNext": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "ProblemDetails": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "nullable": true
-          },
-          "title": {
-            "type": "string",
-            "nullable": true
-          },
-          "status": {
             "type": "integer",
             "format": "int32",
-            "nullable": true
+            "readOnly": true
           },
-          "detail": {
-            "type": "string",
-            "nullable": true
+          "hasPrevious": {
+            "type": "boolean",
+            "readOnly": true
           },
-          "instance": {
-            "type": "string",
-            "nullable": true
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
-        "additionalProperties": {}
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
       "Bearer": {
         "type": "http",
-        "description": "Nhap JWT Bearer token theo dinh dang: Bearer {token}",
-        "scheme": "Bearer",
+        "description": "Paste the access token (without the 'Bearer ' prefix).",
+        "scheme": "bearer",
         "bearerFormat": "JWT"
       }
     }
   },
   "security": [
     {
-      "Bearer": []
+      "Bearer": [ ]
     }
   ],
   "tags": [
     {
-      "name": "Reports",
-      "description": "Thong ke, bao cao va xuat CSV danh cho Giang vien va Quan tri vien"
+      "name": "Reports"
     }
   ]
 }

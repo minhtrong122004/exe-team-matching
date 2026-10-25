@@ -3,6 +3,12 @@ using Report.Repository.Enums;
 
 namespace Report.Services.DTOs;
 
+public class SnapshotQuery : PagedRequest
+{
+    public DateTime? From { get; set; }
+    public DateTime? To { get; set; }
+}
+
 public class StudentsWithoutGroupQuery : PagedRequest
 {
     public string? Major { get; set; }

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Exe.BuildingBlocks.Paging;
+using Exe.BuildingBlocks.Web;
 using Report.Repository.Entities;
 using Report.Repository.Enums;
 using Report.Repository.Interfaces;
@@ -64,11 +65,19 @@ public class ReportService : IReportService
             byMajor);
     }
 
-    public async Task<PagedResult<ReportSnapshotResponse>> GetSnapshotsAsync(PagedRequest query, CancellationToken ct = default)
+    public async Task<PagedResult<ReportSnapshotResponse>> GetSnapshotsAsync(SnapshotQuery query, CancellationToken ct = default)
     {
-        var paged = await _snapshotRepo.GetPagedAsync(query.NormalizedPage, query.NormalizedPageSize, ct);
+        var paged = await _snapshotRepo.GetPagedAsync(query.From, query.To, query.NormalizedPage, query.NormalizedPageSize, ct);
         var items = paged.Items.Select(MapSnapshot).ToList();
         return new PagedResult<ReportSnapshotResponse>(items, paged.Page, paged.PageSize, paged.TotalCount);
+    }
+
+    public async Task<ReportSnapshotResponse> GetSnapshotByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var snapshot = await _snapshotRepo.GetByIdAsync(id, ct)
+            ?? throw new NotFoundException($"Report snapshot '{id}' was not found.");
+
+        return MapSnapshot(snapshot);
     }
 
     public async Task<ReportSnapshotResponse> CreateSnapshotAsync(CancellationToken ct = default)
@@ -123,14 +132,33 @@ public class ReportService : IReportService
             sb.AppendLine($"StudentWithoutGroup,{student.UserId},{EscapeCsv(student.FullName)},{EscapeCsv(student.Email)},{EscapeCsv(student.Major ?? "Unassigned")},{student.UpdatedAt:O}");
         }
 
-        var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-        var bodyBytes = utf8WithBom.GetBytes(sb.ToString());
-        var preamble = utf8WithBom.GetPreamble();
-        var content = new byte[preamble.Length + bodyBytes.Length];
-        Buffer.BlockCopy(preamble, 0, content, 0, preamble.Length);
-        Buffer.BlockCopy(bodyBytes, 0, content, preamble.Length, bodyBytes.Length);
-
+        var content = EncodeCsvWithUtf8Bom(sb.ToString());
         var fileName = $"exe-report-{summary.GeneratedAt:yyyyMMdd-HHmmss}.csv";
+        return new CsvExportResult(content, "text/csv; charset=utf-8", fileName);
+    }
+
+    public async Task<CsvExportResult> ExportSnapshotCsvAsync(Guid id, CancellationToken ct = default)
+    {
+        var snapshot = await GetSnapshotByIdAsync(id, ct);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Section,Key,Value1,Value2,Value3,Value4");
+        sb.AppendLine($"Snapshot,Id,{snapshot.Id},,,");
+        sb.AppendLine($"Snapshot,GeneratedAt,{snapshot.GeneratedAt:O},,,");
+        sb.AppendLine($"Summary,TotalStudents,{snapshot.TotalStudents},,,");
+        sb.AppendLine($"Summary,StudentsInGroup,{snapshot.StudentsInGroup},,,");
+        sb.AppendLine($"Summary,StudentsWithoutGroup,{snapshot.StudentsWithoutGroup},,,");
+        sb.AppendLine($"Summary,TotalGroups,{snapshot.TotalGroups},,,");
+        sb.AppendLine($"Summary,RecruitingGroups,{snapshot.RecruitingGroups},,,");
+        sb.AppendLine($"Summary,FullGroups,{snapshot.FullGroups},,,");
+
+        foreach (var major in snapshot.ByMajor)
+        {
+            sb.AppendLine($"MajorBreakdown,{EscapeCsv(major.Major)},Total:{major.TotalStudents},InGroup:{major.StudentsInGroup},WithoutGroup:{major.StudentsWithoutGroup},");
+        }
+
+        var content = EncodeCsvWithUtf8Bom(sb.ToString());
+        var fileName = $"exe-report-snapshot-{snapshot.GeneratedAt:yyyyMMdd-HHmmss}.csv";
         return new CsvExportResult(content, "text/csv; charset=utf-8", fileName);
     }
 
@@ -173,6 +201,17 @@ public class ReportService : IReportService
             .ToList();
 
         return new PagedResult<GroupReportItemResponse>(items, paged.Page, paged.PageSize, paged.TotalCount);
+    }
+
+    private static byte[] EncodeCsvWithUtf8Bom(string csvText)
+    {
+        var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        var bodyBytes = utf8WithBom.GetBytes(csvText);
+        var preamble = utf8WithBom.GetPreamble();
+        var content = new byte[preamble.Length + bodyBytes.Length];
+        Buffer.BlockCopy(preamble, 0, content, 0, preamble.Length);
+        Buffer.BlockCopy(bodyBytes, 0, content, preamble.Length, bodyBytes.Length);
+        return content;
     }
 
     private static ReportSnapshotResponse MapSnapshot(ReportSnapshot snapshot)
