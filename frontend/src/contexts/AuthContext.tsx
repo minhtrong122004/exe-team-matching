@@ -159,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<AuthUserDto> => {
     const response = await apiClient.post<AuthResponse>('/auth/login', {
       email: email.trim(),
-      password,
+      password: password.trim(),
     });
 
     const { accessToken, refreshToken, user: authUser } = response.data;
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Đăng ký tài khoản sinh viên mới (Role luôn cố định là "Student" theo CLAUDE.md)
     const response = await apiClient.post<AuthResponse>('/auth/register', {
       email: email.trim(),
-      password,
+      password: password.trim(),
       fullName: fullName.trim(),
       role: 'Student',
     });

@@ -1,0 +1,383 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "EXE Team Matching - Notification Service API",
+    "description": "Microservice quan ly thong bao trong ung dung va gui email bat dong bo qua MailKit/SMTP (PRN232 Final Assignment - Phu). Tat ca route di qua Ocelot API Gateway tai http://localhost:5000/api/notifications. Loi tra ve theo chuan ProblemDetails RFC 9457.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Ocelot API Gateway"
+    },
+    {
+      "url": "http://localhost:5006",
+      "description": "Direct Notification Service (Dev)"
+    }
+  ],
+  "paths": {
+    "/api/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Danh sach thong bao cua nguoi dung hien tai (loc isRead, phan trang)",
+        "description": "Yeu cau dang nhap (Bearer Token). Lay danh sach thong bao cua nguoi dung dua theo userId trong JWT token, sap xep moi nhat truoc.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "isRead",
+            "in": "query",
+            "description": "Loc theo trang thai da doc (true/false). Bo trong de lay tat ca.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Trang can lay (bat dau tu 1)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "So phan tu moi trang (1..100)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay danh sach thong bao thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponsePagedResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc (Thieu hoac sai JWT Token)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "So luong thong bao chua doc cua nguoi dung hien tai",
+        "description": "Yeu cau dang nhap (Bearer Token). Dung de hien thi badge so thong bao chua doc tren thanh dieu huong.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay so luong thong bao chua doc thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Danh dau mot thong bao la da doc",
+        "description": "Yeu cau dang nhap. Chi nguoi nhan (RecipientId) cua thong bao moi co quyen danh dau da doc.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID dinh danh cua thong bao",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh dau da doc thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen truy cap thong bao cua nguoi dung khac",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Khong tim thay thong bao",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/read-all": {
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Danh dau tat ca thong bao cua nguoi dung hien tai la da doc",
+        "description": "Yeu cau dang nhap (Bearer Token). Cap nhat tat ca thong bao chua doc cua nguoi dung thanh da doc.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh dau tat ca da doc thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllReadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "NotificationType": {
+        "type": "string",
+        "description": "Loai thong bao trong he thong",
+        "enum": [
+          "Welcome",
+          "JoinRequestReceived",
+          "JoinRequestAccepted",
+          "JoinRequestRejected",
+          "InvitationReceived",
+          "MemberJoined",
+          "MemberLeft"
+        ]
+      },
+      "NotificationResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "description": "Welcome | JoinRequestReceived | JoinRequestAccepted | JoinRequestRejected | InvitationReceived | MemberJoined | MemberLeft"
+          },
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "relatedEntityId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UnreadCountResponse": {
+        "type": "object",
+        "properties": {
+          "unreadCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarkAllReadResponse": {
+        "type": "object",
+        "properties": {
+          "updatedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Nhap JWT Bearer token theo dinh dang: Bearer {token}",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Notifications",
+      "description": "Quan ly thong bao cua nguoi dung hien tai"
+    }
+  ]
+}

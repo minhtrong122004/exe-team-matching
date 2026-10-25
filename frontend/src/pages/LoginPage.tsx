@@ -22,19 +22,25 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const executeLogin = async (loginEmail: string, loginPass: string) => {
+  const executeLogin = async (loginEmail: string, loginPass: string, targetPath?: string) => {
     setError(null);
     setLoading(true);
+    setEmail(loginEmail);
+    setPassword(loginPass);
 
     try {
       const authUser = await login(loginEmail, loginPass);
+      if (targetPath) {
+        navigate(targetPath);
+        return;
+      }
       // Điều hướng theo vai trò thực tế trả về từ Backend JWT
       if (authUser.role === 'Admin') {
-        navigate('/admin/accounts');
+        navigate('/reports');
       } else if (authUser.role === 'Lecturer') {
         navigate('/reports');
       } else {
-        navigate('/projects');
+        navigate('/notifications');
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -294,14 +300,14 @@ export const LoginPage: React.FC = () => {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '3rem 2.5rem',
+          padding: '2.5rem',
           background: '#ffffff',
           position: 'relative',
         }}
       >
         <div style={{ maxWidth: 440, width: '100%' }}>
           {/* Header */}
-          <div style={{ marginBottom: '2rem' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
               <span className="fpt-portal-badge">FPT SSO PORTAL</span>
             </div>
@@ -325,17 +331,17 @@ export const LoginPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.6rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
               }}
             >
-              <AlertCircle size={18} flex-shrink={0} />
+              <AlertCircle size={18} />
               <span>{error}</span>
             </div>
           )}
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
               <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
                 Email tài khoản FPT
               </label>
@@ -354,7 +360,7 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
               <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
                 Mật khẩu
               </label>
@@ -394,7 +400,95 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.875rem', color: '#64748b' }}>
+          {/* 1-CLICK DEMO LOGIN PANEL */}
+          <div
+            style={{
+              marginTop: '1.5rem',
+              padding: '1rem',
+              borderRadius: 12,
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.65rem' }}>
+              ⚡ Đăng nhập nhanh 1-Click (Demo Test)
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => executeLogin('phutest@fpt.edu.vn', 'Password@123', '/notifications')}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: 8,
+                  border: '1px solid #fed7aa',
+                  background: '#fff7ed',
+                  color: '#c2410c',
+                  fontSize: '0.83rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>🎓 Sinh viên (Test Notification)</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>phutest@fpt.edu.vn</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => executeLogin('lecturer@fpt.edu.vn', 'Password@123', '/reports')}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: 8,
+                  border: '1px solid #bfdbfe',
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  fontSize: '0.83rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>📊 Giảng viên (Test Report & CSV)</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>lecturer@fpt.edu.vn</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => executeLogin('admin@fpt.edu.vn', 'Password@123', '/reports')}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 0.85rem',
+                  borderRadius: 8,
+                  border: '1px solid #bbf7d0',
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  fontSize: '0.83rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>🛡️ Admin (Test Report & Quản trị)</span>
+                <span style={{ fontSize: '0.75rem', opacity: 0.85 }}>admin@fpt.edu.vn</span>
+              </button>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '1.15rem', fontSize: '0.875rem', color: '#64748b' }}>
             Chưa có tài khoản?{' '}
             <Link to="/register" style={{ color: '#f26f21', fontWeight: 700 }}>
               Đăng ký ngay
@@ -402,7 +496,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Footer Copyright */}
-          <div style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
             © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
           </div>
         </div>

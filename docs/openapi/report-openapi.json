@@ -1,0 +1,618 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "EXE Team Matching - Report Service API",
+    "description": "Microservice thong ke, bao cao va xuat CSV danh cho Giang vien va Quan tri vien (PRN232 Final Assignment - Phu). Tat ca route di qua Ocelot API Gateway tai http://localhost:5000/api/reports. Loi tra ve theo chuan ProblemDetails RFC 9457.",
+    "version": "v1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Ocelot API Gateway"
+    },
+    {
+      "url": "http://localhost:5007",
+      "description": "Direct Report Service (Dev)"
+    }
+  ],
+  "paths": {
+    "/api/reports/summary": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Tong quan hien tai: tong SV, SV co nhom / chua co nhom, tong nhom, theo nganh",
+        "description": "Yeu cau vai tro Lecturer hoac Admin. Tong hop so lieu tu bang StudentStats va GroupStats.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay tong quan thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/snapshots": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Danh sach cac ban chup thong ke dinh ky (ReportSnapshot)",
+        "description": "Yeu cau vai tro Lecturer hoac Admin. Tra ve cac ban chup do ReportSnapshotWorker tao dinh ky, sap xep moi nhat truoc.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay danh sach ban chup thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSnapshotResponsePagedResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/summary/export": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Xuat bao cao tong hop ra file CSV (UTF-8 BOM)",
+        "description": "Yeu cau vai tro Lecturer hoac Admin. File CSV co UTF-8 BOM de mo dung tieng Viet trong Microsoft Excel.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tep CSV bao cao tong hop",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Chua xac thuc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Khong co quyen (Chi Lecturer hoac Admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/students-without-group": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Danh sach sinh vien chua co nhom (loc theo nganh, phan trang)",
+        "description": "Yeu cau vai tro Lecturer hoac Admin.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "major",
+            "in": "query",
+            "description": "Loc theo ma nganh (SE | AI | IA | GD | MKT | IB | Other)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay danh sach sinh vien chua co nhom thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentWithoutGroupResponsePagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/groups": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Danh sach nhom va si so (loc theo trang thai, phan trang)",
+        "description": "Yeu cau vai tro Lecturer hoac Admin.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Loc theo trang thai nhom (Recruiting | Full | Locked | Archived)",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/GroupStatStatus"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lay danh sach nhom thanh cong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupReportItemResponsePagedResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "GroupStatStatus": {
+        "type": "string",
+        "enum": [
+          "Recruiting",
+          "Full",
+          "Locked",
+          "Archived"
+        ]
+      },
+      "MajorBreakdownItem": {
+        "type": "object",
+        "properties": {
+          "major": {
+            "type": "string"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsInGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsWithoutGroup": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsInGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsWithoutGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recruitingGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byMajor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MajorBreakdownItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportSnapshotResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalStudents": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsInGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsWithoutGroup": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recruitingGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fullGroups": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "byMajor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MajorBreakdownItem"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReportSnapshotResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportSnapshotResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StudentWithoutGroupResponse": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "major": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StudentWithoutGroupResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudentWithoutGroupResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GroupReportItemResponse": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "leaderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "memberCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxMembers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GroupReportItemResponsePagedResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupReportItemResponse"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPrevious": {
+            "type": "boolean"
+          },
+          "hasNext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "description": "Nhap JWT Bearer token theo dinh dang: Bearer {token}",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Reports",
+      "description": "Thong ke, bao cao va xuat CSV danh cho Giang vien va Quan tri vien"
+    }
+  ]
+}

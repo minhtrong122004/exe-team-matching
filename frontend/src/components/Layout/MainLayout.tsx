@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { FptEducationLogo } from '../FptEducationLogo';
+import { notificationsApi } from '../../api/notifications';
 import type { UserRole } from '../../types';
 import {
   Lightbulb,
@@ -38,7 +39,24 @@ export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      try {
+        const res = await notificationsApi.getUnreadCount();
+        setUnreadCount(res.unreadCount ?? 0);
+      } catch {
+        // Ignore if notification service is offline in dev
+      }
+    };
+    void fetchUnread();
+    const handler = () => void fetchUnread();
+    window.addEventListener('notifications:updated', handler);
+    return () => window.removeEventListener('notifications:updated', handler);
+  }, [user]);
 
   // Dark / Light Mode state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -420,7 +438,7 @@ export const MainLayout: React.FC = () => {
             {/* Notification Bell */}
             <button
               onClick={() => navigate('/notifications')}
-              title="Thông báo hệ thống"
+              title={`Thông báo hệ thống (${unreadCount} chưa đọc)`}
               style={{
                 position: 'relative',
                 width: 38,
@@ -436,18 +454,29 @@ export const MainLayout: React.FC = () => {
               }}
             >
               <Bell size={18} />
-              <span
-                style={{
-                  position: 'absolute',
-                  top: 7,
-                  right: 7,
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: '#f26f21',
-                  boxShadow: `0 0 0 2px ${isDarkMode ? '#1e293b' : '#ffffff'}`,
-                }}
-              />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: -4,
+                    right: -4,
+                    minWidth: 18,
+                    height: 18,
+                    padding: '0 4px',
+                    borderRadius: 999,
+                    background: '#f26f21',
+                    color: '#ffffff',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 0 0 2px ${isDarkMode ? '#1e293b' : '#ffffff'}`,
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
 
             {/* ══════════════════════════════════════════════════════════
