@@ -106,6 +106,12 @@ export const MainLayout: React.FC = () => {
           icon: <Compass size={19} />,
           roles: ['Student', 'Lecturer', 'Admin'],
         },
+        {
+          to: '/candidates',
+          label: 'Danh bạ ứng viên',
+          icon: <Users size={19} />,
+          roles: ['Student', 'Lecturer', 'Admin'],
+        },
       ],
     },
     {

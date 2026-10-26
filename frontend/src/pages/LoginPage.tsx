@@ -387,9 +387,22 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Mật khẩu
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', margin: 0 }}>
+                  Mật khẩu *
+                </label>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    fontSize: '0.825rem',
+                    color: '#f26f21',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Quên mật khẩu?
+                </Link>
+              </div>
               <div style={{ position: 'relative' }}>
                 <Lock size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
                 <input

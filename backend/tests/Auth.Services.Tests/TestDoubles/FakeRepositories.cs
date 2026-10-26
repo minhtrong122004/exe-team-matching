@@ -173,35 +173,35 @@ public class FakeEmailVerificationChallengeRepository : IEmailVerificationChalle
         return Task.CompletedTask;
     }
 
-    public Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, CancellationToken ct = default)
+    public Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         return Task.FromResult(Challenges
-            .Where(c => c.AccountId == accountId && !c.IsUsed)
+            .Where(c => c.AccountId == accountId && c.Purpose == purpose && !c.IsUsed)
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefault());
     }
 
-    public Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, CancellationToken ct = default)
+    public Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         return Task.FromResult(Challenges
-            .Where(c => c.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !c.IsUsed)
+            .Where(c => c.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && c.Purpose == purpose && !c.IsUsed)
             .OrderByDescending(c => c.CreatedAt)
             .FirstOrDefault());
     }
 
-    public Task InvalidatePreviousChallengesAsync(Guid accountId, CancellationToken ct = default)
+    public Task InvalidatePreviousChallengesAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
-        foreach (var c in Challenges.Where(c => c.AccountId == accountId && !c.IsUsed))
+        foreach (var c in Challenges.Where(c => c.AccountId == accountId && c.Purpose == purpose && !c.IsUsed))
         {
             c.IsUsed = true;
         }
         return Task.CompletedTask;
     }
 
-    public Task<int> CountResendsInLastHourAsync(Guid accountId, CancellationToken ct = default)
+    public Task<int> CountResendsInLastHourAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default)
     {
         var oneHourAgo = DateTime.UtcNow.AddHours(-1);
-        var count = Challenges.Count(c => c.AccountId == accountId && c.CreatedAt >= oneHourAgo);
+        var count = Challenges.Count(c => c.AccountId == accountId && c.Purpose == purpose && c.CreatedAt >= oneHourAgo);
         return Task.FromResult(count);
     }
 
@@ -219,10 +219,17 @@ public class FakeEmailVerificationChallengeRepository : IEmailVerificationChalle
 public class FakeEmailSender : Auth.Services.Interfaces.IEmailSender
 {
     public readonly List<(string Email, string Name, string Otp)> SentEmails = new();
+    public readonly List<(string Email, string Name, string Otp)> SentPasswordResetEmails = new();
 
     public Task SendVerificationOtpAsync(string recipientEmail, string recipientName, string otp, CancellationToken ct = default)
     {
         SentEmails.Add((recipientEmail, recipientName, otp));
+        return Task.CompletedTask;
+    }
+
+    public Task SendPasswordResetOtpAsync(string recipientEmail, string recipientName, string otp, CancellationToken ct = default)
+    {
+        SentPasswordResetEmails.Add((recipientEmail, recipientName, otp));
         return Task.CompletedTask;
     }
 }

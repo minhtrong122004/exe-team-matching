@@ -72,48 +72,9 @@ export const ProjectsPage: React.FC = () => {
       setTotalCount(res.data.totalCount);
       setTotalPages(res.data.totalPages);
     } catch (err) {
-      console.warn('API /projects not accessible or offline, loading fallback demo data:', err);
-      // Fallback demo data if Project Service is not currently running
-      const mockProjects: ProjectItem[] = [
-        {
-          id: 'p1',
-          ownerId: user?.id || 'u1',
-          title: 'EduMentor — Nền tảng cố vấn học tập P2P ứng dụng AI',
-          problem: 'Sinh viên FPT năm nhất gặp khó khăn trong việc tìm người hướng dẫn các môn lập trình nền tảng.',
-          solution: 'Nền tảng kết nối sinh viên giỏi (Mentor) với sinh viên cần kèm (Mentee), tích hợp AI giải thích bài tập.',
-          domain: 'EdTech',
-          status: 'Recruiting',
-          tags: ['AI', 'Education', 'React', 'DotNet'],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'p2',
-          ownerId: 'u2',
-          title: 'GreenCampus — Hệ thống thu gom và tái chế rác thông minh',
-          problem: 'Tỷ lệ phân loại rác thải tại khuôn viên trường đại học còn thấp, thiếu động lực cho người thực hiện.',
-          solution: 'Thùng rác thông minh tích hợp IoT nhận diện rác thải và tích điểm đổi quà (voucher canteen) qua App di động.',
-          domain: 'Other',
-          status: 'Active',
-          tags: ['IoT', 'Sustainability', 'GreenTech'],
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: 'p3',
-          ownerId: 'u3',
-          title: 'FPT FoodPass — Đặt cơm trưa Canteen không cần xếp hàng',
-          problem: 'Giờ nghỉ trưa sinh viên phải xếp hàng 20-30 phút mới mua được cơm tại Canteen.',
-          solution: 'Hệ thống pre-order món ăn, thông báo khi suất ăn chuẩn bị xong, thanh toán tích hợp ví điện tử.',
-          domain: 'FnB',
-          status: 'Recruiting',
-          tags: ['Food', 'FastDelivery', 'Payment'],
-          createdAt: new Date(Date.now() - 172800000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      setProjects(mockProjects);
-      setTotalCount(mockProjects.length);
+      console.warn('API /projects not accessible or offline:', err);
+      setProjects([]);
+      setTotalCount(0);
       setTotalPages(1);
     } finally {
       setLoading(false);

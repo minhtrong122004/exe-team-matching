@@ -66,6 +66,8 @@ apiClient.interceptors.response.use(
       url.includes('/auth/register') ||
       url.includes('/auth/verify-email') ||
       url.includes('/auth/resend-verification') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/reset-password') ||
       url.includes('/auth/refresh') ||
       url.includes('/auth/logout');
 
@@ -97,7 +99,9 @@ apiClient.interceptors.response.use(
       if (
         window.location.pathname !== '/login' &&
         window.location.pathname !== '/register' &&
-        window.location.pathname !== '/verify-email'
+        window.location.pathname !== '/verify-email' &&
+        window.location.pathname !== '/forgot-password' &&
+        window.location.pathname !== '/reset-password'
       ) {
         window.location.href = '/login';
       }
@@ -140,7 +144,9 @@ apiClient.interceptors.response.use(
       if (
         window.location.pathname !== '/login' &&
         window.location.pathname !== '/register' &&
-        window.location.pathname !== '/verify-email'
+        window.location.pathname !== '/verify-email' &&
+        window.location.pathname !== '/forgot-password' &&
+        window.location.pathname !== '/reset-password'
       ) {
         window.location.href = '/login';
       }

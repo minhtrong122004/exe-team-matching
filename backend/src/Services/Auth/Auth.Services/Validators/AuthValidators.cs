@@ -110,3 +110,41 @@ public class ResendVerificationRequestValidator : AbstractValidator<ResendVerifi
             .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
     }
 }
+
+public class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRequest>
+{
+    public ForgotPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email không được để trống.")
+            .EmailAddress().WithMessage("Định dạng email không hợp lệ.")
+            .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
+    }
+}
+
+public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequest>
+{
+    public ResetPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Email không được để trống.")
+            .EmailAddress().WithMessage("Định dạng email không hợp lệ.")
+            .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
+
+        RuleFor(x => x.Otp)
+            .NotEmpty().WithMessage("Mã xác thực OTP không được để trống.")
+            .Length(6).WithMessage("Mã xác thực OTP phải gồm đúng 6 chữ số.")
+            .Matches(@"^\d{6}$").WithMessage("Mã xác thực OTP chỉ bao gồm các chữ số (0-9).");
+
+        RuleFor(x => x.NewPassword)
+            .NotEmpty().WithMessage("Mật khẩu mới không được để trống.")
+            .MinimumLength(8).WithMessage("Mật khẩu mới phải có ít nhất 8 ký tự.")
+            .Matches(@"[A-Z]").WithMessage("Mật khẩu mới phải chứa ít nhất một chữ hoa.")
+            .Matches(@"[0-9]").WithMessage("Mật khẩu mới phải chứa ít nhất một chữ số.")
+            .Matches(@"[^a-zA-Z0-9]").WithMessage("Mật khẩu mới phải chứa ít nhất một ký tự đặc biệt.");
+
+        RuleFor(x => x.ConfirmNewPassword)
+            .Equal(x => x.NewPassword).WithMessage("Mật khẩu xác nhận không trùng khớp.");
+    }
+}
+

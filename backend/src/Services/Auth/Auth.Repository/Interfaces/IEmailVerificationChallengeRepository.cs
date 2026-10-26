@@ -8,9 +8,9 @@ namespace Auth.Repository.Interfaces;
 public interface IEmailVerificationChallengeRepository
 {
     Task AddAsync(EmailVerificationChallenge challenge, CancellationToken ct = default);
-    Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, CancellationToken ct = default);
-    Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, CancellationToken ct = default);
-    Task InvalidatePreviousChallengesAsync(Guid accountId, CancellationToken ct = default);
-    Task<int> CountResendsInLastHourAsync(Guid accountId, CancellationToken ct = default);
+    Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default);
+    Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default);
+    Task InvalidatePreviousChallengesAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default);
+    Task<int> CountResendsInLastHourAsync(Guid accountId, Auth.Repository.Enums.ChallengePurpose purpose = Auth.Repository.Enums.ChallengePurpose.EmailVerification, CancellationToken ct = default);
     Task UpdateAsync(EmailVerificationChallenge challenge, CancellationToken ct = default);
 }

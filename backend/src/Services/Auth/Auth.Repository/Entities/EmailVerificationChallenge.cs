@@ -19,6 +19,11 @@ public class EmailVerificationChallenge
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
+    /// Mục đích của mã xác thực (EmailVerification, PasswordReset).
+    /// </summary>
+    public Auth.Repository.Enums.ChallengePurpose Purpose { get; set; } = Auth.Repository.Enums.ChallengePurpose.EmailVerification;
+
+    /// <summary>
     /// Chuỗi băm mật mã của OTP kèm salt (SHA-256). Tuyệt đối không lưu plaintext.
     /// </summary>
     public string OtpHash { get; set; } = string.Empty;

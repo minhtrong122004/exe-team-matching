@@ -1,7 +1,9 @@
 using System.Text.Json;
 using Exe.BuildingBlocks.Auth;
+using Exe.BuildingBlocks.EventBus;
 using Exe.BuildingBlocks.Exceptions;
 using Exe.BuildingBlocks.Paging;
+using Exe.Contracts.Events;
 using FluentValidation;
 using User.Repository.Entities;
 using User.Repository.Enums;
@@ -22,6 +24,7 @@ public class UserProfileService : IUserProfileService
     private readonly IValidator<UpdateUserProfileRequest> _updateValidator;
     private readonly IValidator<CreateUserProfileInternalRequest> _createValidator;
     private readonly IValidator<BatchUsersRequest> _batchValidator;
+    private readonly IEventPublisher? _eventPublisher;
 
     public UserProfileService(
         IUserProfileRepository profileRepo,
@@ -29,7 +32,8 @@ public class UserProfileService : IUserProfileService
         ICurrentUser currentUser,
         IValidator<UpdateUserProfileRequest> updateValidator,
         IValidator<CreateUserProfileInternalRequest> createValidator,
-        IValidator<BatchUsersRequest> batchValidator)
+        IValidator<BatchUsersRequest> batchValidator,
+        IEventPublisher? eventPublisher = null)
     {
         _profileRepo = profileRepo;
         _unitOfWork = unitOfWork;
@@ -37,6 +41,7 @@ public class UserProfileService : IUserProfileService
         _updateValidator = updateValidator;
         _createValidator = createValidator;
         _batchValidator = batchValidator;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<CandidateProfileResponse> GetProfileByIdAsync(Guid userId, CancellationToken ct = default)
@@ -118,6 +123,20 @@ public class UserProfileService : IUserProfileService
 
         _profileRepo.Update(profile);
         await _unitOfWork.SaveChangesAsync(ct);
+
+        if (_eventPublisher != null)
+        {
+            try
+            {
+                await _eventPublisher.PublishAsync(
+                    new UserProfileUpdated(profile.UserId, profile.FullName, profile.Major?.ToString()),
+                    ct);
+            }
+            catch
+            {
+                // Non-blocking: thất bại khi publish event không làm gián đoạn cập nhật hồ sơ người dùng
+            }
+        }
 
         return ToResponse(profile);
     }

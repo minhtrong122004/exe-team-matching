@@ -6,6 +6,9 @@ import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { CandidateDiscoveryPage } from './pages/CandidateDiscoveryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
@@ -27,12 +30,15 @@ export const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
           {/* Protected Application routes wrapped in MainLayout */}
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="/" element={<Navigate to="/projects" replace />} />
               <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/candidates" element={<CandidateDiscoveryPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />

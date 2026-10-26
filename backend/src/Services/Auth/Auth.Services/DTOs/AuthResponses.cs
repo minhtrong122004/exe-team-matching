@@ -60,3 +60,21 @@ public record ResendVerificationResponse(
     int ResendCooldownSeconds,
     DateTime ExpiresAt
 );
+
+/// <summary>
+/// DTO phản hồi sau khi gửi yêu cầu quên mật khẩu.
+/// </summary>
+public record ForgotPasswordResponse(
+    string Message,
+    string Email,
+    int ResendCooldownSeconds,
+    DateTime ExpiresAt
+);
+
+/// <summary>
+/// DTO phản hồi sau khi đặt lại mật khẩu thành công.
+/// </summary>
+public record ResetPasswordResponse(
+    string Message,
+    string Email
+);

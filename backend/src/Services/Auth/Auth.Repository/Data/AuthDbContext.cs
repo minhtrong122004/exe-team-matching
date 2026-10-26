@@ -90,6 +90,12 @@ public class AuthDbContext : DbContext
                   .IsRequired()
                   .HasMaxLength(256);
 
+            entity.Property(c => c.Purpose)
+                  .HasConversion<string>()
+                  .HasMaxLength(30)
+                  .IsRequired()
+                  .HasDefaultValue(Auth.Repository.Enums.ChallengePurpose.EmailVerification);
+
             entity.Property(c => c.OtpHash)
                   .IsRequired()
                   .HasMaxLength(64)
@@ -119,6 +125,9 @@ public class AuthDbContext : DbContext
 
             entity.HasIndex(c => c.Email)
                   .HasDatabaseName("IX_EmailVerificationChallenges_Email");
+
+            entity.HasIndex(c => new { c.Email, c.Purpose })
+                  .HasDatabaseName("IX_EmailVerificationChallenges_Email_Purpose");
 
             entity.HasIndex(c => c.ExpiresAt)
                   .HasDatabaseName("IX_EmailVerificationChallenges_ExpiresAt");

@@ -76,6 +76,24 @@ public class AuthControllerTests
                 DateTime.UtcNow
             ));
         }
+
+        public Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ForgotPasswordResponse(
+                "Mã OTP đã được gửi",
+                request.Email,
+                60,
+                DateTime.UtcNow.AddMinutes(5)
+            ));
+        }
+
+        public Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ResetPasswordResponse(
+                "Mật khẩu đã được cập nhật thành công.",
+                request.Email
+            ));
+        }
     }
 
     private class FakeAdminAccountService : IAdminAccountService
@@ -277,5 +295,50 @@ public class AuthControllerTests
         Assert.Equal("lecturer@fpt.edu.vn", account.Email);
         Assert.Equal("Thầy Giáo A", account.FullName);
         Assert.Equal("Lecturer", account.Role);
+    }
+
+    [Fact]
+    public async Task ForgotPassword_Returns200Ok_WithForgotPasswordResponse()
+    {
+        var fakeAuth = new FakeAuthService();
+        var fakeAdmin = new FakeAdminAccountService();
+        var fakeCurrentUser = new FakeCurrentUser();
+        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
+
+        var request = new ForgotPasswordRequest("student@fpt.edu.vn");
+        var result = await controller.ForgotPassword(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ForgotPasswordResponse>(okResult.Value);
+        Assert.Equal("student@fpt.edu.vn", response.Email);
+        Assert.Equal(60, response.ResendCooldownSeconds);
+    }
+
+    [Fact]
+    public async Task ResetPassword_Returns200Ok_WithResetPasswordResponse()
+    {
+        var fakeAuth = new FakeAuthService();
+        var fakeAdmin = new FakeAdminAccountService();
+        var fakeCurrentUser = new FakeCurrentUser();
+        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
+
+        var request = new ResetPasswordRequest("student@fpt.edu.vn", "123456", "NewPassword@123", "NewPassword@123");
+        var result = await controller.ResetPassword(request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ResetPasswordResponse>(okResult.Value);
+        Assert.Equal("student@fpt.edu.vn", response.Email);
+    }
+
+    [Fact]
+    public void PasswordRecoveryEndpoints_ShouldHaveAllowAnonymousAttribute()
+    {
+        var forgotMethod = typeof(AuthController).GetMethod(nameof(AuthController.ForgotPassword));
+        Assert.NotNull(forgotMethod);
+        Assert.NotNull(forgotMethod.GetCustomAttribute<AllowAnonymousAttribute>());
+
+        var resetMethod = typeof(AuthController).GetMethod(nameof(AuthController.ResetPassword));
+        Assert.NotNull(resetMethod);
+        Assert.NotNull(resetMethod.GetCustomAttribute<AllowAnonymousAttribute>());
     }
 }

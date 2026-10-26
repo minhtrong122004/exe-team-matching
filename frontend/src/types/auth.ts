@@ -124,3 +124,38 @@ export interface ResendVerificationResponse {
   resendCooldownSeconds: number;
   expiresAt: string;
 }
+
+/// <summary>
+/// DTO yêu cầu gửi mã OTP đặt lại mật khẩu (POST /api/auth/forgot-password).
+/// </summary>
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+/// <summary>
+/// DTO phản hồi sau khi gửi yêu cầu quên mật khẩu (POST /api/auth/forgot-password).
+/// </summary>
+export interface ForgotPasswordResponse {
+  message: string;
+  email: string;
+  resendCooldownSeconds: number;
+  expiresAt: string;
+}
+
+/// <summary>
+/// DTO yêu cầu đặt lại mật khẩu bằng mã OTP (POST /api/auth/reset-password).
+/// </summary>
+export interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+/// <summary>
+/// DTO phản hồi sau khi đặt lại mật khẩu thành công (POST /api/auth/reset-password).
+/// </summary>
+export interface ResetPasswordResponse {
+  message: string;
+  email: string;
+}
