@@ -1,4 +1,6 @@
+using Exe.BuildingBlocks.EventBus;
 using Exe.BuildingBlocks.Exceptions;
+using Exe.Contracts.Events;
 using FluentValidation;
 using User.Repository.Entities;
 using User.Repository.Enums;
@@ -312,5 +314,59 @@ public class UserProfileServiceTests
         Assert.Contains("SE123999", privateJson);
         Assert.Equal("secret.student@fpt.edu.vn", privateProfile.Email);
         Assert.Equal("SE123999", privateProfile.StudentCode);
+    }
+
+    [Fact]
+    public async Task UpdateUserProfile_WhenEventPublisherProvided_ShouldPublishUserProfileUpdatedEvent()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "update.event@fpt.edu.vn",
+            FullName = "Old Name"
+        });
+
+        var fakePublisher = new FakeEventPublisher();
+        var serviceWithPublisher = new UserProfileService(
+            _profileRepo,
+            _unitOfWork,
+            _currentUser,
+            new UpdateUserProfileRequestValidator(),
+            new CreateUserProfileInternalRequestValidator(),
+            new BatchUsersRequestValidator(),
+            fakePublisher);
+
+        var request = new UpdateUserProfileRequest(
+            FullName: "New Name",
+            StudentCode: null,
+            Campus: "TP. Hồ Chí Minh",
+            Major: Major.SE,
+            Bio: "Bio",
+            DesiredRole: "Frontend",
+            Availability: UserAvailability.LookingForTeam,
+            Interests: new List<string> { "React" });
+
+        // Act
+        await serviceWithPublisher.UpdateUserProfileAsync(userId, request);
+
+        // Assert
+        Assert.Single(fakePublisher.PublishedEvents);
+        var published = Assert.IsType<UserProfileUpdated>(fakePublisher.PublishedEvents[0]);
+        Assert.Equal(userId, published.UserId);
+        Assert.Equal("New Name", published.FullName);
+        Assert.Equal("SE", published.Major);
+    }
+
+    private class FakeEventPublisher : IEventPublisher
+    {
+        public List<object> PublishedEvents { get; } = new();
+
+        public Task<Guid> PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class
+        {
+            PublishedEvents.Add(@event);
+            return Task.FromResult(Guid.NewGuid());
+        }
     }
 }
