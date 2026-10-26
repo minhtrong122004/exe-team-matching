@@ -85,7 +85,8 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.Property(r => r.StudentName).IsRequired().HasMaxLength(200);
             entity.Property(r => r.StudentEmail).IsRequired().HasMaxLength(256);
             entity.Property(r => r.Message).HasMaxLength(1000);
-            entity.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+            // UPDATE kèm "WHERE Status = <trạng thái lúc đọc>": duyệt/từ chối/hủy đồng thời thì chỉ một bên thắng.
+            entity.Property(r => r.Status).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
 
             entity.HasIndex(r => new { r.StudentId, r.Status });
             entity.HasIndex(r => new { r.GroupId, r.Status });
@@ -109,7 +110,8 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.HasKey(i => i.Id);
 
             entity.Property(i => i.StudentName).IsRequired().HasMaxLength(200);
-            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+            // Chấp nhận lời mời không ghi đè được trạng thái Expired do InvitationExpiryJob vừa đặt (BR-10).
+            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
 
             entity.HasIndex(i => new { i.StudentId, i.Status });
             entity.HasIndex(i => new { i.GroupId, i.Status });

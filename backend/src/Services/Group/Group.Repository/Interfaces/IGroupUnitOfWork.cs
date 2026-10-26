@@ -6,7 +6,8 @@ namespace Group.Repository.Interfaces;
 public interface IGroupUnitOfWork
 {
     /// <summary>
-    /// Lưu thay đổi. Ném <see cref="ConcurrencyConflictException"/> khi Group.RowVersion đã bị thao tác khác đổi,
+    /// Lưu thay đổi. Ném <see cref="ConcurrencyConflictException"/> khi Group.RowVersion, JoinRequest.Status
+    /// hoặc Invitation.Status đã bị thao tác khác đổi,
     /// và <see cref="UniqueConstraintViolationException"/> khi vi phạm một unique index.
     /// </summary>
     Task SaveChangesAsync(CancellationToken ct = default);

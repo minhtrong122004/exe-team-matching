@@ -126,10 +126,14 @@ public class InvitationService(
 
     public async Task<InvitationResponse> RejectAsync(Guid id, CancellationToken ct = default)
     {
-        var invitation = await LoadPendingForStudentAsync(id, ct);
-        invitation.Status = InvitationStatus.Rejected;
-        invitation.RespondedAt = DateTime.UtcNow;
-        await uow.SaveChangesAsync(ct);
+        var invitation = await uow.RetryOnConcurrencyAsync(async () =>
+        {
+            var inv = await LoadPendingForStudentAsync(id, ct);
+            inv.Status = InvitationStatus.Rejected;
+            inv.RespondedAt = DateTime.UtcNow;
+            await uow.SaveChangesAsync(ct);
+            return inv;
+        });
         return invitation.ToResponse();
     }
 

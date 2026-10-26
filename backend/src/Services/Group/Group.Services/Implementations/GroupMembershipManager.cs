@@ -118,8 +118,9 @@ public sealed class GroupMembershipManager(
 internal static class GroupUnitOfWorkExtensions
 {
     /// <summary>
-    /// Chạy lại toàn bộ thao tác (tải dữ liệu → kiểm tra rule → SaveChanges) khi Group.RowVersion bị đổi giữa chừng.
-    /// Lần thử sau đọc dữ liệu mới nên BR-06 trả GROUP_FULL nếu nhóm vừa đủ người (CLAUDE.md mục 9).
+    /// Chạy lại toàn bộ thao tác (tải dữ liệu → kiểm tra rule → SaveChanges) khi Group.RowVersion hoặc Status của
+    /// yêu cầu/lời mời bị đổi giữa chừng. Lần thử sau đọc dữ liệu mới nên BR-06 trả GROUP_FULL nếu nhóm vừa đủ người
+    /// (CLAUDE.md mục 9), hoặc INVALID_STATUS / INVITATION_EXPIRED nếu yêu cầu/lời mời vừa bị xử lý.
     /// </summary>
     public static async Task<T> RetryOnConcurrencyAsync<T>(
         this IGroupUnitOfWork uow, Func<Task<T>> operation, int maxAttempts = 3)
