@@ -48,6 +48,9 @@ public static class GroupErrorCodes
     /// <summary>Vị trí tuyển đã đủ người.</summary>
     public const string SlotFull = "SLOT_FULL";
 
+    /// <summary>Tổng số lượng của các vị trí tuyển vượt quá MaxMembers - 1.</summary>
+    public const string SlotQuantityExceeded = "SLOT_QUANTITY_EXCEEDED";
+
     /// <summary>Không thể xóa/giảm vị trí đã có người.</summary>
     public const string SlotHasMembers = "SLOT_HAS_MEMBERS";
 
