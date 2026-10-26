@@ -64,7 +64,15 @@ public class InvitationService(
             Group       = group
         };
         invitations.Add(invitation);
-        await uow.SaveChangesAsync(ct);
+        try
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.PendingInvitation)
+        {
+            throw new BusinessRuleException(GroupErrorCodes.DuplicateInvitation,
+                "This student already has a pending invitation from this group.");
+        }
 
         // TODO(Trọng/Vy): User Service không trả email trong hồ sơ công khai, nên StudentEmail đang để trống
         // (Notification chỉ tạo thông báo trong app, không gửi email). Cần endpoint nội bộ trả email để bổ sung.

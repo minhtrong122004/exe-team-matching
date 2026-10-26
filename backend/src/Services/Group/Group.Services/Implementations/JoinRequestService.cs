@@ -72,7 +72,16 @@ public class JoinRequestService(
             Group        = group
         };
         joinRequests.Add(joinRequest);
-        await uow.SaveChangesAsync(ct);
+        try
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.PendingJoinRequest)
+        {
+            // Hai request cùng lúc đều qua HasPendingAsync; unique index chặn request thứ hai (BR-04).
+            throw new BusinessRuleException(GroupErrorCodes.DuplicateJoinRequest,
+                "You already have a pending request to this group.");
+        }
 
         var leader = group.Leader();
         await events.PublishAsync(new JoinRequestCreated(

@@ -90,6 +90,12 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.HasIndex(r => new { r.StudentId, r.Status });
             entity.HasIndex(r => new { r.GroupId, r.Status });
 
+            // BR-04: chặn ở database cả khi hai request cùng qua bước kiểm tra HasPendingAsync.
+            entity.HasIndex(r => new { r.StudentId, r.GroupId })
+                  .HasDatabaseName(GroupIndexes.PendingJoinRequest)
+                  .IsUnique()
+                  .HasFilter("[Status] = 'Pending'");
+
             entity.HasOne(r => r.Group)
                   .WithMany()
                   .HasForeignKey(r => r.GroupId)
@@ -107,6 +113,11 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
 
             entity.HasIndex(i => new { i.StudentId, i.Status });
             entity.HasIndex(i => new { i.GroupId, i.Status });
+
+            entity.HasIndex(i => new { i.StudentId, i.GroupId })
+                  .HasDatabaseName(GroupIndexes.PendingInvitation)
+                  .IsUnique()
+                  .HasFilter("[Status] = 'Pending'");
             entity.HasIndex(i => new { i.Status, i.ExpiresAt }); // job hết hạn lời mời
 
             entity.HasOne(i => i.Group)
