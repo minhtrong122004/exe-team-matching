@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <!-- Lớp API (Trọng): Controllers, Workers (BackgroundService), Program.cs. -->
+  <PropertyGroup>
+    <!-- XML comment của controller hiện trong Swagger -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591;1573</NoWarn>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Group.Services\Group.Services.csproj" />
     <ProjectReference Include="..\Group.Repository\Group.Repository.csproj" />

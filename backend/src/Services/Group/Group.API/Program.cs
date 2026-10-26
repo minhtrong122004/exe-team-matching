@@ -1,22 +1,38 @@
+using Exe.BuildingBlocks.EventBus;
+using Exe.BuildingBlocks.Persistence;
+using Exe.BuildingBlocks.Web;
+using Group.API.Workers;
+using Group.Repository;
+using Group.Repository.Data;
+using Group.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
+// ── 0. Phần dùng chung (BuildingBlocks) ─────────────────────────────────────
+// Controllers + JSON (camelCase, enum dạng chuỗi), ProblemDetails, JWT, ICurrentUser,
+// Swagger có nút Authorize, /health, log console.
+builder.AddExeServiceDefaults("Group Service");
 
-// TODO: đăng ký DbContext, repository, service, JWT, event bus... (CLAUDE.md mục 5, 11)
+// ── 1. Repository (DbContext ExeGroupDb) ────────────────────────────────────
+builder.Services.AddGroupRepository(builder.Configuration);
 
+// ── 2. Services + client User/Project (REST) và Matching (gRPC) ─────────────
+builder.Services.AddGroupServices(builder.Configuration);
+
+// ── 3. Event bus (Redis Streams) — Group chỉ là producer ────────────────────
+builder.Services.AddExeEventBus(builder.Configuration);
+
+// ── 4. Background job ───────────────────────────────────────────────────────
+builder.Services.AddHostedService<InvitationExpiryJob>();
+
+// ═══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// ── 5. Pipeline: log request → bắt lỗi (ProblemDetails) → Swagger → JWT → controllers, /health ──
+app.UseExeServiceDefaults();
+app.MapGet("/", () => "Group Service is running").AllowAnonymous().ExcludeFromDescription();
 
-app.MapControllers();
-app.MapHealthChecks("/health");
-app.MapGet("/", () => "Group Service is running").ExcludeFromDescription();
+// ── 6. Auto-migrate khi Development (có retry trong lúc SQL Server khởi động) ──
+await app.MigrateDatabaseAsync<GroupDbContext>();
 
 app.Run();
