@@ -1,4 +1,5 @@
 using Group.Repository.Entities;
+using Group.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Group.Repository.Data;
@@ -33,6 +34,7 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
 
             // BR-11: một dự án chỉ thuộc một nhóm chưa giải tán.
             entity.HasIndex(g => g.ProjectId)
+                  .HasDatabaseName(GroupIndexes.ProjectId)
                   .IsUnique()
                   .HasFilter("[Status] <> 'Disbanded'");
 

@@ -102,7 +102,15 @@ public class GroupService(
         }
 
         groups.Add(group);
-        await uow.SaveChangesAsync(ct);
+        try
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.ProjectId)
+        {
+            // Hai request cùng qua bước kiểm tra ở trên; unique index chặn request thứ hai (BR-11).
+            throw new BusinessRuleException(GroupErrorCodes.ProjectAlreadyHasGroup, "This project already has a group.");
+        }
 
         await events.PublishAsync(new GroupCreated(group.Id, group.Name, group.LeaderId, group.MaxMembers), ct);
         // Trưởng nhóm cũng là một thành viên: User đặt InTeam, Report tính sinh viên đã có nhóm.
