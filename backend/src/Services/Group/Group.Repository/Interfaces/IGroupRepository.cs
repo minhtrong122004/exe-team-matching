@@ -44,4 +44,10 @@ public interface IGroupRepository
     Task<IReadOnlyList<GroupEntity>> GetRecruitingAsync(int max, CancellationToken ct = default);
 
     void Add(GroupEntity group);
+
+    /// <summary>
+    /// Thêm vị trí tuyển vào nhóm đã tồn tại. Phải gọi qua DbSet: slot có sẵn Id (Guid.NewGuid) nên nếu chỉ thêm
+    /// vào group.Slots, EF coi là bản ghi cũ và sinh UPDATE (0 dòng → lỗi concurrency) thay vì INSERT.
+    /// </summary>
+    void AddSlot(RecruitmentSlot slot);
 }

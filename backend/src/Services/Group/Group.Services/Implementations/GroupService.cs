@@ -178,7 +178,7 @@ public class GroupService(
         var group = await LoadForLeaderAsync(groupId, "manage recruitment slots", ct);
         var slot = new RecruitmentSlot { Id = Guid.NewGuid(), GroupId = group.Id };
         slot.Apply(request);
-        group.Slots.Add(slot);
+        groups.AddSlot(slot); // EF tự gắn slot vào group.Slots (navigation fix-up)
         EnsureSlotCapacity(group, group.MaxMembers);
         group.UpdatedAt = DateTime.UtcNow;
 
