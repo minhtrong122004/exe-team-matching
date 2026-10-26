@@ -212,6 +212,7 @@ public class GroupService(
             throw new BusinessRuleException(GroupErrorCodes.SlotHasMembers, "Cannot delete a slot that already has members.");
 
         group.Slots.Remove(slot);
+        await membership.DetachSlotFromPendingRequestsAsync(group.Id, slot.Id, ct);
         group.UpdatedAt = DateTime.UtcNow;
         await uow.SaveOrConflictAsync(ct);
     }
