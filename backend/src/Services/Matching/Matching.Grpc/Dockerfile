@@ -2,11 +2,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props ./
+COPY src/BuildingBlocks/Exe.BuildingBlocks/Exe.BuildingBlocks.csproj src/BuildingBlocks/Exe.BuildingBlocks/
 COPY src/BuildingBlocks/Exe.Contracts/Exe.Contracts.csproj src/BuildingBlocks/Exe.Contracts/
 COPY src/Services/Matching/Matching.Services/Matching.Services.csproj src/Services/Matching/Matching.Services/
 COPY src/Services/Matching/Matching.Grpc/Matching.Grpc.csproj src/Services/Matching/Matching.Grpc/
 RUN dotnet restore src/Services/Matching/Matching.Grpc/Matching.Grpc.csproj
 
+COPY src/BuildingBlocks/Exe.BuildingBlocks/ src/BuildingBlocks/Exe.BuildingBlocks/
 COPY src/BuildingBlocks/Exe.Contracts/ src/BuildingBlocks/Exe.Contracts/
 COPY src/Services/Matching/Matching.Services/ src/Services/Matching/Matching.Services/
 COPY src/Services/Matching/Matching.Grpc/ src/Services/Matching/Matching.Grpc/

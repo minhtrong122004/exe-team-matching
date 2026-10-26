@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Matching.Services\Matching.Services.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Exe.Contracts\Exe.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Exe.BuildingBlocks\Exe.BuildingBlocks.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
