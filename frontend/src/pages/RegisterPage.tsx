@@ -33,7 +33,7 @@ export const RegisterPage: React.FC = () => {
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Địa chỉ email không hợp lệ (ví dụ: sinhvien@fpt.edu.vn).');
+      setError('Địa chỉ email không hợp lệ (ví dụ: ban@gmail.com hoặc sinhvien@fpt.edu.vn).');
       return false;
     }
     if (password.length < 8) {
@@ -70,8 +70,9 @@ export const RegisterPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await register(email, password, fullName);
-      navigate('/projects');
+      const res = await register(email, password, fullName);
+      const targetEmail = res?.email || email.trim();
+      navigate(`/verify-email?email=${encodeURIComponent(targetEmail)}`);
     } catch (err: any) {
       if (err.response?.status === 409) {
         setError('Email này đã được đăng ký trong hệ thống. Vui lòng đăng nhập hoặc dùng email khác.');
@@ -347,14 +348,14 @@ export const RegisterPage: React.FC = () => {
 
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>
               <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Địa chỉ Email FPT *
+                Địa chỉ Email *
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
                 <input
                   type="email"
                   className="form-control"
-                  placeholder="sinhvien@fpt.edu.vn"
+                  placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
@@ -362,6 +363,9 @@ export const RegisterPage: React.FC = () => {
                   required
                 />
               </div>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', marginBottom: 0 }}>
+                Hệ thống hỗ trợ Gmail, Outlook, FPT Education và các địa chỉ email hợp lệ khác.
+              </p>
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.15rem' }}>

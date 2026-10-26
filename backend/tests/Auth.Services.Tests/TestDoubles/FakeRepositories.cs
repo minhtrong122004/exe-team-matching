@@ -162,3 +162,67 @@ public class FakeUnitOfWork : IUnitOfWork
         await action();
     }
 }
+
+public class FakeEmailVerificationChallengeRepository : IEmailVerificationChallengeRepository
+{
+    public readonly List<EmailVerificationChallenge> Challenges = new();
+
+    public Task AddAsync(EmailVerificationChallenge challenge, CancellationToken ct = default)
+    {
+        Challenges.Add(challenge);
+        return Task.CompletedTask;
+    }
+
+    public Task<EmailVerificationChallenge?> GetActiveChallengeByAccountIdAsync(Guid accountId, CancellationToken ct = default)
+    {
+        return Task.FromResult(Challenges
+            .Where(c => c.AccountId == accountId && !c.IsUsed)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefault());
+    }
+
+    public Task<EmailVerificationChallenge?> GetActiveChallengeByEmailAsync(string email, CancellationToken ct = default)
+    {
+        return Task.FromResult(Challenges
+            .Where(c => c.Email.Equals(email, StringComparison.OrdinalIgnoreCase) && !c.IsUsed)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefault());
+    }
+
+    public Task InvalidatePreviousChallengesAsync(Guid accountId, CancellationToken ct = default)
+    {
+        foreach (var c in Challenges.Where(c => c.AccountId == accountId && !c.IsUsed))
+        {
+            c.IsUsed = true;
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task<int> CountResendsInLastHourAsync(Guid accountId, CancellationToken ct = default)
+    {
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var count = Challenges.Count(c => c.AccountId == accountId && c.CreatedAt >= oneHourAgo);
+        return Task.FromResult(count);
+    }
+
+    public Task UpdateAsync(EmailVerificationChallenge challenge, CancellationToken ct = default)
+    {
+        var idx = Challenges.FindIndex(c => c.Id == challenge.Id);
+        if (idx >= 0)
+        {
+            Challenges[idx] = challenge;
+        }
+        return Task.CompletedTask;
+    }
+}
+
+public class FakeEmailSender : Auth.Services.Interfaces.IEmailSender
+{
+    public readonly List<(string Email, string Name, string Otp)> SentEmails = new();
+
+    public Task SendVerificationOtpAsync(string recipientEmail, string recipientName, string otp, CancellationToken ct = default)
+    {
+        SentEmails.Add((recipientEmail, recipientName, otp));
+        return Task.CompletedTask;
+    }
+}

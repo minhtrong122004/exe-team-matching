@@ -1,5 +1,7 @@
 export * from './auth';
 export * from './user';
+export * from './notification';
+export * from './report';
 
 export interface User {
   id: string;

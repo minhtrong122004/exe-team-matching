@@ -22,7 +22,15 @@ public static class ProblemDetailsWriter
         problem.Extensions["code"] = code;
 
         context.Response.StatusCode = status;
-        var service = context.RequestServices.GetRequiredService<IProblemDetailsService>();
-        await service.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = problem });
+        var service = context.RequestServices.GetService<IProblemDetailsService>();
+        if (service != null)
+        {
+            await service.WriteAsync(new ProblemDetailsContext { HttpContext = context, ProblemDetails = problem });
+        }
+        else
+        {
+            context.Response.ContentType = "application/problem+json";
+            await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, problem);
+        }
     }
 }

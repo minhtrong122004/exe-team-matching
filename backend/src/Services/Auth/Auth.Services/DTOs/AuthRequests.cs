@@ -45,6 +45,21 @@ public record LogoutRequest(
 );
 
 /// <summary>
+/// DTO yêu cầu xác thực email bằng mã OTP (Gate H).
+/// </summary>
+public record VerifyEmailRequest(
+    string Email,
+    string Otp
+);
+
+/// <summary>
+/// DTO yêu cầu gửi lại mã xác thực email (Gate H).
+/// </summary>
+public record ResendVerificationRequest(
+    string Email
+);
+
+/// <summary>
 /// Tham số truy vấn danh sách tài khoản dành cho Quản trị viên (Admin).
 /// </summary>
 public record GetAccountsQuery(

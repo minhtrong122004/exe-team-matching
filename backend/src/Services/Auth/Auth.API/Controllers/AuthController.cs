@@ -29,17 +29,51 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Đăng ký tài khoản sinh viên mới (kèm Transactional Outbox).
+    /// Đăng ký tài khoản sinh viên mới (Gate C, D, E, H).
+    /// Sinh mã OTP 6 số và gửi qua Brevo Transactional Email.
     /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken ct)
     {
         var result = await _authService.RegisterAsync(request, ct);
         return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>
+    /// Xác thực email tài khoản bằng mã OTP 6 số (Gate H, I).
+    /// Kích hoạt tài khoản và phát sinh UserRegisteredEvent vào Transactional Outbox.
+    /// </summary>
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(VerifyEmailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequest request, CancellationToken ct)
+    {
+        var result = await _authService.VerifyEmailAsync(request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gửi lại mã OTP xác thực email (Gate H).
+    /// Áp dụng cooldown 60 giây và giới hạn 5 lần/giờ.
+    /// </summary>
+    [HttpPost("resend-verification")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ResendVerificationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest request, CancellationToken ct)
+    {
+        var result = await _authService.ResendVerificationAsync(request, ct);
+        return Ok(result);
     }
 
     /// <summary>

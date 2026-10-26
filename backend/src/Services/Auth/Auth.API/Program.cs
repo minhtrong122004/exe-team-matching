@@ -5,7 +5,7 @@ using Auth.Services;
 using Exe.BuildingBlocks.Auth;
 using Exe.BuildingBlocks.EventBus;
 using Exe.BuildingBlocks.Web;
-
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,7 +65,20 @@ builder.Services.AddHostedService<Auth.API.Workers.AuthOutboxPublisherWorker>();
 // ── Admin Bootstrap Options (Stage H2) ───────────────────────────────────────
 builder.Services.Configure<Auth.Services.DTOs.AdminBootstrapOptions>(builder.Configuration.GetSection(Auth.Services.DTOs.AdminBootstrapOptions.SectionName));
 
+// ── Brevo Transactional Email Options (Gate F) ───────────────────────────────
+builder.Services.Configure<Auth.Services.DTOs.BrevoOptions>(builder.Configuration.GetSection(Auth.Services.DTOs.BrevoOptions.SectionName));
+
 var app = builder.Build();
+
+// ── Database Migration (Gate D, E) ────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<Auth.Repository.Data.AuthDbContext>();
+    if (db.Database.IsRelational())
+    {
+        await db.Database.MigrateAsync();
+    }
+}
 
 // ── Explicit Admin Bootstrap Command (Stage H2) ──────────────────────────────
 if (args.Contains("--bootstrap-admin"))

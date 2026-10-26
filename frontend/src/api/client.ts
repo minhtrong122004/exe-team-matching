@@ -64,6 +64,8 @@ apiClient.interceptors.response.use(
     const isAuthEndpoint =
       url.includes('/auth/login') ||
       url.includes('/auth/register') ||
+      url.includes('/auth/verify-email') ||
+      url.includes('/auth/resend-verification') ||
       url.includes('/auth/refresh') ||
       url.includes('/auth/logout');
 
@@ -92,7 +94,11 @@ apiClient.interceptors.response.use(
     if (!currentRefreshToken) {
       // Không có refresh token -> dọn dẹp phiên và từ chối
       clearAuthSession();
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      if (
+        window.location.pathname !== '/login' &&
+        window.location.pathname !== '/register' &&
+        window.location.pathname !== '/verify-email'
+      ) {
         window.location.href = '/login';
       }
       isRefreshing = false;
@@ -131,7 +137,11 @@ apiClient.interceptors.response.use(
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       clearAuthSession();
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      if (
+        window.location.pathname !== '/login' &&
+        window.location.pathname !== '/register' &&
+        window.location.pathname !== '/verify-email'
+      ) {
         window.location.href = '/login';
       }
       return Promise.reject(refreshErr);

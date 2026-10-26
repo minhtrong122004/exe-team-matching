@@ -86,3 +86,25 @@ public class ValidationException : AppException
         Errors = errors;
     }
 }
+
+/// <summary>
+/// Lỗi 400 Bad Request — Yêu cầu không hợp lệ hoặc vi phạm điều kiện nghiệp vụ.
+/// </summary>
+public class BadRequestException : AppException
+{
+    public BadRequestException(string message, string errorCode = "BAD_REQUEST")
+        : base(message, HttpStatusCode.BadRequest, errorCode)
+    {
+    }
+}
+
+/// <summary>
+/// Lỗi 503 Service Unavailable — Dịch vụ bên ngoài hoặc hạ tầng tạm thời không khả dụng.
+/// </summary>
+public class ServiceUnavailableException : AppException
+{
+    public ServiceUnavailableException(string message, string errorCode = "SERVICE_UNAVAILABLE")
+        : base(message, HttpStatusCode.ServiceUnavailable, errorCode)
+    {
+    }
+}

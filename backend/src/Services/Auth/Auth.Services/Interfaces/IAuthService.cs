@@ -8,7 +8,11 @@ namespace Auth.Services.Interfaces;
 /// </summary>
 public interface IAuthService
 {
-    Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
+    Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
+
+    Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default);
+
+    Task<ResendVerificationResponse> ResendVerificationAsync(ResendVerificationRequest request, CancellationToken ct = default);
 
     Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default);
 

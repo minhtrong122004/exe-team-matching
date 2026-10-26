@@ -16,54 +16,74 @@ using Microsoft.Extensions.Options;
 namespace Auth.Services.Implementations;
 
 /// <summary>
-/// Triển khai nghiệp vụ xác thực chính theo kiến trúc Transactional Outbox và Refresh Token Rotation.
+/// Triển khai nghiệp vụ xác thực chính theo kiến trúc Transactional Outbox, Refresh Token Rotation,
+/// và quy trình xác thực email bằng mã OTP 6 số qua Brevo API (Gate D, E, F, H, I).
 /// </summary>
 public class AuthService : IAuthService
 {
     private readonly IAccountRepository _accountRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IOutboxRepository _outboxRepository;
+    private readonly IEmailVerificationChallengeRepository _challengeRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITokenService _tokenService;
+    private readonly IOtpService _otpService;
+    private readonly IEmailSender _emailSender;
     private readonly JwtOptions _jwtOptions;
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RefreshTokenRequest> _refreshValidator;
     private readonly IValidator<LogoutRequest> _logoutValidator;
+    private readonly IValidator<VerifyEmailRequest> _verifyEmailValidator;
+    private readonly IValidator<ResendVerificationRequest> _resendVerificationValidator;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IAccountRepository accountRepository,
         IRefreshTokenRepository refreshTokenRepository,
         IOutboxRepository outboxRepository,
+        IEmailVerificationChallengeRepository challengeRepository,
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         ITokenService tokenService,
+        IOtpService otpService,
+        IEmailSender emailSender,
         IOptions<JwtOptions> jwtOptions,
         IValidator<RegisterRequest> registerValidator,
         IValidator<LoginRequest> loginValidator,
         IValidator<RefreshTokenRequest> refreshValidator,
         IValidator<LogoutRequest> logoutValidator,
+        IValidator<VerifyEmailRequest> verifyEmailValidator,
+        IValidator<ResendVerificationRequest> resendVerificationValidator,
         ILogger<AuthService> logger)
     {
         _accountRepository = accountRepository;
         _refreshTokenRepository = refreshTokenRepository;
         _outboxRepository = outboxRepository;
+        _challengeRepository = challengeRepository;
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _tokenService = tokenService;
+        _otpService = otpService;
+        _emailSender = emailSender;
         _jwtOptions = jwtOptions.Value;
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
         _refreshValidator = refreshValidator;
         _logoutValidator = logoutValidator;
+        _verifyEmailValidator = verifyEmailValidator;
+        _resendVerificationValidator = resendVerificationValidator;
         _logger = logger;
     }
 
-    public async Task<AuthResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
+    /// <summary>
+    /// Đăng ký tài khoản sinh viên mới (Gate C, D, E, H).
+    /// Tuyệt đối KHÔNG trả về access/refresh token và KHÔNG sinh UserRegisteredEvent vào outbox trước khi email được xác thực.
+    /// </summary>
+    public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
     {
-        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào
+        // 1. Kiểm tra tính hợp lệ của dữ liệu đầu vào (cho phép mọi domain hợp lệ như Gmail, Outlook, FPT)
         var validationResult = await _registerValidator.ValidateAsync(request, ct);
         if (!validationResult.IsValid)
         {
@@ -73,41 +93,158 @@ public class AuthService : IAuthService
         // 2. Chuẩn hóa email
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        // 3. Kiểm tra trùng lặp email trước khi mở transaction
-        if (await _accountRepository.ExistsByEmailAsync(normalizedEmail, ct))
+        // 3. Kiểm tra trùng lặp email
+        var existingAccount = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
+        var now = DateTime.UtcNow;
+        Account account;
+
+        if (existingAccount != null)
         {
-            throw new ConflictException("Email đã được đăng ký trong hệ thống.", "EMAIL_ALREADY_EXISTS");
+            // Nếu tài khoản đã xác thực email thành công -> Báo lỗi trùng lặp
+            if (existingAccount.EmailConfirmed)
+            {
+                throw new ConflictException("Email đã được đăng ký và kích hoạt trong hệ thống.", "EMAIL_ALREADY_EXISTS");
+            }
+
+            // Nếu tài khoản đang ở trạng thái chờ xác thực (PendingVerification) -> Cập nhật thông tin và cấp mã OTP mới
+            existingAccount.PasswordHash = _passwordHasher.HashPassword(request.Password);
+            existingAccount.RegistrationFullName = request.FullName.Trim();
+            existingAccount.UpdatedAt = now;
+            await _accountRepository.UpdateAsync(existingAccount, ct);
+            account = existingAccount;
+            _logger.LogInformation("Pending account re-registered, refreshed credentials for AccountId {AccountId}", account.Id);
+        }
+        else
+        {
+            // Băm mật khẩu (BCrypt WorkFactor 11)
+            var passwordHash = _passwordHasher.HashPassword(request.Password);
+
+            // Khởi tạo Account — Đăng ký công khai luôn gán vai trò Student, trạng thái EmailConfirmed = false (PendingVerification)
+            account = new Account
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                PasswordHash = passwordHash,
+                RegistrationFullName = request.FullName.Trim(),
+                Role = AccountRole.Student,
+                IsActive = true,
+                EmailConfirmed = false,
+                EmailConfirmedAt = null,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await _accountRepository.AddAsync(account, ct);
+            _logger.LogInformation("New student account created in pending verification state: {AccountId}", account.Id);
         }
 
-        // 4. Băm mật khẩu (BCrypt WorkFactor 11)
-        var passwordHash = _passwordHasher.HashPassword(request.Password);
-        var now = DateTime.UtcNow;
+        // 4. Hủy bỏ mọi challenge cũ chưa sử dụng của tài khoản này
+        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, ct);
 
-        // 5. Khởi tạo Account — Đăng ký công khai luôn gán vai trò Student
-        var account = new Account
-        {
-            Id = Guid.NewGuid(),
-            Email = normalizedEmail,
-            PasswordHash = passwordHash,
-            RegistrationFullName = request.FullName.Trim(),
-            Role = AccountRole.Student,
-            IsActive = true,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+        // 5. Sinh mã OTP 6 số ngẫu nhiên CSPRNG và băm kèm salt (Gate E)
+        var otp = _otpService.GenerateSixDigitOtp();
+        var (otpHash, salt) = _otpService.HashOtp(otp);
 
-        // 6. Tạo Refresh Token đầu tiên
-        var (rawRefreshToken, tokenHash) = _tokenService.GenerateRefreshToken();
-        var refreshToken = new RefreshToken
+        var challenge = new EmailVerificationChallenge
         {
             Id = Guid.NewGuid(),
             AccountId = account.Id,
-            TokenHash = tokenHash,
-            ExpiresAt = now.AddDays(_jwtOptions.RefreshTokenExpirationDays),
+            Email = account.Email,
+            OtpHash = otpHash,
+            Salt = salt,
+            ExpiresAt = now.AddMinutes(5), // Hiệu lực 5 phút
+            FailedAttempts = 0,
+            ResendAvailableAt = now.AddSeconds(60), // Cooldown 60 giây
+            IsUsed = false,
             CreatedAt = now
         };
 
-        // 7. Tạo sự kiện UserRegisteredEvent cho Transactional Outbox
+        await _challengeRepository.AddAsync(challenge, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        // 6. Gửi email xác thực OTP qua Brevo Transactional Email API (Gate F)
+        // Tuyệt đối không log chuỗi OTP plaintext
+        _logger.LogInformation("Sending verification OTP email via Brevo to {Email}", normalizedEmail);
+        await _emailSender.SendVerificationOtpAsync(account.Email, account.RegistrationFullName, otp, ct);
+
+        // 7. Trả về phản hồi đăng ký thành công (KHÔNG có JWT token)
+        return new RegisterResponse(
+            "Đăng ký tài khoản thành công. Vui lòng kiểm tra email để nhận mã xác thực OTP kích hoạt tài khoản.",
+            account.Email,
+            challenge.ExpiresAt
+        );
+    }
+
+    /// <summary>
+    /// Xác thực email người dùng bằng mã OTP 6 số (Gate D, E, H, I).
+    /// Sau khi xác thực hợp lệ, kích hoạt Account và ghi nhận sự kiện UserRegisteredEvent vào Transactional Outbox.
+    /// </summary>
+    public async Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _verifyEmailValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var account = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
+
+        if (account == null)
+        {
+            throw new NotFoundException("Không tìm thấy tài khoản với email này.", "ACCOUNT_NOT_FOUND");
+        }
+
+        if (account.EmailConfirmed)
+        {
+            return new VerifyEmailResponse("Tài khoản của bạn đã được xác thực trước đó. Vui lòng đăng nhập.", account.Email);
+        }
+
+        var challenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ct);
+        if (challenge == null)
+        {
+            throw new BadRequestException("Không tìm thấy yêu cầu xác thực email hoặc mã OTP đã hết hạn. Vui lòng yêu cầu gửi lại mã mới.", "CHALLENGE_NOT_FOUND");
+        }
+
+        var now = DateTime.UtcNow;
+
+        if (challenge.ExpiresAt <= now)
+        {
+            challenge.IsUsed = true;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            throw new BadRequestException("Mã xác thực OTP đã hết hạn (5 phút). Vui lòng yêu cầu gửi lại mã xác thực mới.", "OTP_EXPIRED");
+        }
+
+        if (challenge.FailedAttempts >= 5)
+        {
+            challenge.IsUsed = true;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            throw new ForbiddenException("Bạn đã nhập sai mã OTP quá 5 lần. Vui lòng yêu cầu gửi lại mã xác thực mới.", "MAX_FAILED_ATTEMPTS");
+        }
+
+        var isValidOtp = _otpService.VerifyOtp(request.Otp, challenge.OtpHash, challenge.Salt);
+        if (!isValidOtp)
+        {
+            challenge.FailedAttempts++;
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+
+            var remaining = Math.Max(0, 5 - challenge.FailedAttempts);
+            _logger.LogWarning("Invalid OTP attempt for Account {AccountId}. Failed attempts: {Attempts}", account.Id, challenge.FailedAttempts);
+
+            throw new BadRequestException($"Mã xác thực không chính xác. Bạn còn {remaining} lần thử.", "INVALID_OTP");
+        }
+
+        // OTP hợp lệ: Đánh dấu đã dùng, kích hoạt tài khoản và phát sinh UserRegisteredEvent vào Transactional Outbox
+        challenge.IsUsed = true;
+        challenge.UsedAt = now;
+
+        account.EmailConfirmed = true;
+        account.EmailConfirmedAt = now;
+        account.UpdatedAt = now;
+
         var userRegisteredEvent = new UserRegisteredEvent(
             EventId: Guid.NewGuid(),
             UserId: account.Id,
@@ -128,32 +265,99 @@ public class AuthService : IAuthService
             CreatedAt = now
         };
 
-        // 8. Lưu nguyên tử Account + RefreshToken + OutboxMessage trong cùng một Transaction
-        try
+        await _unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            await _unitOfWork.ExecuteInTransactionAsync(async () =>
-            {
-                await _accountRepository.AddAsync(account, ct);
-                await _refreshTokenRepository.AddAsync(refreshToken, ct);
-                await _outboxRepository.AddAsync(outboxMessage, ct);
-                await _unitOfWork.SaveChangesAsync(ct);
-            }, ct);
-        }
-        catch (DbUpdateException ex)
+            await _challengeRepository.UpdateAsync(challenge, ct);
+            await _accountRepository.UpdateAsync(account, ct);
+            await _outboxRepository.AddAsync(outboxMessage, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+        }, ct);
+
+        _logger.LogInformation("Account {AccountId} successfully verified email and emitted UserRegisteredEvent to Outbox", account.Id);
+
+        return new VerifyEmailResponse(
+            "Xác thực email thành công! Tài khoản của bạn đã được kích hoạt. Vui lòng đăng nhập.",
+            account.Email
+        );
+    }
+
+    /// <summary>
+    /// Gửi lại mã OTP xác thực email (Gate E, H).
+    /// Áp dụng cooldown 60 giây và giới hạn 5 lần/giờ. Vô hiệu hóa OTP cũ.
+    /// </summary>
+    public async Task<ResendVerificationResponse> ResendVerificationAsync(ResendVerificationRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _resendVerificationValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
         {
-            _logger.LogWarning(ex, "DbUpdateException during registration for email {Email}", normalizedEmail);
-            throw new ConflictException("Email đã được đăng ký trong hệ thống.", "EMAIL_ALREADY_EXISTS");
+            throw new FluentValidation.ValidationException(validationResult.Errors);
         }
 
-        _logger.LogInformation("Account registered successfully: {AccountId} with role {Role}", account.Id, account.Role);
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var account = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
 
-        // 9. Cấp phát JWT Access Token và trả về thông tin
-        var accessToken = _tokenService.GenerateAccessToken(account);
+        if (account == null)
+        {
+            throw new NotFoundException("Không tìm thấy tài khoản với email này.", "ACCOUNT_NOT_FOUND");
+        }
 
-        return new AuthResponse(
-            accessToken,
-            rawRefreshToken,
-            new AuthUserDto(account.Id, account.Email, account.RegistrationFullName, account.Role.ToString())
+        if (account.EmailConfirmed)
+        {
+            throw new ConflictException("Tài khoản này đã được xác thực email trước đó. Vui lòng đăng nhập.", "EMAIL_ALREADY_VERIFIED");
+        }
+
+        var now = DateTime.UtcNow;
+
+        // 1. Kiểm tra Cooldown 60s
+        var activeChallenge = await _challengeRepository.GetActiveChallengeByAccountIdAsync(account.Id, ct);
+        if (activeChallenge != null && activeChallenge.ResendAvailableAt.HasValue && activeChallenge.ResendAvailableAt.Value > now)
+        {
+            var remainingSeconds = (int)Math.Ceiling((activeChallenge.ResendAvailableAt.Value - now).TotalSeconds);
+            _logger.LogWarning("Resend rejected due to cooldown for Account {AccountId}. Remaining: {Seconds}s", account.Id, remainingSeconds);
+            throw new BadRequestException($"Vui lòng chờ {remainingSeconds} giây trước khi yêu cầu gửi lại mã xác thực.", "RESEND_COOLDOWN");
+        }
+
+        // 2. Kiểm tra giới hạn 5 lần/giờ
+        var resendsInLastHour = await _challengeRepository.CountResendsInLastHourAsync(account.Id, ct);
+        if (resendsInLastHour >= 5)
+        {
+            _logger.LogWarning("Hourly resend limit exceeded for Account {AccountId} ({Count} resends)", account.Id, resendsInLastHour);
+            throw new ForbiddenException("Bạn đã vượt quá số lần yêu cầu gửi lại mã trong vòng 1 giờ (tối đa 5 lần). Vui lòng thử lại sau.", "HOURLY_LIMIT_EXCEEDED");
+        }
+
+        // 3. Vô hiệu hóa mọi challenge cũ
+        await _challengeRepository.InvalidatePreviousChallengesAsync(account.Id, ct);
+
+        // 4. Sinh mã OTP mới và băm kèm salt
+        var otp = _otpService.GenerateSixDigitOtp();
+        var (otpHash, salt) = _otpService.HashOtp(otp);
+
+        var newChallenge = new EmailVerificationChallenge
+        {
+            Id = Guid.NewGuid(),
+            AccountId = account.Id,
+            Email = account.Email,
+            OtpHash = otpHash,
+            Salt = salt,
+            ExpiresAt = now.AddMinutes(5),
+            FailedAttempts = 0,
+            ResendAvailableAt = now.AddSeconds(60),
+            IsUsed = false,
+            CreatedAt = now
+        };
+
+        await _challengeRepository.AddAsync(newChallenge, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        // 5. Gửi email
+        _logger.LogInformation("Resending verification OTP email via Brevo to {Email}", normalizedEmail);
+        await _emailSender.SendVerificationOtpAsync(account.Email, account.RegistrationFullName, otp, ct);
+
+        return new ResendVerificationResponse(
+            "Mã xác thực mới đã được gửi tới email của bạn.",
+            account.Email,
+            60,
+            newChallenge.ExpiresAt
         );
     }
 
@@ -173,6 +377,13 @@ public class AuthService : IAuthService
         {
             _logger.LogWarning("Failed login attempt for email {Email}", normalizedEmail);
             throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.", "INVALID_CREDENTIALS");
+        }
+
+        // Kiểm tra tài khoản đã xác thực email hay chưa (Gate D, H)
+        if (!account.EmailConfirmed)
+        {
+            _logger.LogWarning("Login rejected for unverified account {AccountId}", account.Id);
+            throw new ForbiddenException("Tài khoản chưa được xác thực email. Vui lòng kiểm tra mã OTP để kích hoạt tài khoản.", "EMAIL_NOT_CONFIRMED");
         }
 
         if (!account.IsActive)
@@ -253,10 +464,10 @@ public class AuthService : IAuthService
         }
 
         var account = await _accountRepository.GetByIdAsync(token.AccountId, ct);
-        if (account == null || !account.IsActive)
+        if (account == null || !account.IsActive || !account.EmailConfirmed)
         {
-            _logger.LogWarning("Refresh attempt for non-existent or locked account {AccountId}", token.AccountId);
-            throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa.", "ACCOUNT_LOCKED");
+            _logger.LogWarning("Refresh attempt for non-existent, inactive, or unverified account {AccountId}", token.AccountId);
+            throw new UnauthorizedException("Tài khoản không tồn tại, chưa xác thực hoặc đã bị khóa.", "ACCOUNT_LOCKED");
         }
 
         // Tạo Refresh Token mới và đánh dấu token cũ đã bị thay thế (Token Rotation)

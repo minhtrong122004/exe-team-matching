@@ -22,8 +22,11 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+
   const executeLogin = async (loginEmail: string, loginPass: string) => {
     setError(null);
+    setPendingVerificationEmail(null);
     setLoading(true);
 
     try {
@@ -40,9 +43,16 @@ export const LoginPage: React.FC = () => {
       if (err.response?.status === 401) {
         setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
       } else if (err.response?.status === 403) {
-        setError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
-      } else if (err.response?.data?.title || err.response?.data?.message) {
-        setError(err.response?.data?.title || err.response?.data?.message);
+        const errorCode = err.response?.data?.code;
+        const detail = err.response?.data?.detail;
+        if (errorCode === 'EMAIL_NOT_CONFIRMED' || (detail && detail.includes('xác thực email'))) {
+          setPendingVerificationEmail(loginEmail.trim());
+          setError(detail || 'Tài khoản chưa được xác thực email. Vui lòng nhập mã OTP để kích hoạt.');
+        } else {
+          setError(detail || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
+        }
+      } else if (err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message) {
+        setError(err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message);
       } else {
         setError('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra API Gateway.');
       }
@@ -309,7 +319,7 @@ export const LoginPage: React.FC = () => {
               Đăng nhập hệ thống
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              Vui lòng sử dụng tài khoản FPT Education (@fpt.edu.vn)
+              Vui lòng nhập địa chỉ email của bạn (Gmail, Outlook, FPT Education...)
             </p>
           </div>
 
@@ -319,17 +329,39 @@ export const LoginPage: React.FC = () => {
                 background: '#fef2f2',
                 border: '1px solid #fecaca',
                 color: '#dc2626',
-                padding: '0.75rem 1rem',
+                padding: '0.85rem 1rem',
                 borderRadius: 10,
                 fontSize: '0.85rem',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
+                flexDirection: 'column',
+                gap: '0.5rem',
                 marginBottom: '1.5rem',
               }}
             >
-              <AlertCircle size={18} flex-shrink={0} />
-              <span>{error}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+              {pendingVerificationEmail && (
+                <div style={{ paddingLeft: '1.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/verify-email?email=${encodeURIComponent(pendingVerificationEmail)}`)}
+                    style={{
+                      background: '#ea580c',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: 6,
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Nhập mã xác thực OTP ngay &rarr;
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -337,14 +369,14 @@ export const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <div className="form-group" style={{ marginBottom: '1.25rem' }}>
               <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Email tài khoản FPT
+                Địa chỉ Email *
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
                 <input
                   type="email"
                   className="form-control"
-                  placeholder="sinhvien@fpt.edu.vn"
+                  placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
