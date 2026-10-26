@@ -109,4 +109,6 @@ public class GroupRepository(GroupDbContext db) : IGroupRepository
             .ToListAsync(ct);
 
     public void Add(GroupEntity group) => db.Groups.Add(group);
+
+    public void AddSlot(RecruitmentSlot slot) => db.RecruitmentSlots.Add(slot);
 }

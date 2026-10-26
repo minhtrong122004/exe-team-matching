@@ -31,48 +31,64 @@ public class InvitationService(
     {
         await createValidator.ValidateAndThrowAsync(request, ct);
 
-        var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
-        group.EnsureLeader(currentUser.UserId, "send invitations"); // BR-05
-        group.EnsureRecruiting();
-
-        if (group.Members.Any(m => m.UserId == request.StudentId))
-            throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Student is already a member of this group.");
-
-        var student = await userClient.GetProfileAsync(request.StudentId, ct)
-            ?? throw new NotFoundException("User", request.StudentId);
-        if (!string.Equals(student.Role, Roles.Student, StringComparison.OrdinalIgnoreCase))
-            throw new BusinessRuleException(GroupErrorCodes.NotAStudent, "Only students can be invited.");
-
-        if (await groups.IsUserInActiveGroupAsync(request.StudentId, ct)) // BR-01
-            throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Student is already in a group.");
-
-        if (await invitations.HasPendingAsync(request.StudentId, groupId, ct))
-            throw new BusinessRuleException(GroupErrorCodes.DuplicateInvitation,
-                "This student already has a pending invitation from this group.");
-
-        var now = DateTime.UtcNow;
-        var invitation = new Invitation
+        var created = await uow.RetryOnConcurrencyAsync(async () =>
         {
-            Id          = Guid.NewGuid(),
-            GroupId     = group.Id,
-            StudentId   = student.UserId,
-            StudentName = student.FullName,
-            InvitedBy   = currentUser.UserId,
-            Status      = InvitationStatus.Pending,
-            CreatedAt   = now,
-            ExpiresAt   = now.AddDays(options.Value.InvitationExpiryDays),
-            Group       = group
-        };
-        invitations.Add(invitation);
-        await uow.SaveChangesAsync(ct);
+            var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
+            group.EnsureLeader(currentUser.UserId, "send invitations"); // BR-05
+            group.EnsureRecruiting();
+
+            if (group.Members.Any(m => m.UserId == request.StudentId))
+                throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Student is already a member of this group.");
+
+            var student = await userClient.GetProfileAsync(request.StudentId, ct)
+                ?? throw new NotFoundException("User", request.StudentId);
+            if (!string.Equals(student.Role, Roles.Student, StringComparison.OrdinalIgnoreCase))
+                throw new BusinessRuleException(GroupErrorCodes.NotAStudent, "Only students can be invited.");
+
+            if (await groups.IsUserInActiveGroupAsync(request.StudentId, ct)) // BR-01
+                throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Student is already in a group.");
+
+            if (await invitations.HasPendingAsync(request.StudentId, groupId, ct))
+                throw new BusinessRuleException(GroupErrorCodes.DuplicateInvitation,
+                    "This student already has a pending invitation from this group.");
+
+            var now = DateTime.UtcNow;
+            var invitation = new Invitation
+            {
+                Id          = Guid.NewGuid(),
+                GroupId     = group.Id,
+                StudentId   = student.UserId,
+                StudentName = student.FullName,
+                InvitedBy   = currentUser.UserId,
+                Status      = InvitationStatus.Pending,
+                CreatedAt   = now,
+                ExpiresAt   = now.AddDays(options.Value.InvitationExpiryDays),
+                Group       = group
+            };
+            invitations.Add(invitation);
+
+            // Sửa dòng Groups để SQL Server kiểm tra RowVersion: nhóm vừa đủ người / giải tán (BR-08 đã hủy các
+            // lời mời Pending nó thấy) thì lần lưu này xung đột, thử lại và EnsureRecruiting báo lỗi đúng trạng thái.
+            group.UpdatedAt = now;
+            try
+            {
+                await uow.SaveChangesAsync(ct);
+            }
+            catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.PendingInvitation)
+            {
+                throw new BusinessRuleException(GroupErrorCodes.DuplicateInvitation,
+                    "This student already has a pending invitation from this group.");
+            }
+            return invitation;
+        });
 
         // TODO(Trọng/Vy): User Service không trả email trong hồ sơ công khai, nên StudentEmail đang để trống
         // (Notification chỉ tạo thông báo trong app, không gửi email). Cần endpoint nội bộ trả email để bổ sung.
         await events.PublishAsync(new InvitationCreated(
-            invitation.Id, group.Id, group.Name, invitation.StudentId, StudentEmail: string.Empty,
-            invitation.StudentName, invitation.ExpiresAt), ct);
+            created.Id, created.Group.Id, created.Group.Name, created.StudentId, StudentEmail: string.Empty,
+            created.StudentName, created.ExpiresAt), ct);
 
-        return invitation.ToResponse();
+        return created.ToResponse();
     }
 
     public async Task<PagedResult<InvitationResponse>> GetMineAsync(InvitationQuery query, CancellationToken ct = default)
@@ -118,10 +134,14 @@ public class InvitationService(
 
     public async Task<InvitationResponse> RejectAsync(Guid id, CancellationToken ct = default)
     {
-        var invitation = await LoadPendingForStudentAsync(id, ct);
-        invitation.Status = InvitationStatus.Rejected;
-        invitation.RespondedAt = DateTime.UtcNow;
-        await uow.SaveChangesAsync(ct);
+        var invitation = await uow.RetryOnConcurrencyAsync(async () =>
+        {
+            var inv = await LoadPendingForStudentAsync(id, ct);
+            inv.Status = InvitationStatus.Rejected;
+            inv.RespondedAt = DateTime.UtcNow;
+            await uow.SaveChangesAsync(ct);
+            return inv;
+        });
         return invitation.ToResponse();
     }
 

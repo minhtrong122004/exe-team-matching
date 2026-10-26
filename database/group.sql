@@ -198,3 +198,45 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261026055115_AddPendingUniqueIndexes'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_JoinRequests_StudentId_GroupId_Pending] ON [JoinRequests] ([StudentId], [GroupId]) WHERE [Status] = ''Pending''');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261026055115_AddPendingUniqueIndexes'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_Invitations_StudentId_GroupId_Pending] ON [Invitations] ([StudentId], [GroupId]) WHERE [Status] = ''Pending''');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261026055115_AddPendingUniqueIndexes'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261026055115_AddPendingUniqueIndexes', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261026055232_StatusConcurrencyTokens'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261026055232_StatusConcurrencyTokens', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

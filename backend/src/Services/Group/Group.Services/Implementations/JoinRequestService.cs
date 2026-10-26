@@ -72,7 +72,16 @@ public class JoinRequestService(
             Group        = group
         };
         joinRequests.Add(joinRequest);
-        await uow.SaveChangesAsync(ct);
+        try
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.PendingJoinRequest)
+        {
+            // Hai request cùng lúc đều qua HasPendingAsync; unique index chặn request thứ hai (BR-04).
+            throw new BusinessRuleException(GroupErrorCodes.DuplicateJoinRequest,
+                "You already have a pending request to this group.");
+        }
 
         var leader = group.Leader();
         await events.PublishAsync(new JoinRequestCreated(
@@ -132,12 +141,16 @@ public class JoinRequestService(
 
     public async Task<JoinRequestResponse> RejectAsync(Guid id, CancellationToken ct = default)
     {
-        var joinRequest = await LoadPendingAsync(id, ct);
-        joinRequest.Group.EnsureLeader(currentUser.UserId, "reject join requests");
+        var joinRequest = await uow.RetryOnConcurrencyAsync(async () =>
+        {
+            var r = await LoadPendingAsync(id, ct);
+            r.Group.EnsureLeader(currentUser.UserId, "reject join requests");
 
-        joinRequest.Status = JoinRequestStatus.Rejected;
-        joinRequest.DecidedAt = DateTime.UtcNow;
-        await uow.SaveChangesAsync(ct);
+            r.Status = JoinRequestStatus.Rejected;
+            r.DecidedAt = DateTime.UtcNow;
+            await uow.SaveChangesAsync(ct);
+            return r;
+        });
 
         var group = joinRequest.Group;
         await events.PublishAsync(new JoinRequestDecided(
@@ -149,13 +162,17 @@ public class JoinRequestService(
 
     public async Task<JoinRequestResponse> CancelAsync(Guid id, CancellationToken ct = default)
     {
-        var joinRequest = await LoadPendingAsync(id, ct);
-        if (joinRequest.StudentId != currentUser.UserId)
-            throw new ForbiddenException("Only the student who sent the request can cancel it.");
+        var joinRequest = await uow.RetryOnConcurrencyAsync(async () =>
+        {
+            var r = await LoadPendingAsync(id, ct);
+            if (r.StudentId != currentUser.UserId)
+                throw new ForbiddenException("Only the student who sent the request can cancel it.");
 
-        joinRequest.Status = JoinRequestStatus.Cancelled;
-        joinRequest.DecidedAt = DateTime.UtcNow;
-        await uow.SaveChangesAsync(ct);
+            r.Status = JoinRequestStatus.Cancelled;
+            r.DecidedAt = DateTime.UtcNow;
+            await uow.SaveChangesAsync(ct);
+            return r;
+        });
 
         return joinRequest.ToResponse();
     }

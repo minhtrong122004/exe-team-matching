@@ -89,6 +89,16 @@ public sealed class GroupMembershipManager(
         await CancelPendingOfGroupAsync(group.Id, now, ct);
     }
 
+    /// <summary>
+    /// Khi xóa một vị trí tuyển: yêu cầu Pending đang trỏ tới vị trí đó trở thành yêu cầu vào nhóm chung
+    /// (SlotId = null), để không còn tham chiếu tới slot đã xóa (JoinRequest.SlotId không có khóa ngoại).
+    /// </summary>
+    public async Task DetachSlotFromPendingRequestsAsync(Guid groupId, Guid slotId, CancellationToken ct)
+    {
+        foreach (var r in (await joinRequests.GetPendingByGroupAsync(groupId, ct)).Where(r => r.SlotId == slotId))
+            r.SlotId = null;
+    }
+
     /// <summary>Hủy mọi yêu cầu và lời mời Pending của nhóm (khi đủ người hoặc giải tán).</summary>
     public async Task CancelPendingOfGroupAsync(Guid groupId, DateTime now, CancellationToken ct)
     {
@@ -108,8 +118,9 @@ public sealed class GroupMembershipManager(
 internal static class GroupUnitOfWorkExtensions
 {
     /// <summary>
-    /// Chạy lại toàn bộ thao tác (tải dữ liệu → kiểm tra rule → SaveChanges) khi Group.RowVersion bị đổi giữa chừng.
-    /// Lần thử sau đọc dữ liệu mới nên BR-06 trả GROUP_FULL nếu nhóm vừa đủ người (CLAUDE.md mục 9).
+    /// Chạy lại toàn bộ thao tác (tải dữ liệu → kiểm tra rule → SaveChanges) khi Group.RowVersion hoặc Status của
+    /// yêu cầu/lời mời bị đổi giữa chừng. Lần thử sau đọc dữ liệu mới nên BR-06 trả GROUP_FULL nếu nhóm vừa đủ người
+    /// (CLAUDE.md mục 9), hoặc INVALID_STATUS / INVITATION_EXPIRED nếu yêu cầu/lời mời vừa bị xử lý.
     /// </summary>
     public static async Task<T> RetryOnConcurrencyAsync<T>(
         this IGroupUnitOfWork uow, Func<Task<T>> operation, int maxAttempts = 3)

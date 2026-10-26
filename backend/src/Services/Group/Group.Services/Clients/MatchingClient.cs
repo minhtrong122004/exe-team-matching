@@ -1,10 +1,14 @@
 using System.Diagnostics;
+using Exe.BuildingBlocks.Web;
 using Exe.Contracts.Matching;
 using Microsoft.Extensions.Logging;
 
 namespace Group.Services.Clients;
 
-/// <summary>Bọc client sinh từ matching.proto: thêm deadline và log [GRPC] phía Group.</summary>
+/// <summary>
+/// Bọc client sinh từ matching.proto: thêm deadline và log [GRPC] phía Group.
+/// X-Correlation-Id được gắn vào metadata bởi <see cref="MatchingMetadataInterceptor"/>.
+/// </summary>
 public sealed class MatchingClient(MatchingService.MatchingServiceClient client, ILogger<MatchingClient> logger)
     : IMatchingClient
 {
@@ -17,8 +21,8 @@ public sealed class MatchingClient(MatchingService.MatchingServiceClient client,
             new MatchRequest { Student = student, Group = group }, deadline: Deadline(), cancellationToken: ct);
 
         logger.LogInformation(
-            "[GRPC] CalculateMatch userId={UserId} groupId={GroupId} score={Score} duration={Duration}ms",
-            result.UserId, result.GroupId, result.Score, sw.ElapsedMilliseconds);
+            "[GRPC] CalculateMatch userId={UserId} groupId={GroupId} score={Score} duration={Duration}ms correlationId={CorrelationId}",
+            result.UserId, result.GroupId, result.Score, sw.ElapsedMilliseconds, CorrelationContext.Current);
         return result;
     }
 
@@ -32,8 +36,8 @@ public sealed class MatchingClient(MatchingService.MatchingServiceClient client,
         var response = await client.RankGroupsAsync(request, deadline: Deadline(), cancellationToken: ct);
 
         logger.LogInformation(
-            "[GRPC] RankGroups userId={UserId} groups={Count} returned={Returned} duration={Duration}ms",
-            student.UserId, request.Groups.Count, response.Results.Count, sw.ElapsedMilliseconds);
+            "[GRPC] RankGroups userId={UserId} groups={Count} returned={Returned} duration={Duration}ms correlationId={CorrelationId}",
+            student.UserId, request.Groups.Count, response.Results.Count, sw.ElapsedMilliseconds, CorrelationContext.Current);
         return response.Results;
     }
 
@@ -47,8 +51,8 @@ public sealed class MatchingClient(MatchingService.MatchingServiceClient client,
         var response = await client.RankCandidatesAsync(request, deadline: Deadline(), cancellationToken: ct);
 
         logger.LogInformation(
-            "[GRPC] RankCandidates groupId={GroupId} candidates={Count} returned={Returned} duration={Duration}ms",
-            group.GroupId, request.Candidates.Count, response.Results.Count, sw.ElapsedMilliseconds);
+            "[GRPC] RankCandidates groupId={GroupId} candidates={Count} returned={Returned} duration={Duration}ms correlationId={CorrelationId}",
+            group.GroupId, request.Candidates.Count, response.Results.Count, sw.ElapsedMilliseconds, CorrelationContext.Current);
         return response.Results;
     }
 

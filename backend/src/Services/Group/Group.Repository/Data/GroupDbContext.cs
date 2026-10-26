@@ -1,4 +1,5 @@
 using Group.Repository.Entities;
+using Group.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace Group.Repository.Data;
@@ -33,6 +34,7 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
 
             // BR-11: một dự án chỉ thuộc một nhóm chưa giải tán.
             entity.HasIndex(g => g.ProjectId)
+                  .HasDatabaseName(GroupIndexes.ProjectId)
                   .IsUnique()
                   .HasFilter("[Status] <> 'Disbanded'");
 
@@ -83,10 +85,17 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.Property(r => r.StudentName).IsRequired().HasMaxLength(200);
             entity.Property(r => r.StudentEmail).IsRequired().HasMaxLength(256);
             entity.Property(r => r.Message).HasMaxLength(1000);
-            entity.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+            // UPDATE kèm "WHERE Status = <trạng thái lúc đọc>": duyệt/từ chối/hủy đồng thời thì chỉ một bên thắng.
+            entity.Property(r => r.Status).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
 
             entity.HasIndex(r => new { r.StudentId, r.Status });
             entity.HasIndex(r => new { r.GroupId, r.Status });
+
+            // BR-04: chặn ở database cả khi hai request cùng qua bước kiểm tra HasPendingAsync.
+            entity.HasIndex(r => new { r.StudentId, r.GroupId })
+                  .HasDatabaseName(GroupIndexes.PendingJoinRequest)
+                  .IsUnique()
+                  .HasFilter("[Status] = 'Pending'");
 
             entity.HasOne(r => r.Group)
                   .WithMany()
@@ -101,10 +110,16 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.HasKey(i => i.Id);
 
             entity.Property(i => i.StudentName).IsRequired().HasMaxLength(200);
-            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+            // Chấp nhận lời mời không ghi đè được trạng thái Expired do InvitationExpiryJob vừa đặt (BR-10).
+            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
 
             entity.HasIndex(i => new { i.StudentId, i.Status });
             entity.HasIndex(i => new { i.GroupId, i.Status });
+
+            entity.HasIndex(i => new { i.StudentId, i.GroupId })
+                  .HasDatabaseName(GroupIndexes.PendingInvitation)
+                  .IsUnique()
+                  .HasFilter("[Status] = 'Pending'");
             entity.HasIndex(i => new { i.Status, i.ExpiresAt }); // job hết hạn lời mời
 
             entity.HasOne(i => i.Group)

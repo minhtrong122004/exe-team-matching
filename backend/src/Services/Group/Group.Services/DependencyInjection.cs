@@ -35,7 +35,9 @@ public static class DependencyInjection
         // ── gRPC client (Services:Matching, HTTP/2 không TLS) ────────────────
         var matchingUrl = configuration["Services:Matching"]
                           ?? throw new InvalidOperationException("Missing configuration 'Services:Matching'.");
-        services.AddGrpcClient<MatchingService.MatchingServiceClient>(o => o.Address = new Uri(matchingUrl));
+        services.AddSingleton<MatchingMetadataInterceptor>();
+        services.AddGrpcClient<MatchingService.MatchingServiceClient>(o => o.Address = new Uri(matchingUrl))
+            .AddInterceptor<MatchingMetadataInterceptor>();
         services.AddScoped<IMatchingClient, MatchingClient>();
 
         return services;

@@ -102,7 +102,15 @@ public class GroupService(
         }
 
         groups.Add(group);
-        await uow.SaveChangesAsync(ct);
+        try
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.ProjectId)
+        {
+            // Hai request cùng qua bước kiểm tra ở trên; unique index chặn request thứ hai (BR-11).
+            throw new BusinessRuleException(GroupErrorCodes.ProjectAlreadyHasGroup, "This project already has a group.");
+        }
 
         await events.PublishAsync(new GroupCreated(group.Id, group.Name, group.LeaderId, group.MaxMembers), ct);
         // Trưởng nhóm cũng là một thành viên: User đặt InTeam, Report tính sinh viên đã có nhóm.
@@ -124,6 +132,7 @@ public class GroupService(
         if (request.MaxMembers < group.Members.Count)
             throw new BusinessRuleException(GroupErrorCodes.MaxMembersBelowMemberCount,
                 $"Group already has {group.Members.Count} members.");
+        EnsureSlotCapacity(group, request.MaxMembers);
 
         var now = DateTime.UtcNow;
         group.Name        = request.Name.Trim();
@@ -169,7 +178,8 @@ public class GroupService(
         var group = await LoadForLeaderAsync(groupId, "manage recruitment slots", ct);
         var slot = new RecruitmentSlot { Id = Guid.NewGuid(), GroupId = group.Id };
         slot.Apply(request);
-        group.Slots.Add(slot);
+        groups.AddSlot(slot); // EF tự gắn slot vào group.Slots (navigation fix-up)
+        EnsureSlotCapacity(group, group.MaxMembers);
         group.UpdatedAt = DateTime.UtcNow;
 
         await uow.SaveOrConflictAsync(ct);
@@ -187,6 +197,7 @@ public class GroupService(
                 $"Slot already has {slot.Filled} members; quantity cannot be lower.");
 
         slot.Apply(request);
+        EnsureSlotCapacity(group, group.MaxMembers);
         group.UpdatedAt = DateTime.UtcNow;
 
         await uow.SaveOrConflictAsync(ct);
@@ -201,6 +212,7 @@ public class GroupService(
             throw new BusinessRuleException(GroupErrorCodes.SlotHasMembers, "Cannot delete a slot that already has members.");
 
         group.Slots.Remove(slot);
+        await membership.DetachSlotFromPendingRequestsAsync(group.Id, slot.Id, ct);
         group.UpdatedAt = DateTime.UtcNow;
         await uow.SaveOrConflictAsync(ct);
     }
@@ -272,6 +284,18 @@ public class GroupService(
 
     private static RecruitmentSlot FindSlot(GroupEntity group, Guid slotId) =>
         group.Slots.FirstOrDefault(s => s.Id == slotId) ?? throw new NotFoundException("Slot", slotId);
+
+    /// <summary>
+    /// Trưởng nhóm chiếm 1 chỗ, nên tổng vị trí tuyển không vượt quá MaxMembers - 1
+    /// (cùng quy tắc với CreateGroupRequestValidator, kiểm tra lại khi thêm/sửa slot hoặc đổi MaxMembers).
+    /// </summary>
+    private static void EnsureSlotCapacity(GroupEntity group, int maxMembers)
+    {
+        var total = group.Slots.Sum(s => s.Quantity);
+        if (total > maxMembers - 1)
+            throw new BusinessRuleException(GroupErrorCodes.SlotQuantityExceeded,
+                $"Total slot quantity ({total}) must not exceed maxMembers - 1 ({maxMembers - 1}).");
+    }
 
     private static GroupMember FindMember(GroupEntity group, Guid userId) =>
         group.Members.FirstOrDefault(m => m.UserId == userId)

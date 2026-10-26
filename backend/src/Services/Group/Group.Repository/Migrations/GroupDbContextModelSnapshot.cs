@@ -74,6 +74,7 @@ namespace Group.Repository.Migrations
 
                     b.HasIndex("ProjectId")
                         .IsUnique()
+                        .HasDatabaseName("IX_Groups_ProjectId")
                         .HasFilter("[Status] <> 'Disbanded'");
 
                     b.HasIndex("Status");
@@ -139,6 +140,7 @@ namespace Group.Repository.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -156,6 +158,11 @@ namespace Group.Repository.Migrations
                     b.HasIndex("GroupId", "Status");
 
                     b.HasIndex("Status", "ExpiresAt");
+
+                    b.HasIndex("StudentId", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Invitations_StudentId_GroupId_Pending")
+                        .HasFilter("[Status] = 'Pending'");
 
                     b.HasIndex("StudentId", "Status");
 
@@ -185,6 +192,7 @@ namespace Group.Repository.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -205,6 +213,11 @@ namespace Group.Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId", "Status");
+
+                    b.HasIndex("StudentId", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_JoinRequests_StudentId_GroupId_Pending")
+                        .HasFilter("[Status] = 'Pending'");
 
                     b.HasIndex("StudentId", "Status");
 

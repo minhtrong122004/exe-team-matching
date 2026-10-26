@@ -22,8 +22,8 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         var outcome = calculator.Calculate(student, group);
 
         logger.LogInformation(
-            "[GRPC] CalculateMatch userId={UserId} groupId={GroupId} score={Score} duration={Duration}ms",
-            outcome.UserId, outcome.GroupId, outcome.Score, sw.ElapsedMilliseconds);
+            "[GRPC] CalculateMatch userId={UserId} groupId={GroupId} score={Score} duration={Duration}ms correlationId={CorrelationId}",
+            outcome.UserId, outcome.GroupId, outcome.Score, sw.ElapsedMilliseconds, CorrelationId(context));
 
         return Task.FromResult(ToResult(outcome));
     }
@@ -36,8 +36,8 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         var outcomes = calculator.RankGroups(student, request.Groups.Select(ToInput), request.Top);
 
         logger.LogInformation(
-            "[GRPC] RankGroups userId={UserId} groups={Count} top={Top} returned={Returned} duration={Duration}ms",
-            student.UserId, request.Groups.Count, request.Top, outcomes.Count, sw.ElapsedMilliseconds);
+            "[GRPC] RankGroups userId={UserId} groups={Count} top={Top} returned={Returned} duration={Duration}ms correlationId={CorrelationId}",
+            student.UserId, request.Groups.Count, request.Top, outcomes.Count, sw.ElapsedMilliseconds, CorrelationId(context));
 
         var response = new RankGroupsResponse();
         response.Results.AddRange(outcomes.Select(ToResult));
@@ -52,8 +52,8 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         var outcomes = calculator.RankCandidates(group, request.Candidates.Select(ToInput), request.Top);
 
         logger.LogInformation(
-            "[GRPC] RankCandidates groupId={GroupId} candidates={Count} top={Top} returned={Returned} duration={Duration}ms",
-            group.GroupId, request.Candidates.Count, request.Top, outcomes.Count, sw.ElapsedMilliseconds);
+            "[GRPC] RankCandidates groupId={GroupId} candidates={Count} top={Top} returned={Returned} duration={Duration}ms correlationId={CorrelationId}",
+            group.GroupId, request.Candidates.Count, request.Top, outcomes.Count, sw.ElapsedMilliseconds, CorrelationId(context));
 
         var response = new RankCandidatesResponse();
         response.Results.AddRange(outcomes.Select(ToResult));
@@ -73,6 +73,10 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         result.MissingSkills.AddRange(o.MissingSkills);
         return result;
     }
+
+    /// <summary>X-Correlation-Id do Group gửi kèm trong metadata (key gRPC luôn viết thường).</summary>
+    private static string? CorrelationId(ServerCallContext context) =>
+        context.RequestHeaders.GetValue("x-correlation-id");
 
     private static RpcException InvalidArgument(string detail) =>
         new(new Status(StatusCode.InvalidArgument, detail));
