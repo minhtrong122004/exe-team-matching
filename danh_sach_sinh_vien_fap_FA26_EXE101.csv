@@ -1,0 +1,52 @@
+studentCode,email,fullName,major,cohort,classCode
+SE180001,anvse180001@fpt.edu.vn,Nguyễn Văn An,SE,K18,EXE101-01
+SE180002,binhtse180002@fpt.edu.vn,Trần Văn Bình,SE,K18,EXE101-01
+SE180003,cuonglmse180003@fpt.edu.vn,Lê Mạnh Cường,SE,K18,EXE101-01
+SE180004,duongvtse180004@fpt.edu.vn,Vũ Thùy Dương,SE,K18,EXE101-01
+SE180005,emntse180005@fpt.edu.vn,Ngô Thị Thảo Em,SE,K18,EXE101-01
+SE180006,gianghvse180006@fpt.edu.vn,Hoàng Văn Giang,SE,K18,EXE101-01
+SE180007,haontse180007@fpt.edu.vn,Nguyễn Thu Hảo,SE,K18,EXE101-01
+SE180008,khoipnse180008@fpt.edu.vn,Phan Ngọc Khôi,SE,K18,EXE101-01
+SE180009,linhttse180009@fpt.edu.vn,Trần Thảo Linh,SE,K18,EXE101-01
+SE180010,minhnvse180010@fpt.edu.vn,Nguyễn Văn Minh,SE,K18,EXE101-01
+SE180011,namdhse180011@fpt.edu.vn,Đặng Hoàng Nam,SE,K18,EXE101-01
+SE180012,oanhttse180012@fpt.edu.vn,Trương Thu Oanh,SE,K18,EXE101-01
+SE180013,phucthse180013@fpt.edu.vn,Thái Hữu Phúc,SE,K18,EXE101-01
+SE180014,quannmse180014@fpt.edu.vn,Nguyễn Minh Quân,SE,K18,EXE101-01
+SE180015,sonvtse180015@fpt.edu.vn,Võ Thái Sơn,SE,K18,EXE101-01
+SE180016,trangdvtse180016@fpt.edu.vn,Đỗ Vũ Thu Trang,SE,K18,EXE101-01
+SE180017,uyenntse180017@fpt.edu.vn,Nguyễn Tố Uyên,SE,K18,EXE101-01
+SE180018,vinhlcse180018@fpt.edu.vn,Lê Công Vinh,SE,K18,EXE101-01
+SE180019,xuanptse180019@fpt.edu.vn,Phạm Thanh Xuân,SE,K18,EXE101-01
+SE180020,yendnse180020@fpt.edu.vn,Đoàn Ngọc Yến,SE,K18,EXE101-01
+AI180021,anhldai180021@fpt.edu.vn,Lương Đức Anh,AI,K18,EXE101-01
+AI180022,baotqai180022@fpt.edu.vn,Trần Quốc Bảo,AI,K18,EXE101-01
+AI180023,chaulptai180023@fpt.edu.vn,Lê Phan Cẩm Châu,AI,K18,EXE101-01
+AI180024,dungdtai180024@fpt.edu.vn,Đỗ Thành Dũng,AI,K18,EXE101-01
+AI180025,hieuvtai180025@fpt.edu.vn,Vũ Trung Hiếu,AI,K18,EXE101-02
+AI180026,khanhptai180026@fpt.edu.vn,Phạm Thùy Khánh,AI,K18,EXE101-02
+AI180027,longndai180027@fpt.edu.vn,Nguyễn Đình Long,AI,K18,EXE101-02
+AI180028,myptai180028@fpt.edu.vn,Phan Trà My,AI,K18,EXE101-02
+GD180029,anhtngd180029@fpt.edu.vn,Trương Ngọc Ánh,GD,K18,EXE101-02
+GD180030,binhptgd180030@fpt.edu.vn,Phan Thanh Bình,GD,K18,EXE101-02
+GD180031,duclmgd180031@fpt.edu.vn,Lê Minh Đức,GD,K18,EXE101-02
+GD180032,haivtgd180032@fpt.edu.vn,Vũ Thanh Hải,GD,K18,EXE101-02
+GD180033,huongdtgd180033@fpt.edu.vn,Đinh Thu Hương,GD,K18,EXE101-02
+GD180034,kietnvgd180034@fpt.edu.vn,Nguyễn Tuấn Kiệt,GD,K18,EXE101-02
+GD180035,linhptgd180035@fpt.edu.vn,Phạm Thùy Linh,GD,K18,EXE101-02
+GD180036,nganvtgd180036@fpt.edu.vn,Võ Kim Ngân,GD,K18,EXE101-02
+MKT180037,anhttmkt180037@fpt.edu.vn,Trần Tuấn Anh,MKT,K18,EXE101-03
+MKT180038,dungntmkt180038@fpt.edu.vn,Nguyễn Thùy Dung,MKT,K18,EXE101-03
+MKT180039,hoangvtmkt180039@fpt.edu.vn,Vũ Huy Hoàng,MKT,K18,EXE101-03
+MKT180040,khanhptmkt180040@fpt.edu.vn,Phan Trọng Khánh,MKT,K18,EXE101-03
+MKT180041,ngocntmkt180041@fpt.edu.vn,Ngô Bảo Ngọc,MKT,K18,EXE101-03
+MKT180042,quangvtmkt180042@fpt.edu.vn,Võ Nhật Quang,MKT,K18,EXE101-03
+IB180043,anhldib180043@fpt.edu.vn,Lê Đức Anh,IB,K18,EXE101-03
+IB180044,chaupthib180044@fpt.edu.vn,Phạm Thùy Châu,IB,K18,EXE101-03
+IB180045,duongntib180045@fpt.edu.vn,Nguyễn Thùy Dương,IB,K18,EXE101-03
+IB180046,huyvtib180046@fpt.edu.vn,Vũ Quang Huy,IB,K18,EXE101-03
+IA180047,anhtnia180047@fpt.edu.vn,Trần Nam Anh,IA,K18,EXE101-03
+IA180048,bachvtia180048@fpt.edu.vn,Võ Xuân Bách,IA,K18,EXE101-03
+IA180049,cuongldia180049@fpt.edu.vn,Lê Đức Cường,IA,K18,EXE101-03
+IA180050,datntia180050@fpt.edu.vn,Nguyễn Thành Đạt,IA,K18,EXE101-03
+

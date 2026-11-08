@@ -22,6 +22,65 @@ namespace Group.Repository.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Group.Repository.Entities.CourseSpace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("BufferRatio")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("GroupThreshold")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxConcurrentApplies")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxMembersPerGroup")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("RegistrationDeadline")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SemesterCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SubjectCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("SemesterCode", "SubjectCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CourseSpaces_SemesterCode_SubjectCode");
+
+                    b.ToTable("CourseSpaces", (string)null);
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -35,7 +94,10 @@ namespace Group.Repository.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<Guid>("LeaderId")
+                    b.Property<bool>("IsClosedByLeader")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("LeaderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("MaxMembers")
@@ -47,18 +109,24 @@ namespace Group.Repository.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ProjectDomain")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("ProjectId")
+                    b.Property<Guid?>("ProjectId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoomCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("SpaceId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -75,9 +143,16 @@ namespace Group.Repository.Migrations
                     b.HasIndex("ProjectId")
                         .IsUnique()
                         .HasDatabaseName("IX_Groups_ProjectId")
-                        .HasFilter("[Status] <> 'Disbanded'");
+                        .HasFilter("[ProjectId] IS NOT NULL AND [Status] <> 'Disbanded'");
+
+                    b.HasIndex("SpaceId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("SpaceId", "RoomCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Groups_SpaceId_RoomCode")
+                        .HasFilter("[SpaceId] IS NOT NULL AND [RoomCode] IS NOT NULL");
 
                     b.ToTable("Groups", (string)null);
                 });
@@ -255,6 +330,73 @@ namespace Group.Repository.Migrations
                     b.ToTable("RecruitmentSlots", (string)null);
                 });
 
+            modelBuilder.Entity("Group.Repository.Entities.SpaceEnrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ClassCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Cohort")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Major")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("SpaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StudentCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SpaceId", "StudentCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SpaceEnrollments_SpaceId_StudentCode");
+
+                    b.HasIndex("SpaceId", "StudentId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SpaceEnrollments_SpaceId_StudentId");
+
+                    b.ToTable("SpaceEnrollments", (string)null);
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.CourseSpace", "Space")
+                        .WithMany("Rooms")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Space");
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.GroupMember", b =>
                 {
                     b.HasOne("Group.Repository.Entities.GroupEntity", "Group")
@@ -297,6 +439,24 @@ namespace Group.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.SpaceEnrollment", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.CourseSpace", "Space")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Space");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.CourseSpace", b =>
+                {
+                    b.Navigation("Enrollments");
+
+                    b.Navigation("Rooms");
                 });
 
             modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>

@@ -59,33 +59,39 @@ public record GroupSummaryResponse(
     Guid Id,
     string Name,
     string? Description,
-    Guid LeaderId,
-    string LeaderName,
-    Guid ProjectId,
-    string ProjectDomain,
+    Guid? LeaderId,
+    string? LeaderName,
+    Guid? ProjectId,
+    string? ProjectDomain,
     int MemberCount,
     int MaxMembers,
     string Status,
     IReadOnlyList<string> OpenMajors,
     IReadOnlyList<string> OpenSkills,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    Guid? SpaceId = null,
+    string? RoomCode = null,
+    bool IsClosedByLeader = false);
 
 /// <summary>Chi tiết nhóm: thành viên và vị trí tuyển.</summary>
 public record GroupDetailResponse(
     Guid Id,
     string Name,
     string? Description,
-    Guid LeaderId,
-    string LeaderName,
-    Guid ProjectId,
-    string ProjectDomain,
+    Guid? LeaderId,
+    string? LeaderName,
+    Guid? ProjectId,
+    string? ProjectDomain,
     int MemberCount,
     int MaxMembers,
     string Status,
     IReadOnlyList<MemberResponse> Members,
     IReadOnlyList<SlotResponse> Slots,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    Guid? SpaceId = null,
+    string? RoomCode = null,
+    bool IsClosedByLeader = false);
 
 public record MemberResponse(Guid UserId, string FullName, string Role, Guid? SlotId, DateTime JoinedAt);
 

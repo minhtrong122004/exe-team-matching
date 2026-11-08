@@ -112,7 +112,7 @@ public class GroupService(
             throw new BusinessRuleException(GroupErrorCodes.ProjectAlreadyHasGroup, "This project already has a group.");
         }
 
-        await events.PublishAsync(new GroupCreated(group.Id, group.Name, group.LeaderId, group.MaxMembers), ct);
+        await events.PublishAsync(new GroupCreated(group.Id, group.Name, group.LeaderId ?? Guid.Empty, group.MaxMembers), ct);
         // Trưởng nhóm cũng là một thành viên: User đặt InTeam, Report tính sinh viên đã có nhóm.
         await events.PublishAsync(new MemberJoined(
             group.Id, group.Name, userId, currentUser.Email ?? string.Empty, currentUser.FullName ?? string.Empty,

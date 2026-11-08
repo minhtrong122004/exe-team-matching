@@ -23,14 +23,22 @@ public static class DependencyInjection
         services.AddScoped<IJoinRequestService, JoinRequestService>();
         services.AddScoped<IInvitationService, InvitationService>();
         services.AddScoped<IGroupMatchingService, GroupMatchingService>();
+        services.AddScoped<ICourseSpaceService, CourseSpaceService>();
         services.AddScoped<GroupMembershipManager>();
         services.AddScoped<GroupEventPublisher>();
 
         services.AddValidatorsFromAssemblyContaining<CreateGroupRequestValidator>(includeInternalTypes: true);
 
-        // ── REST clients (base URL: Services:User, Services:Project) ─────────
+        // ── REST clients (base URL: Services:User, Services:Project, Services:Auth) ─────────
+        services.AddHttpContextAccessor();
+        services.AddTransient<ForwardHeadersHandler>();
         services.AddExeServiceClient<IUserClient, UserClient>(configuration, "User");
         services.AddExeServiceClient<IProjectClient, ProjectClient>(configuration, "Project");
+        services.AddHttpClient("Auth", client =>
+        {
+            var authUrl = configuration["Services:Auth"] ?? "http://localhost:5001";
+            client.BaseAddress = new Uri(authUrl);
+        }).AddHttpMessageHandler<ForwardHeadersHandler>();
 
         // ── gRPC client (Services:Matching, HTTP/2 không TLS) ────────────────
         var matchingUrl = configuration["Services:Matching"]
