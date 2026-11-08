@@ -105,6 +105,7 @@ public class UserRegisteredConsumerService : IUserRegisteredConsumerService
                     var normalizedCode = @event.StudentCode.Trim().ToUpperInvariant();
                     profile.StudentCode = normalizedCode;
                     profile.Campus ??= "HCM";
+                    profile.Cohort = ParseCohortFromStudentCode(normalizedCode);
                     profile.Major = ParseMajor(@event.Major, normalizedCode);
                 }
                 else if (!string.IsNullOrWhiteSpace(@event.Major))
@@ -199,6 +200,22 @@ public class UserRegisteredConsumerService : IUserRegisteredConsumerService
     }
 
     /// <summary>
+    /// Tự động bóc tách Khóa sinh viên (Cohort) từ số trong Mã số sinh viên (BR-04).
+    /// Ví dụ: SE180101 -> K18, AI180205 -> K18, GD170312 -> K17, SA180123 -> K18.
+    /// </summary>
+    private static string? ParseCohortFromStudentCode(string studentCode)
+    {
+        if (string.IsNullOrWhiteSpace(studentCode)) return null;
+        var trimmed = studentCode.Trim().ToUpperInvariant();
+        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(?:[A-Z]+)?(\d{2})");
+        if (match.Success && match.Groups.Count > 1)
+        {
+            return $"K{match.Groups[1].Value}";
+        }
+        return "K18";
+    }
+
+    /// <summary>
     /// Tự động bóc tách Chuyên ngành (Major) từ tiền tố Mã số sinh viên (BR-04).
     /// Ví dụ: SE180101 -> SE, AI180205 -> AI, GD180312 -> GD, MKT180408/MK180104 -> MKT, IB180519 -> IB, IA180622 -> IA.
     /// </summary>
@@ -222,71 +239,144 @@ public class UserRegisteredConsumerService : IUserRegisteredConsumerService
 
     private static void EnrichDemoStudentProfileIfApplicable(UserProfile profile)
     {
+        var now = DateTime.UtcNow;
         switch (profile.Email)
         {
             case "student1@exe.local":
                 profile.StudentCode = "SE180101";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.SE;
                 profile.DesiredRole = "Backend / System Architect";
                 profile.Bio = "Sinh viên năm cuối ngành Kỹ thuật phần mềm, đam mê kiến trúc Microservices với .NET 10, Redis và Docker.";
                 profile.Interests = "EdTech,FinTech,SaaS";
+                profile.TechScore = 90;
+                profile.ManagementScore = 80;
+                profile.GraphicDesignScore = 40;
+                profile.MarketingScore = 50;
+                profile.SaleScore = 45;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student2@exe.local":
                 profile.StudentCode = "AI180102";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.AI;
                 profile.DesiredRole = "AI / Machine Learning Engineer";
                 profile.Bio = "Nghiên cứu NLP, LLM RAG và Computer Vision ứng dụng cho giáo dục và y tế thông minh.";
                 profile.Interests = "EdTech,HealthTech,AI";
+                profile.TechScore = 85;
+                profile.ManagementScore = 65;
+                profile.GraphicDesignScore = 50;
+                profile.MarketingScore = 40;
+                profile.SaleScore = 30;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student3@exe.local":
                 profile.StudentCode = "GD180103";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.GD;
                 profile.DesiredRole = "Product Designer (UI/UX)";
                 profile.Bio = "Chuyên thiết kế Design System trên Figma, tối ưu trải nghiệm người dùng và nhận diện thương hiệu khởi nghiệp.";
                 profile.Interests = "EdTech,ECommerce,Design";
+                profile.TechScore = 45;
+                profile.ManagementScore = 60;
+                profile.GraphicDesignScore = 95;
+                profile.MarketingScore = 60;
+                profile.SaleScore = 40;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student4@exe.local":
                 profile.StudentCode = "MK180104";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.MKT;
                 profile.DesiredRole = "Growth & Digital Marketing Lead";
                 profile.Bio = "Kinh nghiệm xây dựng chiến dịch Go-To-Market, Content Marketing và phân tích chuyển đổi cho dự án EXE.";
                 profile.Interests = "ECommerce,EdTech,FinTech";
+                profile.TechScore = 35;
+                profile.ManagementScore = 70;
+                profile.GraphicDesignScore = 65;
+                profile.MarketingScore = 95;
+                profile.SaleScore = 75;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student5@exe.local":
                 profile.StudentCode = "IB180105";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.IB;
                 profile.DesiredRole = "Business Analyst & Pitching Lead";
                 profile.Bio = "Phụ trách mô hình tài chính, Business Model Canvas, nghiên cứu thị trường và thuyết trình gọi vốn.";
                 profile.Interests = "FinTech,GreenTech,SaaS";
+                profile.TechScore = 30;
+                profile.ManagementScore = 85;
+                profile.GraphicDesignScore = 35;
+                profile.MarketingScore = 70;
+                profile.SaleScore = 90;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student6@exe.local":
                 profile.StudentCode = "SE180106";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.SE;
                 profile.DesiredRole = "Frontend / Mobile Lead";
                 profile.Bio = "Thành thạo React 19, TypeScript, tối ưu hiệu năng giao diện web và ứng dụng di động.";
                 profile.Interests = "EdTech,ECommerce,HealthTech";
+                profile.TechScore = 90;
+                profile.ManagementScore = 50;
+                profile.GraphicDesignScore = 75;
+                profile.MarketingScore = 40;
+                profile.SaleScore = 35;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student7@exe.local":
                 profile.StudentCode = "IA180107";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.IA;
                 profile.DesiredRole = "DevSecOps & Security Engineer";
                 profile.Bio = "Đảm bảo an toàn thông tin, kiểm thử bảo mật OWASP và vận hành hạ tầng đám mây cho sản phẩm khởi nghiệp.";
                 profile.Interests = "FinTech,HealthTech,Cybersecurity";
+                profile.TechScore = 85;
+                profile.ManagementScore = 60;
+                profile.GraphicDesignScore = 30;
+                profile.MarketingScore = 35;
+                profile.SaleScore = 40;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
             case "student8@exe.local":
                 profile.StudentCode = "GD180108";
                 profile.Campus = "HCM";
+                profile.Cohort = "K18";
                 profile.Major = Major.GD;
                 profile.DesiredRole = "Brand & Motion Designer";
                 profile.Bio = "Sáng tạo bộ nhận diện thương hiệu, ấn phẩm truyền thông và video pitch deck chuyên nghiệp.";
                 profile.Interests = "GreenTech,ECommerce,Media";
+                profile.TechScore = 35;
+                profile.ManagementScore = 55;
+                profile.GraphicDesignScore = 90;
+                profile.MarketingScore = 65;
+                profile.SaleScore = 50;
+                profile.IsCommitted = true;
+                profile.CommittedAt = now;
+                profile.IsProfileCompleted = true;
                 break;
         }
     }

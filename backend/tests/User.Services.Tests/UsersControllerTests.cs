@@ -23,6 +23,9 @@ public class UsersControllerTests
                 "Student",
                 "Hanoi",
                 Major.SE,
+                "K18",
+                80, 70, 60, 50, 40,
+                true,
                 "Developer",
                 "Backend Dev",
                 UserAvailability.LookingForTeam,
@@ -43,6 +46,11 @@ public class UsersControllerTests
                 "SE123456",
                 "Hanoi",
                 Major.SE,
+                "K18",
+                80, 70, 60, 50, 40,
+                true,
+                DateTime.UtcNow,
+                true,
                 "Developer",
                 "Backend Dev",
                 UserAvailability.LookingForTeam,
@@ -63,6 +71,15 @@ public class UsersControllerTests
                 request.StudentCode,
                 request.Campus,
                 request.Major,
+                request.Cohort ?? "K18",
+                request.TechScore ?? 0,
+                request.ManagementScore ?? 0,
+                request.GraphicDesignScore ?? 0,
+                request.MarketingScore ?? 0,
+                request.SaleScore ?? 0,
+                request.IsCommitted ?? false,
+                request.IsCommitted == true ? DateTime.UtcNow : null,
+                request.IsCommitted == true,
                 request.Bio,
                 request.DesiredRole,
                 request.Availability,
@@ -78,6 +95,40 @@ public class UsersControllerTests
             return UpdateCurrentUserProfileAsync(request, ct);
         }
 
+        public Task<UserProfileResponse> UpdateCurrentUserProfileSkillsAsync(UpdateProfileSkillsRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new UserProfileResponse(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                "user@fpt.edu.vn",
+                "Nguyen Van A",
+                "Student",
+                "SE123456",
+                "Hanoi",
+                Major.SE,
+                "K18",
+                request.TechScore,
+                request.ManagementScore,
+                request.GraphicDesignScore,
+                request.MarketingScore,
+                request.SaleScore,
+                request.IsCommitted,
+                DateTime.UtcNow,
+                request.IsCommitted,
+                request.Bio,
+                request.DesiredRole,
+                UserAvailability.LookingForTeam,
+                request.Interests ?? new List<string>(),
+                new List<UserSkillResponse>(),
+                DateTime.UtcNow,
+                DateTime.UtcNow
+            ));
+        }
+
+        public Task<UserProfileResponse> UpdateProfileSkillsAsync(Guid userId, UpdateProfileSkillsRequest request, CancellationToken ct = default)
+        {
+            return UpdateCurrentUserProfileSkillsAsync(request, ct);
+        }
+
         public Task<PagedResult<CandidateProfileResponse>> SearchProfilesAsync(UserSearchFilter filter, CancellationToken ct = default)
         {
             var item = new CandidateProfileResponse(
@@ -86,6 +137,9 @@ public class UsersControllerTests
                 "Student",
                 "Hanoi",
                 Major.SE,
+                "K18",
+                80, 70, 60, 50, 40,
+                true,
                 "Bio",
                 "Role",
                 UserAvailability.LookingForTeam,
@@ -107,6 +161,9 @@ public class UsersControllerTests
                 null,
                 null,
                 null,
+                0, 0, 0, 0, 0,
+                false,
+                null,
                 null,
                 UserAvailability.LookingForTeam,
                 new List<string>(),
@@ -125,7 +182,10 @@ public class UsersControllerTests
                 request.Email,
                 request.FullName,
                 request.Role,
-                null, null, null, null, null,
+                null, null, null, null,
+                0, 0, 0, 0, 0,
+                false, null, false,
+                null, null,
                 UserAvailability.LookingForTeam,
                 new List<string>(),
                 new List<UserSkillResponse>(),

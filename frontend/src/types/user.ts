@@ -30,6 +30,15 @@ export interface UserProfileResponse {
   studentCode?: string | null;
   campus?: string | null;
   major?: Major | null;
+  cohort?: string | null;
+  techScore: number;
+  managementScore: number;
+  graphicDesignScore: number;
+  marketingScore: number;
+  saleScore: number;
+  isCommitted: boolean;
+  committedAt?: string | null;
+  isProfileCompleted: boolean;
   bio?: string | null;
   desiredRole?: string | null;
   availability: UserAvailability;
@@ -45,6 +54,13 @@ export interface CandidateProfileResponse {
   role: string;
   campus?: string | null;
   major?: Major | null;
+  cohort?: string | null;
+  techScore: number;
+  managementScore: number;
+  graphicDesignScore: number;
+  marketingScore: number;
+  saleScore: number;
+  isProfileCompleted: boolean;
   bio?: string | null;
   desiredRole?: string | null;
   availability: UserAvailability;
@@ -59,10 +75,29 @@ export interface UpdateUserProfileRequest {
   studentCode?: string | null;
   campus?: string | null;
   major?: Major | null;
+  cohort?: string | null;
+  techScore?: number;
+  managementScore?: number;
+  graphicDesignScore?: number;
+  marketingScore?: number;
+  saleScore?: number;
+  isCommitted?: boolean;
   bio?: string | null;
   desiredRole?: string | null;
   availability?: UserAvailability;
   interests?: string[] | null;
+}
+
+export interface UpdateProfileSkillsRequest {
+  techScore: number;
+  managementScore: number;
+  graphicDesignScore: number;
+  marketingScore: number;
+  saleScore: number;
+  isCommitted: boolean;
+  desiredRole?: string;
+  bio?: string;
+  interests?: string[];
 }
 
 export interface UserSkillItemRequest {

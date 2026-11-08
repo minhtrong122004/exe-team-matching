@@ -40,6 +40,63 @@ public class UpdateUserProfileRequestValidator : AbstractValidator<UpdateUserPro
 
         RuleForEach(x => x.Interests)
             .MaximumLength(50).WithMessage("Mỗi lĩnh vực quan tâm không được vượt quá 50 ký tự.");
+
+        RuleFor(x => x.TechScore)
+            .InclusiveBetween(0, 100).When(x => x.TechScore.HasValue)
+            .WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100.");
+
+        RuleFor(x => x.ManagementScore)
+            .InclusiveBetween(0, 100).When(x => x.ManagementScore.HasValue)
+            .WithMessage("Điểm kỹ năng Management phải từ 0 đến 100.");
+
+        RuleFor(x => x.GraphicDesignScore)
+            .InclusiveBetween(0, 100).When(x => x.GraphicDesignScore.HasValue)
+            .WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100.");
+
+        RuleFor(x => x.MarketingScore)
+            .InclusiveBetween(0, 100).When(x => x.MarketingScore.HasValue)
+            .WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100.");
+
+        RuleFor(x => x.SaleScore)
+            .InclusiveBetween(0, 100).When(x => x.SaleScore.HasValue)
+            .WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100.");
+    }
+}
+
+public class UpdateProfileSkillsRequestValidator : AbstractValidator<UpdateProfileSkillsRequest>
+{
+    public UpdateProfileSkillsRequestValidator()
+    {
+        RuleFor(x => x.TechScore)
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100 (BR-05).");
+
+        RuleFor(x => x.ManagementScore)
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Management phải từ 0 đến 100 (BR-05).");
+
+        RuleFor(x => x.GraphicDesignScore)
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100 (BR-05).");
+
+        RuleFor(x => x.MarketingScore)
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100 (BR-05).");
+
+        RuleFor(x => x.SaleScore)
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100 (BR-05).");
+
+        RuleFor(x => x.IsCommitted)
+            .Equal(true).WithMessage("Bạn phải tích cam kết chịu trách nhiệm với thông tin kỹ năng đã khai báo (BR-06).");
+
+        RuleFor(x => x.Bio)
+            .MaximumLength(1000).WithMessage("Tiểu sử không được vượt quá 1000 ký tự.");
+
+        RuleFor(x => x.DesiredRole)
+            .MaximumLength(100).WithMessage("Vai trò mong muốn không được vượt quá 100 ký tự.");
+
+        RuleFor(x => x.Interests)
+            .Must(list => list == null || list.Count <= 20)
+            .WithMessage("Danh sách lĩnh vực quan tâm không được vượt quá 20 mục.");
+
+        RuleForEach(x => x.Interests)
+            .MaximumLength(50).WithMessage("Mỗi lĩnh vực quan tâm không được vượt quá 50 ký tự.");
     }
 }
 

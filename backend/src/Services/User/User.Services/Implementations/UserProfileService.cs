@@ -10,6 +10,7 @@ using User.Repository.Enums;
 using User.Repository.Interfaces;
 using User.Services.DTOs;
 using User.Services.Interfaces;
+using User.Services.Validators;
 
 namespace User.Services.Implementations;
 
@@ -24,6 +25,7 @@ public class UserProfileService : IUserProfileService
     private readonly IValidator<UpdateUserProfileRequest> _updateValidator;
     private readonly IValidator<CreateUserProfileInternalRequest> _createValidator;
     private readonly IValidator<BatchUsersRequest> _batchValidator;
+    private readonly IValidator<UpdateProfileSkillsRequest> _skillsValidator;
     private readonly IEventPublisher? _eventPublisher;
 
     public UserProfileService(
@@ -33,7 +35,8 @@ public class UserProfileService : IUserProfileService
         IValidator<UpdateUserProfileRequest> updateValidator,
         IValidator<CreateUserProfileInternalRequest> createValidator,
         IValidator<BatchUsersRequest> batchValidator,
-        IEventPublisher? eventPublisher = null)
+        IEventPublisher? eventPublisher = null,
+        IValidator<UpdateProfileSkillsRequest>? skillsValidator = null)
     {
         _profileRepo = profileRepo;
         _unitOfWork = unitOfWork;
@@ -41,6 +44,7 @@ public class UserProfileService : IUserProfileService
         _updateValidator = updateValidator;
         _createValidator = createValidator;
         _batchValidator = batchValidator;
+        _skillsValidator = skillsValidator ?? new UpdateProfileSkillsRequestValidator();
         _eventPublisher = eventPublisher;
     }
 
@@ -123,10 +127,38 @@ public class UserProfileService : IUserProfileService
         {
             profile.Major = request.Major ?? profile.Major;
         }
+        if (!string.IsNullOrWhiteSpace(request.Cohort) && string.IsNullOrWhiteSpace(profile.Cohort))
+        {
+            profile.Cohort = request.Cohort.Trim();
+        }
         profile.Bio = request.Bio?.Trim();
         profile.DesiredRole = request.DesiredRole?.Trim();
         profile.Availability = request.Availability;
         profile.Interests = SerializeInterests(request.Interests);
+
+        if (request.TechScore.HasValue) profile.TechScore = request.TechScore.Value;
+        if (request.ManagementScore.HasValue) profile.ManagementScore = request.ManagementScore.Value;
+        if (request.GraphicDesignScore.HasValue) profile.GraphicDesignScore = request.GraphicDesignScore.Value;
+        if (request.MarketingScore.HasValue) profile.MarketingScore = request.MarketingScore.Value;
+        if (request.SaleScore.HasValue) profile.SaleScore = request.SaleScore.Value;
+
+        if (request.IsCommitted.HasValue)
+        {
+            if (request.IsCommitted.Value && !profile.IsCommitted)
+            {
+                profile.CommittedAt = DateTime.UtcNow;
+            }
+            profile.IsCommitted = request.IsCommitted.Value;
+            if (!profile.IsCommitted)
+            {
+                profile.CommittedAt = null;
+                profile.IsProfileCompleted = false;
+            }
+        }
+
+        profile.IsProfileCompleted = profile.IsCommitted &&
+            (profile.TechScore > 0 || profile.ManagementScore > 0 || profile.GraphicDesignScore > 0 || profile.MarketingScore > 0 || profile.SaleScore > 0);
+
         profile.UpdatedAt = DateTime.UtcNow;
 
         _profileRepo.Update(profile);
@@ -137,12 +169,94 @@ public class UserProfileService : IUserProfileService
             try
             {
                 await _eventPublisher.PublishAsync(
-                    new UserProfileUpdated(profile.UserId, profile.FullName, profile.Major?.ToString()),
+                    new UserProfileUpdated(
+                        profile.UserId,
+                        profile.FullName,
+                        profile.Major?.ToString(),
+                        profile.TechScore,
+                        profile.ManagementScore,
+                        profile.GraphicDesignScore,
+                        profile.MarketingScore,
+                        profile.SaleScore,
+                        profile.IsProfileCompleted,
+                        profile.Cohort
+                    ),
                     ct);
             }
             catch
             {
                 // Non-blocking: thất bại khi publish event không làm gián đoạn cập nhật hồ sơ người dùng
+            }
+        }
+
+        return ToResponse(profile);
+    }
+
+    public async Task<UserProfileResponse> UpdateCurrentUserProfileSkillsAsync(UpdateProfileSkillsRequest request, CancellationToken ct = default)
+    {
+        if (!_currentUser.IsAuthenticated || !_currentUser.UserId.HasValue)
+        {
+            throw new UnauthorizedException("Người dùng chưa được xác thực.");
+        }
+
+        return await UpdateProfileSkillsAsync(_currentUser.UserId.Value, request, ct);
+    }
+
+    public async Task<UserProfileResponse> UpdateProfileSkillsAsync(Guid userId, UpdateProfileSkillsRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _skillsValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var profile = await _profileRepo.GetByIdWithSkillsAsync(userId, ct);
+        if (profile == null)
+        {
+            throw new NotFoundException("Hồ sơ người dùng không tồn tại.", "USER_PROFILE_NOT_FOUND");
+        }
+
+        profile.TechScore = request.TechScore;
+        profile.ManagementScore = request.ManagementScore;
+        profile.GraphicDesignScore = request.GraphicDesignScore;
+        profile.MarketingScore = request.MarketingScore;
+        profile.SaleScore = request.SaleScore;
+        profile.IsCommitted = request.IsCommitted;
+        profile.CommittedAt ??= DateTime.UtcNow;
+        profile.IsProfileCompleted = request.IsCommitted &&
+            (request.TechScore > 0 || request.ManagementScore > 0 || request.GraphicDesignScore > 0 || request.MarketingScore > 0 || request.SaleScore > 0);
+
+        if (!string.IsNullOrWhiteSpace(request.Bio)) profile.Bio = request.Bio.Trim();
+        if (!string.IsNullOrWhiteSpace(request.DesiredRole)) profile.DesiredRole = request.DesiredRole.Trim();
+        if (request.Interests != null) profile.Interests = SerializeInterests(request.Interests);
+
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        _profileRepo.Update(profile);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        if (_eventPublisher != null)
+        {
+            try
+            {
+                await _eventPublisher.PublishAsync(
+                    new UserProfileUpdated(
+                        profile.UserId,
+                        profile.FullName,
+                        profile.Major?.ToString(),
+                        profile.TechScore,
+                        profile.ManagementScore,
+                        profile.GraphicDesignScore,
+                        profile.MarketingScore,
+                        profile.SaleScore,
+                        profile.IsProfileCompleted,
+                        profile.Cohort
+                    ),
+                    ct);
+            }
+            catch
+            {
+                // Non-blocking
             }
         }
 
@@ -240,6 +354,13 @@ public class UserProfileService : IUserProfileService
             profile.Role,
             profile.Campus,
             profile.Major,
+            profile.Cohort,
+            profile.TechScore,
+            profile.ManagementScore,
+            profile.GraphicDesignScore,
+            profile.MarketingScore,
+            profile.SaleScore,
+            profile.IsProfileCompleted,
             profile.Bio,
             profile.DesiredRole,
             profile.Availability,
@@ -272,6 +393,15 @@ public class UserProfileService : IUserProfileService
             profile.StudentCode,
             profile.Campus,
             profile.Major,
+            profile.Cohort,
+            profile.TechScore,
+            profile.ManagementScore,
+            profile.GraphicDesignScore,
+            profile.MarketingScore,
+            profile.SaleScore,
+            profile.IsCommitted,
+            profile.CommittedAt,
+            profile.IsProfileCompleted,
             profile.Bio,
             profile.DesiredRole,
             profile.Availability,

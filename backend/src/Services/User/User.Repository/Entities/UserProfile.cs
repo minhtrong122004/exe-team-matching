@@ -46,6 +46,54 @@ public class UserProfile
     public Major? Major { get; set; }
 
     /// <summary>
+    /// Khóa sinh viên (ví dụ: K17, K18, K19) - bóc tách tự động từ Mã số sinh viên (BR-04).
+    /// </summary>
+    public string? Cohort { get; set; }
+
+    // ── 5 Chỉ số kỹ năng cốt lõi (0–100) theo chuẩn BR-05 ───────────────────
+    /// <summary>
+    /// Điểm kỹ năng Công nghệ & Lập trình (Tech Score, 0–100).
+    /// </summary>
+    public int TechScore { get; set; } = 0;
+
+    /// <summary>
+    /// Điểm kỹ năng Quản trị dự án & Teamwork (Management Score, 0–100).
+    /// </summary>
+    public int ManagementScore { get; set; } = 0;
+
+    /// <summary>
+    /// Điểm kỹ năng Thiết kế đồ họa & UI/UX (Graphic Design Score, 0–100).
+    /// </summary>
+    public int GraphicDesignScore { get; set; } = 0;
+
+    /// <summary>
+    /// Điểm kỹ năng Tiếp thị số & Truyền thông (Marketing Score, 0–100).
+    /// </summary>
+    public int MarketingScore { get; set; } = 0;
+
+    /// <summary>
+    /// Điểm kỹ năng Bán hàng & Đàm phán (Sale Score, 0–100).
+    /// </summary>
+    public int SaleScore { get; set; } = 0;
+
+    // ── Cam kết & Hoàn thành hồ sơ theo BR-06, BR-07 ────────────────────────
+    /// <summary>
+    /// Đánh dấu sinh viên đã cam kết chịu trách nhiệm với thông tin kỹ năng đã khai báo (BR-06).
+    /// </summary>
+    public bool IsCommitted { get; set; } = false;
+
+    /// <summary>
+    /// Thời điểm sinh viên bấm cam kết kỹ năng (UTC).
+    /// </summary>
+    public DateTime? CommittedAt { get; set; }
+
+    /// <summary>
+    /// Trạng thái hoàn thành hồ sơ (true khi đã khai báo điểm kỹ năng và IsCommitted == true) (BR-07).
+    /// Sinh viên bắt buộc phải có IsProfileCompleted = true mới đủ điều kiện vào Room hoặc nộp đơn Apply.
+    /// </summary>
+    public bool IsProfileCompleted { get; set; } = false;
+
+    /// <summary>
     /// Tiểu sử giới thiệu ngắn về bản thân.
     /// </summary>
     public string? Bio { get; set; }
