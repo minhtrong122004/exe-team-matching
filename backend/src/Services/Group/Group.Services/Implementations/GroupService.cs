@@ -346,9 +346,10 @@ public class GroupService(
             var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
             if (space != null)
             {
-                if (space.Status == CourseSpaceStatus.Locked)
+                if (space.Status != CourseSpaceStatus.Open)
                 {
-                    throw new BusinessRuleException("SPACE_LOCKED", "Không gian học phần đã bị khóa.");
+                    throw new BusinessRuleException("REGISTRATION_CLOSED",
+                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Sinh viên không thể tự do chọn phòng vào lúc này.");
                 }
 
                 var isEnrolled = await spaceRepo.IsStudentEnrolledAsync(space.Id, userId, ct);

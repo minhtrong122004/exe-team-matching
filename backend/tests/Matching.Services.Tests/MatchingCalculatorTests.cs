@@ -199,4 +199,82 @@ public class MatchingCalculatorTests
 
         Assert.Equal(expected, weights.IsValid());
     }
+
+    [Fact]
+    public void Distribute_WhenNoUnmatched_ReturnsZeroDistributed()
+    {
+        var request = new DistributeRequestInput("sp1", 5, 3, [], [], []);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        Assert.Equal(0, result.TotalUnmatched);
+        Assert.Equal(0, result.TotalDistributed);
+        Assert.Empty(result.RoomPlans);
+    }
+
+    [Fact]
+    public void Distribute_Step1_ExistingRooms_FilledAndLeaderRetained()
+    {
+        // Room 1 có 1 thành viên SE (Leader)
+        var room1 = new DistributeRoomInput(
+            "r1", "FA26EXE101-01", "Phòng 01", "leader1",
+            [new DistributeRoomMemberInput("leader1", "Trần Leader", "SE180001", "SE", true, 80, 85, 60, 50, 40)],
+            false);
+
+        // 3 sinh viên lẻ đa ngành: AI, GD, MKT
+        var candidates = new List<DistributeCandidateInput>
+        {
+            new("c1", "Nguyễn AI", "AI180001", "AI", 90, 60, 40, 50, 70),
+            new("c2", "Lê GD", "GD180001", "GD", 40, 50, 95, 60, 40),
+            new("c3", "Phạm MKT", "MKT180001", "MKT", 50, 70, 50, 90, 60),
+        };
+
+        var request = new DistributeRequestInput("sp1", 5, 3, candidates, [room1], []);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        Assert.Equal(3, result.TotalUnmatched);
+        Assert.Equal(3, result.TotalDistributed);
+        Assert.Equal(0, result.TotalRemaining);
+        Assert.Single(result.RoomPlans);
+
+        var plan = result.RoomPlans[0];
+        Assert.Equal("r1", plan.RoomId);
+        Assert.Equal("leader1", plan.LeaderId); // BR-31: giữ nguyên leader
+        Assert.False(plan.IsNewlyFormed);
+        Assert.Equal(1, plan.MemberCountBefore);
+        Assert.Equal(4, plan.MemberCountAfter);
+        Assert.Equal(3, plan.AddedStudents.Count);
+        Assert.True(plan.BalanceScore > 0);
+    }
+
+    [Fact]
+    public void Distribute_Step2_EmptyRooms_HighestManagementBecomesLeader()
+    {
+        var emptyRoom = new DistributeRoomInput("r_empty", "FA26EXE101-02", "Phòng 02", null, [], true);
+
+        // 4 sinh viên lẻ, trong đó c3 có ManagementScore cao nhất (95)
+        var candidates = new List<DistributeCandidateInput>
+        {
+            new("c1", "Sinh viên 1", "SE180001", "SE", 80, 60, 70, 60, 50),
+            new("c2", "Sinh viên 2", "AI180001", "AI", 85, 75, 60, 60, 50),
+            new("c3", "Sinh viên Leader", "IB180001", "IB", 60, 95, 70, 80, 75), // Max Management
+            new("c4", "Sinh viên 4", "GD180001", "GD", 50, 50, 90, 60, 60)
+        };
+
+        var request = new DistributeRequestInput("sp1", 5, 3, candidates, [], [emptyRoom]);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        Assert.Equal(4, result.TotalDistributed);
+        Assert.Single(result.RoomPlans);
+
+        var plan = result.RoomPlans[0];
+        Assert.Equal("r_empty", plan.RoomId);
+        Assert.True(plan.IsNewlyFormed);
+        Assert.Equal(0, plan.MemberCountBefore);
+        Assert.Equal(4, plan.MemberCountAfter);
+        Assert.Equal("c3", plan.LeaderId); // BR-32: chọn người có ManagementScore cao nhất
+        Assert.Equal("Sinh viên Leader", plan.LeaderName);
+
+        var leaderAssigned = plan.AddedStudents.First(s => s.UserId == "c3");
+        Assert.True(leaderAssigned.IsLeader);
+    }
 }

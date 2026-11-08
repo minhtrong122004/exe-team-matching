@@ -20,6 +20,11 @@ import type {
   RankedCandidateResponse,
   LeaderElectionResponse,
   DirectJoinRoomResponse,
+  CourseSpaceResponse,
+  UnmatchedSummaryResponse,
+  DistributePreviewResponse,
+  DistributeConfirmResponse,
+  FinalizeSpaceResponse,
 } from '../types';
 
 export const groupsApi = {
@@ -261,6 +266,32 @@ export const groupsApi = {
       isUpvote,
       comment: comment?.trim() || undefined,
     });
+    return res.data;
+  },
+
+  // ── Phase 5: Distribution & Finalize (BR-30, BR-31, BR-32, BR-33) ─────────
+  async closeSpaceRegistration(spaceId: string): Promise<CourseSpaceResponse> {
+    const res = await apiClient.put<CourseSpaceResponse>(`/spaces/${spaceId}/close-registration`);
+    return res.data;
+  },
+
+  async getUnmatchedSummary(spaceId: string): Promise<UnmatchedSummaryResponse> {
+    const res = await apiClient.get<UnmatchedSummaryResponse>(`/spaces/${spaceId}/unmatched-summary`);
+    return res.data;
+  },
+
+  async previewDistribution(spaceId: string): Promise<DistributePreviewResponse> {
+    const res = await apiClient.post<DistributePreviewResponse>(`/spaces/${spaceId}/distribute-preview`);
+    return res.data;
+  },
+
+  async confirmDistribution(spaceId: string): Promise<DistributeConfirmResponse> {
+    const res = await apiClient.post<DistributeConfirmResponse>(`/spaces/${spaceId}/distribute-confirm`);
+    return res.data;
+  },
+
+  async finalizeSpace(spaceId: string): Promise<FinalizeSpaceResponse> {
+    const res = await apiClient.post<FinalizeSpaceResponse>(`/spaces/${spaceId}/finalize`);
     return res.data;
   },
 };

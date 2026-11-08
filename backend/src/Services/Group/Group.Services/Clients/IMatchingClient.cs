@@ -15,4 +15,9 @@ public interface IMatchingClient
 
     Task<IReadOnlyList<MatchResult>> RankCandidatesAsync(
         GroupNeed group, IEnumerable<StudentProfile> candidates, int top, CancellationToken ct = default);
+
+    /// <summary>
+    /// Phân phối cưỡng chế sinh viên lẻ vào các Room/Group cân bằng 5 kỹ năng + chuyên ngành (BR-31, BR-32).
+    /// </summary>
+    Task<DistributeResponse> DistributeUnmatchedStudentsAsync(DistributeRequest request, CancellationToken ct = default);
 }

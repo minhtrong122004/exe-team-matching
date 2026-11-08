@@ -56,5 +56,16 @@ public sealed class MatchingClient(MatchingService.MatchingServiceClient client,
         return response.Results;
     }
 
+    public async Task<DistributeResponse> DistributeUnmatchedStudentsAsync(DistributeRequest request, CancellationToken ct = default)
+    {
+        var sw = Stopwatch.StartNew();
+        var response = await client.DistributeUnmatchedStudentsAsync(request, deadline: Deadline(), cancellationToken: ct);
+
+        logger.LogInformation(
+            "[GRPC] DistributeUnmatchedStudents spaceId={SpaceId} unmatched={Count} distributed={Distributed} remaining={Remaining} duration={Duration}ms correlationId={CorrelationId}",
+            response.SpaceId, response.TotalUnmatched, response.TotalDistributed, response.TotalRemaining, sw.ElapsedMilliseconds, CorrelationContext.Current);
+        return response;
+    }
+
     private static DateTime Deadline() => DateTime.UtcNow.Add(Timeout);
 }

@@ -102,6 +102,24 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
         return await query.OrderBy(g => g.RoomCode ?? g.Name).ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<GroupEntity>> GetTrackedRoomsBySpaceAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        return await db.Groups
+            .Include(g => g.Members)
+            .Include(g => g.Slots)
+            .Where(g => g.SpaceId == spaceId && g.Status != GroupStatus.Disbanded)
+            .OrderBy(g => g.RoomCode ?? g.Name)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<JoinRequest>> GetPendingJoinRequestsBySpaceAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        return await db.JoinRequests
+            .Include(r => r.Group)
+            .Where(r => r.Group.SpaceId == spaceId && r.Status == JoinRequestStatus.Pending)
+            .ToListAsync(ct);
+    }
+
     public void Add(CourseSpace space) => db.CourseSpaces.Add(space);
 
     public void AddEnrollment(SpaceEnrollment enrollment) => db.SpaceEnrollments.Add(enrollment);

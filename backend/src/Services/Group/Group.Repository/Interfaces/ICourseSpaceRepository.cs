@@ -14,6 +14,8 @@ public interface ICourseSpaceRepository
     Task<bool> IsStudentEnrolledAsync(Guid spaceId, Guid studentId, CancellationToken ct = default);
     Task<int> GetTotalEnrollmentsCountAsync(Guid spaceId, CancellationToken ct = default);
     Task<IReadOnlyList<GroupEntity>> GetRoomsBySpaceAsync(Guid spaceId, GroupStatus? status, CancellationToken ct = default);
+    Task<IReadOnlyList<GroupEntity>> GetTrackedRoomsBySpaceAsync(Guid spaceId, CancellationToken ct = default);
+    Task<IReadOnlyList<JoinRequest>> GetPendingJoinRequestsBySpaceAsync(Guid spaceId, CancellationToken ct = default);
     void Add(CourseSpace space);
     void AddEnrollment(SpaceEnrollment enrollment);
     void AddEnrollmentsRange(IEnumerable<SpaceEnrollment> enrollments);

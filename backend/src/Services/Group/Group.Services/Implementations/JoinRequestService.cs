@@ -41,6 +41,22 @@ public class JoinRequestService(
 
         var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
 
+        // BR-30: Kiểm tra trạng thái Space trước tiên
+        var limit = options.Value.MaxPendingJoinRequests;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null)
+            {
+                if (space.Status != CourseSpaceStatus.Open)
+                {
+                    throw new BusinessRuleException("REGISTRATION_CLOSED",
+                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.");
+                }
+                limit = space.MaxConcurrentApplies;
+            }
+        }
+
         // BR-04: không gửi tới nhóm mình đang ở.
         if (group.Members.Any(m => m.UserId == studentId))
             throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "You are already a member of this group.");
@@ -55,14 +71,6 @@ public class JoinRequestService(
         if (await joinRequests.HasPendingAsync(studentId, groupId, ct))
             throw new BusinessRuleException(GroupErrorCodes.DuplicateJoinRequest,
                 "You already have a pending request to this group.");
-
-        // BR-03, BR-22: Giới hạn số đơn ứng tuyển đồng thời
-        var limit = options.Value.MaxPendingJoinRequests;
-        if (group.SpaceId.HasValue)
-        {
-            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
-            if (space != null) limit = space.MaxConcurrentApplies;
-        }
 
         if (await joinRequests.CountPendingByStudentAsync(studentId, ct) >= limit)
             throw new BusinessRuleException(GroupErrorCodes.JoinRequestLimit,
@@ -131,6 +139,16 @@ public class JoinRequestService(
         {
             var r = await joinRequests.GetByIdAsync(id, ct) ?? throw new NotFoundException("JoinRequest", id);
             r.Group.EnsureLeader(currentUser.UserId, "accept join requests");
+
+            if (r.Group.SpaceId.HasValue)
+            {
+                var space = await spaceRepo.GetByIdAsync(r.Group.SpaceId.Value, ct);
+                if (space != null && space.Status != CourseSpaceStatus.Open)
+                {
+                    throw new BusinessRuleException("REGISTRATION_CLOSED",
+                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Không thể duyệt đơn ứng tuyển vào lúc này.");
+                }
+            }
 
             // Nhóm vừa đủ người (có thể do một lần duyệt đồng thời) đã hủy yêu cầu này theo BR-08 → báo GROUP_FULL.
             if (r.Status == JoinRequestStatus.Cancelled && r.Group.Status == GroupStatus.Full)

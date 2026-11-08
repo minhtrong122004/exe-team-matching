@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { spacesApi } from '../api/spaces';
 import { groupsApi } from '../api/groups';
-import type { GroupResponse } from '../types/group';
+import type {
+  GroupResponse,
+  UnmatchedSummaryResponse,
+  DistributePreviewResponse,
+} from '../types/group';
 import type {
   CourseSpaceResponse,
   CourseSpaceStatus,
@@ -42,6 +46,7 @@ import {
   Lock,
   Send,
   Info,
+  Cpu,
 } from 'lucide-react';
 
 export const CourseSpacesPage: React.FC = () => {
@@ -68,10 +73,20 @@ export const CourseSpacesPage: React.FC = () => {
   const [showRoomDetailModal, setShowRoomDetailModal] = useState<boolean>(false);
 
   // Active space details
-  const [activeTab, setActiveTab] = useState<'rooms' | 'enrollments' | 'config'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'enrollments' | 'config' | 'distribution'>('rooms');
   const [rooms, setRooms] = useState<RoomSummaryResponse[]>([]);
   const [loadingRooms, setLoadingRooms] = useState<boolean>(false);
   const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
+
+  // Phase 5: Distribution & Finalize State
+  const [unmatchedSummary, setUnmatchedSummary] = useState<UnmatchedSummaryResponse | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState<boolean>(false);
+  const [distributePreview, setDistributePreview] = useState<DistributePreviewResponse | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
+  const [unmatchedSearch, setUnmatchedSearch] = useState<string>('');
+  const [unmatchedMajorFilter, setUnmatchedMajorFilter] = useState<string>('ALL');
+  const [isConfirmDistributeModalOpen, setIsConfirmDistributeModalOpen] = useState<boolean>(false);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState<boolean>(false);
 
   const [enrollments, setEnrollments] = useState<SpaceEnrollmentResponse[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState<boolean>(false);
@@ -236,6 +251,8 @@ export const CourseSpacesPage: React.FC = () => {
       setEnrollments(enrollmentsData);
       if (isStudent) {
         await loadMyGroup();
+      } else {
+        void loadUnmatchedSummary(spaceId);
       }
     } catch (err: any) {
       setActionError(
@@ -266,6 +283,87 @@ export const CourseSpacesPage: React.FC = () => {
     }
   }, [selectedSpaceId, spaces, loadSpaceDetails]);
 
+  // Phase 5: Distribution & Finalize Handlers (BR-30, BR-31, BR-32, BR-33)
+  const loadUnmatchedSummary = useCallback(async (spaceId: string) => {
+    try {
+      setLoadingSummary(true);
+      const data = await groupsApi.getUnmatchedSummary(spaceId);
+      setUnmatchedSummary(data);
+    } catch (err: any) {
+      console.error('Failed to load unmatched summary', err);
+    } finally {
+      setLoadingSummary(false);
+    }
+  }, []);
+
+  const handleCloseRegistration = async () => {
+    if (!selectedSpace) return;
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      await groupsApi.closeSpaceRegistration(selectedSpace.id);
+      setActionSuccess('Đã đóng cổng đăng ký tự do học phần (BR-30) thành công.');
+      await loadSpaces();
+      await loadUnmatchedSummary(selectedSpace.id);
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || 'Không thể đóng cổng đăng ký.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handlePreviewDistribution = async () => {
+    if (!selectedSpace) return;
+    try {
+      setLoadingPreview(true);
+      setActionError(null);
+      const preview = await groupsApi.previewDistribution(selectedSpace.id);
+      setDistributePreview(preview);
+      setActionSuccess(`Thuật toán gRPC Matching đã tính toán phương án phân phối thành công cho ${preview.totalDistributed}/${preview.totalUnmatched} sinh viên lẻ!`);
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || 'Lỗi khi gọi Matching Service gRPC.');
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const handleConfirmDistribution = async () => {
+    if (!selectedSpace) return;
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      const res = await groupsApi.confirmDistribution(selectedSpace.id);
+      setActionSuccess(`Xác nhận phân phối thành công! Đã gán ${res.totalDistributed} sinh viên vào ${res.updatedRoomsCount} phòng theo chuẩn BR-31 & BR-32.`);
+      setIsConfirmDistributeModalOpen(false);
+      setDistributePreview(null);
+      await loadSpaceDetails(selectedSpace.id);
+      await loadUnmatchedSummary(selectedSpace.id);
+      await loadSpaces();
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || 'Không thể thực thi phân phối cưỡng chế.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFinalizeSpace = async () => {
+    if (!selectedSpace) return;
+    try {
+      setActionLoading(true);
+      setActionError(null);
+      const res = await groupsApi.finalizeSpace(selectedSpace.id);
+      setActionSuccess(`Chốt sổ học kỳ thành công (BR-33)! Đã khóa cứng ${res.lockedRoomsCount} phòng và từ chối ${res.rejectedRequestsCount} đơn chờ.`);
+      setIsFinalizeModalOpen(false);
+      await loadSpaces();
+      await loadSpaceDetails(selectedSpace.id);
+      await loadUnmatchedSummary(selectedSpace.id);
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || 'Không thể chốt sổ học kỳ.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Formula calculation preview (BR-09, BR-11)
   const previewRoomsCount = useMemo(() => {
     if (!selectedSpace) return 0;
@@ -275,6 +373,31 @@ export const CourseSpacesPage: React.FC = () => {
     if (students <= 0 || max <= 0) return 0;
     return Math.max(1, Math.ceil((students / max) * buffer));
   }, [selectedSpace]);
+
+  // Phase 5: Filtered Unmatched Students & Majors
+  const unmatchedMajors = useMemo(() => {
+    if (!unmatchedSummary) return [];
+    const set = new Set<string>();
+    unmatchedSummary.unmatchedStudents.forEach((st) => {
+      if (st.major) set.add(st.major);
+    });
+    return Array.from(set).sort();
+  }, [unmatchedSummary]);
+
+  const filteredUnmatchedStudents = useMemo(() => {
+    if (!unmatchedSummary) return [];
+    return unmatchedSummary.unmatchedStudents.filter((st) => {
+      const q = unmatchedSearch.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        st.fullName.toLowerCase().includes(q) ||
+        st.studentCode.toLowerCase().includes(q) ||
+        st.email.toLowerCase().includes(q);
+      const matchesMajor =
+        unmatchedMajorFilter === 'ALL' || st.major === unmatchedMajorFilter;
+      return matchesSearch && matchesMajor;
+    });
+  }, [unmatchedSummary, unmatchedSearch, unmatchedMajorFilter]);
 
   // Download Sample CSV template
   const handleDownloadSampleCsv = () => {
@@ -568,9 +691,77 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
-  const getRoomStatusBadge = (status: string) => {
+  const getRoomStatusBadge = (status: string, memberCount?: number, spaceStatus?: string) => {
     const s = (status || '').toUpperCase();
+    const spStatus = (spaceStatus || selectedSpace?.status || '').toUpperCase();
+    const count = typeof memberCount === 'number' ? memberCount : 0;
+
+    // Trường hợp phòng có 0 thành viên khi học kỳ đã chốt sổ (Locked) hoặc phòng đã đóng (Closed) (Phòng dự phòng dư BR-09)
+    if (count === 0 && (spStatus === 'LOCKED' || s === 'CLOSED' || s === 'LOCKED')) {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            padding: '0.2rem 0.55rem',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            borderRadius: '6px',
+            background: 'rgba(100, 116, 139, 0.12)',
+            color: '#64748b',
+            border: '1px solid rgba(100, 116, 139, 0.25)',
+          }}
+        >
+          <Lock size={13} />
+          Đã đóng • Phòng dự phòng dư
+        </span>
+      );
+    }
+
     if (s === 'EMPTY') {
+      if (spStatus === 'LOCKED') {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              background: 'rgba(100, 116, 139, 0.12)',
+              color: '#64748b',
+              border: '1px solid rgba(100, 116, 139, 0.25)',
+            }}
+          >
+            <Lock size={13} />
+            Đã đóng • Phòng dự phòng dư
+          </span>
+        );
+      }
+      if (spStatus === 'CLOSEDREGISTRATION') {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              background: 'rgba(217, 119, 6, 0.12)',
+              color: '#b45309',
+              border: '1px solid rgba(217, 119, 6, 0.25)',
+            }}
+          >
+            <Lock size={13} />
+            Phòng trống • Đã đóng đăng ký
+          </span>
+        );
+      }
       return (
         <span
           style={{
@@ -634,6 +825,27 @@ export const CourseSpacesPage: React.FC = () => {
       );
     }
     if (s === 'CLOSED') {
+      if (count === 0) {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              background: 'rgba(100, 116, 139, 0.12)',
+              color: '#64748b',
+              border: '1px solid rgba(100, 116, 139, 0.25)',
+            }}
+          >
+            <Lock size={13} />
+            Đã đóng • Phòng dự phòng dư
+          </span>
+        );
+      }
       return (
         <span
           style={{
@@ -676,6 +888,27 @@ export const CourseSpacesPage: React.FC = () => {
       );
     }
     if (s === 'LOCKED') {
+      if (count === 0) {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              padding: '0.2rem 0.55rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              borderRadius: '6px',
+              background: 'rgba(100, 116, 139, 0.12)',
+              color: '#64748b',
+              border: '1px solid rgba(100, 116, 139, 0.25)',
+            }}
+          >
+            <Lock size={13} />
+            Đã đóng • Phòng dự phòng dư
+          </span>
+        );
+      }
       return (
         <span
           style={{
@@ -717,6 +950,13 @@ export const CourseSpacesPage: React.FC = () => {
 
   // Phase 4 Handlers for Student direct join, apply, and view room detail
   const handleDirectJoin = async (room: RoomSummaryResponse) => {
+    if (selectedSpace?.status !== 'Open') {
+      setActionError(
+        'Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể tự do chọn phòng vào lúc này.'
+      );
+      return;
+    }
+
     if (isStudent && !user?.isProfileCompleted) {
       setActionError(
         'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
@@ -750,6 +990,13 @@ export const CourseSpacesPage: React.FC = () => {
   };
 
   const handleOpenApplyModal = (room: RoomSummaryResponse) => {
+    if (selectedSpace?.status !== 'Open') {
+      setActionError(
+        'Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.'
+      );
+      return;
+    }
+
     if (isStudent && !user?.isProfileCompleted) {
       setActionError(
         'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn ứng tuyển.'
@@ -1369,6 +1616,51 @@ export const CourseSpacesPage: React.FC = () => {
                   <span>Cấu hình & Chỉ số sinh Room</span>
                 </button>
               )}
+
+              {!isStudent && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('distribution');
+                    if (selectedSpace) {
+                      void loadUnmatchedSummary(selectedSpace.id);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.55rem 1.15rem',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    transition: 'all 0.15s ease',
+                    background: activeTab === 'distribution' ? 'var(--fpt-orange, #f26f21)' : 'transparent',
+                    color: activeTab === 'distribution' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                    border: activeTab === 'distribution' ? 'none' : '1px solid transparent',
+                    boxShadow: activeTab === 'distribution' ? '0 2px 6px rgba(242, 111, 33, 0.3)' : 'none',
+                  }}
+                >
+                  <Cpu size={16} />
+                  <span>Điều phối gRPC & Chốt sổ</span>
+                  {unmatchedSummary && (
+                    <span
+                      style={{
+                        padding: '0.1rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        background: activeTab === 'distribution' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(239, 68, 68, 0.12)',
+                        color: activeTab === 'distribution' ? '#ffffff' : '#ef4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {unmatchedSummary.totalUnmatched} SV lẻ
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
 
             {/* Quick Actions for Moderator on Tabs */}
@@ -1406,6 +1698,48 @@ export const CourseSpacesPage: React.FC = () => {
              ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'rooms' && (
             <div>
+              {/* Status Banner when space is ClosedRegistration or Locked (BR-30, BR-33) */}
+              {isStudent && selectedSpace?.status === 'ClosedRegistration' && (
+                <div
+                  className="card"
+                  style={{
+                    padding: '1rem 1.25rem',
+                    marginBottom: '1.25rem',
+                    background: 'rgba(217, 119, 6, 0.08)',
+                    border: '1px solid rgba(217, 119, 6, 0.25)',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.85rem',
+                  }}
+                >
+                  <Lock size={20} style={{ color: '#d97706', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                    <strong>Thông báo đóng cổng đăng ký tự do (BR-30):</strong> Không gian học phần này đã hết hạn tự do ghép nhóm hoặc Điều phối viên đã đóng cổng đăng ký. Hệ thống đang tiến hành điều phối các sinh viên lẻ qua thuật toán gRPC Matching. Bạn hiện không thể tự chọn phòng hoặc nộp đơn ứng tuyển mới.
+                  </div>
+                </div>
+              )}
+
+              {isStudent && selectedSpace?.status === 'Locked' && (
+                <div
+                  className="card"
+                  style={{
+                    padding: '1rem 1.25rem',
+                    marginBottom: '1.25rem',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.85rem',
+                  }}
+                >
+                  <ShieldCheck size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                    <strong>Học kỳ đã chốt sổ toàn bộ (BR-33):</strong> Danh sách thành viên toàn bộ các nhóm đã được khóa cứng. Mọi biến động nhân sự sau bước này sẽ do Giảng viên / Điều phối viên thực hiện chuyển nhóm (Giai đoạn 6).
+                  </div>
+                </div>
+              )}
               {/* ── WORKFLOW STEPPER BANNER FOR MODERATOR (SUPERB UX) ───── */}
               {isModerator && getTotalStudents(selectedSpace) === 0 && (
                 <div
@@ -1765,12 +2099,13 @@ export const CourseSpacesPage: React.FC = () => {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.15rem' }}>
                   {filteredRooms.map((room) => {
+                    const isSpaceOpen = selectedSpace?.status === 'Open';
                     const memberRatio = Math.min(100, (room.memberCount / room.maxMembers) * 100);
                     const threshold = selectedSpace?.groupThreshold || Math.floor((room.maxMembers || 5) / 2) + 1;
                     const isUnderThreshold = room.memberCount < threshold;
-                    const isDirectJoinAllowed = (room.status === 'Empty' || room.status === 'Forming') && isUnderThreshold;
-                    const isRecruiting = room.status === 'Recruiting';
-                    const isClosed = room.status === 'Closed' || room.status === 'Full' || room.status === 'Locked';
+                    const isDirectJoinAllowed = isSpaceOpen && (room.status === 'Empty' || room.status === 'Forming') && isUnderThreshold;
+                    const isRecruiting = isSpaceOpen && room.status === 'Recruiting';
+                    const isClosed = !isSpaceOpen || room.status === 'Closed' || room.status === 'Full' || room.status === 'Locked';
                     const isInThisRoom = myGroup?.id === room.id;
                     const hasOtherGroup = myGroup !== null && myGroup.id !== room.id;
                     const isJoiningThis = joiningRoomId === room.id;
@@ -1808,7 +2143,7 @@ export const CourseSpacesPage: React.FC = () => {
                             >
                               {room.roomCode || 'ROOM-??'}
                             </span>
-                            {getRoomStatusBadge(room.status)}
+                            {getRoomStatusBadge(room.status, room.memberCount, selectedSpace?.status)}
                           </div>
 
                           <div>
@@ -1821,6 +2156,10 @@ export const CourseSpacesPage: React.FC = () => {
                                   <Crown size={13} style={{ color: '#f26f21' }} />
                                   Trưởng nhóm: <strong>{room.leaderName}</strong>
                                 </span>
+                              ) : (selectedSpace?.status === 'Locked' && room.memberCount === 0) ? (
+                                'Phòng dự phòng không sử dụng (Đã đóng)'
+                              ) : (selectedSpace?.status === 'ClosedRegistration' && room.memberCount === 0) ? (
+                                'Chưa có thành viên (Đang chờ phân bổ)'
                               ) : (
                                 'Chưa có thành viên (Phòng chờ mở)'
                               )}
@@ -1870,9 +2209,27 @@ export const CourseSpacesPage: React.FC = () => {
                               fontSize: '0.76rem',
                               padding: '0.35rem 0.55rem',
                               borderRadius: '6px',
-                              background: isUnderThreshold ? 'rgba(0, 84, 166, 0.05)' : 'rgba(242, 111, 33, 0.06)',
-                              color: isUnderThreshold ? '#0054a6' : '#c2410c',
-                              border: isUnderThreshold ? '1px solid rgba(0, 84, 166, 0.15)' : '1px solid rgba(242, 111, 33, 0.2)',
+                              background: selectedSpace?.status === 'Locked'
+                                ? (room.memberCount === 0 ? 'rgba(100, 116, 139, 0.06)' : 'rgba(124, 58, 237, 0.06)')
+                                : selectedSpace?.status === 'ClosedRegistration'
+                                ? 'rgba(217, 119, 6, 0.06)'
+                                : isUnderThreshold
+                                ? 'rgba(0, 84, 166, 0.05)'
+                                : 'rgba(242, 111, 33, 0.06)',
+                              color: selectedSpace?.status === 'Locked'
+                                ? (room.memberCount === 0 ? '#64748b' : '#7c3aed')
+                                : selectedSpace?.status === 'ClosedRegistration'
+                                ? '#b45309'
+                                : isUnderThreshold
+                                ? '#0054a6'
+                                : '#c2410c',
+                              border: selectedSpace?.status === 'Locked'
+                                ? (room.memberCount === 0 ? '1px solid rgba(100, 116, 139, 0.2)' : '1px solid rgba(124, 58, 237, 0.2)')
+                                : selectedSpace?.status === 'ClosedRegistration'
+                                ? '1px solid rgba(217, 119, 6, 0.2)'
+                                : isUnderThreshold
+                                ? '1px solid rgba(0, 84, 166, 0.15)'
+                                : '1px solid rgba(242, 111, 33, 0.2)',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
@@ -1880,7 +2237,15 @@ export const CourseSpacesPage: React.FC = () => {
                           >
                             <Info size={13} style={{ flexShrink: 0 }} />
                             <span>
-                              {isUnderThreshold ? (
+                              {selectedSpace?.status === 'Locked' ? (
+                                room.memberCount === 0 ? (
+                                  <>Học kỳ đã chốt sổ (BR-33): Phòng dự phòng không sử dụng</>
+                                ) : (
+                                  <>Học kỳ đã chốt sổ (BR-33): Danh sách nhóm đã khóa cố định</>
+                                )
+                              ) : selectedSpace?.status === 'ClosedRegistration' ? (
+                                <>Đã đóng cổng đăng ký (BR-30): Đang điều phối phân bổ</>
+                              ) : isUnderThreshold ? (
                                 <>
                                   Ngưỡng Group: <strong>{threshold} SV</strong> (còn {threshold - room.memberCount} chỗ vào thẳng)
                                 </>
@@ -1987,7 +2352,13 @@ export const CourseSpacesPage: React.FC = () => {
                                   className="btn btn-secondary btn-sm"
                                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', opacity: 0.5, cursor: 'not-allowed' }}
                                 >
-                                  {room.status === 'Closed' ? 'Đóng tuyển' : 'Đã khóa'}
+                                  {selectedSpace?.status === 'ClosedRegistration'
+                                    ? 'Đã đóng ĐK (BR-30)'
+                                    : selectedSpace?.status === 'Locked' || room.status === 'Locked'
+                                    ? 'Đã khóa'
+                                    : room.status === 'Closed'
+                                    ? 'Đóng tuyển'
+                                    : 'Đã đầy'}
                                 </button>
                               ) : null}
                             </div>
@@ -2391,6 +2762,729 @@ export const CourseSpacesPage: React.FC = () => {
                     <Sparkles size={16} />
                     <span>Khởi tạo {Math.max(1, Math.ceil((getTotalStudents(selectedSpace) / (editMaxMembers || 5)) * (editBufferRatio || 1.2)))} Room ngay</span>
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════
+              TAB 4: gRPC DISTRIBUTION & FINALIZE (BR-30, BR-31, BR-32, BR-33)
+             ══════════════════════════════════════════════════════════════ */}
+          {activeTab === 'distribution' && !isStudent && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Header Action & Status Bar */}
+              <div
+                className="card"
+                style={{
+                  padding: '1.25rem 1.5rem',
+                  borderLeft: '4px solid var(--fpt-orange, #f26f21)',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '10px',
+                      background: 'rgba(242, 111, 33, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--fpt-orange, #f26f21)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Cpu size={24} />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        Điều phối Phân bổ Sinh viên Lẻ & Chốt sổ Học kỳ
+                      </h3>
+                      <span
+                        className={`badge badge-${
+                          selectedSpace.status === 'Open'
+                            ? 'success'
+                            : selectedSpace.status === 'ClosedRegistration'
+                            ? 'warning'
+                            : selectedSpace.status === 'Locked'
+                            ? 'danger'
+                            : 'secondary'
+                        }`}
+                        style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                      >
+                        {selectedSpace.status === 'Open'
+                          ? 'Đang mở đăng ký'
+                          : selectedSpace.status === 'ClosedRegistration'
+                          ? 'Đã đóng đăng ký (BR-30)'
+                          : selectedSpace.status === 'Locked'
+                          ? 'Đã chốt sổ toàn bộ (Locked)'
+                          : 'Bản nháp (Draft)'}
+                      </span>
+                    </div>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                      Thuật toán gRPC Matching tối ưu độ bù trừ 5 kỹ năng (Tech, Mgmt, Design, Mkt, Sale) và đa dạng chuyên ngành theo chuẩn BR-30, BR-31, BR-32, BR-33.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                {isModerator ? (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.65rem' }}>
+                    {selectedSpace.status === 'Open' && (
+                      <button
+                        type="button"
+                        onClick={handleCloseRegistration}
+                        disabled={actionLoading}
+                        className="btn btn-secondary"
+                        style={{
+                          fontSize: '0.825rem',
+                          fontWeight: 700,
+                          color: '#d97706',
+                          borderColor: '#fcd34d',
+                          gap: '0.45rem',
+                        }}
+                        title="Đóng đăng ký tự do, ngăn SV tự join/apply để bắt đầu phân phối"
+                      >
+                        <Lock size={15} />
+                        <span>Đóng cổng đăng ký (BR-30)</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handlePreviewDistribution}
+                      disabled={loadingPreview || actionLoading || selectedSpace.status === 'Locked'}
+                      className="btn btn-secondary"
+                      style={{
+                        fontSize: '0.825rem',
+                        fontWeight: 700,
+                        gap: '0.45rem',
+                        background: 'rgba(0, 84, 166, 0.08)',
+                        color: 'var(--fpt-blue, #0054a6)',
+                        borderColor: 'rgba(0, 84, 166, 0.25)',
+                      }}
+                    >
+                      <Sparkles size={15} />
+                      <span>{loadingPreview ? 'Đang gọi gRPC Matching...' : 'Chạy gRPC Matching (Preview)'}</span>
+                    </button>
+
+                    {distributePreview && distributePreview.roomPlans.length > 0 && selectedSpace.status !== 'Locked' && (
+                      <button
+                        type="button"
+                        onClick={() => setIsConfirmDistributeModalOpen(true)}
+                        disabled={actionLoading}
+                        className="btn btn-primary"
+                        style={{
+                          fontSize: '0.825rem',
+                          fontWeight: 700,
+                          gap: '0.45rem',
+                          background: '#059669',
+                          borderColor: '#059669',
+                        }}
+                      >
+                        <CheckCircle2 size={15} />
+                        <span>Xác nhận Phân phối ({distributePreview.totalDistributed} SV)</span>
+                      </button>
+                    )}
+
+                    {selectedSpace.status !== 'Locked' && (
+                      <button
+                        type="button"
+                        onClick={() => setIsFinalizeModalOpen(true)}
+                        disabled={actionLoading}
+                        className="btn btn-danger"
+                        style={{
+                          fontSize: '0.825rem',
+                          fontWeight: 700,
+                          gap: '0.45rem',
+                        }}
+                        title="Khóa cứng các phòng đủ điều kiện và chốt sổ học kỳ"
+                      >
+                        <ShieldCheck size={15} />
+                        <span>Chốt sổ Học kỳ (BR-33)</span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.45rem 0.85rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-main, #f1f5f9)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
+                      fontSize: '0.8rem',
+                      color: 'var(--text-muted, #64748b)',
+                    }}
+                  >
+                    <Info size={15} />
+                    <span>Chế độ quan sát (Giảng viên không can thiệp điều phối cưỡng chế)</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Stat KPI Cards */}
+              {unmatchedSummary && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                  <div className="card" style={{ padding: '1rem', borderLeft: '3px solid var(--fpt-blue, #0054a6)' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Tổng SV FAP Ghi danh
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-main)', marginTop: '0.25rem' }}>
+                      {unmatchedSummary.totalEnrolled}
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ padding: '1rem', borderLeft: '3px solid #059669' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      SV Đã có nhóm
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: '#059669', marginTop: '0.25rem' }}>
+                      {unmatchedSummary.totalMatched}
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ padding: '1rem', borderLeft: '3px solid #ef4444' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      SV Chưa có nhóm (Lẻ)
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: '#ef4444', marginTop: '0.25rem' }}>
+                      {unmatchedSummary.totalUnmatched}
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ padding: '1rem', borderLeft: '3px solid #f59e0b' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Phòng cần lấp (1-4 SV)
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: '#d97706', marginTop: '0.25rem' }}>
+                      {unmatchedSummary.incompleteRooms.length}
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ padding: '1rem', borderLeft: '3px solid #64748b' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                      Phòng trống (0 SV)
+                    </div>
+                    <div style={{ fontSize: '1.65rem', fontWeight: 900, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      {unmatchedSummary.emptyRooms.length}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2-Column Board */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 38%) minmax(420px, 1fr)', gap: '1.25rem', alignItems: 'start' }}>
+                {/* Left Column: Unmatched students */}
+                <div className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Users size={17} style={{ color: 'var(--fpt-orange)' }} />
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                        Danh sách Sinh viên Lẻ ({filteredUnmatchedStudents.length}/{unmatchedSummary?.totalUnmatched ?? 0})
+                      </h4>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ position: 'relative' }}>
+                      <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input
+                        type="text"
+                        placeholder="Tìm theo tên, MSSV, email..."
+                        value={unmatchedSearch}
+                        onChange={(e) => setUnmatchedSearch(e.target.value)}
+                        className="form-control"
+                        style={{ paddingLeft: '2rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+                      <select
+                        value={unmatchedMajorFilter}
+                        onChange={(e) => setUnmatchedMajorFilter(e.target.value)}
+                        className="form-control"
+                        style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem' }}
+                      >
+                        <option value="ALL">Tất cả ngành ({unmatchedSummary?.totalUnmatched ?? 0})</option>
+                        {unmatchedMajors.map((mj) => (
+                          <option key={mj} value={mj}>Ngành {mj}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Students List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: '560px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                    {loadingSummary ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        Đang tải danh sách sinh viên lẻ...
+                      </div>
+                    ) : filteredUnmatchedStudents.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+                        <CheckCircle2 size={32} style={{ color: '#059669', marginBottom: '0.5rem' }} />
+                        <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                          Không có sinh viên lẻ phù hợp
+                        </div>
+                        <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                          Tất cả sinh viên đã được ghép vào nhóm hoặc không tìm thấy kết quả lọc.
+                        </div>
+                      </div>
+                    ) : (
+                      filteredUnmatchedStudents.map((st) => (
+                        <div
+                          key={st.userId}
+                          style={{
+                            padding: '0.75rem',
+                            borderRadius: '8px',
+                            background: 'var(--bg-main, #f8fafc)',
+                            border: '1px solid var(--border-light, #e2e8f0)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.45rem',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {st.fullName}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{st.studentCode}</span>
+                                <span>•</span>
+                                <span className="badge badge-secondary" style={{ fontSize: '0.68rem', padding: '0.05rem 0.35rem' }}>{st.major || 'Chưa rõ'}</span>
+                                <span>•</span>
+                                <span>{st.cohort || 'K18'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 5-Skill scores preview */}
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(5, 1fr)',
+                              gap: '0.2rem',
+                              padding: '0.35rem 0.2rem',
+                              background: 'var(--bg-card)',
+                              borderRadius: '4px',
+                              border: '1px solid var(--border-light, #e2e8f0)',
+                              fontSize: '0.68rem',
+                              textAlign: 'center',
+                              fontFamily: 'var(--font-mono)',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            <div title="Technical Score">
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>TEC</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.techScore ?? 0}</div>
+                            </div>
+                            <div
+                              title="Management Score (Tiêu chí chỉ định Leader theo BR-32)"
+                              style={{
+                                background: 'rgba(242, 111, 33, 0.1)',
+                                borderRadius: '3px',
+                                border: '1px solid rgba(242, 111, 33, 0.25)',
+                              }}
+                            >
+                              <div style={{ color: 'var(--fpt-orange)', fontSize: '0.62rem', fontWeight: 800 }}>MGT</div>
+                              <div style={{ fontWeight: 800, color: 'var(--fpt-orange)' }}>{st.managementScore ?? 0}</div>
+                            </div>
+                            <div title="Graphic Design Score">
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>DES</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.graphicDesignScore ?? 0}</div>
+                            </div>
+                            <div title="Marketing Score">
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>MKT</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.marketingScore ?? 0}</div>
+                            </div>
+                            <div title="Sale Score">
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem' }}>SAL</div>
+                              <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.saleScore ?? 0}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Preview Distribution Outcome */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {distributePreview ? (
+                    <>
+                      {/* Summary card */}
+                      <div
+                        className="card"
+                        style={{
+                          padding: '1rem 1.25rem',
+                          background: 'rgba(0, 84, 166, 0.04)',
+                          border: '1px solid rgba(0, 84, 166, 0.2)',
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div
+                            style={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: '8px',
+                              background: 'rgba(0, 84, 166, 0.1)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--fpt-blue)',
+                            }}
+                          >
+                            <Sparkles size={20} />
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                              Phương án Phân bổ Đề xuất bởi gRPC Matching Service
+                            </div>
+                            <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                              Đã phân bổ:{' '}
+                              <strong style={{ color: '#059669', fontFamily: 'var(--font-mono)' }}>
+                                {distributePreview.totalDistributed} / {distributePreview.totalUnmatched} sinh viên lẻ
+                              </strong>{' '}
+                              vào{' '}
+                              <strong style={{ color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>
+                                {distributePreview.roomPlans.length} phòng
+                              </strong>{' '}
+                              (Còn lại: {distributePreview.totalRemaining} SV)
+                            </div>
+                          </div>
+                        </div>
+
+                        {isModerator && selectedSpace.status !== 'Locked' && (
+                          <button
+                            type="button"
+                            onClick={() => setIsConfirmDistributeModalOpen(true)}
+                            disabled={actionLoading}
+                            className="btn btn-primary"
+                            style={{ fontSize: '0.825rem', padding: '0.55rem 1rem', background: '#059669', borderColor: '#059669', gap: '0.35rem' }}
+                          >
+                            <CheckCircle2 size={15} />
+                            <span>Xác nhận Áp dụng Phương án</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* List of room plans */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {distributePreview.roomPlans.map((plan) => (
+                          <div
+                            key={plan.roomId}
+                            className="card"
+                            style={{
+                              padding: '1.25rem',
+                              border: '1px solid var(--border-light)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.85rem',
+                            }}
+                          >
+                            {/* Header of Room plan */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '0.65rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontWeight: 800,
+                                    fontSize: '0.95rem',
+                                    color: 'var(--fpt-navy, #0a192f)',
+                                    padding: '0.2rem 0.55rem',
+                                    background: 'var(--bg-main, #f1f5f9)',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-light)',
+                                  }}
+                                >
+                                  {plan.roomCode || plan.name}
+                                </span>
+                                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                                  {plan.name}
+                                </span>
+                                {plan.isNewlyFormed ? (
+                                  <span
+                                    className="badge"
+                                    style={{
+                                      background: 'rgba(5, 150, 105, 0.1)',
+                                      color: '#059669',
+                                      border: '1px solid rgba(5, 150, 105, 0.25)',
+                                      fontSize: '0.725rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    BR-32: Nhóm mới từ phòng trống
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="badge"
+                                    style={{
+                                      background: 'rgba(0, 84, 166, 0.1)',
+                                      color: 'var(--fpt-blue)',
+                                      border: '1px solid rgba(0, 84, 166, 0.25)',
+                                      fontSize: '0.725rem',
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    BR-31: Lấp đầy phòng đang tuyển
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.825rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)' }}>
+                                  <span>Sĩ số:</span>
+                                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main)' }}>
+                                    {plan.memberCountBefore}/5 ➔ <span style={{ color: '#059669' }}>{plan.memberCountAfter}/5</span>
+                                  </span>
+                                </div>
+                                <div
+                                  style={{
+                                    padding: '0.2rem 0.55rem',
+                                    borderRadius: '6px',
+                                    background: 'rgba(242, 111, 33, 0.08)',
+                                    color: 'var(--fpt-orange)',
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    fontVariantNumeric: 'tabular-nums',
+                                  }}
+                                  title="Điểm cân bằng đa dạng kỹ năng và chuyên ngành"
+                                >
+                                  Cân bằng: {plan.balanceScore.toFixed(1)}/100
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Leader Banner */}
+                            <div
+                              style={{
+                                padding: '0.65rem 0.85rem',
+                                borderRadius: '6px',
+                                background: plan.isNewlyFormed ? 'rgba(5, 150, 105, 0.06)' : 'rgba(0, 84, 166, 0.06)',
+                                border: `1px solid ${plan.isNewlyFormed ? 'rgba(5, 150, 105, 0.2)' : 'rgba(0, 84, 166, 0.2)'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                fontSize: '0.825rem',
+                              }}
+                            >
+                              <Crown size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                              <div>
+                                {plan.isNewlyFormed ? (
+                                  <span>
+                                    <strong style={{ color: '#059669' }}>Trưởng nhóm chỉ định mới (BR-32):</strong>{' '}
+                                    <strong style={{ color: 'var(--text-main)' }}>{plan.leaderName}</strong> (Điểm Quản lý cao nhất nhóm: {plan.finalMembers.find(m => m.isLeader)?.managementScore ?? 0}/100)
+                                  </span>
+                                ) : (
+                                  <span>
+                                    <strong style={{ color: 'var(--fpt-blue)' }}>Bảo lưu Trưởng nhóm hiện tại (BR-31):</strong>{' '}
+                                    <strong style={{ color: 'var(--text-main)' }}>{plan.leaderName}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Full Members Table (BR-31 & BR-32) */}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                  <Users size={14} style={{ color: 'var(--fpt-blue)' }} />
+                                  <span>Danh sách toàn bộ thành viên sau phân phối ({plan.memberCountAfter}/5 SV):</span>
+                                </div>
+                                {!plan.isNewlyFormed ? (
+                                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                    <span style={{ padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                                      {plan.memberCountBefore} SV cũ có sẵn
+                                    </span>
+                                    <span style={{ padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(5, 150, 105, 0.1)', color: '#059669', fontWeight: 700, border: '1px solid rgba(5, 150, 105, 0.25)' }}>
+                                      +{plan.addedStudents.length} SV mới gán qua gRPC
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: '0.725rem', padding: '0.1rem 0.45rem', borderRadius: '4px', background: 'rgba(5, 150, 105, 0.1)', color: '#059669', fontWeight: 700, border: '1px solid rgba(5, 150, 105, 0.25)' }}>
+                                    Nhóm mới thành lập ({plan.memberCountAfter} SV)
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr style={{ background: 'var(--bg-main, #f8fafc)', borderBottom: '1px solid var(--border-light)' }}>
+                                      <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>MSSV</th>
+                                      <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Họ và tên</th>
+                                      <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Ngành</th>
+                                      <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Điểm Quản lý (BR-32)</th>
+                                      <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Phân loại</th>
+                                      <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Vai trò</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {plan.finalMembers.map((st) => {
+                                      const isNewlyAdded = plan.addedStudents.some((s) => s.userId === st.userId);
+                                      return (
+                                        <tr
+                                          key={st.userId}
+                                          style={{
+                                            borderBottom: '1px solid var(--border-light)',
+                                            background: isNewlyAdded ? 'rgba(5, 150, 105, 0.02)' : 'transparent',
+                                          }}
+                                        >
+                                          <td style={{ padding: '0.45rem 0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                                            {st.studentCode || '—'}
+                                          </td>
+                                          <td style={{ padding: '0.45rem 0.65rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                                            {st.fullName}
+                                          </td>
+                                          <td style={{ padding: '0.45rem 0.65rem' }}>
+                                            <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
+                                              {st.major || 'Chưa rõ'}
+                                            </span>
+                                          </td>
+                                          <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--fpt-orange)' }}>
+                                            {st.managementScore}
+                                          </td>
+                                          <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>
+                                            {!plan.isNewlyFormed ? (
+                                              isNewlyAdded ? (
+                                                <span
+                                                  className="badge"
+                                                  style={{
+                                                    fontSize: '0.68rem',
+                                                    background: 'rgba(5, 150, 105, 0.1)',
+                                                    color: '#059669',
+                                                    border: '1px solid rgba(5, 150, 105, 0.25)',
+                                                    fontWeight: 600,
+                                                  }}
+                                                >
+                                                  + Mới gán
+                                                </span>
+                                              ) : (
+                                                <span
+                                                  className="badge badge-secondary"
+                                                  style={{
+                                                    fontSize: '0.68rem',
+                                                    background: 'var(--bg-main)',
+                                                    color: 'var(--text-muted)',
+                                                    border: '1px solid var(--border-light)',
+                                                  }}
+                                                >
+                                                  SV cũ có sẵn
+                                                </span>
+                                              )
+                                            ) : (
+                                              <span
+                                                className="badge"
+                                                style={{
+                                                  fontSize: '0.68rem',
+                                                  background: 'rgba(0, 84, 166, 0.08)',
+                                                  color: 'var(--fpt-blue)',
+                                                  border: '1px solid rgba(0, 84, 166, 0.2)',
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                Gán vào nhóm mới
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>
+                                            {st.isLeader ? (
+                                              <span
+                                                className="badge badge-warning"
+                                                style={{
+                                                  fontSize: '0.7rem',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '0.25rem',
+                                                  fontWeight: 700,
+                                                }}
+                                              >
+                                                <Crown size={12} />
+                                                <span>{plan.isNewlyFormed ? 'Leader mới' : 'Leader'}</span>
+                                              </span>
+                                            ) : (
+                                              <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
+                                                Thành viên
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      className="card"
+                      style={{
+                        padding: '3rem 2rem',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1rem',
+                        background: 'var(--bg-card)',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: '16px',
+                          background: 'rgba(0, 84, 166, 0.08)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--fpt-blue, #0054a6)',
+                        }}
+                      >
+                        <Cpu size={32} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                          Sẵn sàng chạy Phân bổ Sinh viên Lẻ qua gRPC
+                        </h4>
+                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 460 }}>
+                          Hệ thống sẽ kết nối trực tiếp đến Matching Service qua giao thức HTTP/2 gRPC để tính toán thuật toán phân bổ tối ưu theo BR-31 (bù trừ phòng cũ) và BR-32 (lập nhóm mới từ phòng trống).
+                        </p>
+                      </div>
+                      {isModerator && selectedSpace.status !== 'Locked' && (
+                        <button
+                          type="button"
+                          onClick={handlePreviewDistribution}
+                          disabled={loadingPreview || actionLoading}
+                          className="btn btn-primary"
+                          style={{ padding: '0.65rem 1.35rem', fontWeight: 700, gap: '0.45rem' }}
+                        >
+                          <Sparkles size={16} />
+                          <span>{loadingPreview ? 'Đang tính toán thuật toán gRPC...' : 'Chạy gRPC Matching (Preview)'}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3039,7 +4133,7 @@ export const CourseSpacesPage: React.FC = () => {
                   >
                     {selectedRoomDetail?.roomCode || 'ROOM'}
                   </span>
-                  {selectedRoomDetail && getRoomStatusBadge(selectedRoomDetail.status)}
+                  {selectedRoomDetail && getRoomStatusBadge(selectedRoomDetail.status, selectedRoomDetail.members.length, selectedSpace?.status)}
                 </div>
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
                   {selectedRoomDetail?.name || 'Chi tiết phòng học phần'}
@@ -3100,7 +4194,13 @@ export const CourseSpacesPage: React.FC = () => {
 
                   {selectedRoomDetail.members.length === 0 ? (
                     <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-light)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong> (BR-15).
+                      {selectedSpace?.status === 'Locked' ? (
+                        <>Phòng này là <strong>phòng dự phòng dư thừa</strong> (BR-09) không sử dụng và đã được đóng sau khi chốt sổ học kỳ (BR-33). Toàn bộ sinh viên đã được phân bổ vào các nhóm chính thức khác.</>
+                      ) : selectedSpace?.status === 'ClosedRegistration' ? (
+                        <>Phòng hiện chưa có thành viên. Cổng đăng ký tự do đã đóng (BR-30), phòng sẽ được hệ thống điều phối phân bổ tự động.</>
+                      ) : (
+                        <>Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong> (BR-15).</>
+                      )}
                     </div>
                   ) : (
                     <div style={{ border: '1px solid var(--border-light)', borderRadius: '8px', overflow: 'hidden' }}>
@@ -3170,7 +4270,7 @@ export const CourseSpacesPage: React.FC = () => {
                     >
                       <span>Vào quản lý Nhóm của tôi →</span>
                     </button>
-                  ) : !myGroup && (selectedRoomDetail.status === 'Empty' || selectedRoomDetail.status === 'Forming') ? (
+                  ) : !myGroup && selectedSpace?.status === 'Open' && (selectedRoomDetail.status === 'Empty' || selectedRoomDetail.status === 'Forming') ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -3184,7 +4284,7 @@ export const CourseSpacesPage: React.FC = () => {
                       <Zap size={15} />
                       <span>Vào phòng trực tiếp (BR-14)</span>
                     </button>
-                  ) : !myGroup && selectedRoomDetail.status === 'Recruiting' ? (
+                  ) : !myGroup && selectedSpace?.status === 'Open' && selectedRoomDetail.status === 'Recruiting' ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -3197,6 +4297,24 @@ export const CourseSpacesPage: React.FC = () => {
                     >
                       <Send size={15} />
                       <span>Nộp đơn ứng tuyển (BR-22)</span>
+                    </button>
+                  ) : !myGroup && selectedSpace?.status === 'ClosedRegistration' ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="btn btn-secondary"
+                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                    >
+                      <span>Đã đóng cổng đăng ký (BR-30)</span>
+                    </button>
+                  ) : !myGroup && selectedSpace?.status === 'Locked' ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="btn btn-secondary"
+                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                    >
+                      <span>Học kỳ đã khóa (BR-33)</span>
                     </button>
                   ) : null}
                 </>
@@ -3289,6 +4407,166 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 6: CONFIRM FORCED DISTRIBUTION (BR-31 & BR-32)
+         ══════════════════════════════════════════════════════════════ */}
+      {isConfirmDistributeModalOpen && distributePreview && (
+        <div className="modal-overlay" onClick={() => setIsConfirmDistributeModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 540, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(5, 150, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                  <CheckCircle2 size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Xác nhận Phân phối Sinh viên Lẻ
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Áp dụng quy tắc phân bổ cưỡng chế BR-31 & BR-32
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsConfirmDistributeModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  background: 'var(--bg-main, #f8fafc)',
+                  border: '1px solid var(--border-light, #e2e8f0)',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.5,
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
+                  Hệ thống chuẩn bị thực hiện ghi nhận vào Database:
+                </p>
+                <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-muted)' }}>
+                  <li>Gán <strong style={{ color: 'var(--text-main)' }}>{distributePreview.totalDistributed} sinh viên</strong> vào <strong style={{ color: 'var(--text-main)' }}>{distributePreview.roomPlans.length} phòng</strong>.</li>
+                  <li>Bảo lưu nguyên vẹn Leader của các phòng đã có người (BR-31).</li>
+                  <li>Chỉ định Leader cho các nhóm mới lập dựa trên điểm Kỹ năng Quản lý cao nhất (BR-32).</li>
+                  <li>Phát sự kiện <code style={{ fontFamily: 'var(--font-mono)' }}>MemberJoined</code> tới Notification Service để gửi email thông báo qua MailHog.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
+              <button
+                type="button"
+                onClick={() => setIsConfirmDistributeModalOpen(false)}
+                className="btn btn-secondary"
+                disabled={actionLoading}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDistribution}
+                disabled={actionLoading}
+                className="btn btn-primary"
+                style={{ background: '#059669', borderColor: '#059669', gap: '0.35rem', fontWeight: 700 }}
+              >
+                <Check size={16} />
+                <span>{actionLoading ? 'Đang thực thi phân phối...' : 'Đồng ý & Phân phối vào Database'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 7: CONFIRM FINALIZE & LOCK (BR-33)
+         ══════════════════════════════════════════════════════════════ */}
+      {isFinalizeModalOpen && selectedSpace && (
+        <div className="modal-overlay" onClick={() => setIsFinalizeModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 540, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Chốt sổ Học kỳ (Finalize & Lock — BR-33)
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Khóa cứng danh sách nhóm toàn học kỳ
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFinalizeModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.05)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  fontSize: '0.85rem',
+                  lineHeight: 1.5,
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c' }}>
+                  Hành động này mang tính chất chốt chặn học kỳ (BR-33):
+                </p>
+                <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-main)' }}>
+                  <li>Khóa cứng (<code style={{ fontFamily: 'var(--font-mono)' }}>Locked</code>) toàn bộ các phòng đã có thành viên.</li>
+                  <li>Tự động từ chối (<code style={{ fontFamily: 'var(--font-mono)' }}>Rejected</code>) tất cả các đơn ứng tuyển còn đang chờ duyệt trong học kỳ.</li>
+                  <li>Chuyển trạng thái Không gian học phần sang <strong style={{ color: '#b91c1c' }}>Locked</strong>.</li>
+                  <li>Sinh viên không thể tự do vào, rời hay xin gia nhập nhóm nữa. Mọi biến động nhân sự sau bước này sẽ do Giảng viên / Moderator điều chuyển (Giai đoạn 6).</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
+              <button
+                type="button"
+                onClick={() => setIsFinalizeModalOpen(false)}
+                className="btn btn-secondary"
+                disabled={actionLoading}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalizeSpace}
+                disabled={actionLoading}
+                className="btn btn-danger"
+                style={{ gap: '0.35rem', fontWeight: 700 }}
+              >
+                <Lock size={16} />
+                <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ (BR-33)'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

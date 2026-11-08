@@ -543,4 +543,20 @@ END;
 COMMIT;
 GO
 
+-- ── Giai đoạn 5: Đồng bộ dữ liệu phòng dự phòng dư & trạng thái Chốt sổ ─────────
+BEGIN TRANSACTION;
+GO
+
+SET QUOTED_IDENTIFIER ON;
+GO
+
+UPDATE [Groups]
+SET [Status] = 'Closed', [UpdatedAt] = GETUTCDATE()
+WHERE [Status] = 'Empty' AND (SELECT COUNT(*) FROM [GroupMembers] gm WHERE gm.[GroupId] = [Groups].[Id]) = 0;
+GO
+
+COMMIT;
+GO
+
+
 
