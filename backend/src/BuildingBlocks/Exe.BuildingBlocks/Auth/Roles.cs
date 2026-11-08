@@ -4,11 +4,11 @@ namespace Exe.BuildingBlocks.Auth;
 public static class Roles
 {
     public const string Student = "Student";
+    public const string Moderator = "Moderator";
     public const string Lecturer = "Lecturer";
-    public const string Admin = "Admin";
 
-    /// <summary>Dùng cho [Authorize(Roles = Roles.LecturerOrAdmin)].</summary>
-    public const string LecturerOrAdmin = Lecturer + "," + Admin;
+    /// <summary>Dùng cho [Authorize(Roles = Roles.LecturerOrModerator)] — Quyền quan sát báo cáo/thống kê dành cho Giảng viên và Điều phối viên.</summary>
+    public const string LecturerOrModerator = Lecturer + "," + Moderator;
 }
 
 /// <summary>Tên claim trong JWT do Auth Service cấp.</summary>

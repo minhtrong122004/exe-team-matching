@@ -14,12 +14,48 @@ public record RegisterRequest(
 );
 
 /// <summary>
-/// DTO yêu cầu khởi tạo tài khoản Giảng viên (Lecturer) do Quản trị viên (Admin) thực hiện.
+/// DTO yêu cầu khởi tạo tài khoản Giảng viên (Lecturer) hoặc Điều phối viên (Moderator) do Moderator/Admin thực hiện.
 /// </summary>
 public record CreateLecturerRequest(
     string Email,
     string Password,
-    string FullName
+    string FullName,
+    string? Role = "Lecturer"
+);
+
+/// <summary>
+/// DTO yêu cầu người dùng tự đổi mật khẩu khi đang đăng nhập (bao gồm lần đầu đăng nhập sau khi nhận mật khẩu từ FAP).
+/// </summary>
+public record ChangePasswordRequest(
+    string CurrentPassword,
+    string NewPassword,
+    string ConfirmNewPassword
+);
+
+/// <summary>
+/// DTO yêu cầu xác nhận đồng ý điều khoản ghép nhóm & sự điều phối của Moderator/Giảng viên lần đầu đăng nhập (BR-34).
+/// </summary>
+public record AcceptTermsRequest(
+    bool Accepted = true
+);
+
+/// <summary>
+/// Thông tin 1 sinh viên trong danh sách đồng bộ từ FAP (BR-01, BR-04).
+/// </summary>
+public record FapStudentImportItem(
+    string StudentCode,
+    string FullName,
+    string Email,
+    string? Major = null
+);
+
+/// <summary>
+/// DTO yêu cầu cấp phát tài khoản hàng loạt cho danh sách sinh viên đủ điều kiện học EXE từ FAP (BR-01).
+/// </summary>
+public record ProvisionFapStudentsRequest(
+    List<FapStudentImportItem> Students,
+    string SemesterCode = "FA26",
+    string SubjectCode = "EXE101"
 );
 
 /// <summary>

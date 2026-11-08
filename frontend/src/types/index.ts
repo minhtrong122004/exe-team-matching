@@ -2,6 +2,7 @@ export * from './auth';
 export * from './user';
 export * from './notification';
 export * from './report';
+export * from './group';
 
 export interface User {
   id: string;
@@ -11,6 +12,9 @@ export interface User {
   studentCode?: string;
   campus?: string;
   major?: string;
+  mustChangePassword?: boolean;
+  hasAcceptedTerms?: boolean;
+  acceptedTermsAt?: string | null;
 }
 
 export type ProjectDomain = 

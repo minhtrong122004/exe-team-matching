@@ -8,7 +8,7 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
 app.MapReverseProxy();
 
 app.Run();

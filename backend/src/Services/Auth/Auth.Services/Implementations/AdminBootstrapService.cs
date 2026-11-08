@@ -96,7 +96,7 @@ public partial class AdminBootstrapService : IAdminBootstrapService
         {
             var (_, adminCount) = await _accountRepository.GetPagedAsync(
                 search: null,
-                role: AccountRole.Admin,
+                role: AccountRole.Moderator,
                 isActive: null,
                 sortBy: "CreatedAt",
                 ascending: false,
@@ -122,7 +122,7 @@ public partial class AdminBootstrapService : IAdminBootstrapService
                 Email = normalizedEmail,
                 PasswordHash = passwordHash,
                 RegistrationFullName = fullName,
-                Role = AccountRole.Admin,
+                Role = AccountRole.Moderator,
                 IsActive = true,
                 EmailConfirmed = true,
                 EmailConfirmedAt = now,

@@ -158,6 +158,8 @@ services:
     environment:
       <<: *dotnet-env
       ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeNotificationDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+      Smtp__Host: mailhog
+      Smtp__Port: "1025"
     depends_on:
       sqlserver:
         condition: service_healthy

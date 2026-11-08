@@ -1,4 +1,4 @@
-﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -115,3 +115,155 @@ END;
 
 COMMIT;
 GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    ALTER TABLE [Accounts] ADD [EmailConfirmed] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    ALTER TABLE [Accounts] ADD [EmailConfirmedAt] datetime2 NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    UPDATE Accounts SET EmailConfirmed = 1, EmailConfirmedAt = CreatedAt WHERE EmailConfirmed = 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    CREATE TABLE [EmailVerificationChallenges] (
+        [Id] uniqueidentifier NOT NULL,
+        [AccountId] uniqueidentifier NOT NULL,
+        [Email] nvarchar(256) NOT NULL,
+        [OtpHash] varchar(64) NOT NULL,
+        [Salt] varchar(64) NOT NULL,
+        [ExpiresAt] datetime2 NOT NULL,
+        [FailedAttempts] int NOT NULL DEFAULT 0,
+        [ResendAvailableAt] datetime2 NULL,
+        [IsUsed] bit NOT NULL DEFAULT CAST(0 AS bit),
+        [CreatedAt] datetime2 NOT NULL,
+        [UsedAt] datetime2 NULL,
+        CONSTRAINT [PK_EmailVerificationChallenges] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_EmailVerificationChallenges_Accounts_AccountId] FOREIGN KEY ([AccountId]) REFERENCES [Accounts] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    CREATE INDEX [IX_EmailVerificationChallenges_AccountId] ON [EmailVerificationChallenges] ([AccountId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    CREATE INDEX [IX_EmailVerificationChallenges_Email] ON [EmailVerificationChallenges] ([Email]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    CREATE INDEX [IX_EmailVerificationChallenges_ExpiresAt] ON [EmailVerificationChallenges] ([ExpiresAt]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261022025826_AddEmailVerificationAndOtp'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261022025826_AddEmailVerificationAndOtp', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261024013649_AddChallengePurposeToVerificationChallenge'
+)
+BEGIN
+    ALTER TABLE [EmailVerificationChallenges] ADD [Purpose] nvarchar(30) NOT NULL DEFAULT N'EmailVerification';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261024013649_AddChallengePurposeToVerificationChallenge'
+)
+BEGIN
+    CREATE INDEX [IX_EmailVerificationChallenges_Email_Purpose] ON [EmailVerificationChallenges] ([Email], [Purpose]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261024013649_AddChallengePurposeToVerificationChallenge'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261024013649_AddChallengePurposeToVerificationChallenge', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107043928_Phase1RolesTermsAndProvisioning'
+)
+BEGIN
+    ALTER TABLE [Accounts] ADD [AcceptedTermsAt] datetime2 NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107043928_Phase1RolesTermsAndProvisioning'
+)
+BEGIN
+    ALTER TABLE [Accounts] ADD [MustChangePassword] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107043928_Phase1RolesTermsAndProvisioning'
+)
+BEGIN
+    ALTER TABLE [Accounts] ADD [StudentCode] nvarchar(32) NULL;
+    DELETE FROM [Accounts] WHERE [Email] = N'admin@exe.local';
+    UPDATE [Accounts] SET [Role] = N'Moderator' WHERE [Role] = N'Admin';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107043928_Phase1RolesTermsAndProvisioning'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261107043928_Phase1RolesTermsAndProvisioning', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

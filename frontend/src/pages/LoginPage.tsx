@@ -10,6 +10,9 @@ import {
   Lightbulb,
   Zap,
   Users,
+  ShieldCheck,
+  GraduationCap,
+  UserCheck,
 } from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 
@@ -32,7 +35,7 @@ export const LoginPage: React.FC = () => {
     try {
       const authUser = await login(loginEmail, loginPass);
       // Điều hướng theo vai trò thực tế trả về từ Backend JWT
-      if (authUser.role === 'Admin') {
+      if (authUser.role === 'Moderator') {
         navigate('/admin/accounts');
       } else if (authUser.role === 'Lecturer') {
         navigate('/reports');
@@ -439,15 +442,171 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.875rem', color: '#64748b' }}>
-            Chưa có tài khoản?{' '}
-            <Link to="/register" style={{ color: '#f26f21', fontWeight: 700 }}>
-              Đăng ký ngay
-            </Link>
+          {/* Thông báo chính sách cấp tài khoản từ danh sách FAP (BR-01) */}
+          <div
+            style={{
+              marginTop: '1.25rem',
+              padding: '0.85rem 1rem',
+              borderRadius: 10,
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              fontSize: '0.8rem',
+              color: '#475569',
+              lineHeight: 1.5,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.65rem',
+            }}
+          >
+            <ShieldCheck size={18} color="#0054a6" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <strong style={{ color: '#0f172a' }}>Chính sách Tài khoản FAP (BR-01):</strong> Tài khoản Sinh viên được Điều phối viên (Moderator) đồng bộ trực tiếp từ danh sách đủ điều kiện học phần EXE trên FAP và gửi mật khẩu khởi tạo về email trường (<code>@fpt.edu.vn</code>).
+            </div>
+          </div>
+
+          {/* 1-Click Quick Demo Accounts for Testing Phase 1 */}
+          <div
+            style={{
+              marginTop: '1.15rem',
+              padding: '0.9rem 1rem',
+              borderRadius: 10,
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '0.73rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                color: '#64748b',
+                marginBottom: '0.6rem',
+              }}
+            >
+              Đăng nhập nhanh tài khoản kiểm thử (1-Click Demo)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem' }}>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setEmail('moderator@fpt.edu.vn');
+                  setPassword('Moderator@123');
+                  void executeLogin('moderator@fpt.edu.vn', 'Moderator@123');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.48rem 0.65rem',
+                  borderRadius: 8,
+                  border: '1px solid #bbf7d0',
+                  background: '#f0fdf4',
+                  color: '#008837',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Moderator (Điều phối)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setEmail('lecturer@fpt.edu.vn');
+                  setPassword('Lecturer@123');
+                  void executeLogin('lecturer@fpt.edu.vn', 'Lecturer@123');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.48rem 0.65rem',
+                  borderRadius: 8,
+                  border: '1px solid #bfdbfe',
+                  background: '#eff6ff',
+                  color: '#0054a6',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <GraduationCap size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Lecturer (Giảng viên)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setEmail('sinhvien.moi@fpt.edu.vn');
+                  setPassword('Student@123');
+                  void executeLogin('sinhvien.moi@fpt.edu.vn', 'Student@123');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.48rem 0.65rem',
+                  borderRadius: 8,
+                  border: '1px solid #fed7aa',
+                  background: '#fff7ed',
+                  color: '#ea580c',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <UserCheck size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Tân SV (Test BR-34)
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setEmail('student1@exe.local');
+                  setPassword('Student@123');
+                  void executeLogin('student1@exe.local', 'Student@123');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.48rem 0.65rem',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#334155',
+                  fontSize: '0.76rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <Users size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  SV SE180001 (Đã ĐK)
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Footer Copyright */}
-          <div style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+          <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.75rem', color: '#94a3b8' }}>
             © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
           </div>
         </div>

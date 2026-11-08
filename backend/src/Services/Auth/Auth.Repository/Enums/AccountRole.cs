@@ -7,6 +7,6 @@ namespace Auth.Repository.Enums;
 public enum AccountRole
 {
     Student,
-    Lecturer,
-    Admin
+    Moderator,
+    Lecturer
 }

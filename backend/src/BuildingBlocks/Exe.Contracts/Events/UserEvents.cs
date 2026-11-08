@@ -5,11 +5,21 @@ namespace Exe.Contracts.Events;
 // chỉ được THÊM field mới (nullable hoặc có giá trị mặc định) và ghi rõ trong PR.
 
 /// <summary>
-/// Auth phát khi có tài khoản mới (đăng ký hoặc seed).
-/// Nhận: User (tạo hồ sơ trống), Notification (email chào mừng), Report (thống kê).
+/// Auth phát khi có tài khoản mới (đăng ký, cấp phát từ danh sách FAP hoặc seed).
+/// Nhận: User (tạo hồ sơ trống + gắn StudentCode/Major), Notification (email chào mừng / mật khẩu khởi tạo), Report (thống kê).
 /// </summary>
-/// <param name="Role">Student | Lecturer | Admin</param>
-public record UserRegistered(Guid UserId, string Email, string FullName, string Role);
+/// <param name="Role">Student | Moderator | Lecturer | Admin</param>
+public record UserRegistered(
+    Guid UserId,
+    string Email,
+    string FullName,
+    string Role,
+    string? StudentCode = null,
+    string? InitialPassword = null,
+    string? SemesterCode = null,
+    string? SubjectCode = null,
+    string? Major = null
+);
 
 /// <summary>
 /// User phát khi hồ sơ thay đổi.

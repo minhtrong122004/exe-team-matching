@@ -16,7 +16,7 @@ public class ReportsControllerTests
     {
         var attr = typeof(ReportsController).GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
-        Assert.Equal(Roles.LecturerOrAdmin, attr.Roles);
+        Assert.Equal(Roles.LecturerOrModerator, attr.Roles);
     }
 
     [Fact]
@@ -26,7 +26,7 @@ public class ReportsControllerTests
         Assert.NotNull(method);
         var attr = method!.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(attr);
-        Assert.Equal(Roles.Admin, attr.Roles);
+        Assert.Equal(Roles.Moderator, attr.Roles);
     }
 
     [Fact]

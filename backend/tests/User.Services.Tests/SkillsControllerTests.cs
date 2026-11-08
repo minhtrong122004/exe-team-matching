@@ -93,12 +93,12 @@ public class SkillsControllerTests
     [Fact]
     public void CreateSkill_HasAdminOnlyAuthorizeAttribute()
     {
-        // Decision 1: POST /skills chỉ dành cho Admin
+        // Decision 1: POST /skills dành cho Moderator
         var method = typeof(SkillsController).GetMethod(nameof(SkillsController.CreateSkill));
         Assert.NotNull(method);
         var authAttr = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(authAttr);
-        Assert.Equal("Admin", authAttr.Roles);
+        Assert.Equal("Moderator", authAttr.Roles);
     }
 
     [Fact]

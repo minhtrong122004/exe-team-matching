@@ -73,8 +73,11 @@ public record ProjectSummaryResponse(
     Guid Id,
     Guid OwnerId,
     string Title,
+    string Problem,
+    string Solution,
     string Domain,
     string Status,
     List<string> Tags,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    DateTime UpdatedAt
 );

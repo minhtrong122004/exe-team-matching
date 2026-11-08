@@ -45,10 +45,10 @@ public class SkillsController : ControllerBase
 
     /// <summary>
     /// Thêm kỹ năng mới vào danh mục hệ thống.
-    /// Quyền hạn: Chỉ Quản trị viên (Admin) được phép thực hiện (Decision 1).
+    /// Quyền hạn: Chỉ Điều phối viên (Moderator) được phép thực hiện.
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(SkillResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

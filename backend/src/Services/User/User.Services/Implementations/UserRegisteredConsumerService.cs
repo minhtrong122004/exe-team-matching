@@ -100,6 +100,20 @@ public class UserRegisteredConsumerService : IUserRegisteredConsumerService
                     UpdatedAt = now
                 };
 
+                if (!string.IsNullOrWhiteSpace(@event.StudentCode))
+                {
+                    var normalizedCode = @event.StudentCode.Trim().ToUpperInvariant();
+                    profile.StudentCode = normalizedCode;
+                    profile.Campus ??= "HCM";
+                    profile.Major = ParseMajor(@event.Major, normalizedCode);
+                }
+                else if (!string.IsNullOrWhiteSpace(@event.Major))
+                {
+                    profile.Major = ParseMajor(@event.Major, string.Empty);
+                }
+
+                EnrichDemoStudentProfileIfApplicable(profile);
+
                 await _profileRepo.AddAsync(profile, ct);
 
                 // 7. Ghi nhận ProcessedEvent
@@ -151,5 +165,129 @@ public class UserRegisteredConsumerService : IUserRegisteredConsumerService
             return sqlEx.Number is 2601 or 2627;
         }
         return false;
+    }
+
+    private static Major? ParseMajor(string? rawMajor, string studentCode)
+    {
+        if (!string.IsNullOrWhiteSpace(rawMajor))
+        {
+            var trimmed = rawMajor.Trim();
+            if (Enum.TryParse<Major>(trimmed, true, out var explicitMajor))
+            {
+                return explicitMajor;
+            }
+            var upper = trimmed.ToUpperInvariant();
+            if (upper is "KỸ THUẬT PHẦN MỀM" or "KY THUAT PHAN MEM" or "SOFTWARE ENGINEERING" or "KTPM")
+                return Major.SE;
+            if (upper is "TRÍ TUỆ NHÂN TẠO" or "TRI TUE NHAN TAO" or "ARTIFICIAL INTELLIGENCE")
+                return Major.AI;
+            if (upper is "AN TOÀN THÔNG TIN" or "AN TOAN THONG TIN" or "INFORMATION ASSURANCE" or "ATTT")
+                return Major.IA;
+            if (upper is "THIẾT KẾ ĐỒ HỌA" or "THIET KE DO HOA" or "GRAPHIC DESIGN" or "TKDH")
+                return Major.GD;
+            if (upper is "MK" or "MARKETING" or "DIGITAL MARKETING")
+                return Major.MKT;
+            if (upper is "KINH DOANH QUỐC TẾ" or "KINH DOANH QUOC TE" or "INTERNATIONAL BUSINESS" or "KDQT" or "QUẢN TRỊ KINH DOANH" or "QTKD")
+                return Major.IB;
+            return Major.Other;
+        }
+        if (!string.IsNullOrWhiteSpace(studentCode))
+        {
+            return ParseMajorFromStudentCode(studentCode);
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Tự động bóc tách Chuyên ngành (Major) từ tiền tố Mã số sinh viên (BR-04).
+    /// Ví dụ: SE180101 -> SE, AI180205 -> AI, GD180312 -> GD, MKT180408/MK180104 -> MKT, IB180519 -> IB, IA180622 -> IA.
+    /// </summary>
+    private static Major ParseMajorFromStudentCode(string studentCode)
+    {
+        var upper = studentCode.Trim().ToUpperInvariant();
+        if (upper.StartsWith("SE") || upper.StartsWith("HE") || upper.StartsWith("QE") || upper.StartsWith("CE") || upper.StartsWith("DE"))
+            return Major.SE;
+        if (upper.StartsWith("AI"))
+            return Major.AI;
+        if (upper.StartsWith("IA"))
+            return Major.IA;
+        if (upper.StartsWith("GD") || upper.StartsWith("HA") || upper.StartsWith("SA") || upper.StartsWith("CA"))
+            return Major.GD;
+        if (upper.StartsWith("MKT") || upper.StartsWith("MK") || upper.StartsWith("MC"))
+            return Major.MKT;
+        if (upper.StartsWith("IB") || upper.StartsWith("HS") || upper.StartsWith("SS") || upper.StartsWith("CS") || upper.StartsWith("BA"))
+            return Major.IB;
+        return Major.Other;
+    }
+
+    private static void EnrichDemoStudentProfileIfApplicable(UserProfile profile)
+    {
+        switch (profile.Email)
+        {
+            case "student1@exe.local":
+                profile.StudentCode = "SE180101";
+                profile.Campus = "HCM";
+                profile.Major = Major.SE;
+                profile.DesiredRole = "Backend / System Architect";
+                profile.Bio = "Sinh viên năm cuối ngành Kỹ thuật phần mềm, đam mê kiến trúc Microservices với .NET 10, Redis và Docker.";
+                profile.Interests = "EdTech,FinTech,SaaS";
+                break;
+            case "student2@exe.local":
+                profile.StudentCode = "AI180102";
+                profile.Campus = "HCM";
+                profile.Major = Major.AI;
+                profile.DesiredRole = "AI / Machine Learning Engineer";
+                profile.Bio = "Nghiên cứu NLP, LLM RAG và Computer Vision ứng dụng cho giáo dục và y tế thông minh.";
+                profile.Interests = "EdTech,HealthTech,AI";
+                break;
+            case "student3@exe.local":
+                profile.StudentCode = "GD180103";
+                profile.Campus = "HCM";
+                profile.Major = Major.GD;
+                profile.DesiredRole = "Product Designer (UI/UX)";
+                profile.Bio = "Chuyên thiết kế Design System trên Figma, tối ưu trải nghiệm người dùng và nhận diện thương hiệu khởi nghiệp.";
+                profile.Interests = "EdTech,ECommerce,Design";
+                break;
+            case "student4@exe.local":
+                profile.StudentCode = "MK180104";
+                profile.Campus = "HCM";
+                profile.Major = Major.MKT;
+                profile.DesiredRole = "Growth & Digital Marketing Lead";
+                profile.Bio = "Kinh nghiệm xây dựng chiến dịch Go-To-Market, Content Marketing và phân tích chuyển đổi cho dự án EXE.";
+                profile.Interests = "ECommerce,EdTech,FinTech";
+                break;
+            case "student5@exe.local":
+                profile.StudentCode = "IB180105";
+                profile.Campus = "HCM";
+                profile.Major = Major.IB;
+                profile.DesiredRole = "Business Analyst & Pitching Lead";
+                profile.Bio = "Phụ trách mô hình tài chính, Business Model Canvas, nghiên cứu thị trường và thuyết trình gọi vốn.";
+                profile.Interests = "FinTech,GreenTech,SaaS";
+                break;
+            case "student6@exe.local":
+                profile.StudentCode = "SE180106";
+                profile.Campus = "HCM";
+                profile.Major = Major.SE;
+                profile.DesiredRole = "Frontend / Mobile Lead";
+                profile.Bio = "Thành thạo React 19, TypeScript, tối ưu hiệu năng giao diện web và ứng dụng di động.";
+                profile.Interests = "EdTech,ECommerce,HealthTech";
+                break;
+            case "student7@exe.local":
+                profile.StudentCode = "IA180107";
+                profile.Campus = "HCM";
+                profile.Major = Major.IA;
+                profile.DesiredRole = "DevSecOps & Security Engineer";
+                profile.Bio = "Đảm bảo an toàn thông tin, kiểm thử bảo mật OWASP và vận hành hạ tầng đám mây cho sản phẩm khởi nghiệp.";
+                profile.Interests = "FinTech,HealthTech,Cybersecurity";
+                break;
+            case "student8@exe.local":
+                profile.StudentCode = "GD180108";
+                profile.Campus = "HCM";
+                profile.Major = Major.GD;
+                profile.DesiredRole = "Brand & Motion Designer";
+                profile.Bio = "Sáng tạo bộ nhận diện thương hiệu, ấn phẩm truyền thông và video pitch deck chuyên nghiệp.";
+                profile.Interests = "GreenTech,ECommerce,Media";
+                break;
+        }
     }
 }

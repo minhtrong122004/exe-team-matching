@@ -60,6 +60,7 @@ public class PasswordRecoveryTests
             new ResendVerificationRequestValidator(),
             new ForgotPasswordRequestValidator(),
             new ResetPasswordRequestValidator(),
+            new ChangePasswordRequestValidator(),
             new NullLogger<AuthService>()
         );
     }
