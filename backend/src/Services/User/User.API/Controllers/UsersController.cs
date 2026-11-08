@@ -53,6 +53,20 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Cập nhật chuyên sâu 5 kỹ năng cốt lõi (0–100) và xác nhận cam kết chịu trách nhiệm (BR-05, BR-06, BR-07).
+    /// </summary>
+    [HttpPut("me/profile-skills")]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfileSkills([FromBody] UpdateProfileSkillsRequest request, CancellationToken ct)
+    {
+        var profile = await _userProfileService.UpdateCurrentUserProfileSkillsAsync(request, ct);
+        return Ok(profile);
+    }
+
+    /// <summary>
     /// Xem thông tin hồ sơ công khai của một người dùng theo UserId (đã loại bỏ Email và StudentCode).
     /// </summary>
     [HttpGet("{id:guid}")]

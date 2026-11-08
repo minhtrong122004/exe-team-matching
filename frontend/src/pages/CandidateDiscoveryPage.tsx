@@ -797,7 +797,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     <div>{renderAvailabilityBadge(c.availability)}</div>
                   </div>
 
-                  {/* Major Badge & Desired Role */}
+                  {/* Major Badge, Cohort & Desired Role */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.85rem' }}>
                     {majorMeta && (
                       <span
@@ -811,6 +811,23 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         }}
                       >
                         {majorMeta.label}
+                      </span>
+                    )}
+                    {c.cohort && (
+                      <span
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: 6,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#fff7ed',
+                          color: '#c2410c',
+                          border: '1px solid #fed7aa',
+                          fontFamily: 'var(--font-mono, monospace)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        Khóa {c.cohort}
                       </span>
                     )}
                     {c.desiredRole && (
@@ -1112,9 +1129,9 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 padding: '1rem',
                 border: '1px solid #e2e8f0',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '0.75rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
                 fontSize: '0.85rem',
               }}
             >
@@ -1125,8 +1142,65 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 </strong>
               </div>
               <div>
+                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Khóa học:</span>
+                <strong style={{ color: '#0f172a', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
+                  {selectedCandidate.cohort ? `Khóa ${selectedCandidate.cohort}` : 'Chưa cập nhật'}
+                </strong>
+              </div>
+              <div>
                 <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Vị trí mong muốn:</span>
                 <strong style={{ color: '#0f172a' }}>{selectedCandidate.desiredRole || 'Linh hoạt'}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Hồ sơ 5 kỹ năng:</span>
+                {selectedCandidate.isProfileCompleted ? (
+                  <span style={{ color: '#15803d', fontWeight: 700 }}>Đã hoàn tất (BR-07)</span>
+                ) : (
+                  <span style={{ color: '#b91c1c', fontWeight: 700 }}>Chưa hoàn tất (BR-07)</span>
+                )}
+              </div>
+            </div>
+
+            {/* 5 Core Skills Bars (BR-05) */}
+            <div style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '1.15rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#334155', margin: 0 }}>
+                  Điểm 5 Kỹ năng Cốt lõi (BR-05)
+                </h4>
+                {selectedCandidate.isProfileCompleted && (
+                  <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <ShieldCheck size={14} /> Đã cam kết trung thực (BR-06)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                {[
+                  { name: 'Kỹ thuật (Tech)', score: selectedCandidate.techScore },
+                  { name: 'Quản trị (Management)', score: selectedCandidate.managementScore },
+                  { name: 'Thiết kế (Graphic Design)', score: selectedCandidate.graphicDesignScore },
+                  { name: 'Tiếp thị (Marketing)', score: selectedCandidate.marketingScore },
+                  { name: 'Bán hàng (Sale)', score: selectedCandidate.saleScore },
+                ].map((s, idx) => (
+                  <div key={idx} style={{ background: '#f8fafc', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
+                      <span style={{ color: '#334155', fontWeight: 600 }}>{s.name}</span>
+                      <span style={{ fontWeight: 800, color: '#f26f21', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
+                        {s.score}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, background: '#e2e8f0', borderRadius: 999, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, Math.max(0, s.score))}%`,
+                          height: '100%',
+                          background: '#f26f21',
+                          borderRadius: 999,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

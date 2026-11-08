@@ -14,6 +14,15 @@ public record UserProfileResponse(
     string? StudentCode,
     string? Campus,
     Major? Major,
+    string? Cohort,
+    int TechScore,
+    int ManagementScore,
+    int GraphicDesignScore,
+    int MarketingScore,
+    int SaleScore,
+    bool IsCommitted,
+    DateTime? CommittedAt,
+    bool IsProfileCompleted,
     string? Bio,
     string? DesiredRole,
     UserAvailability Availability,
@@ -33,6 +42,13 @@ public record CandidateProfileResponse(
     string Role,
     string? Campus,
     Major? Major,
+    string? Cohort,
+    int TechScore,
+    int ManagementScore,
+    int GraphicDesignScore,
+    int MarketingScore,
+    int SaleScore,
+    bool IsProfileCompleted,
     string? Bio,
     string? DesiredRole,
     UserAvailability Availability,
@@ -51,9 +67,31 @@ public record UpdateUserProfileRequest(
     string? StudentCode = null,
     string? Campus = null,
     Major? Major = null,
+    string? Cohort = null,
+    int? TechScore = null,
+    int? ManagementScore = null,
+    int? GraphicDesignScore = null,
+    int? MarketingScore = null,
+    int? SaleScore = null,
+    bool? IsCommitted = null,
     string? Bio = null,
     string? DesiredRole = null,
     UserAvailability Availability = UserAvailability.LookingForTeam,
+    List<string>? Interests = null
+);
+
+/// <summary>
+/// DTO yêu cầu cập nhật chuyên sâu 5 kỹ năng cốt lõi và cam kết (PUT /api/users/me/profile-skills) (BR-05, BR-06).
+/// </summary>
+public record UpdateProfileSkillsRequest(
+    int TechScore,
+    int ManagementScore,
+    int GraphicDesignScore,
+    int MarketingScore,
+    int SaleScore,
+    bool IsCommitted,
+    string? DesiredRole = null,
+    string? Bio = null,
     List<string>? Interests = null
 );
 

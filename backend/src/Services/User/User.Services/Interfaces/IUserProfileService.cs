@@ -12,6 +12,8 @@ public interface IUserProfileService
     Task<UserProfileResponse> GetCurrentUserProfileAsync(CancellationToken ct = default);
     Task<UserProfileResponse> UpdateCurrentUserProfileAsync(UpdateUserProfileRequest request, CancellationToken ct = default);
     Task<UserProfileResponse> UpdateUserProfileAsync(Guid userId, UpdateUserProfileRequest request, CancellationToken ct = default);
+    Task<UserProfileResponse> UpdateCurrentUserProfileSkillsAsync(UpdateProfileSkillsRequest request, CancellationToken ct = default);
+    Task<UserProfileResponse> UpdateProfileSkillsAsync(Guid userId, UpdateProfileSkillsRequest request, CancellationToken ct = default);
     Task<PagedResult<CandidateProfileResponse>> SearchProfilesAsync(UserSearchFilter filter, CancellationToken ct = default);
     Task<IReadOnlyList<CandidateProfileResponse>> GetBatchProfilesAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
     Task<UserProfileResponse> CreateEmptyProfileAsync(CreateUserProfileInternalRequest request, CancellationToken ct = default);

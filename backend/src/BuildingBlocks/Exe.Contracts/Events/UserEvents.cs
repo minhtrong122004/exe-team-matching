@@ -22,8 +22,19 @@ public record UserRegistered(
 );
 
 /// <summary>
-/// User phát khi hồ sơ thay đổi.
-/// Nhận: Report.
+/// User phát khi hồ sơ thay đổi (điểm kỹ năng, chuyên ngành, trạng thái hoàn thành).
+/// Nhận: Matching (cập nhật điểm hồ sơ phục vụ tính độ tương thích), Report (thống kê kỹ năng).
 /// </summary>
 /// <param name="Major">SE | AI | IA | GD | MKT | IB | Other, null nếu chưa chọn.</param>
-public record UserProfileUpdated(Guid UserId, string FullName, string? Major);
+public record UserProfileUpdated(
+    Guid UserId,
+    string FullName,
+    string? Major,
+    int TechScore = 0,
+    int ManagementScore = 0,
+    int GraphicDesignScore = 0,
+    int MarketingScore = 0,
+    int SaleScore = 0,
+    bool IsProfileCompleted = false,
+    string? Cohort = null
+);
