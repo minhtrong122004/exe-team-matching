@@ -1,20 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  UserPlus,
-  AlertCircle,
-  Mail,
-  Lock,
-  User,
-  Sparkles,
-  Lightbulb,
-  Zap,
-  Users,
-  CheckCircle2,
-  Shield,
-} from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
+import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
 
 export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
@@ -96,372 +85,357 @@ export const RegisterPage: React.FC = () => {
     <div
       style={{
         minHeight: '100vh',
+        width: '100%',
+        backgroundColor: '#F8FAFC',
         display: 'flex',
-        flexDirection: 'row',
-        background: '#f8fafc',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '36px 16px',
+        boxSizing: 'border-box',
       }}
     >
-      {/* ══════════════════════════════════════════════════════════════
-          LEFT COLUMN: FPT EDUCATION SHOWCASE (55%)
-         ══════════════════════════════════════════════════════════════ */}
+      {/* ── 2-COLUMN SPLIT SHOWCASE CONTAINER ── */}
       <div
+        className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
         style={{
-          flex: '1.2',
-          background: 'radial-gradient(circle at 10% 20%, rgba(0, 84, 166, 0.4) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(242, 111, 33, 0.3) 0%, transparent 50%), #061325',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '3.5rem',
-          color: '#ffffff',
-          overflow: 'hidden',
+          maxWidth: '1150px',
+          margin: '0 auto',
         }}
       >
-        {/* Subtle Decorative Grid Pattern */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Top Header Logo */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <FptEducationLogo />
-        </div>
-
-        {/* Center Hero Information */}
-        <div style={{ position: 'relative', zIndex: 1, margin: '3rem 0' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 0.95rem',
-              borderRadius: 9999,
-              background: 'rgba(242, 111, 33, 0.15)',
-              border: '1px solid rgba(242, 111, 33, 0.35)',
-              color: '#f97316',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              marginBottom: '1.5rem',
-              letterSpacing: '0.02em',
-            }}
-          >
-            <Sparkles size={16} />
-            <span>KHỞI ĐẦU HÀNH TRÌNH KHỞI NGHIỆP EXE</span>
-          </div>
-
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              lineHeight: 1.25,
-              letterSpacing: '-0.025em',
-              marginBottom: '1.25rem',
-              color: '#ffffff',
-            }}
-          >
-            Đăng ký tài khoản sinh viên FPT
-          </h1>
-
-          <p
-            style={{
-              fontSize: '1.05rem',
-              lineHeight: 1.6,
-              color: '#94a3b8',
-              maxWidth: 500,
-              marginBottom: '2.5rem',
-            }}
-          >
-            Tạo hồ sơ năng lực, tìm kiếm đồng đội ăn ý và cùng nhau phát triển các đề tài khởi nghiệp xuất sắc tại Đại học FPT.
-          </p>
-
-          {/* Value Props 3 Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 480 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '0.9rem 1.2rem',
-                borderRadius: 12,
-              }}
-            >
+        {/* ── LEFT COLUMN (lg:col-span-7): EXE Network Showcase + 3D Globe ── */}
+        <div className="lg:col-span-7 flex flex-col justify-between py-2">
+          {/* Header */}
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <FptEducationLogo />
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(242, 111, 33, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#f97316',
+                  height: '24px',
+                  width: '1px',
+                  backgroundColor: '#CBD5E1',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#64748B',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}
               >
-                <Lightbulb size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Đề tài EXE Đa dạng</div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>Khám phá các ý tưởng EdTech, FinTech, E-Commerce</div>
-              </div>
+                Cổng Ghép nhóm Đa ngành Khởi nghiệp EXE
+              </span>
             </div>
 
-            <div
+            <h1
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '0.9rem 1.2rem',
-                borderRadius: 12,
+                fontSize: '28px',
+                fontWeight: 700,
+                color: '#0F172A',
+                letterSpacing: '-0.02em',
+                marginTop: '16px',
+                lineHeight: 1.25,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(0, 84, 166, 0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#38bdf8',
-                }}
-              >
-                <Zap size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Ghép nhóm thông minh</div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>Gợi ý thành viên và nhóm đề tài tối ưu theo chuyên môn</div>
-              </div>
-            </div>
+              Mạng lưới Ghép nhóm Khởi nghiệp Đa ngành
+            </h1>
 
-            <div
+            <p
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                padding: '0.9rem 1.2rem',
-                borderRadius: 12,
+                fontSize: '14px',
+                color: '#64748B',
+                marginTop: '8px',
+                maxWidth: '520px',
+                lineHeight: 1.55,
               }}
             >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#34d399',
-                }}
-              >
-                <Users size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Bảo mật & Quyền riêng tư</div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8' }}>Bảo vệ thông tin cá nhân và email của sinh viên</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Campus Badge */}
-        <div style={{ position: 'relative', zIndex: 1, fontSize: '0.825rem', color: '#64748b' }}>
-          Hà Nội • TP. Hồ Chí Minh • Đà Nẵng • Quy Nhơn • Cần Thơ
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════
-          RIGHT COLUMN: REGISTER FORM (45%)
-         ══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          flex: '1',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '2.5rem',
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: 440 }}>
-          <div style={{ marginBottom: '1.75rem' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.35rem' }}>
-              Tạo tài khoản mới
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              Điền thông tin để đăng ký tài khoản sinh viên FPT
+              Kết nối sinh viên các chuyên ngành SE, AI, IA, GD, MKT, IB để hình thành đội ngũ dự án thực chiến môn Experiential Entrepreneurship (EXE).
             </p>
           </div>
 
-          {error && (
-            <div
+          {/* 3D Dotted Interactive Globe */}
+          <div style={{ margin: '8px 0' }}>
+            <ExeNetworkGlobe />
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN (lg:col-span-5): Register Card ── */}
+        <div className="lg:col-span-5 flex flex-col items-center w-full">
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              border: '1px solid #E2E8F0',
+              padding: '36px 32px',
+              boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05)',
+              boxSizing: 'border-box',
+            }}
+          >
+            <h2
               style={{
-                background: '#fef2f2',
-                border: '1px solid #fee2e2',
-                borderRadius: 10,
-                padding: '0.85rem 1rem',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '0.65rem',
-                color: '#b91c1c',
-                fontSize: '0.875rem',
-                marginBottom: '1.5rem',
+                fontSize: '22px',
+                fontWeight: 700,
+                color: '#0F172A',
+                letterSpacing: '-0.02em',
+                margin: '0 0 4px 0',
               }}
             >
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-              <div>{error}</div>
-            </div>
-          )}
+              Tạo tài khoản mới
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 24px 0' }}>
+              Điền thông tin để đăng ký tài khoản sinh viên FPT
+            </p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Họ và tên *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+            {error && (
+              <div
+                style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#DC2626',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  marginBottom: '18px',
+                }}
+              >
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>{error}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Họ và tên *
+                </label>
                 <input
                   type="text"
-                  className="form-control"
                   placeholder="Ví dụ: Nguyễn Văn A"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-            </div>
 
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Địa chỉ Email *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Địa chỉ Email *
+                </label>
                 <input
                   type="email"
-                  className="form-control"
                   placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem', marginBottom: 0 }}>
-                Hệ thống hỗ trợ Gmail, Outlook, FPT Education và các địa chỉ email hợp lệ khác.
-              </p>
-            </div>
 
-            <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Mật khẩu *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Mật khẩu *
+                </label>
                 <input
                   type="password"
-                  className="form-control"
-                  placeholder="Tối thiểu 8 ký tự (chữ hoa, số, ký tự đặc biệt)"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
+                <div style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+                  Tối thiểu 8 ký tự (Ví dụ: <span style={{ color: '#64748B', fontWeight: 600 }}>Abc@123456</span>)
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
-                Ví dụ: <code style={{ color: '#f26f21', fontWeight: 600 }}>Abc@123456</code>
-              </div>
-            </div>
 
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Xác nhận mật khẩu *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <CheckCircle2 size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Xác nhận mật khẩu *
+                </label>
                 <input
                   type="password"
-                  className="form-control"
-                  placeholder="Nhập lại mật khẩu ở trên"
+                  placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-            </div>
 
-            {/* Thông báo phân quyền: Cổng công khai chỉ dành cho Sinh viên */}
-            <div
-              style={{
-                marginBottom: '1.5rem',
-                padding: '0.75rem 1rem',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: 8,
-                fontSize: '0.825rem',
-                color: '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <Shield size={16} style={{ color: '#0054a6', flexShrink: 0 }} />
-              <div>
-                Tài khoản mặc định là <strong style={{ color: '#f26f21' }}>Sinh viên (Student)</strong>. Giảng viên vui lòng liên hệ Quản trị viên để được cấp tài khoản.
+              {/* Clean Role Note */}
+              <div style={{ fontSize: '12px', color: '#64748B', lineHeight: 1.5, marginBottom: '18px' }}>
+                * Tài khoản mặc định là <strong>Sinh viên</strong>. Giảng viên vui lòng liên hệ Ban Đào tạo / Quản trị viên để được cấp tài khoản.
               </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  backgroundColor: '#F27024',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: loading ? 'default' : 'pointer',
+                  marginTop: '4px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#EA580C';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#F27024';
+                  }
+                }}
+              >
+                {loading ? 'Đang tạo tài khoản...' : 'Đăng ký ngay'}
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#64748B' }}>
+              Đã có tài khoản?{' '}
+              <Link to="/login" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
+                Đăng nhập ngay
+              </Link>
             </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.8rem',
-                fontSize: '0.95rem',
-                borderRadius: 10,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <UserPlus size={18} />
-              {loading ? 'Đang tạo tài khoản...' : 'Đăng ký ngay'}
-            </button>
-          </form>
-
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-            Đã có tài khoản?{' '}
-            <Link to="/login" style={{ color: '#f26f21', fontWeight: 700 }}>
-              Đăng nhập ngay
-            </Link>
-          </div>
-
-          <div style={{ textAlign: 'center', marginTop: '2.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-            © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
           </div>
         </div>
+      </div>
+
+      {/* ── FOOTER COPYRIGHT ── */}
+      <div style={{ textAlign: 'center', marginTop: '36px', fontSize: '12px', color: '#94A3B8' }}>
+        © 2026 Trường Đại học FPT • Hà Nội • TP.HCM • Đà Nẵng • Cần Thơ • Quy Nhơn
       </div>
     </div>
   );

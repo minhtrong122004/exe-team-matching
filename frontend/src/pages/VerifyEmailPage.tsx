@@ -2,15 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  ShieldCheck,
   AlertCircle,
-  Mail,
   RefreshCw,
   ArrowLeft,
   CheckCircle2,
-  Clock,
-  Sparkles,
-  Lock,
 } from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 
@@ -56,7 +51,6 @@ export const VerifyEmailPage: React.FC = () => {
   };
 
   const handleDigitChange = (index: number, value: string) => {
-    // Only accept numeric digit
     const cleaned = value.replace(/\D/g, '');
     if (!cleaned) {
       const nextDigits = [...otpDigits];
@@ -71,7 +65,6 @@ export const VerifyEmailPage: React.FC = () => {
     setOtpDigits(nextDigits);
     setError(null);
 
-    // Auto-advance to next box if not the last one
     if (index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -100,22 +93,20 @@ export const VerifyEmailPage: React.FC = () => {
     }
     setOtpDigits(nextDigits);
     setError(null);
-
-    const focusIndex = Math.min(pasteData.length, 5);
-    inputRefs.current[focusIndex]?.focus();
+    const targetFocus = Math.min(pasteData.length, 5);
+    inputRefs.current[targetFocus]?.focus();
   };
 
-  const handleVerify = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const fullOtp = otpDigits.join('');
-
-    if (!email.trim()) {
-      setError('Thiếu thông tin địa chỉ email. Vui lòng quay lại trang Đăng ký.');
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const otp = otpDigits.join('').trim();
+    if (otp.length !== 6) {
+      setError('Vui lòng nhập đầy đủ 6 chữ số mã OTP.');
       return;
     }
 
-    if (fullOtp.length !== 6) {
-      setError('Vui lòng nhập đầy đủ 6 chữ số mã OTP.');
+    if (!email.trim()) {
+      setError('Thiếu thông tin địa chỉ email cần xác thực.');
       return;
     }
 
@@ -124,28 +115,18 @@ export const VerifyEmailPage: React.FC = () => {
     setInfoMessage(null);
 
     try {
-      const res = await verifyEmail(email.trim(), fullOtp);
+      await verifyEmail(email.trim(), otp);
       setIsSuccess(true);
-      setInfoMessage(res.message || 'Xác thực tài khoản thành công! Đang chuyển hướng...');
       setTimeout(() => {
         navigate(`/login?verified=true&email=${encodeURIComponent(email.trim())}`);
-      }, 2500);
+      }, 1500);
     } catch (err: any) {
       const status = err.response?.status;
-      const data = err.response?.data;
-      const detail = data?.detail || data?.message || data?.title;
+      const detail = err.response?.data?.detail || err.response?.data?.message || err.response?.data?.title;
 
-      if (status === 400) {
-        if (detail && detail.includes('lần thử')) {
-          setError(detail);
-        } else if (detail && detail.includes('hết hạn')) {
-          setError('Mã OTP đã hết hạn (quá 5 phút). Vui lòng nhấn "Gửi lại mã OTP" để nhận mã mới.');
-        } else if (detail && detail.includes('tối đa')) {
-          setError('Đã vượt quá số lần nhập sai cho phép (tối đa 5 lần). Vui lòng nhấn "Gửi lại mã OTP".');
-          setAttemptsRemaining(0);
-        } else {
-          setError(detail || 'Mã OTP không hợp lệ hoặc đã qua sử dụng.');
-        }
+      if (status === 400 && (detail?.includes('không chính xác') || detail?.includes('hết hạn'))) {
+        setError(detail || 'Mã xác nhận OTP không chính xác hoặc đã hết hạn.');
+        setAttemptsRemaining((prev) => (prev !== null ? Math.max(prev - 1, 0) : 4));
       } else if (status === 404) {
         setError('Không tìm thấy yêu cầu xác thực cho email này hoặc tài khoản đã được kích hoạt.');
       } else {
@@ -197,155 +178,237 @@ export const VerifyEmailPage: React.FC = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'row',
-        background: '#f8fafc',
+        backgroundColor: '#FFFFFF',
       }}
     >
       {/* ══════════════════════════════════════════════════════════════
-          LEFT COLUMN: FPT EDUCATION SHOWCASE (55%)
+          LEFT COLUMN: CLEAN ARCHITECTURAL & PRODUCT SHOWCASE
          ══════════════════════════════════════════════════════════════ */}
       <div
+        className="auth-left-column"
         style={{
           flex: '1.2',
-          background:
-            'radial-gradient(circle at 10% 20%, rgba(0, 84, 166, 0.4) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(242, 111, 33, 0.3) 0%, transparent 50%), #061325',
+          backgroundColor: '#F8FAFC',
+          borderRight: '1px solid #E2E8F0',
+          backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '3.5rem',
-          color: '#ffffff',
           overflow: 'hidden',
         }}
       >
-        {/* Subtle Decorative Grid Pattern */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Top Header Logo */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           <FptEducationLogo />
         </div>
 
-        {/* Center Hero Information */}
-        <div style={{ position: 'relative', zIndex: 1, margin: '3rem 0' }}>
+        <div style={{ position: 'relative', zIndex: 1, margin: '2rem 0' }}>
           <div
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 0.9rem',
-              background: 'rgba(242, 111, 33, 0.15)',
-              border: '1px solid rgba(242, 111, 33, 0.4)',
-              borderRadius: '9999px',
-              color: '#f97316',
-              fontSize: '0.85rem',
+              fontSize: '12px',
               fontWeight: 600,
-              marginBottom: '1.25rem',
+              letterSpacing: '0.08em',
+              color: '#64748B',
+              textTransform: 'uppercase',
+              marginBottom: '1rem',
             }}
           >
-            <ShieldCheck size={16} />
-            <span>Xác thực Bảo mật Tài khoản</span>
+            FPT UNIVERSITY • EXPERIENTIAL ENTREPRENEURSHIP
           </div>
 
           <h1
             style={{
-              fontSize: '2.5rem',
-              fontWeight: 800,
+              fontSize: '34px',
+              fontWeight: 700,
+              letterSpacing: '-0.03em',
               lineHeight: 1.2,
+              color: '#0F172A',
               marginBottom: '1rem',
-              letterSpacing: '-0.025em',
             }}
           >
-            Bảo vệ tài khoản với <span style={{ color: '#f26f21' }}>Mã xác thực OTP</span>
+            Bảo vệ tài khoản với <span style={{ color: '#F27024' }}>mã xác thực OTP</span>
           </h1>
 
           <p
             style={{
-              fontSize: '1.05rem',
-              color: '#94a3b8',
+              fontSize: '14px',
+              color: '#64748B',
               lineHeight: 1.6,
-              maxWidth: '480px',
+              maxWidth: 500,
+              marginBottom: '2rem',
             }}
           >
-            Hệ thống PRN232 EXE Team Matching sử dụng phương thức gửi mã xác nhận 6 chữ số qua hòm thư điện tử của bạn
-            thông qua cổng Brevo Transactional Email nhằm đảm bảo an toàn tuyệt đối.
+            Hệ thống PRN232 EXE Team Matching sử dụng phương thức xác nhận 6 chữ số qua hòm thư điện tử nhằm đảm bảo an toàn tuyệt đối cho hồ sơ của bạn.
           </p>
 
-          {/* Security Features */}
-          <div style={{ marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#cbd5e1' }}>
-              <div
+          {/* Interactive UI Showcase Card */}
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1px solid #E2E8F0',
+              padding: '24px',
+              boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.07)',
+              maxWidth: 500,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px' }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+                  Dự án đề cử môn EXE
+                </div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                  EcoCampus – Phân loại rác thông minh AI
+                </h3>
+              </div>
+              <span
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#38bdf8',
+                  gap: '5px',
+                  backgroundColor: '#ECFDF5',
+                  color: '#059669',
+                  border: '1px solid #A7F3D0',
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
-                <Clock size={18} />
-              </div>
-              <span style={{ fontSize: '0.925rem' }}>Mã OTP có hiệu lực tối đa 5 phút kể từ lúc gửi.</span>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
+                96% Phù hợp
+              </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#cbd5e1' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#f26f21',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #F1F5F9',
                 }}
               >
-                <Lock size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    className="avatar-pastel-0"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '9999px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    NT
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>Lữ Phước Nhật Tú</div>
+                    <div style={{ fontSize: '11px', color: '#64748B' }}>SE185102 • Kỹ thuật phần mềm (SE)</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#F27024', backgroundColor: 'rgba(242, 111, 33, 0.1)', padding: '2px 8px', borderRadius: '6px' }}>
+                  Trưởng nhóm
+                </span>
               </div>
-              <span style={{ fontSize: '0.925rem' }}>Mã hóa một chiều SHA-256 kèm Salt bảo mật, không lưu mã trần.</span>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#cbd5e1' }}>
               <div
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.08)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#4ade80',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #F1F5F9',
                 }}
               >
-                <Sparkles size={18} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    className="avatar-pastel-2"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '9999px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    TV
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>Trần Thảo Vy</div>
+                    <div style={{ fontSize: '11px', color: '#64748B' }}>GD185201 • Thiết kế đồ họa (GD)</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', backgroundColor: '#F1F5F9', padding: '2px 8px', borderRadius: '6px' }}>
+                  Thành viên
+                </span>
               </div>
-              <span style={{ fontSize: '0.925rem' }}>Hỗ trợ mọi hòm thư hợp lệ: Gmail, Outlook, FPT EDU email.</span>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '9px 12px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #F1F5F9',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    className="avatar-pastel-3"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '9999px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    HP
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>Hoàng Đình Phú</div>
+                    <div style={{ fontSize: '11px', color: '#64748B' }}>MK185301 • Marketing (MKT)</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', backgroundColor: '#F1F5F9', padding: '2px 8px', borderRadius: '6px' }}>
+                  Thành viên
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer info */}
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            fontSize: '0.825rem',
-            color: '#64748b',
-          }}
-        >
-          © 2026 Đại học FPT — Dự án PRN232 EXE Team Matching. All rights reserved.
+        <div style={{ position: 'relative', zIndex: 1, borderTop: '1px solid #E2E8F0', paddingTop: '1.25rem' }}>
+          <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+            Hệ thống áp dụng tại 5 cơ sở FPT University
+          </div>
+          <div style={{ fontSize: '13px', color: '#64748B', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span>Hà Nội</span> • <span>TP. Hồ Chí Minh</span> • <span>Đà Nẵng</span> • <span>Cần Thơ</span> • <span>Quy Nhơn</span>
+          </div>
         </div>
       </div>
 
@@ -353,50 +416,28 @@ export const VerifyEmailPage: React.FC = () => {
           RIGHT COLUMN: OTP VERIFICATION FORM (45%)
          ══════════════════════════════════════════════════════════════ */}
       <div
+        className="auth-right-column"
         style={{
-          flex: '1',
+          flex: '0.9',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '2.5rem',
+          padding: '3rem 2.5rem',
+          backgroundColor: '#FFFFFF',
+          position: 'relative',
         }}
       >
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '460px',
-            background: '#ffffff',
-            borderRadius: '16px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)',
-            padding: '2.5rem',
-            border: '1px solid #e2e8f0',
-          }}
-        >
+        <div style={{ maxWidth: 400, width: '100%' }}>
           {/* Header */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <div
-              style={{
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                background: 'rgba(242, 111, 33, 0.1)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#f26f21',
-                marginBottom: '1rem',
-              }}
-            >
-              <Mail size={30} />
-            </div>
-            <h2 style={{ fontSize: '1.65rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '1.75rem' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: '6px' }}>
               Xác thực địa chỉ Email
             </h2>
-            <p style={{ fontSize: '0.925rem', color: '#64748b', lineHeight: 1.5 }}>
-              Mã xác nhận 6 chữ số đã được gửi tới địa chỉ:
+            <p style={{ fontSize: '14px', color: '#64748B', margin: 0, lineHeight: 1.5 }}>
+              Mã xác nhận 6 chữ số đã được gửi tới:
               <br />
-              <strong style={{ color: '#0f172a', fontWeight: 600 }}>{maskEmail(email) || 'email của bạn'}</strong>
+              <strong style={{ color: '#0F172A', fontWeight: 600 }}>{maskEmail(email) || 'email của bạn'}</strong>
             </p>
           </div>
 
@@ -404,40 +445,24 @@ export const VerifyEmailPage: React.FC = () => {
           {isSuccess && (
             <div
               style={{
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
+                backgroundColor: '#F0FDF4',
+                border: '1px solid #BBF7D0',
                 borderRadius: '10px',
-                padding: '1.25rem',
-                marginBottom: '1.5rem',
+                padding: '14px',
+                marginBottom: '1.25rem',
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '0.75rem',
+                gap: '10px',
               }}
             >
-              <CheckCircle2 size={24} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <CheckCircle2 size={20} color="#16A34A" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <p style={{ fontWeight: 600, color: '#15803d', fontSize: '0.95rem', margin: 0 }}>
+                <p style={{ fontWeight: 600, color: '#15803D', fontSize: '14px', margin: 0 }}>
                   Xác thực thành công!
                 </p>
-                <p style={{ color: '#166534', fontSize: '0.875rem', margin: '0.25rem 0 0 0' }}>
-                  Tài khoản của bạn đã được kích hoạt. Đang chuyển hướng về trang Đăng nhập...
+                <p style={{ color: '#166534', fontSize: '13px', margin: '4px 0 0 0' }}>
+                  Tài khoản đã được kích hoạt. Đang chuyển hướng về trang Đăng nhập...
                 </p>
-                <div style={{ marginTop: '0.75rem' }}>
-                  <Link
-                    to={`/login?verified=true&email=${encodeURIComponent(email)}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      color: '#15803d',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      textDecoration: 'underline',
-                    }}
-                  >
-                    Đăng nhập ngay &rarr;
-                  </Link>
-                </div>
               </div>
             </div>
           )}
@@ -446,20 +471,16 @@ export const VerifyEmailPage: React.FC = () => {
           {infoMessage && !isSuccess && (
             <div
               style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '8px',
-                padding: '0.85rem 1rem',
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: '10px',
+                padding: '12px 14px',
                 marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.65rem',
-                color: '#1e40af',
-                fontSize: '0.875rem',
+                color: '#1E40AF',
+                fontSize: '13px',
               }}
             >
-              <Sparkles size={18} style={{ flexShrink: 0 }} />
-              <span>{infoMessage}</span>
+              {infoMessage}
             </div>
           )}
 
@@ -467,19 +488,19 @@ export const VerifyEmailPage: React.FC = () => {
           {error && (
             <div
               style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                padding: '0.85rem 1rem',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '10px',
+                padding: '12px 14px',
                 marginBottom: '1.25rem',
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '0.65rem',
-                color: '#b91c1c',
-                fontSize: '0.875rem',
+                gap: '8px',
+                color: '#DC2626',
+                fontSize: '13px',
               }}
             >
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
               <div style={{ flex: 1 }}>{error}</div>
             </div>
           )}
@@ -487,16 +508,15 @@ export const VerifyEmailPage: React.FC = () => {
           {/* OTP Input Form */}
           {!isSuccess && (
             <form onSubmit={handleVerify}>
-              {/* If email was not passed in URL, allow typing */}
               {!initialEmail && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '0.875rem',
+                      fontSize: '13px',
                       fontWeight: 600,
                       color: '#334155',
-                      marginBottom: '0.35rem',
+                      marginBottom: '6px',
                     }}
                   >
                     Địa chỉ email cần xác thực
@@ -505,13 +525,18 @@ export const VerifyEmailPage: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ví dụ: sinhvien@gmail.com"
+                    placeholder="ví dụ: sinhvien@fpt.edu.vn"
                     style={{
                       width: '100%',
-                      padding: '0.65rem 0.85rem',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      fontSize: '0.925rem',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid #E2E8F0',
+                      backgroundColor: '#FFFFFF',
+                      padding: '0 14px',
+                      fontSize: '14px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      boxSizing: 'border-box',
                     }}
                   />
                 </div>
@@ -522,20 +547,20 @@ export const VerifyEmailPage: React.FC = () => {
                 <label
                   style={{
                     display: 'block',
-                    fontSize: '0.875rem',
+                    fontSize: '13px',
                     fontWeight: 600,
                     color: '#334155',
-                    marginBottom: '0.75rem',
+                    marginBottom: '10px',
                     textAlign: 'center',
                   }}
                 >
-                  Nhập mã gồm 6 chữ số
+                  Nhập mã OTP gồm 6 chữ số
                 </label>
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'center',
-                    gap: '0.5rem',
+                    gap: '8px',
                   }}
                 >
                   {otpDigits.map((digit, index) => (
@@ -554,15 +579,15 @@ export const VerifyEmailPage: React.FC = () => {
                       onPaste={handlePaste}
                       disabled={loading || attemptsRemaining === 0}
                       style={{
-                        width: '46px',
-                        height: '54px',
-                        fontSize: '1.5rem',
+                        width: '44px',
+                        height: '50px',
+                        fontSize: '22px',
                         fontWeight: 700,
                         textAlign: 'center',
-                        color: '#0f172a',
-                        border: digit ? '2px solid #f26f21' : '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        background: attemptsRemaining === 0 ? '#f1f5f9' : '#ffffff',
+                        color: '#0F172A',
+                        border: digit ? '2px solid #F27024' : '1px solid #E2E8F0',
+                        borderRadius: '10px',
+                        backgroundColor: attemptsRemaining === 0 ? '#F8FAFC' : '#FFFFFF',
                         outline: 'none',
                         transition: 'all 0.15s ease',
                         boxShadow: digit ? '0 0 0 3px rgba(242, 111, 33, 0.12)' : 'none',
@@ -578,37 +603,28 @@ export const VerifyEmailPage: React.FC = () => {
                 disabled={loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0}
                 style={{
                   width: '100%',
-                  padding: '0.85rem',
-                  background:
-                    loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0
-                      ? '#94a3b8'
-                      : 'linear-gradient(135deg, #f26f21 0%, #e05e10 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '8px',
+                  height: '44px',
+                  borderRadius: '10px',
                   fontWeight: 600,
-                  fontSize: '1rem',
+                  fontSize: '14px',
+                  backgroundColor:
+                    loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0
+                      ? '#CBD5E1'
+                      : '#F27024',
+                  color: '#FFFFFF',
+                  border: 'none',
                   cursor:
-                    loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0 ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  boxShadow: '0 4px 12px rgba(242, 111, 33, 0.25)',
+                    loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0
+                      ? 'not-allowed'
+                      : 'pointer',
+                  transition: 'all 0.15s ease',
+                  boxShadow:
+                    loading || otpDigits.join('').length !== 6 || attemptsRemaining === 0
+                      ? 'none'
+                      : '0 2px 8px rgba(242, 112, 36, 0.25)',
                 }}
               >
-                {loading ? (
-                  <>
-                    <RefreshCw size={18} className="animate-spin" />
-                    <span>Đang xác thực...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck size={18} />
-                    <span>Xác nhận mã OTP</span>
-                  </>
-                )}
+                {loading ? 'Đang xác thực...' : 'Xác nhận mã OTP'}
               </button>
 
               {/* Resend Cooldown Section */}
@@ -616,11 +632,11 @@ export const VerifyEmailPage: React.FC = () => {
                 style={{
                   marginTop: '1.5rem',
                   paddingTop: '1.25rem',
-                  borderTop: '1px solid #f1f5f9',
+                  borderTop: '1px solid #F1F5F9',
                   textAlign: 'center',
                 }}
               >
-                <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '6px' }}>
                   Chưa nhận được mã OTP trong hòm thư?
                 </p>
                 <button
@@ -630,14 +646,14 @@ export const VerifyEmailPage: React.FC = () => {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: cooldown > 0 || resending ? '#94a3b8' : '#f26f21',
+                    color: cooldown > 0 || resending ? '#94A3B8' : '#F27024',
                     fontWeight: 600,
-                    fontSize: '0.9rem',
+                    fontSize: '13px',
                     cursor: cooldown > 0 || resending ? 'not-allowed' : 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.25rem 0.5rem',
+                    gap: '6px',
+                    padding: '4px 8px',
                   }}
                 >
                   <RefreshCw size={14} className={resending ? 'animate-spin' : ''} />
@@ -657,8 +673,8 @@ export const VerifyEmailPage: React.FC = () => {
                   marginTop: '1.25rem',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  fontSize: '0.85rem',
-                  color: '#64748b',
+                  fontSize: '13px',
+                  color: '#64748B',
                 }}
               >
                 <Link
@@ -666,8 +682,8 @@ export const VerifyEmailPage: React.FC = () => {
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.35rem',
-                    color: '#64748b',
+                    gap: '4px',
+                    color: '#64748B',
                     textDecoration: 'none',
                   }}
                 >
@@ -678,16 +694,21 @@ export const VerifyEmailPage: React.FC = () => {
                 <Link
                   to="/login"
                   style={{
-                    color: '#0054a6',
+                    color: '#F27024',
                     textDecoration: 'none',
-                    fontWeight: 500,
+                    fontWeight: 600,
                   }}
                 >
-                  Đã kích hoạt? Đăng nhập
+                  Đăng nhập
                 </Link>
               </div>
             </form>
           )}
+
+          {/* Footer Copyright */}
+          <div style={{ textAlign: 'center', marginTop: '2.5rem', fontSize: '12px', color: '#94A3B8' }}>
+            © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
+          </div>
         </div>
       </div>
     </div>

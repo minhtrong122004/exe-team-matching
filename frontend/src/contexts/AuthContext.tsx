@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   User,
+  UserRole,
   AuthResponse,
   AuthUserDto,
   AccountResponse,
@@ -22,6 +23,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUserDto>;
+  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator' | 'Admin') => AuthUserDto;
   register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
   verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
   resendVerification: (email: string) => Promise<ResendVerificationResponse>;
@@ -60,10 +62,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' | 'Admin' = 'Student'): AuthUserDto => {
+    const finalRole: UserRole = role === 'Admin' ? 'Moderator' : (role as UserRole);
+    const demoUser: User = {
+      id: '11111111-1111-1111-1111-111111111101',
+      email: role === 'Student' ? 'tulpnse185102@fpt.edu.vn' : `${finalRole.toLowerCase()}@exe.local`,
+      fullName: role === 'Student' ? 'Lữ Phước Nhật Tú' : role === 'Lecturer' ? 'TS. Nguyễn Văn Giảng Viên' : 'Điều Phối Viên EXE',
+      role: finalRole,
+      studentCode: role === 'Student' ? 'SE185102' : undefined,
+      campus: 'TP. Hồ Chí Minh',
+      major: role === 'Student' ? 'SE' : undefined,
+    };
+    localStorage.setItem('access_token', 'demo-access-token');
+    localStorage.setItem('refresh_token', 'demo-refresh-token');
+    localStorage.setItem('user', JSON.stringify(demoUser));
+    localStorage.setItem('is_demo_mode', 'true');
+    setUser(demoUser);
+    setIsLoading(false);
+    return demoUser;
+  }, []);
+
   const refreshCurrentUser = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
+      const saved = localStorage.getItem('user');
+      if (saved) {
+        setUser(JSON.parse(saved));
+      }
       setIsLoading(false);
       return;
     }
@@ -116,6 +147,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!token) {
         if (isMounted) {
           setUser(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
+        if (isMounted) {
+          const saved = localStorage.getItem('user');
+          if (saved) {
+            setUser(JSON.parse(saved));
+          }
           setIsLoading(false);
         }
         return;
@@ -316,6 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         login,
+        loginDemo,
         register,
         verifyEmail,
         resendVerification,

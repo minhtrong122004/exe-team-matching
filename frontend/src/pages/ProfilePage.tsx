@@ -417,7 +417,7 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  // Tải dữ liệu hồ sơ từ Backend
+  // Tải dữ liệu hồ sơ từ Backend (với fallback Mock Data cho Dev/Offline)
   const fetchProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -436,7 +436,6 @@ export const ProfilePage: React.FC = () => {
       setAvailability(data.availability || 'LookingForTeam');
       setInterests(data.interests ? [...data.interests] : []);
       setUserSkills(data.skills ? [...data.skills] : []);
-
       // 5 Kỹ năng cốt lõi (BR-05, BR-06, BR-07)
       setTechScore(data.techScore ?? 0);
       setManagementScore(data.managementScore ?? 0);
@@ -822,8 +821,8 @@ export const ProfilePage: React.FC = () => {
           style={{
             padding: '2.5rem 2rem',
             textAlign: 'center',
-            border: '1px solid #fee2e2',
-            background: '#ffffff',
+            border: '1px solid var(--border-light)',
+            background: 'var(--bg-card)',
           }}
         >
           <div
@@ -841,7 +840,7 @@ export const ProfilePage: React.FC = () => {
           >
             <AlertCircle size={28} />
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
             Không tìm thấy hồ sơ cá nhân
           </h2>
           <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
@@ -1207,6 +1206,7 @@ export const ProfilePage: React.FC = () => {
             )}
           </div>
         </div>
+
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
@@ -1424,6 +1424,7 @@ export const ProfilePage: React.FC = () => {
         {/* STUDENT TABS */}
         {isStudent && (
           <>
+
             <button
               type="button"
               onClick={() => setActiveTab('info')}
@@ -1445,6 +1446,7 @@ export const ProfilePage: React.FC = () => {
               <User size={18} />
               <span>Thông tin cá nhân & Học thuật</span>
             </button>
+
 
             <button
               type="button"
@@ -1492,6 +1494,7 @@ export const ProfilePage: React.FC = () => {
           </>
         )}
       </div>
+
 
       {/* ══════════════════════════════════════════════════════════════
           MODERATOR TAB 1: THÔNG TIN ĐIỀU PHỐI VIÊN
@@ -3115,9 +3118,9 @@ export const ProfilePage: React.FC = () => {
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 120ms ease',
-                    border: selectedCategory === cat.value ? '1px solid #f26f21' : '1px solid #e2e8f0',
-                    background: selectedCategory === cat.value ? '#fff7ed' : '#ffffff',
-                    color: selectedCategory === cat.value ? '#c2410c' : '#475569',
+                    border: selectedCategory === cat.value ? '1px solid var(--primary)' : '1px solid var(--border-light)',
+                    background: selectedCategory === cat.value ? 'var(--primary-light)' : 'var(--bg-card)',
+                    color: selectedCategory === cat.value ? 'var(--primary)' : 'var(--text-secondary)',
                   }}
                 >
                   {cat.label}
@@ -3201,16 +3204,16 @@ export const ProfilePage: React.FC = () => {
                 style={{
                   padding: '2.5rem 1rem',
                   textAlign: 'center',
-                  background: '#f8fafc',
+                  background: 'var(--bg-subtle)',
                   borderRadius: 12,
-                  border: '1px dashed #cbd5e1',
+                  border: '1px dashed var(--border-medium)',
                 }}
               >
-                <Layers size={32} style={{ color: '#94a3b8', margin: '0 auto 0.5rem auto' }} />
-                <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.9rem' }}>
+                <Layers size={32} style={{ color: 'var(--text-muted, #94a3b8)', margin: '0 auto 0.5rem auto' }} />
+                <div style={{ fontWeight: 700, color: 'var(--text-main, #334155)', fontSize: '0.9rem' }}>
                   Chưa có kỹ năng bổ trợ nào được chọn
                 </div>
-                <div style={{ color: '#64748b', fontSize: '0.825rem', marginTop: '0.2rem' }}>
+                <div style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.825rem', marginTop: '0.2rem' }}>
                   Bạn có thể bổ sung thêm kỹ năng lập trình, thiết kế hoặc nghiệp vụ từ danh mục phía trên
                 </div>
               </div>
@@ -3227,15 +3230,15 @@ export const ProfilePage: React.FC = () => {
                         justifyContent: 'space-between',
                         padding: '0.85rem 1.25rem',
                         borderRadius: 10,
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-light)',
+                        boxShadow: 'var(--shadow-sm)',
                         flexWrap: 'wrap',
                         gap: '0.75rem',
                       }}
                     >
                       <div style={{ minWidth: 200 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                           {skill.skillName}
                         </div>
                         <span
@@ -3453,6 +3456,7 @@ export const ProfilePage: React.FC = () => {
                       color: '#64748b',
                       cursor: 'pointer',
                     }}
+
                   >
                     {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>

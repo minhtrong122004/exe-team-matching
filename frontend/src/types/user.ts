@@ -52,6 +52,7 @@ export interface CandidateProfileResponse {
   userId: string;
   fullName: string;
   role: string;
+  studentCode?: string | null;
   campus?: string | null;
   major?: Major | null;
   cohort?: string | null;
