@@ -22,4 +22,15 @@ public interface ICourseSpaceService
     Task<DistributePreviewResponse> PreviewDistributionAsync(Guid spaceId, CancellationToken ct = default);
     Task<DistributeConfirmResponse> ConfirmDistributionAsync(Guid spaceId, CancellationToken ct = default);
     Task<FinalizeSpaceResponse> FinalizeSpaceAsync(Guid spaceId, CancellationToken ct = default);
+
+    // ── Phase 6: Post-Lock Transfer & Lecturer Dashboard (BR-35, BR-36, BR-37, BR-38) ──
+    Task<TransferRequestResponse> DirectTransferAsync(Guid spaceId, DirectTransferRequest request, Guid moderatorId, CancellationToken ct = default);
+    Task<TransferRequestResponse> CreateTransferRequestAsync(Guid spaceId, CreateTransferRequest request, Guid studentId, CancellationToken ct = default);
+    Task<IReadOnlyList<TransferRequestResponse>> GetTransferRequestsAsync(Guid spaceId, TransferRequestStatus? status, CancellationToken ct = default);
+    Task<IReadOnlyList<TransferRequestResponse>> GetMyTransferRequestsAsync(Guid studentId, CancellationToken ct = default);
+    Task<TransferRequestResponse> CancelTransferRequestAsync(Guid requestId, Guid studentId, CancellationToken ct = default);
+    Task<TransferRequestResponse> DecideTransferRequestAsync(Guid spaceId, Guid requestId, DecideTransferRequest request, Guid moderatorId, CancellationToken ct = default);
+    Task<SpaceRosterResponse> GetSpaceRosterAsync(Guid spaceId, CancellationToken ct = default);
+    Task<CsvExportResult> ExportSpaceRosterCsvAsync(Guid spaceId, CancellationToken ct = default);
 }
+

@@ -12,5 +12,7 @@ public enum NotificationType
     InvitationReceived,
     MemberJoined,
     MemberLeft,
-    MemberRemoved
+    MemberRemoved,
+    MemberTransferred
 }
+

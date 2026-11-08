@@ -11,4 +11,6 @@ public interface INotificationEventHandler
     Task<bool> HandleMemberJoinedAsync(MemberJoined @event, Guid eventId, CancellationToken ct = default);
     Task<bool> HandleMemberLeftAsync(MemberLeft @event, Guid eventId, CancellationToken ct = default);
     Task<bool> HandleMemberRemovedAsync(MemberRemoved @event, Guid eventId, CancellationToken ct = default);
+    Task<bool> HandleMemberTransferredPostLockAsync(MemberTransferredPostLock @event, Guid eventId, CancellationToken ct = default);
 }
+

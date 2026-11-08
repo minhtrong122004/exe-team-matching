@@ -187,4 +187,105 @@ public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<FinalizeSpaceResponse>> FinalizeSpace(Guid id, CancellationToken ct) =>
         Ok(await spaceService.FinalizeSpaceAsync(id, ct));
+
+    // ── GIAI ĐOẠN 6: Điều chuyển sinh viên sau Chốt sổ & Dashboard Giảng viên (BR-35, BR-36, BR-37, BR-38) ──
+
+    /// <summary>Moderator điều chuyển trực tiếp 1 sinh viên hoặc đổi chéo 2 sinh viên sau chốt sổ (Moderator only, BR-35, BR-37).</summary>
+    [HttpPost("{id:guid}/direct-transfer")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<TransferRequestResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TransferRequestResponse>> DirectTransfer(
+        Guid id,
+        [FromBody] DirectTransferRequest request,
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        if (currentUser.UserId is null)
+            return Unauthorized();
+
+        return Ok(await spaceService.DirectTransferAsync(id, request, currentUser.UserId.Value, ct));
+    }
+
+    /// <summary>Sinh viên nộp đơn xin chuyển nhóm sau chốt sổ (Student only, BR-36).</summary>
+    [HttpPost("{id:guid}/transfer-requests")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<TransferRequestResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TransferRequestResponse>> CreateTransferRequest(
+        Guid id,
+        [FromBody] CreateTransferRequest request,
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        if (currentUser.UserId is null)
+            return Unauthorized();
+
+        var result = await spaceService.CreateTransferRequestAsync(id, request, currentUser.UserId.Value, ct);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>Danh sách yêu cầu chuyển nhóm trong Không gian học phần (Moderator only, BR-36).</summary>
+    [HttpGet("{id:guid}/transfer-requests")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<IReadOnlyList<TransferRequestResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<TransferRequestResponse>>> GetTransferRequests(
+        Guid id,
+        [FromQuery] TransferRequestStatus? status,
+        CancellationToken ct) =>
+        Ok(await spaceService.GetTransferRequestsAsync(id, status, ct));
+
+    /// <summary>Moderator duyệt hoặc từ chối yêu cầu chuyển nhóm (Moderator only, BR-36, BR-37).</summary>
+    [HttpPut("{id:guid}/transfer-requests/{requestId:guid}/decide")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<TransferRequestResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TransferRequestResponse>> DecideTransferRequest(
+        Guid id,
+        Guid requestId,
+        [FromBody] DecideTransferRequest request,
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        if (currentUser.UserId is null)
+            return Unauthorized();
+
+        return Ok(await spaceService.DecideTransferRequestAsync(id, requestId, request, currentUser.UserId.Value, ct));
+    }
+
+    /// <summary>Bảng tổng hợp Roster toàn diện môn học dành cho Lecturer và Moderator (BR-37, BR-38).</summary>
+    [HttpGet("{id:guid}/roster")]
+
+    [Authorize(Roles = Roles.LecturerOrModerator)]
+    [ProducesResponseType<SpaceRosterResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SpaceRosterResponse>> GetSpaceRoster(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.GetSpaceRosterAsync(id, ct));
+
+    /// <summary>Xuất danh sách sinh viên theo nhóm ra file CSV (UTF-8 BOM cho Excel tiếng Việt) (BR-38).</summary>
+    [HttpGet("{id:guid}/roster/export-csv")]
+    [Authorize(Roles = Roles.LecturerOrModerator)]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ExportSpaceRosterCsv(Guid id, CancellationToken ct)
+    {
+        var csv = await spaceService.ExportSpaceRosterCsvAsync(id, ct);
+        return File(csv.Content, csv.ContentType, csv.FileName);
+    }
 }
+

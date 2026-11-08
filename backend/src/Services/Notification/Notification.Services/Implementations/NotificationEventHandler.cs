@@ -356,7 +356,53 @@ public class NotificationEventHandler : INotificationEventHandler
         return true;
     }
 
+    public async Task<bool> HandleMemberTransferredPostLockAsync(MemberTransferredPostLock @event, Guid eventId, CancellationToken ct = default)
+    {
+        if (await IsAlreadyProcessedAsync(eventId, nameof(MemberTransferredPostLock), ct))
+            return false;
+
+        var isSwap = @event.SwapWithStudentId.HasValue;
+        var title = isSwap
+            ? $"Điều chuyển đổi chéo sang nhóm {@event.TargetGroupName} (BR-37)"
+            : $"Điều chuyển sang nhóm {@event.TargetGroupName} (BR-35)";
+
+        var message = isSwap
+            ? $"Bạn đã được điều chuyển từ nhóm {@event.FromGroupName} sang nhóm {@event.TargetGroupName} (đổi chéo với {@event.SwapWithStudentName ?? "thành viên"}). Lý do: {@event.Reason}"
+            : $"Bạn đã được điều chuyển từ nhóm {@event.FromGroupName} sang nhóm {@event.TargetGroupName}. Lý do: {@event.Reason}";
+
+        await _notificationRepo.AddAsync(new NotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            RecipientId = @event.StudentId,
+            Type = NotificationType.MemberTransferred,
+            Title = title,
+            Message = message,
+            RelatedEntityId = @event.TargetGroupId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        }, ct);
+
+        if (!string.IsNullOrWhiteSpace(@event.StudentEmail))
+        {
+            await _emailLogRepo.AddAsync(new EmailLog
+            {
+                Id = Guid.NewGuid(),
+                To = @event.StudentEmail,
+                Subject = $"[EXE Team Matching] {title}",
+                Body = message,
+                Status = EmailStatus.Pending,
+                Attempts = 0,
+                CreatedAt = DateTime.UtcNow
+            }, ct);
+        }
+
+
+        await MarkProcessedAndCommitAsync(eventId, ct);
+        return true;
+    }
+
     private async Task<bool> IsAlreadyProcessedAsync(Guid eventId, string eventType, CancellationToken ct)
+
     {
         if (await _processedEventRepo.ExistsAsync(eventId, ct))
         {

@@ -92,3 +92,86 @@ export interface RoomSummaryResponse {
   createdAt?: string | null;
 }
 
+export type TransferRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled';
+
+export interface TransferRequestResponse {
+  id: string;
+  spaceId: string;
+  studentId: string;
+  studentName: string;
+  studentCode: string;
+  fromGroupId: string;
+  fromGroupCode: string;
+  targetGroupId: string;
+  targetGroupCode: string;
+  swapStudentId?: string | null;
+  swapStudentName?: string | null;
+  swapStudentCode?: string | null;
+  reason: string;
+  status: TransferRequestStatus;
+  decisionReason?: string | null;
+  moderatorId?: string | null;
+  requestedAt: string;
+  decidedAt?: string | null;
+}
+
+export interface CreateTransferRequest {
+  targetGroupId: string;
+  swapStudentId?: string | null;
+  reason: string;
+}
+
+export interface DirectTransferRequest {
+  studentId: string;
+  targetGroupId: string;
+  swapStudentId?: string | null;
+  reason: string;
+}
+
+export interface DecideTransferRequest {
+  status: 'Approved' | 'Rejected';
+  decisionReason?: string | null;
+}
+
+export interface SpaceRosterMemberItem {
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  major: string;
+  isLeader: boolean;
+  techScore: number;
+  managementScore: number;
+  designScore: number;
+  marketingScore: number;
+  saleScore: number;
+  joinedAt: string;
+}
+
+export interface SpaceRosterGroupItem {
+  groupId: string;
+  groupCode: string;
+  name: string;
+  status: string;
+  memberCount: number;
+  maxMembers: number;
+  projectIdeaId?: string | null;
+  projectIdeaTitle?: string | null;
+  projectIdeaDescription?: string | null;
+  members: SpaceRosterMemberItem[];
+}
+
+export interface SpaceRosterResponse {
+  spaceId: string;
+  semesterCode: string;
+  subjectCode: string;
+  spaceName: string;
+  status: string;
+  maxMembersPerGroup: number;
+  groupThreshold: number;
+  totalGroups: number;
+  totalStudents: number;
+  groups: SpaceRosterGroupItem[];
+}
+
+

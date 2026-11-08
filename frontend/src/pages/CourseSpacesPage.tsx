@@ -16,6 +16,10 @@ import type {
   CreateCourseSpaceRequest,
   UpdateSpaceConfigRequest,
   FapStudentItem,
+  TransferRequestResponse,
+  DirectTransferRequest,
+  SpaceRosterResponse,
+  SpaceRosterGroupItem,
 } from '../types/space';
 import {
   Layers,
@@ -47,6 +51,8 @@ import {
   Send,
   Info,
   Cpu,
+  ArrowLeftRight,
+  UserCheck,
 } from 'lucide-react';
 
 export const CourseSpacesPage: React.FC = () => {
@@ -72,8 +78,17 @@ export const CourseSpacesPage: React.FC = () => {
   const [loadingRoomDetail, setLoadingRoomDetail] = useState<boolean>(false);
   const [showRoomDetailModal, setShowRoomDetailModal] = useState<boolean>(false);
 
-  // Active space details
-  const [activeTab, setActiveTab] = useState<'rooms' | 'enrollments' | 'config' | 'distribution'>('rooms');
+  // Active space details (Lecturer defaults to 'roster' to view grades and locked groups immediately)
+  const [activeTab, setActiveTab] = useState<'rooms' | 'enrollments' | 'config' | 'distribution' | 'transfers' | 'roster'>(() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        if (u.role === 'Lecturer') return 'roster';
+      }
+    } catch {}
+    return 'rooms';
+  });
   const [rooms, setRooms] = useState<RoomSummaryResponse[]>([]);
   const [loadingRooms, setLoadingRooms] = useState<boolean>(false);
   const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
@@ -87,6 +102,25 @@ export const CourseSpacesPage: React.FC = () => {
   const [unmatchedMajorFilter, setUnmatchedMajorFilter] = useState<string>('ALL');
   const [isConfirmDistributeModalOpen, setIsConfirmDistributeModalOpen] = useState<boolean>(false);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState<boolean>(false);
+
+  // Phase 6: Post-lock Transfers & Space Roster State (BR-35, BR-36, BR-37, BR-38)
+  const [transfers, setTransfers] = useState<TransferRequestResponse[]>([]);
+  const [loadingTransfers, setLoadingTransfers] = useState<boolean>(false);
+  const [transferStatusFilter, setTransferStatusFilter] = useState<string>('ALL');
+  const [directStudentId, setDirectStudentId] = useState<string>('');
+  const [directTargetGroupId, setDirectTargetGroupId] = useState<string>('');
+  const [isSwapTransfer, setIsSwapTransfer] = useState<boolean>(false);
+  const [directSwapStudentId, setDirectSwapStudentId] = useState<string>('');
+  const [directReason, setDirectReason] = useState<string>('');
+  const [submittingDirectTransfer, setSubmittingDirectTransfer] = useState<boolean>(false);
+  const [decidingRequest, setDecidingRequest] = useState<TransferRequestResponse | null>(null);
+  const [decisionStatus, setDecisionStatus] = useState<'Approved' | 'Rejected'>('Approved');
+  const [decisionReason, setDecisionReason] = useState<string>('');
+  const [submittingDecision, setSubmittingDecision] = useState<boolean>(false);
+  const [roster, setRoster] = useState<SpaceRosterResponse | null>(null);
+  const [loadingRoster, setLoadingRoster] = useState<boolean>(false);
+  const [rosterSearch, setRosterSearch] = useState<string>('');
+  const [exportingCsv, setExportingCsv] = useState<boolean>(false);
 
   const [enrollments, setEnrollments] = useState<SpaceEnrollmentResponse[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState<boolean>(false);
@@ -219,6 +253,12 @@ export const CourseSpacesPage: React.FC = () => {
   useEffect(() => {
     loadSpaces();
   }, [loadSpaces]);
+
+  useEffect(() => {
+    if (isLecturer && (activeTab === 'config' || activeTab === 'distribution' || activeTab === 'transfers')) {
+      setActiveTab('roster');
+    }
+  }, [isLecturer, activeTab]);
 
   // Phase 4: Load current student's active group
   const loadMyGroup = useCallback(async () => {
@@ -363,6 +403,197 @@ export const CourseSpacesPage: React.FC = () => {
       setActionLoading(false);
     }
   };
+
+  // ── PHASE 6: POST-LOCK TRANSFERS & ROSTER HANDLERS (BR-35, BR-36, BR-37, BR-38) ──
+  const loadTransfers = useCallback(async (spaceId: string, status?: string) => {
+    try {
+      setLoadingTransfers(true);
+      const queryStatus = status && status !== 'ALL' ? status : undefined;
+      const data = await spacesApi.getTransferRequests(spaceId, queryStatus);
+      setTransfers(data);
+    } catch (err: any) {
+      console.error('Failed to load transfers:', err);
+    } finally {
+      setLoadingTransfers(false);
+    }
+  }, []);
+
+  const loadRoster = useCallback(async (spaceId: string) => {
+    try {
+      setLoadingRoster(true);
+      const data = await spacesApi.getSpaceRoster(spaceId);
+      setRoster(data);
+    } catch (err: any) {
+      console.error('Failed to load roster:', err);
+    } finally {
+      setLoadingRoster(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedSpaceId) return;
+    if (activeTab === 'transfers') {
+      void loadTransfers(selectedSpaceId, transferStatusFilter);
+      void loadRoster(selectedSpaceId);
+    } else if (activeTab === 'roster') {
+      void loadRoster(selectedSpaceId);
+    }
+  }, [selectedSpaceId, activeTab, transferStatusFilter, loadTransfers, loadRoster]);
+
+  const assignedStudentsList = useMemo(() => {
+    if (!roster?.groups) return [];
+    const list: {
+      studentId: string;
+      studentCode: string;
+      fullName: string;
+      email: string;
+      major: string;
+      isLeader: boolean;
+      group: SpaceRosterGroupItem;
+    }[] = [];
+    roster.groups.forEach((grp) => {
+      grp.members.forEach((m) => {
+        list.push({
+          studentId: m.studentId,
+          studentCode: m.studentCode,
+          fullName: m.fullName,
+          email: m.email,
+          major: m.major,
+          isLeader: m.isLeader,
+          group: grp,
+        });
+      });
+    });
+    return list;
+  }, [roster]);
+
+  const selectedStudentItem = useMemo(
+    () => assignedStudentsList.find((s) => s.studentId === directStudentId) || null,
+    [assignedStudentsList, directStudentId]
+  );
+
+  // BR-37 constraint check: If fromGroup will drop below threshold (3), swap is mandatory!
+  const isSwapMandatory = useMemo(() => {
+    if (!selectedStudentItem) return false;
+    const threshold = selectedSpace?.groupThreshold || 3;
+    return selectedStudentItem.group.memberCount <= threshold;
+  }, [selectedStudentItem, selectedSpace]);
+
+  useEffect(() => {
+    if (isSwapMandatory) {
+      setIsSwapTransfer(true);
+    }
+  }, [isSwapMandatory]);
+
+  const availableTargetGroups = useMemo(() => {
+    if (!roster?.groups) return [];
+    return roster.groups.filter((g) => g.groupId !== selectedStudentItem?.group.groupId);
+  }, [roster, selectedStudentItem]);
+
+  const selectedTargetGroup = useMemo(
+    () => roster?.groups.find((g) => g.groupId === directTargetGroupId) || null,
+    [roster, directTargetGroupId]
+  );
+
+  const handleDirectTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSpace) return;
+    if (!directStudentId) {
+      setActionError('Vui lòng chọn sinh viên cần điều chuyển.');
+      return;
+    }
+    if (!directTargetGroupId) {
+      setActionError('Vui lòng chọn nhóm đích.');
+      return;
+    }
+    if (isSwapTransfer && !directSwapStudentId) {
+      setActionError('Vui lòng chọn sinh viên trong nhóm đích để đổi chéo.');
+      return;
+    }
+    if (!directReason.trim()) {
+      setActionError('Vui lòng nhập lý do điều chuyển (bắt buộc theo BR-35).');
+      return;
+    }
+
+    try {
+      setSubmittingDirectTransfer(true);
+      setActionError(null);
+      const req: DirectTransferRequest = {
+        studentId: directStudentId,
+        targetGroupId: directTargetGroupId,
+        swapStudentId: isSwapTransfer ? directSwapStudentId : null,
+        reason: directReason.trim(),
+      };
+      await spacesApi.directTransfer(selectedSpace.id, req);
+      setActionSuccess('Thực hiện điều chuyển thành công (BR-35/BR-37)! Email thông báo đã được gửi đến sinh viên liên quan.');
+      setDirectStudentId('');
+      setDirectTargetGroupId('');
+      setDirectSwapStudentId('');
+      setDirectReason('');
+      setIsSwapTransfer(false);
+      await loadRoster(selectedSpace.id);
+      await loadTransfers(selectedSpace.id, transferStatusFilter);
+      await loadSpaceDetails(selectedSpace.id);
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || err?.response?.data?.title || 'Không thể thực hiện điều chuyển.');
+    } finally {
+      setSubmittingDirectTransfer(false);
+    }
+  };
+
+  const handleDecideTransfer = async () => {
+    if (!selectedSpace || !decidingRequest) return;
+    try {
+      setSubmittingDecision(true);
+      setActionError(null);
+      await spacesApi.decideTransferRequest(selectedSpace.id, decidingRequest.id, {
+        status: decisionStatus,
+        decisionReason: decisionReason.trim() || undefined,
+      });
+      setActionSuccess(`Đã ${decisionStatus === 'Approved' ? 'chấp thuận' : 'từ chối'} đơn xin chuyển nhóm (BR-36).`);
+      setDecidingRequest(null);
+      setDecisionReason('');
+      await loadTransfers(selectedSpace.id, transferStatusFilter);
+      await loadRoster(selectedSpace.id);
+      await loadSpaceDetails(selectedSpace.id);
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || err?.response?.data?.title || 'Không thể xử lý quyết định đơn.');
+    } finally {
+      setSubmittingDecision(false);
+    }
+  };
+
+  const handleExportRosterCsv = async () => {
+    if (!selectedSpace) return;
+    try {
+      setExportingCsv(true);
+      const blob = await spacesApi.exportSpaceRosterCsv(selectedSpace.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${selectedSpace.semesterCode}_${selectedSpace.subjectCode}_Roster_BangDiem.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setActionSuccess('Đã xuất file CSV bảng điểm (UTF-8 BOM) thành công!');
+    } catch (err: any) {
+      setActionError(err?.response?.data?.detail || 'Không thể xuất file CSV.');
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const filteredRosterGroups = useMemo(() => {
+    if (!roster?.groups) return [];
+    if (!rosterSearch.trim()) return roster.groups;
+    const q = rosterSearch.trim().toLowerCase();
+    return roster.groups.filter((g) => {
+      const matchGroup = g.groupCode.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) || (g.projectIdeaTitle && g.projectIdeaTitle.toLowerCase().includes(q));
+      const matchMember = g.members.some((m) => m.fullName.toLowerCase().includes(q) || m.studentCode.toLowerCase().includes(q) || m.email.toLowerCase().includes(q));
+      return matchGroup || matchMember;
+    });
+  }, [roster, rosterSearch]);
 
   // Formula calculation preview (BR-09, BR-11)
   const previewRoomsCount = useMemo(() => {
@@ -1363,8 +1594,68 @@ export const CourseSpacesPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── SPACE CARDS SELECTOR ─────────────────────────────────────── */}
+      {/* ── SPACE CARDS SELECTOR & DROPDOWN TOOLBAR ───────────────────── */}
       <div style={{ marginBottom: '1.75rem' }}>
+        {/* Fast Dropdown Space Selector (BR-38 quick picker for Lecturer & Moderator) */}
+        {spaces.length > 0 && (
+          <div
+            className="card"
+            style={{
+              padding: '0.85rem 1.25rem',
+              marginBottom: '1rem',
+              background: 'var(--bg-card)',
+              borderLeft: '4px solid var(--fpt-orange, #f26f21)',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers size={18} style={{ color: 'var(--fpt-orange, #f26f21)', flexShrink: 0 }} />
+                <label
+                  htmlFor="course-space-select"
+                  style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, whiteSpace: 'nowrap' }}
+                >
+                  Chọn Không gian môn học:
+                </label>
+              </div>
+
+              <select
+                id="course-space-select"
+                value={selectedSpaceId || ''}
+                onChange={(e) => setSelectedSpaceId(e.target.value)}
+                className="form-control"
+                style={{
+                  width: 'auto',
+                  minWidth: 320,
+                  padding: '0.45rem 0.85rem',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  color: 'var(--text-main)',
+                  borderColor: 'var(--border-medium)',
+                }}
+              >
+                {spaces.map((sp) => (
+                  <option key={sp.id} value={sp.id}>
+                    [{sp.semesterCode} • {sp.subjectCode}] {sp.name} — {sp.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : sp.status}
+                  </option>
+                ))}
+              </select>
+
+              {selectedSpace && getStatusBadge(selectedSpace.status)}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {spaces.length} Không gian học phần
+              </span>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
             Học kỳ & Không gian học phần
@@ -1521,6 +1812,37 @@ export const CourseSpacesPage: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* Tab: Roster & Grade Sheet (Lecturer's primary tab, BR-38) */}
+              {isLecturer && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('roster');
+                    if (selectedSpace) {
+                      void loadRoster(selectedSpace.id);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.55rem 1.15rem',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    transition: 'all 0.15s ease',
+                    background: activeTab === 'roster' ? 'var(--fpt-orange, #f26f21)' : 'transparent',
+                    color: activeTab === 'roster' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                    border: activeTab === 'roster' ? 'none' : '1px solid transparent',
+                    boxShadow: activeTab === 'roster' ? '0 2px 6px rgba(242, 111, 33, 0.3)' : 'none',
+                  }}
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Bảng Roster & Điểm (BR-38)</span>
+                </button>
+              )}
+
+              {/* Tab: Rooms Grid View */}
               <button
                 type="button"
                 onClick={() => setActiveTab('rooms')}
@@ -1556,6 +1878,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </span>
               </button>
 
+              {/* Tab: Enrollments FAP (Lecturer & Moderator) */}
               {!isStudent && (
                 <button
                   type="button"
@@ -1593,6 +1916,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
+              {/* Tab: Config Space (Moderator ONLY, BR-08) */}
               {isModerator && (
                 <button
                   type="button"
@@ -1617,7 +1941,8 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
-              {!isStudent && (
+              {/* Tab: gRPC Distribution & Finalize (Moderator ONLY, BR-30/31/32/33) */}
+              {isModerator && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1659,6 +1984,83 @@ export const CourseSpacesPage: React.FC = () => {
                       {unmatchedSummary.totalUnmatched} SV lẻ
                     </span>
                   )}
+                </button>
+              )}
+
+              {/* Tab: Transfers (Moderator ONLY, BR-35/36/37) */}
+              {isModerator && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('transfers');
+                    if (selectedSpace) {
+                      void loadTransfers(selectedSpace.id, transferStatusFilter);
+                      void loadRoster(selectedSpace.id);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.55rem 1.15rem',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    transition: 'all 0.15s ease',
+                    background: activeTab === 'transfers' ? 'var(--fpt-orange, #f26f21)' : 'transparent',
+                    color: activeTab === 'transfers' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                    border: activeTab === 'transfers' ? 'none' : '1px solid transparent',
+                    boxShadow: activeTab === 'transfers' ? '0 2px 6px rgba(242, 111, 33, 0.3)' : 'none',
+                  }}
+                >
+                  <ArrowLeftRight size={16} />
+                  <span>Điều chuyển Hậu Chốt sổ (BR-35/36)</span>
+                  {transfers.filter((t) => t.status === 'Pending').length > 0 && (
+                    <span
+                      style={{
+                        padding: '0.1rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        background: activeTab === 'transfers' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(239, 68, 68, 0.12)',
+                        color: activeTab === 'transfers' ? '#ffffff' : '#ef4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {transfers.filter((t) => t.status === 'Pending').length} chờ duyệt
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Tab: Roster & Grade Sheet (Moderator view, BR-38) */}
+              {isModerator && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('roster');
+                    if (selectedSpace) {
+                      void loadRoster(selectedSpace.id);
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.55rem 1.15rem',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    transition: 'all 0.15s ease',
+                    background: activeTab === 'roster' ? 'var(--fpt-orange, #f26f21)' : 'transparent',
+                    color: activeTab === 'roster' ? '#ffffff' : 'var(--text-muted, #64748b)',
+                    border: activeTab === 'roster' ? 'none' : '1px solid transparent',
+                    boxShadow: activeTab === 'roster' ? '0 2px 6px rgba(242, 111, 33, 0.3)' : 'none',
+                  }}
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Bảng Roster & Điểm (BR-38)</span>
                 </button>
               )}
             </div>
@@ -1919,36 +2321,65 @@ export const CourseSpacesPage: React.FC = () => {
                   background: 'var(--bg-card)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <div
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 'var(--radius-md, 10px)',
-                      background: 'rgba(242, 111, 33, 0.1)',
-                      border: '1px solid rgba(242, 111, 33, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--fpt-orange)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Calculator size={22} />
+                {isModerator ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 'var(--radius-md, 10px)',
+                        background: 'rgba(242, 111, 33, 0.1)',
+                        border: '1px solid rgba(242, 111, 33, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--fpt-orange)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Calculator size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Quy tắc sinh Room tự động (BR-09, BR-11):
+                      </h4>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                        CEIL({getTotalStudents(selectedSpace)} SV ÷ {selectedSpace.maxMembersPerGroup || 5} Max × {selectedSpace.bufferRatio || 1.2} Buffer) ={' '}
+                        <span style={{ fontWeight: 800, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
+                          {previewRoomsCount} Rooms
+                        </span>
+                        {' '}(Mã chuẩn hóa: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedSpace.semesterCode}{selectedSpace.subjectCode}-01...{selectedSpace.semesterCode}{selectedSpace.subjectCode}-{previewRoomsCount < 10 ? `0${previewRoomsCount}` : previewRoomsCount}</span>)
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 style={{ margin: 0, fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Quy tắc sinh Room tự động (BR-09, BR-11):
-                    </h4>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      CEIL({getTotalStudents(selectedSpace)} SV ÷ {selectedSpace.maxMembersPerGroup || 5} Max × {selectedSpace.bufferRatio || 1.2} Buffer) ={' '}
-                      <span style={{ fontWeight: 800, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
-                        {previewRoomsCount} Rooms
-                      </span>
-                      {' '}(Mã chuẩn hóa: <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedSpace.semesterCode}{selectedSpace.subjectCode}-01...{selectedSpace.semesterCode}{selectedSpace.subjectCode}-{previewRoomsCount < 10 ? `0${previewRoomsCount}` : previewRoomsCount}</span>)
-                    </p>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 'var(--radius-md, 10px)',
+                        background: 'rgba(0, 84, 166, 0.1)',
+                        border: '1px solid rgba(0, 84, 166, 0.25)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--fpt-blue)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <DoorOpen size={22} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Giám sát danh sách Room học phần {selectedSpace.semesterCode} - {selectedSpace.subjectCode}:
+                      </h4>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                        Tổng số: <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>{rooms.length} Room</strong> • Sĩ số FAP: <strong style={{ color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>{getTotalStudents(selectedSpace)} sinh viên</strong> • Trạng thái: <strong style={{ color: selectedSpace.status === 'Locked' ? '#dc2626' : 'var(--text-main)' }}>{selectedSpace.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : selectedSpace.status}</strong>
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Filter Room Status */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2768,9 +3199,9 @@ export const CourseSpacesPage: React.FC = () => {
           )}
 
           {/* ══════════════════════════════════════════════════════════════
-              TAB 4: gRPC DISTRIBUTION & FINALIZE (BR-30, BR-31, BR-32, BR-33)
+              TAB 4: gRPC DISTRIBUTION & FINALIZE (MODERATOR ONLY: BR-30, BR-31, BR-32, BR-33)
              ══════════════════════════════════════════════════════════════ */}
-          {activeTab === 'distribution' && !isStudent && (
+          {activeTab === 'distribution' && isModerator && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {/* Header Action & Status Bar */}
               <div
@@ -3487,6 +3918,694 @@ export const CourseSpacesPage: React.FC = () => {
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB: TRANSFERS — ĐIỀU CHUYỂN HẬU CHỐT SỔ (BR-35, BR-36, BR-37)    */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {activeTab === 'transfers' && isModerator && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              {/* Header Banner */}
+              <div
+                className="card"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(242, 111, 33, 0.05) 0%, rgba(0, 84, 166, 0.05) 100%)',
+                  border: '1px solid var(--border-medium)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      background: 'var(--fpt-orange)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ArrowLeftRight size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Điều chuyển Sinh viên & Đổi chéo Hậu Chốt sổ (BR-35, BR-36, BR-37)
+                    </h3>
+                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 850, lineHeight: 1.5 }}>
+                      Sau khi chốt sổ học kỳ (Locked), các nhóm được cố định. Trưởng phòng (Moderator) có thẩm quyền thực hiện điều chuyển trực tiếp hoặc duyệt đơn từ sinh viên. Hệ thống tự động kiểm soát ngưỡng tối thiểu (≥ 3 SV) và sĩ số tối đa (5 SV), kích hoạt đổi chéo 2 chiều (Swap) khi cần và tự động chuyển giao quyền Leader (BR-20).
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedSpace) {
+                        void loadTransfers(selectedSpace.id, transferStatusFilter);
+                        void loadRoster(selectedSpace.id);
+                      }
+                    }}
+                    disabled={loadingTransfers}
+                    className="btn btn-secondary btn-sm"
+                    style={{ gap: '0.35rem' }}
+                  >
+                    <RefreshCw size={14} className={loadingTransfers ? 'animate-spin' : ''} />
+                    <span>Làm mới danh sách</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid 2 Columns: Form Direct Transfer & Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 420px) 1fr', gap: '1.5rem', alignItems: 'start' }}>
+                {/* Form Direct Transfer (BR-35 / BR-37) */}
+                <div className="card" style={{ padding: '1.5rem', border: '1px solid var(--border-medium)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
+                    <UserCheck size={18} style={{ color: 'var(--fpt-orange)' }} />
+                    <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Điều chuyển Trực tiếp (BR-35)
+                    </h4>
+                  </div>
+
+                  <form onSubmit={handleDirectTransfer} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Step 1: Pick student */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        1. Chọn Sinh viên cần chuyển <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        className="form-control"
+                        value={directStudentId}
+                        onChange={(e) => {
+                          setDirectStudentId(e.target.value);
+                          setDirectTargetGroupId('');
+                          setDirectSwapStudentId('');
+                        }}
+                        required
+                        style={{ fontSize: '0.85rem' }}
+                      >
+                        <option value="">-- Chọn sinh viên trong nhóm --</option>
+                        {assignedStudentsList.map((st) => (
+                          <option key={st.studentId} value={st.studentId}>
+                            [{st.group.groupCode}] {st.studentCode} - {st.fullName} {st.isLeader ? '(Leader 👑)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Student Info & Warnings */}
+                    {selectedStudentItem && (
+                      <div
+                        style={{
+                          padding: '0.75rem 0.85rem',
+                          borderRadius: '8px',
+                          background: 'var(--bg-main)',
+                          border: '1px solid var(--border-light)',
+                          fontSize: '0.825rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.4rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Nhóm hiện tại:</span>
+                          <span style={{ fontWeight: 700, color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>
+                            {selectedStudentItem.group.groupCode} ({selectedStudentItem.group.memberCount}/5 SV)
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Chuyên ngành:</span>
+                          <span style={{ fontWeight: 600 }}>{selectedStudentItem.major}</span>
+                        </div>
+                        {selectedStudentItem.isLeader && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#f59e0b', fontWeight: 700, fontSize: '0.78rem', marginTop: '0.2rem' }}>
+                            <Crown size={14} />
+                            <span>Sinh viên là Leader: sẽ tự động bàn giao chức vụ (BR-20)</span>
+                          </div>
+                        )}
+                        {isSwapMandatory && (
+                          <div
+                            style={{
+                              padding: '0.5rem 0.65rem',
+                              borderRadius: '6px',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              color: '#b91c1c',
+                              fontSize: '0.78rem',
+                              marginTop: '0.25rem',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <strong>Cảnh báo BR-37:</strong> Nhóm {selectedStudentItem.group.groupCode} hiện có đúng 3 thành viên. Không thể chuyển 1 chiều vì sẽ dưới ngưỡng tối thiểu. Bắt buộc <strong>Đổi chéo 2 chiều (Swap)</strong>!
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 2: Target Group */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        2. Chọn Nhóm đích đến <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        className="form-control"
+                        value={directTargetGroupId}
+                        onChange={(e) => {
+                          setDirectTargetGroupId(e.target.value);
+                          setDirectSwapStudentId('');
+                        }}
+                        disabled={!directStudentId}
+                        required
+                        style={{ fontSize: '0.85rem' }}
+                      >
+                        <option value="">-- Chọn nhóm đích --</option>
+                        {availableTargetGroups.map((grp) => {
+                          const isFull = grp.memberCount >= (selectedSpace?.maxMembersPerGroup || 5);
+                          return (
+                            <option
+                              key={grp.groupId}
+                              value={grp.groupId}
+                              disabled={!isSwapTransfer && isFull}
+                            >
+                              [{grp.groupCode}] {grp.name} ({grp.memberCount}/5 SV){isFull ? ' - ĐÃ ĐỦ (Cần đổi chéo)' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    {/* Step 3: Swap Checkbox & Swap Student */}
+                    <div
+                      style={{
+                        padding: '0.75rem 0.85rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-main)',
+                        border: '1px solid var(--border-light)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.65rem',
+                      }}
+                    >
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isSwapMandatory ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={isSwapTransfer}
+                          disabled={isSwapMandatory}
+                          onChange={(e) => {
+                            if (!isSwapMandatory) {
+                              setIsSwapTransfer(e.target.checked);
+                              setDirectSwapStudentId('');
+                            }
+                          }}
+                          style={{ width: 16, height: 16, accentColor: 'var(--fpt-orange)' }}
+                        />
+                        <span>Đổi chéo 2 chiều (Swap hai sinh viên)</span>
+                      </label>
+
+                      {isSwapTransfer && (
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                            Chọn sinh viên trong nhóm đích để đổi chéo ngược lại <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <select
+                            className="form-control"
+                            value={directSwapStudentId}
+                            onChange={(e) => setDirectSwapStudentId(e.target.value)}
+                            disabled={!directTargetGroupId}
+                            required={isSwapTransfer}
+                            style={{ fontSize: '0.85rem' }}
+                          >
+                            <option value="">-- Chọn sinh viên đổi ngược --</option>
+                            {selectedTargetGroup?.members.map((m) => (
+                              <option key={m.studentId} value={m.studentId}>
+                                {m.studentCode} - {m.fullName} ({m.major}) {m.isLeader ? '(Leader 👑)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Step 4: Reason */}
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                        3. Lý do điều chuyển (Bắt buộc theo BR-35) <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <textarea
+                        className="form-control"
+                        rows={2}
+                        value={directReason}
+                        onChange={(e) => setDirectReason(e.target.value)}
+                        placeholder="VD: Điều chỉnh cân bằng chuyên ngành hoặc giải quyết nguyện vọng sinh viên hậu chốt sổ..."
+                        required
+                        style={{ fontSize: '0.85rem', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingDirectTransfer || !directStudentId || !directTargetGroupId}
+                      className="btn btn-primary"
+                      style={{ padding: '0.65rem 1rem', fontWeight: 700, gap: '0.45rem', justifyContent: 'center' }}
+                    >
+                      <ArrowLeftRight size={16} />
+                      <span>{submittingDirectTransfer ? 'Đang thực thi điều chuyển...' : 'Thực hiện Điều chuyển ngay'}</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* Table of Transfer Requests (BR-36) */}
+                <div className="card" style={{ padding: '1.5rem', border: '1px solid var(--border-medium)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                      <FileText size={18} style={{ color: 'var(--fpt-blue)' }} />
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Đơn xin chuyển nhóm từ Sinh viên (BR-36)
+                      </h4>
+                    </div>
+
+                    {/* Filter Status Pills */}
+                    <div style={{ display: 'flex', gap: '0.35rem' }}>
+                      {(['ALL', 'Pending', 'Approved', 'Rejected'] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setTransferStatusFilter(st)}
+                          className={transferStatusFilter === st ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}
+                        >
+                          {st === 'ALL' && 'Tất cả'}
+                          {st === 'Pending' && 'Chờ duyệt'}
+                          {st === 'Approved' && 'Đã duyệt'}
+                          {st === 'Rejected' && 'Từ chối'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {loadingTransfers ? (
+                    <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                      <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto' }} />
+                      <div>Đang tải danh sách đơn điều chuyển...</div>
+                    </div>
+                  ) : transfers.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto', color: 'var(--text-muted)' }}>
+                        <ArrowLeftRight size={22} />
+                      </div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                        Chưa có đơn xin chuyển nhóm nào
+                      </div>
+                      <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                        Các đơn xin chuyển nhóm do sinh viên gửi sẽ hiển thị tại đây để bạn phê duyệt hoặc từ chối.
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border-medium)', background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                            <th style={{ padding: '0.55rem 0.65rem' }}>Sinh viên</th>
+                            <th style={{ padding: '0.55rem 0.65rem' }}>Lộ trình nhóm</th>
+                            <th style={{ padding: '0.55rem 0.65rem' }}>Kiểu chuyển</th>
+                            <th style={{ padding: '0.55rem 0.65rem' }}>Lý do</th>
+                            <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center' }}>Trạng thái</th>
+                            <th style={{ padding: '0.55rem 0.65rem', textAlign: 'right' }}>Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {transfers.map((req) => (
+                            <tr key={req.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                              <td style={{ padding: '0.65rem' }}>
+                                <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{req.studentName}</div>
+                                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  {req.studentCode}
+                                </div>
+                              </td>
+                              <td style={{ padding: '0.65rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--fpt-blue)' }}>{req.fromGroupCode}</span>
+                                  <ArrowRight size={12} style={{ color: 'var(--text-muted)' }} />
+                                  <span style={{ fontWeight: 700, color: 'var(--fpt-orange)' }}>{req.targetGroupCode}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '0.65rem' }}>
+                                {req.swapStudentId ? (
+                                  <span className="badge" style={{ fontSize: '0.72rem', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                                    Đổi chéo: {req.swapStudentName} ({req.swapStudentCode})
+                                  </span>
+                                ) : (
+                                  <span className="badge badge-secondary" style={{ fontSize: '0.72rem' }}>
+                                    Chuyển 1 chiều
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.65rem', maxWidth: 220 }}>
+                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={req.reason}>
+                                  {req.reason}
+                                </div>
+                                {req.decisionReason && (
+                                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem', fontStyle: 'italic' }}>
+                                    Phản hồi: {req.decisionReason}
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.65rem', textAlign: 'center' }}>
+                                {req.status === 'Pending' && (
+                                  <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>Chờ duyệt</span>
+                                )}
+                                {req.status === 'Approved' && (
+                                  <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>Đã duyệt</span>
+                                )}
+                                {req.status === 'Rejected' && (
+                                  <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}>Từ chối</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.65rem', textAlign: 'right' }}>
+                                {req.status === 'Pending' ? (
+                                  <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-primary btn-sm"
+                                      style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', background: '#059669', borderColor: '#059669' }}
+                                      onClick={() => {
+                                        setDecidingRequest(req);
+                                        setDecisionStatus('Approved');
+                                        setDecisionReason('');
+                                      }}
+                                    >
+                                      Duyệt
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: '#dc2626', borderColor: '#fca5a5' }}
+                                      onClick={() => {
+                                        setDecidingRequest(req);
+                                        setDecisionStatus('Rejected');
+                                        setDecisionReason('');
+                                      }}
+                                    >
+                                      Từ chối
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Đã xử lý</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB: ROSTER — BẢNG ROSTER & BẢNG ĐIỂM HẬU CHỐT SỔ (BR-38)          */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {activeTab === 'roster' && !isStudent && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+              {/* Header Bar */}
+              <div
+                className="card"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0, 84, 166, 0.05) 0%, rgba(0, 136, 55, 0.05) 100%)',
+                  border: '1px solid var(--border-medium)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: '12px',
+                      background: 'var(--fpt-blue)',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FileSpreadsheet size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Bảng Roster Nhóm & Điểm Sinh viên (BR-38)
+                    </h3>
+                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 850 }}>
+                      Dành cho Giảng viên (Lecturer) và Trưởng phòng (Moderator) tra cứu danh sách các nhóm chính thức, vai trò Trưởng nhóm (Leader) và bảng điểm 5 kỹ năng sau khi Chốt sổ. Hỗ trợ xuất file Excel (CSV UTF-8 BOM chuẩn tiếng Việt).
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedSpace) {
+                        void loadRoster(selectedSpace.id);
+                      }
+                    }}
+                    disabled={loadingRoster}
+                    className="btn btn-secondary btn-sm"
+                    style={{ gap: '0.35rem' }}
+                  >
+                    <RefreshCw size={14} className={loadingRoster ? 'animate-spin' : ''} />
+                    <span>Tải lại</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleExportRosterCsv}
+                    disabled={exportingCsv || !roster || roster.totalStudents === 0}
+                    className="btn btn-primary btn-sm"
+                    style={{ gap: '0.45rem', fontWeight: 700, background: '#059669', borderColor: '#059669' }}
+                  >
+                    <Download size={15} />
+                    <span>{exportingCsv ? 'Đang xuất CSV...' : 'Xuất CSV Bảng điểm (UTF-8 BOM)'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div className="card" style={{ padding: '1.15rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SỐ NHÓM</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--fpt-blue)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster?.totalGroups ?? 0}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Đã chuẩn hóa sau phân phối
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '1.15rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SINH VIÊN TRONG NHÓM</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#059669', marginTop: '0.25rem', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster?.totalStudents ?? 0}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Toàn bộ sinh viên đã ghép đội
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '1.15rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>SĨ SỐ BÌNH QUÂN</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--fpt-orange)', marginTop: '0.25rem', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster && roster.totalGroups > 0 ? (roster.totalStudents / roster.totalGroups).toFixed(1) : '0'} SV/nhóm
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Ngưỡng quy định: 3 - 5 SV
+                  </div>
+                </div>
+
+                <div className="card" style={{ padding: '1.15rem' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRẠNG THÁI KHÔNG GIAN</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: roster?.status === 'Locked' ? '#dc2626' : 'var(--text-main)', marginTop: '0.5rem' }}>
+                    {roster?.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : (roster?.status || 'Active')}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    {roster?.status === 'Locked' ? 'Khóa cứng danh sách chính thức' : 'Đang trong thời gian đăng ký'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Search */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', minWidth: 320, flex: '1 1 320px' }}>
+                  <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Tìm theo mã nhóm, tên nhóm, MSSV, họ tên sinh viên..."
+                    value={rosterSearch}
+                    onChange={(e) => setRosterSearch(e.target.value)}
+                    style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Hiển thị <strong>{filteredRosterGroups.length}</strong> / <strong>{roster?.totalGroups ?? 0}</strong> nhóm
+                </div>
+              </div>
+
+              {/* Groups List */}
+              {loadingRoster ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem auto' }} />
+                  <div>Đang tải dữ liệu Bảng Roster & Điểm...</div>
+                </div>
+              ) : filteredRosterGroups.length === 0 ? (
+                <div className="card" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem auto' }}>
+                    <Search size={22} />
+                  </div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '1rem' }}>
+                    Không tìm thấy nhóm phù hợp với từ khóa
+                  </div>
+                  <div style={{ fontSize: '0.825rem', marginTop: '0.25rem' }}>
+                    Hãy thử xóa bộ lọc tìm kiếm để xem tất cả các nhóm trong không gian.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  {filteredRosterGroups.map((grp) => (
+                    <div key={grp.groupId} className="card" style={{ padding: '1.25rem', border: '1px solid var(--border-medium)' }}>
+                      {/* Group Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '0.85rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 800,
+                              fontSize: '0.9rem',
+                              padding: '0.2rem 0.6rem',
+                              borderRadius: '6px',
+                              background: 'var(--bg-main)',
+                              color: 'var(--fpt-blue)',
+                              border: '1px solid var(--border-light)',
+                            }}
+                          >
+                            {grp.groupCode}
+                          </span>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                            {grp.name}
+                          </h4>
+                          {grp.projectIdeaTitle && (
+                            <span className="badge badge-secondary" style={{ fontSize: '0.75rem', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={grp.projectIdeaTitle}>
+                              Đề tài: {grp.projectIdeaTitle}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '9999px',
+                              background: grp.memberCount >= 5 ? 'rgba(5, 150, 105, 0.1)' : 'rgba(242, 111, 33, 0.1)',
+                              color: grp.memberCount >= 5 ? '#059669' : 'var(--fpt-orange)',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {grp.memberCount} / {grp.maxMembers} SV
+                          </span>
+                          <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>
+                            {grp.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Members Table */}
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border-medium)', background: 'var(--bg-main)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                              <th style={{ padding: '0.55rem 0.65rem' }}>MSSV</th>
+                              <th style={{ padding: '0.55rem 0.65rem' }}>Họ và tên</th>
+                              <th style={{ padding: '0.55rem 0.65rem' }}>Email FPT</th>
+                              <th style={{ padding: '0.55rem 0.65rem' }}>Ngành</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center' }}>Vai trò</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center', color: '#0284c7' }}>Tech</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center', color: '#f59e0b' }}>Quản lý</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center', color: '#ec4899' }}>Design</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center', color: '#8b5cf6' }}>Mkt</th>
+                              <th style={{ padding: '0.55rem 0.65rem', textAlign: 'center', color: '#10b981' }}>Sale</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {grp.members.map((m) => (
+                              <tr key={m.studentId} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                                <td style={{ padding: '0.55rem 0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-main)' }}>
+                                  {m.studentCode}
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                                  {m.fullName}
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
+                                  {m.email}
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem' }}>
+                                  <span className="badge badge-secondary" style={{ fontSize: '0.72rem' }}>
+                                    {m.major}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center' }}>
+                                  {m.isLeader ? (
+                                    <span className="badge badge-warning" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700 }}>
+                                      <Crown size={12} />
+                                      <span>Leader</span>
+                                    </span>
+                                  ) : (
+                                    <span className="badge badge-secondary" style={{ fontSize: '0.72rem' }}>
+                                      Thành viên
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                  {m.techScore}%
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#f59e0b' }}>
+                                  {m.managementScore}%
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                  {m.designScore}%
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                  {m.marketingScore}%
+                                </td>
+                                <td style={{ padding: '0.55rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                  {m.saleScore}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -4566,6 +5685,87 @@ export const CourseSpacesPage: React.FC = () => {
                 <Lock size={16} />
                 <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ (BR-33)'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: QUYẾT ĐỊNH ĐƠN CHUYỂN NHÓM (BR-36) ────────────────── */}
+      {decidingRequest && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 480 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '8px',
+                    background: decisionStatus === 'Approved' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: decisionStatus === 'Approved' ? '#059669' : '#dc2626',
+                  }}
+                >
+                  <ArrowLeftRight size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  {decisionStatus === 'Approved' ? 'Phê duyệt Đơn chuyển nhóm' : 'Từ chối Đơn chuyển nhóm'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDecidingRequest(null)}
+                style={{ color: 'var(--text-muted)', padding: '0.25rem' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
+              <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div><strong>Sinh viên:</strong> {decidingRequest.studentName} ({decidingRequest.studentCode})</div>
+                <div><strong>Lộ trình:</strong> {decidingRequest.fromGroupCode} → {decidingRequest.targetGroupCode}</div>
+                {decidingRequest.swapStudentId && (
+                  <div><strong>Đổi chéo với:</strong> {decidingRequest.swapStudentName} ({decidingRequest.swapStudentCode})</div>
+                )}
+                <div><strong>Lý do sinh viên:</strong> <em>"{decidingRequest.reason}"</em></div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Lý do quyết định / Ghi chú cho sinh viên
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={decisionReason}
+                  onChange={(e) => setDecisionReason(e.target.value)}
+                  placeholder={decisionStatus === 'Approved' ? 'VD: Chấp thuận đơn chuyển nhóm theo nguyện vọng.' : 'VD: Nhóm đích đã đủ người hoặc không thỏa mãn điều kiện sĩ số.'}
+                  style={{ fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setDecidingRequest(null)}
+                  className="btn btn-secondary"
+                  disabled={submittingDecision}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDecideTransfer}
+                  disabled={submittingDecision}
+                  className={decisionStatus === 'Approved' ? 'btn btn-primary' : 'btn btn-danger'}
+                  style={{ fontWeight: 700 }}
+                >
+                  {submittingDecision ? 'Đang xử lý...' : (decisionStatus === 'Approved' ? 'Xác nhận Chấp thuận' : 'Xác nhận Từ chối')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

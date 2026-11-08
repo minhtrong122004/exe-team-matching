@@ -7,6 +7,11 @@ import type {
   SpaceEnrollmentResponse,
   GenerateRoomsResponse,
   RoomSummaryResponse,
+  TransferRequestResponse,
+  CreateTransferRequest,
+  DirectTransferRequest,
+  DecideTransferRequest,
+  SpaceRosterResponse,
 } from '../types/space';
 
 export const spacesApi = {
@@ -59,5 +64,58 @@ export const spacesApi = {
     const res = await apiClient.get<RoomSummaryResponse[]>(`/spaces/${id}/rooms`, { params: { status } });
     return res.data;
   },
+
+  // Giai đoạn 6: Hậu chốt sổ & Điều chuyển
+  directTransfer: async (spaceId: string, data: DirectTransferRequest): Promise<TransferRequestResponse> => {
+    const res = await apiClient.post<TransferRequestResponse>(`/spaces/${spaceId}/direct-transfer`, data);
+    return res.data;
+  },
+
+  createTransferRequest: async (spaceId: string, data: CreateTransferRequest): Promise<TransferRequestResponse> => {
+    const res = await apiClient.post<TransferRequestResponse>(`/spaces/${spaceId}/transfer-requests`, data);
+    return res.data;
+  },
+
+  getTransferRequests: async (spaceId: string, status?: string): Promise<TransferRequestResponse[]> => {
+    const res = await apiClient.get<TransferRequestResponse[]>(`/spaces/${spaceId}/transfer-requests`, {
+      params: { status },
+    });
+    return res.data;
+  },
+
+  decideTransferRequest: async (
+    spaceId: string,
+    requestId: string,
+    data: DecideTransferRequest
+  ): Promise<TransferRequestResponse> => {
+    const res = await apiClient.put<TransferRequestResponse>(
+      `/spaces/${spaceId}/transfer-requests/${requestId}/decide`,
+      data
+    );
+    return res.data;
+  },
+
+  getMyTransferRequests: async (): Promise<TransferRequestResponse[]> => {
+    const res = await apiClient.get<TransferRequestResponse[]>('/transfer-requests/my');
+    return res.data;
+  },
+
+  cancelTransferRequest: async (requestId: string): Promise<TransferRequestResponse> => {
+    const res = await apiClient.put<TransferRequestResponse>(`/transfer-requests/${requestId}/cancel`);
+    return res.data;
+  },
+
+  getSpaceRoster: async (spaceId: string): Promise<SpaceRosterResponse> => {
+    const res = await apiClient.get<SpaceRosterResponse>(`/spaces/${spaceId}/roster`);
+    return res.data;
+  },
+
+  exportSpaceRosterCsv: async (spaceId: string): Promise<Blob> => {
+    const res = await apiClient.get(`/spaces/${spaceId}/roster/export-csv`, {
+      responseType: 'blob',
+    });
+    return res.data;
+  },
 };
+
 
