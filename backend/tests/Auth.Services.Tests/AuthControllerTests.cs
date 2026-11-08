@@ -94,6 +94,23 @@ public class AuthControllerTests
                 request.Email
             ));
         }
+
+        public Task<ChangePasswordResponse> ChangePasswordAsync(Guid accountId, ChangePasswordRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ChangePasswordResponse(
+                "Đổi mật khẩu thành công!",
+                false
+            ));
+        }
+
+        public Task<AcceptTermsResponse> AcceptTermsAsync(Guid accountId, CancellationToken ct = default)
+        {
+            return Task.FromResult(new AcceptTermsResponse(
+                "Đã xác nhận đồng ý quy định ghép nhóm.",
+                true,
+                DateTime.UtcNow
+            ));
+        }
     }
 
     private class FakeAdminAccountService : IAdminAccountService
@@ -102,7 +119,7 @@ public class AuthControllerTests
         {
             var items = new List<AccountResponse>
             {
-                new(Guid.NewGuid(), "admin@fpt.edu.vn", "Admin User", "Admin", true, DateTime.UtcNow)
+                new(Guid.NewGuid(), "moderator@fpt.edu.vn", "Moderator User", "Moderator", true, DateTime.UtcNow)
             };
             return Task.FromResult(PagedResult<AccountResponse>.Create(items, 1, 10, 1));
         }
@@ -124,7 +141,31 @@ public class AuthControllerTests
 
         public Task<AccountResponse> CreateLecturerAsync(CreateLecturerRequest request, CancellationToken ct = default)
         {
-            return Task.FromResult(new AccountResponse(Guid.NewGuid(), request.Email, request.FullName, "Lecturer", true, DateTime.UtcNow));
+            return Task.FromResult(new AccountResponse(Guid.NewGuid(), request.Email, request.FullName, request.Role ?? "Lecturer", true, DateTime.UtcNow));
+        }
+
+        public Task<ProvisionFapStudentsResponse> ProvisionFapStudentsAsync(ProvisionFapStudentsRequest request, CancellationToken ct = default)
+        {
+            return Task.FromResult(new ProvisionFapStudentsResponse(
+                request.SemesterCode,
+                request.SubjectCode,
+                request.Students.Count,
+                request.Students.Count,
+                0,
+                new List<ProvisionStudentResultItem>()
+            ));
+        }
+
+        public Task<ProvisionFapStudentsResponse> ProvisionMockFapStudentsAsync(string semesterCode = "FA26", string subjectCode = "EXE101", CancellationToken ct = default)
+        {
+            return Task.FromResult(new ProvisionFapStudentsResponse(
+                semesterCode,
+                subjectCode,
+                6,
+                6,
+                0,
+                new List<ProvisionStudentResultItem>()
+            ));
         }
     }
 
@@ -258,24 +299,24 @@ public class AuthControllerTests
     [Fact]
     public void AdminEndpoints_ShouldHaveAdminAuthorizeAttribute()
     {
-        // Verify Authorize(Roles = "Admin") on admin actions
+        // Verify Authorize(Roles = "Moderator") on moderator actions
         var lockMethod = typeof(AuthController).GetMethod(nameof(AuthController.LockAccount));
         Assert.NotNull(lockMethod);
         var authAttr = lockMethod.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(authAttr);
-        Assert.Equal("Admin", authAttr.Roles);
+        Assert.Equal("Moderator", authAttr.Roles);
 
         var accountsMethod = typeof(AuthController).GetMethod(nameof(AuthController.GetAccounts));
         Assert.NotNull(accountsMethod);
         var authAttr2 = accountsMethod.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(authAttr2);
-        Assert.Equal("Admin", authAttr2.Roles);
+        Assert.Equal("Moderator", authAttr2.Roles);
 
         var createLecturerMethod = typeof(AuthController).GetMethod(nameof(AuthController.CreateLecturer));
         Assert.NotNull(createLecturerMethod);
         var authAttr3 = createLecturerMethod.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(authAttr3);
-        Assert.Equal("Admin", authAttr3.Roles);
+        Assert.Equal("Moderator", authAttr3.Roles);
     }
 
     [Fact]
@@ -283,7 +324,7 @@ public class AuthControllerTests
     {
         var fakeAuth = new FakeAuthService();
         var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser { UserId = Guid.NewGuid(), Role = "Admin" };
+        var fakeCurrentUser = new FakeCurrentUser { UserId = Guid.NewGuid(), Role = "Moderator" };
         var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
 
         var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "Password@123", "Thầy Giáo A");

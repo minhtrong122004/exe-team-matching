@@ -1,4 +1,4 @@
-export type UserRole = 'Student' | 'Lecturer' | 'Admin';
+export type UserRole = 'Student' | 'Moderator' | 'Lecturer';
 
 /// <summary>
 /// DTO thông tin người dùng được trả về trong phiên xác thực (CLAUDE.md mục 11).
@@ -8,6 +8,10 @@ export interface AuthUserDto {
   email: string;
   fullName: string;
   role: UserRole;
+  mustChangePassword?: boolean;
+  hasAcceptedTerms?: boolean;
+  acceptedTermsAt?: string | null;
+  studentCode?: string | null;
 }
 
 /// <summary>
@@ -62,15 +66,68 @@ export interface AccountResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string | null;
+  mustChangePassword?: boolean;
+  hasAcceptedTerms?: boolean;
+  acceptedTermsAt?: string | null;
+  studentCode?: string | null;
 }
 
 /// <summary>
-/// DTO yêu cầu khởi tạo tài khoản Giảng viên (POST /api/auth/accounts/lecturers).
+/// DTO yêu cầu khởi tạo tài khoản Giảng viên hoặc Điều phối viên (POST /api/auth/accounts/lecturers).
 /// </summary>
 export interface CreateLecturerRequest {
   email: string;
   password: string;
   fullName: string;
+  role?: 'Lecturer' | 'Moderator';
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  mustChangePassword: boolean;
+}
+
+export interface AcceptTermsResponse {
+  message: string;
+  hasAcceptedTerms: boolean;
+  acceptedTermsAt: string;
+}
+
+export interface FapStudentImportItem {
+  studentCode: string;
+  fullName: string;
+  email: string;
+  major?: string;
+}
+
+export interface ProvisionFapStudentsRequest {
+  students: FapStudentImportItem[];
+  semesterCode: string;
+  subjectCode: string;
+}
+
+export interface ProvisionStudentResultItem {
+  accountId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  isNewlyCreated: boolean;
+  statusMessage: string;
+}
+
+export interface ProvisionFapStudentsResponse {
+  semesterCode: string;
+  subjectCode: string;
+  totalProcessed: number;
+  newlyCreatedCount: number;
+  existingCount: number;
+  results: ProvisionStudentResultItem[];
 }
 
 export interface GetAccountsQuery {

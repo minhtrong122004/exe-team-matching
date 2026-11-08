@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<IUserProfileService, UserProfileService>();
         services.AddScoped<ISkillService, SkillService>();
         services.AddScoped<IUserRegisteredConsumerService, UserRegisteredConsumerService>();
+        services.AddScoped<IUserGroupMembershipConsumerService, UserGroupMembershipConsumerService>();
 
         // ── FluentValidation ─────────────────────────────────────────────────
         services.AddValidatorsFromAssemblyContaining<UpdateUserProfileRequestValidator>();

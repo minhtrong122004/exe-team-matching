@@ -95,26 +95,34 @@ public class UserProfileService : IUserProfileService
             throw new NotFoundException("Hồ sơ người dùng không tồn tại.", "USER_PROFILE_NOT_FOUND");
         }
 
-        // Kiểm tra tính duy nhất của StudentCode nếu có cung cấp
+        // BR-04: Kiểm tra trùng lặp MSSV và khóa cố định StudentCode nếu đã đồng bộ từ FAP
         if (!string.IsNullOrWhiteSpace(request.StudentCode))
         {
-            var trimmedCode = request.StudentCode.Trim();
+            var trimmedCode = request.StudentCode.Trim().ToUpperInvariant();
             var existingWithCode = await _profileRepo.GetByStudentCodeAsync(trimmedCode, ct);
             if (existingWithCode != null && existingWithCode.UserId != userId)
             {
                 throw new ConflictException($"Mã số sinh viên '{trimmedCode}' đã được sử dụng bởi một tài khoản khác.", "STUDENT_CODE_ALREADY_EXISTS");
             }
+
+            if (!string.IsNullOrWhiteSpace(profile.StudentCode) &&
+                !string.Equals(profile.StudentCode, trimmedCode, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BadRequestException(
+                    $"Mã số sinh viên ({profile.StudentCode}) được đồng bộ cố định từ hệ thống FAP và không thể thay đổi (BR-04).",
+                    "STUDENT_CODE_LOCKED");
+            }
+
             profile.StudentCode = trimmedCode;
-        }
-        else
-        {
-            profile.StudentCode = null;
         }
 
         // Cập nhật các trường được phép chỉnh sửa
         profile.FullName = request.FullName.Trim();
         profile.Campus = request.Campus?.Trim();
-        profile.Major = request.Major;
+        if (request.Major.HasValue || profile.Major == null)
+        {
+            profile.Major = request.Major ?? profile.Major;
+        }
         profile.Bio = request.Bio?.Trim();
         profile.DesiredRole = request.DesiredRole?.Trim();
         profile.Availability = request.Availability;

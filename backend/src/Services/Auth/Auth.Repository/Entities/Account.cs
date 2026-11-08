@@ -27,13 +27,29 @@ public class Account
     public string RegistrationFullName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Vai trò hệ thống: Student, Lecturer, Admin.
-    /// Công khai chỉ cho phép tự đăng ký vai trò Student.
+    /// Vai trò hệ thống: Student, Moderator, Lecturer, Admin.
     /// </summary>
     public AccountRole Role { get; set; } = AccountRole.Student;
 
     /// <summary>
-    /// Trạng thái hoạt động của tài khoản. false = bị khóa bởi Quản trị viên.
+    /// Mã số sinh viên (ví dụ: SE180123) được đồng bộ từ danh sách FAP (BR-01, BR-04).
+    /// Null đối với tài khoản Moderator / Lecturer / Admin.
+    /// </summary>
+    public string? StudentCode { get; set; }
+
+    /// <summary>
+    /// Cờ đánh dấu tài khoản vừa được hệ thống cấp mật khẩu khởi tạo và khuyến nghị/yêu cầu đổi mật khẩu lần đầu.
+    /// </summary>
+    public bool MustChangePassword { get; set; } = false;
+
+    /// <summary>
+    /// Thời điểm sinh viên xác nhận đồng ý Điều khoản ghép nhóm và sự điều phối của Moderator/Giảng viên (BR-34).
+    /// Null nếu chưa xác nhận lần đầu.
+    /// </summary>
+    public DateTime? AcceptedTermsAt { get; set; }
+
+    /// <summary>
+    /// Trạng thái hoạt động của tài khoản. false = bị khóa bởi Quản trị viên / Moderator.
     /// </summary>
     public bool IsActive { get; set; } = true;
 

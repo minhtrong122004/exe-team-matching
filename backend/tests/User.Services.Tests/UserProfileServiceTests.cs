@@ -181,6 +181,29 @@ public class UserProfileServiceTests
     }
 
     [Fact]
+    public async Task UpdateProfile_WhenStudentCodeAlreadyLockedFromFap_ShouldThrowBadRequestException()
+    {
+        // Arrange (BR-04: Sinh viên đã có StudentCode từ FAP không được đổi sang mã khác)
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "student.fap@fpt.edu.vn",
+            FullName = "Student FAP",
+            StudentCode = "SE180001"
+        });
+
+        var request = new UpdateUserProfileRequest(
+            FullName: "Student FAP",
+            StudentCode: "SE189999"
+        );
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.UpdateUserProfileAsync(userId, request));
+        Assert.Equal("STUDENT_CODE_LOCKED", ex.ErrorCode);
+    }
+
+    [Fact]
     public async Task UpdateProfile_WhenInvalidFields_ShouldThrowValidationException()
     {
         // Arrange: Empty FullName and invalid StudentCode with special characters

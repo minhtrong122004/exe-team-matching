@@ -17,6 +17,7 @@ public class AdminAccountTests
     private readonly FakeUnitOfWork _unitOfWork = new();
     private readonly IPasswordHasher _passwordHasher = new BCryptPasswordHasher();
     private readonly CreateLecturerRequestValidator _validator = new();
+    private readonly ProvisionFapStudentsRequestValidator _provisionValidator = new();
 
     private AdminAccountService CreateService()
     {
@@ -27,6 +28,7 @@ public class AdminAccountTests
             _unitOfWork,
             _passwordHasher,
             _validator,
+            _provisionValidator,
             new NullLogger<AdminAccountService>()
         );
     }

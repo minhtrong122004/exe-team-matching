@@ -1,9 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Mail,
-  Compass,
-  Users,
-  AlertCircle,
   Download,
   Zap,
   CheckCheck,
@@ -21,114 +17,12 @@ import type {
   StudentWithoutGroupResponse,
 } from '../types';
 
-
-// ── 1. GROUPS PAGE ──────────────────────────────────────────────────────────
-export const GroupsPage: React.FC = () => {
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Khám phá Nhóm Đề tài
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Tìm kiếm nhóm đang tuyển thành viên phù hợp với chuyên ngành và kỹ năng của bạn (Group Service + Matching gRPC)
-        </p>
-      </div>
-
-      <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-        <Compass size={44} style={{ margin: '0 auto 1rem auto', color: 'var(--text-light, #94a3b8)' }} />
-        <h3 style={{ color: 'var(--text-main, #0f172a)', fontSize: '1.2rem', fontWeight: 700 }}>
-          Chưa có nhóm đề tài nào
-        </h3>
-        <p style={{ marginTop: '0.35rem', color: 'var(--text-muted, #64748b)' }}>
-          Hiện tại chưa có nhóm đề tài nào được thành lập trong hệ thống. Khi sinh viên tạo nhóm (Group Service), danh sách nhóm sẽ xuất hiện tại đây.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-// ── 2. MY GROUP PAGE ────────────────────────────────────────────────────────
-export const MyGroupPage: React.FC = () => {
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Nhóm Của Tôi
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Quản lý thành viên, xét duyệt yêu cầu tham gia và lời mời của nhóm (Group Service)
-        </p>
-      </div>
-
-      <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-        <Users size={44} style={{ margin: '0 auto 1rem auto', color: 'var(--text-light, #94a3b8)' }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', marginBottom: '0.5rem' }}>
-          Bạn chưa tham gia nhóm nào
-        </h2>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', maxWidth: 520, margin: '0 auto 1.5rem auto', lineHeight: 1.5 }}>
-          Hiện tại bạn chưa thuộc nhóm đề tài EXE nào. Bạn có thể tìm kiếm và gửi yêu cầu gia nhập các nhóm đang tuyển tại mục "Khám phá nhóm", hoặc đề xuất ý tưởng dự án để thành lập nhóm mới.
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-          <a href="/groups" className="btn btn-secondary btn-sm">
-            Khám phá nhóm
-          </a>
-          <a href="/projects" className="btn btn-primary btn-sm">
-            Đề xuất ý tưởng dự án
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── 3. JOIN REQUESTS PAGE ───────────────────────────────────────────────────
-export const JoinRequestsPage: React.FC = () => {
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Yêu cầu Tham gia Nhóm (0/5)
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Theo dõi trạng thái các đơn xin gia nhập nhóm của bạn (Tối đa 5 yêu cầu Pending cùng lúc - BR-03)
-        </p>
-      </div>
-
-      <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-        <AlertCircle size={44} style={{ margin: '0 auto 1rem auto', color: 'var(--text-light, #94a3b8)' }} />
-        <h3 style={{ color: 'var(--text-main, #0f172a)' }}>Bạn chưa có yêu cầu gia nhập nào</h3>
-        <p style={{ marginTop: '0.35rem', color: 'var(--text-muted, #64748b)' }}>
-          Hãy khám phá các nhóm đề tài và gửi yêu cầu tham gia phù hợp.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-// ── 4. INVITATIONS PAGE ─────────────────────────────────────────────────────
-export const InvitationsPage: React.FC = () => {
-  return (
-    <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-          Lời mời Tham gia Nhóm (0)
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-          Các lời mời từ trưởng nhóm gửi đến bạn (Tự động hết hạn sau 48h - Background Job BR-10)
-        </p>
-      </div>
-
-      <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-        <Mail size={44} style={{ margin: '0 auto 1rem auto', color: 'var(--text-light, #94a3b8)' }} />
-        <h3 style={{ color: 'var(--text-main, #0f172a)' }}>Bạn không có lời mời nào đang chờ</h3>
-        <p style={{ marginTop: '0.35rem', color: 'var(--text-muted, #64748b)' }}>
-          Khi các nhóm tìm kiếm và gửi lời mời đến bạn, chúng sẽ xuất hiện tại đây.
-        </p>
-      </div>
-    </div>
-  );
-};
+export {
+  GroupsPage,
+  MyGroupPage,
+  JoinRequestsPage,
+  InvitationsPage,
+} from './GroupsModulePages';
 
 
 // ── 6. NOTIFICATIONS PAGE ───────────────────────────────────────────────────
@@ -431,7 +325,7 @@ export const ReportsPage: React.FC = () => {
       await loadReportData();
       setActiveTab('snapshots');
     } catch {
-      setError('Chỉ Quản trị viên (Admin) mới có quyền tạo Snapshot thủ công.');
+      setError('Chỉ Điều phối viên (Moderator) mới có quyền tạo Snapshot thủ công.');
       setLoading(false);
     }
   };

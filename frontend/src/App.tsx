@@ -50,13 +50,13 @@ export const App: React.FC = () => {
                 <Route path="/invitations" element={<InvitationsPage />} />
               </Route>
 
-              {/* Lecturer and Admin reports */}
-              <Route element={<ProtectedRoute allowedRoles={['Lecturer', 'Admin']} />}>
+              {/* Lecturer and Moderator reports */}
+              <Route element={<ProtectedRoute allowedRoles={['Lecturer', 'Moderator']} />}>
                 <Route path="/reports" element={<ReportsPage />} />
               </Route>
 
-              {/* Admin specific accounts management */}
-              <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+              {/* Moderator accounts and FAP student provisioning */}
+              <Route element={<ProtectedRoute allowedRoles={['Moderator']} />}>
                 <Route path="/admin/accounts" element={<AdminAccountsPage />} />
               </Route>
             </Route>

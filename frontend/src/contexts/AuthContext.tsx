@@ -11,6 +11,9 @@ import type {
   ForgotPasswordResponse,
   ResetPasswordRequest,
   ResetPasswordResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
+  AcceptTermsResponse,
 } from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
 
@@ -24,6 +27,8 @@ interface AuthContextType {
   resendVerification: (email: string) => Promise<ResendVerificationResponse>;
   forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
   resetPassword: (data: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
+  changePassword: (data: ChangePasswordRequest) => Promise<ChangePasswordResponse>;
+  acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   updateUserData: (partial: Partial<User>) => void;
@@ -71,6 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: account.email,
         fullName: account.fullName,
         role: account.role,
+        studentCode: account.studentCode || undefined,
+        mustChangePassword: account.mustChangePassword ?? false,
+        hasAcceptedTerms: account.hasAcceptedTerms ?? false,
+        acceptedTermsAt: account.acceptedTermsAt ?? null,
       };
 
       // Đối với Sinh viên, đồng bộ fullName và thông tin học thuật từ User Service (nguồn chuẩn)
@@ -122,6 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: account.email,
           fullName: account.fullName,
           role: account.role,
+          studentCode: account.studentCode || undefined,
+          mustChangePassword: account.mustChangePassword ?? false,
+          hasAcceptedTerms: account.hasAcceptedTerms ?? false,
+          acceptedTermsAt: account.acceptedTermsAt ?? null,
         };
 
         // Đối với Sinh viên, đồng bộ fullName từ User Service (nguồn chuẩn cập nhật hồ sơ)
@@ -183,7 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('access_token', accessToken);
     localStorage.setItem('refresh_token', refreshToken);
 
-    const currentUser: User = { ...authUser };
+    const currentUser: User = {
+      ...authUser,
+      studentCode: authUser.studentCode || undefined,
+      mustChangePassword: authUser.mustChangePassword ?? false,
+      hasAcceptedTerms: authUser.hasAcceptedTerms ?? false,
+      acceptedTermsAt: authUser.acceptedTermsAt ?? null,
+    };
     if (authUser.role === 'Student') {
       try {
         const profileRes = await apiClient.get<UserProfileResponse>('/users/me', {
@@ -191,7 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         if (profileRes.data?.fullName) {
           currentUser.fullName = profileRes.data.fullName;
-          currentUser.studentCode = profileRes.data.studentCode || undefined;
+          currentUser.studentCode = profileRes.data.studentCode || currentUser.studentCode || undefined;
           currentUser.campus = profileRes.data.campus || undefined;
           currentUser.major = profileRes.data.major || undefined;
         }
@@ -254,6 +273,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return response.data;
   };
 
+  const changePassword = async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
+    const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+      confirmNewPassword: data.confirmNewPassword,
+    });
+    updateUserData({ mustChangePassword: false });
+    return response.data;
+  };
+
+  const acceptTerms = async (): Promise<AcceptTermsResponse> => {
+    const response = await apiClient.post<AcceptTermsResponse>('/auth/accept-terms', {
+      accepted: true,
+    });
+    updateUserData({
+      hasAcceptedTerms: true,
+      acceptedTermsAt: response.data.acceptedTermsAt,
+    });
+    return response.data;
+  };
+
   const logout = async (): Promise<void> => {
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
@@ -281,6 +321,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         resendVerification,
         forgotPassword,
         resetPassword,
+        changePassword,
+        acceptTerms,
         logout,
         refreshCurrentUser,
         updateUserData,

@@ -151,10 +151,13 @@ public class ProjectService : IProjectService
         Id:        p.Id,
         OwnerId:   p.OwnerId,
         Title:     p.Title,
+        Problem:   p.Problem,
+        Solution:  p.Solution,
         Domain:    p.Domain.ToString(),
         Status:    p.Status.ToString(),
         Tags:      p.Tags.Select(t => t.Tag).ToList(),
-        CreatedAt: p.CreatedAt);
+        CreatedAt: p.CreatedAt,
+        UpdatedAt: p.UpdatedAt);
 
     /// <summary>
     /// Đồng bộ tag của dự án với danh sách từ request: xóa tag không còn, thêm tag mới, giữ nguyên tag trùng.

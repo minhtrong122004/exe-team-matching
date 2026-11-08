@@ -39,6 +39,7 @@ public class AuthService : IAuthService
     private readonly IValidator<ResendVerificationRequest> _resendVerificationValidator;
     private readonly IValidator<ForgotPasswordRequest> _forgotPasswordValidator;
     private readonly IValidator<ResetPasswordRequest> _resetPasswordValidator;
+    private readonly IValidator<ChangePasswordRequest> _changePasswordValidator;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -60,6 +61,7 @@ public class AuthService : IAuthService
         IValidator<ResendVerificationRequest> resendVerificationValidator,
         IValidator<ForgotPasswordRequest> forgotPasswordValidator,
         IValidator<ResetPasswordRequest> resetPasswordValidator,
+        IValidator<ChangePasswordRequest> changePasswordValidator,
         ILogger<AuthService> logger)
     {
         _accountRepository = accountRepository;
@@ -80,6 +82,7 @@ public class AuthService : IAuthService
         _resendVerificationValidator = resendVerificationValidator;
         _forgotPasswordValidator = forgotPasswordValidator;
         _resetPasswordValidator = resetPasswordValidator;
+        _changePasswordValidator = changePasswordValidator;
         _logger = logger;
     }
 
@@ -420,7 +423,15 @@ public class AuthService : IAuthService
         return new AuthResponse(
             accessToken,
             rawRefreshToken,
-            new AuthUserDto(account.Id, account.Email, account.RegistrationFullName, account.Role.ToString())
+            new AuthUserDto(
+                account.Id,
+                account.Email,
+                account.RegistrationFullName,
+                account.Role.ToString(),
+                account.MustChangePassword,
+                account.AcceptedTermsAt.HasValue,
+                account.AcceptedTermsAt,
+                account.StudentCode)
         );
     }
 
@@ -504,7 +515,15 @@ public class AuthService : IAuthService
         return new AuthResponse(
             accessToken,
             rawNewRefreshToken,
-            new AuthUserDto(account.Id, account.Email, account.RegistrationFullName, account.Role.ToString())
+            new AuthUserDto(
+                account.Id,
+                account.Email,
+                account.RegistrationFullName,
+                account.Role.ToString(),
+                account.MustChangePassword,
+                account.AcceptedTermsAt.HasValue,
+                account.AcceptedTermsAt,
+                account.StudentCode)
         );
     }
 
@@ -696,6 +715,7 @@ public class AuthService : IAuthService
         await _challengeRepository.UpdateAsync(challenge, ct);
 
         account.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        account.MustChangePassword = false;
         account.UpdatedAt = DateTime.UtcNow;
         await _accountRepository.UpdateAsync(account, ct);
 
@@ -709,6 +729,76 @@ public class AuthService : IAuthService
         return new ResetPasswordResponse(
             "Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới ngay bây giờ.",
             normalizedEmail
+        );
+    }
+
+    /// <summary>
+    /// Người dùng đang đăng nhập tự đổi mật khẩu (bao gồm sinh viên đổi mật khẩu khởi tạo sau khi nhận từ FAP).
+    /// </summary>
+    public async Task<ChangePasswordResponse> ChangePasswordAsync(Guid accountId, ChangePasswordRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _changePasswordValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var account = await _accountRepository.GetByIdAsync(accountId, ct);
+        if (account == null)
+        {
+            throw new NotFoundException("Không tìm thấy thông tin tài khoản.", "ACCOUNT_NOT_FOUND");
+        }
+
+        if (!account.IsActive)
+        {
+            throw new ForbiddenException("Tài khoản của bạn đã bị khóa.", "ACCOUNT_LOCKED");
+        }
+
+        if (!_passwordHasher.VerifyPassword(request.CurrentPassword, account.PasswordHash))
+        {
+            throw new BadRequestException("Mật khẩu hiện tại không chính xác.", "INVALID_CURRENT_PASSWORD");
+        }
+
+        account.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+        account.MustChangePassword = false;
+        account.UpdatedAt = DateTime.UtcNow;
+
+        await _accountRepository.UpdateAsync(account, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Account {AccountId} changed password successfully", account.Id);
+
+        return new ChangePasswordResponse(
+            "Đổi mật khẩu thành công! Mật khẩu mới đã được áp dụng cho tài khoản của bạn.",
+            account.MustChangePassword
+        );
+    }
+
+    /// <summary>
+    /// Sinh viên xác nhận đồng ý quy định ghép nhóm và sự điều phối của Moderator/Giảng viên ở lần đầu đăng nhập (BR-34).
+    /// </summary>
+    public async Task<AcceptTermsResponse> AcceptTermsAsync(Guid accountId, CancellationToken ct = default)
+    {
+        var account = await _accountRepository.GetByIdAsync(accountId, ct);
+        if (account == null)
+        {
+            throw new NotFoundException("Không tìm thấy thông tin tài khoản.", "ACCOUNT_NOT_FOUND");
+        }
+
+        if (!account.AcceptedTermsAt.HasValue)
+        {
+            var now = DateTime.UtcNow;
+            account.AcceptedTermsAt = now;
+            account.UpdatedAt = now;
+            await _accountRepository.UpdateAsync(account, ct);
+            await _unitOfWork.SaveChangesAsync(ct);
+            _logger.LogInformation("Account {AccountId} accepted EXE team matching terms (BR-34) at {AcceptedTermsAt}", account.Id, now);
+        }
+
+        return new AcceptTermsResponse(
+            "Đã xác nhận đồng ý quy định ghép nhóm và sự điều phối của Moderator/Giảng viên.",
+            true,
+            account.AcceptedTermsAt!.Value
         );
     }
 
@@ -727,7 +817,11 @@ public class AuthService : IAuthService
             account.Role.ToString(),
             account.IsActive,
             account.CreatedAt,
-            account.UpdatedAt
+            account.UpdatedAt,
+            account.MustChangePassword,
+            account.AcceptedTermsAt.HasValue,
+            account.AcceptedTermsAt,
+            account.StudentCode
         );
     }
 }

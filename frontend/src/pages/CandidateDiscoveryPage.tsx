@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useId } from 'react';
 import apiClient from '../api/client';
+import { groupsApi } from '../api/groups';
+import { useAuth } from '../contexts/AuthContext';
 import type {
   CandidateProfileResponse,
+  GroupResponse,
   Major,
   UserAvailability,
   SkillResponse,
@@ -62,6 +65,38 @@ export const CandidateDiscoveryPage: React.FC = () => {
 
   // Modal xem chi tiết ứng viên
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateProfileResponse | null>(null);
+  const { user: authUser } = useAuth();
+  const [myGroup, setMyGroup] = useState<GroupResponse | null>(null);
+  const [inviteStatusMsg, setInviteStatusMsg] = useState<string | null>(null);
+  const [inviting, setInviting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (authUser?.role === 'Student') {
+      groupsApi
+        .getMyGroup()
+        .then((g) => setMyGroup(g))
+        .catch(() => setMyGroup(null));
+    }
+  }, [authUser]);
+
+  const handleInviteCandidate = async (candidate: CandidateProfileResponse) => {
+    if (!myGroup) return;
+    setInviting(true);
+    setInviteStatusMsg(null);
+    try {
+      await groupsApi.createInvitation(myGroup.id, {
+        invitedUserId: candidate.userId,
+        message: `Chào ${candidate.fullName}, nhóm ${myGroup.name} trân trọng mời bạn tham gia cùng thực hiện dự án khởi nghiệp môn EXE!`,
+      });
+      setInviteStatusMsg(`Đã gửi lời mời tham gia nhóm "${myGroup.name}" tới ${candidate.fullName}!`);
+    } catch (err: any) {
+      setInviteStatusMsg(
+        err?.response?.data?.detail || 'Không thể gửi lời mời (Ứng viên đã được mời hoặc đã có nhóm).'
+      );
+    } finally {
+      setInviting(false);
+    }
+  };
 
   // Debounce search input
   useEffect(() => {
@@ -1210,11 +1245,45 @@ export const CandidateDiscoveryPage: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
+            {inviteStatusMsg && (
+              <div
+                style={{
+                  marginBottom: '1rem',
+                  padding: '0.65rem 1rem',
+                  borderRadius: 8,
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                }}
+              >
+                {inviteStatusMsg}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              {myGroup &&
+                authUser &&
+                myGroup.leaderId === authUser.id &&
+                myGroup.status === 'Recruiting' &&
+                selectedCandidate.availability === 'LookingForTeam' &&
+                selectedCandidate.userId !== authUser.id && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={inviting}
+                    onClick={() => void handleInviteCandidate(selectedCandidate)}
+                    style={{ borderRadius: 10, padding: '0.65rem 1.25rem', fontWeight: 600 }}
+                  >
+                    {inviting ? 'Đang gửi lời mời...' : `Mời vào nhóm "${myGroup.name}"`}
+                  </button>
+                )}
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() => setSelectedCandidate(null)}
+                onClick={() => {
+                  setSelectedCandidate(null);
+                  setInviteStatusMsg(null);
+                }}
                 style={{ borderRadius: 10, padding: '0.65rem 1.25rem', fontWeight: 600 }}
               >
                 Đóng

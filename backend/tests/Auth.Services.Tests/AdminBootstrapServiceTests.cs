@@ -109,14 +109,14 @@ public class AdminBootstrapServiceTests
     [Fact]
     public async Task BootstrapAdmin_WhenAdminAccountAlreadyExists_ThrowsInvalidOperationException()
     {
-        // Seed an existing admin account
+        // Seed an existing moderator account
         _accountRepository.Accounts.Add(new Account
         {
             Id = Guid.NewGuid(),
             Email = "existing_admin@exe.local",
             PasswordHash = "hash",
-            RegistrationFullName = "Existing Admin",
-            Role = AccountRole.Admin,
+            RegistrationFullName = "Existing Moderator",
+            Role = AccountRole.Moderator,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -178,7 +178,7 @@ public class AdminBootstrapServiceTests
         Assert.NotNull(result);
         Assert.Equal("admin@exe.local", result.Email);
         Assert.Equal("Lead Administrator", result.FullName);
-        Assert.Equal("Admin", result.Role);
+        Assert.Equal("Moderator", result.Role);
         Assert.True(result.IsActive);
         Assert.NotEqual(Guid.Empty, result.Id);
 
@@ -186,7 +186,7 @@ public class AdminBootstrapServiceTests
         var savedAccount = Assert.Single(_accountRepository.Accounts);
         Assert.Equal(result.Id, savedAccount.Id);
         Assert.Equal("admin@exe.local", savedAccount.Email);
-        Assert.Equal(AccountRole.Admin, savedAccount.Role);
+        Assert.Equal(AccountRole.Moderator, savedAccount.Role);
         Assert.True(savedAccount.IsActive);
         Assert.True(_unitOfWork.SaveChangesCalls > 0);
 

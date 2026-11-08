@@ -25,16 +25,21 @@ import {
   Tag,
   Layers,
   Search,
+  ShieldCheck,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 const MAJORS: { value: Major; label: string }[] = [
-  { value: 'SE', label: 'SE — Kỹ thuật phần mềm (Software Engineering)' },
-  { value: 'AI', label: 'AI — Trí tuệ nhân tạo (Artificial Intelligence)' },
-  { value: 'IA', label: 'IA — An toàn thông tin (Information Assurance)' },
-  { value: 'GD', label: 'GD — Thiết kế mỹ thuật số / UI-UX (Graphic Design)' },
-  { value: 'MKT', label: 'MKT — Tiếp thị số (Digital Marketing)' },
-  { value: 'IB', label: 'IB — Kinh doanh quốc tế (International Business)' },
-  { value: 'Other', label: 'Other — Chuyên ngành khác' },
+  { value: 'SE', label: 'Kỹ thuật phần mềm (SE)' },
+  { value: 'AI', label: 'Trí tuệ nhân tạo (AI)' },
+  { value: 'IA', label: 'An toàn thông tin (IA)' },
+  { value: 'GD', label: 'Thiết kế đồ họa (GD)' },
+  { value: 'MKT', label: 'Digital Marketing (MKT)' },
+  { value: 'IB', label: 'Kinh doanh quốc tế (IB)' },
+  { value: 'Other', label: 'Chuyên ngành khác (Other)' },
 ];
 
 const AVAILABILITY_OPTIONS: { value: UserAvailability; label: string; color: string; bg: string }[] = [
@@ -83,7 +88,7 @@ const PROFICIENCY_LABELS: Record<number, { text: string; color: string }> = {
 };
 
 export const ProfilePage: React.FC = () => {
-  const { user: authUser, updateUserData } = useAuth();
+  const { user: authUser, updateUserData, changePassword, acceptTerms } = useAuth();
 
   // State hồ sơ
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -114,8 +119,61 @@ export const ProfilePage: React.FC = () => {
   const [savingSkills, setSavingSkills] = useState<boolean>(false);
   const [skillsChanged, setSkillsChanged] = useState<boolean>(false);
 
-  // Active Tab: 'info' | 'skills'
-  const [activeTab, setActiveTab] = useState<'info' | 'skills'>('info');
+  // Active Tab: 'info' | 'skills' | 'security'
+  const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'security'>('info');
+
+  // State đổi mật khẩu & BR-34
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setError('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
+      return;
+    }
+    if (
+      newPassword.length < 8 ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[^a-zA-Z0-9]/.test(newPassword)
+    ) {
+      setError('Mật khẩu mới phải có ít nhất 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError('Mật khẩu xác nhận không trùng khớp.');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const res = await changePassword({
+        currentPassword,
+        newPassword,
+        confirmNewPassword,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setSuccessMsg(res.message || 'Đổi mật khẩu thành công!');
+    } catch (err: any) {
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          err.response?.data?.message ||
+          'Mật khẩu hiện tại không chính xác hoặc dữ liệu không hợp lệ.'
+      );
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   // Tải dữ liệu hồ sơ từ Backend
   const fetchProfile = useCallback(async () => {
@@ -710,11 +768,33 @@ export const ProfilePage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            transition: 'all 150ms ease',
+            transition: 'color 150ms ease, border-color 150ms ease',
           }}
         >
           <Sparkles size={18} />
           <span>Kỹ năng & Mức độ thành thạo ({userSkills.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('security')}
+          style={{
+            padding: '0.75rem 1.25rem',
+            border: 'none',
+            background: 'transparent',
+            borderBottom: activeTab === 'security' ? '2.5px solid #f26f21' : '2.5px solid transparent',
+            color: activeTab === 'security' ? '#f26f21' : 'var(--text-muted, #64748b)',
+            fontWeight: 700,
+            fontSize: '0.925rem',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'color 150ms ease, border-color 150ms ease',
+          }}
+        >
+          <KeyRound size={18} />
+          <span>Bảo mật & Quy định (BR-34)</span>
         </button>
       </div>
 
@@ -781,8 +861,13 @@ export const ProfilePage: React.FC = () => {
 
               {/* Mã số sinh viên */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>
-                  Mã số sinh viên (MSSV)
+                <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Mã số sinh viên (MSSV)</span>
+                  {profile?.studentCode && (
+                    <span style={{ fontSize: '0.72rem', color: '#0054a6', fontWeight: 700 }}>
+                      Cố định từ FAP (BR-04)
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
@@ -790,7 +875,8 @@ export const ProfilePage: React.FC = () => {
                   placeholder="Ví dụ: SE185102"
                   value={studentCode}
                   onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-                  disabled={!isEditing || savingProfile}
+                  disabled={!isEditing || savingProfile || Boolean(profile?.studentCode)}
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}
                 />
               </div>
 
@@ -1308,6 +1394,170 @@ export const ProfilePage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          TAB 3: BẢO MẬT, ĐỔI MẬT KHẨU & QUY ĐỊNH ĐIỀU PHỐI (BR-34)
+         ══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'security' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Card 1: Trạng thái xác nhận quy định điều phối BR-34 */}
+          <div className="card" style={{ padding: '1.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.9rem' }}>
+                <div
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 10,
+                    background: authUser?.hasAcceptedTerms ? '#f0fdf4' : '#fff7ed',
+                    color: authUser?.hasAcceptedTerms ? '#008837' : '#f26f21',
+                    border: authUser?.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fed7aa',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                    Cam kết Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)
+                  </h2>
+                  <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.86rem', margin: '0.35rem 0 0', lineHeight: 1.55, maxWidth: 680 }}>
+                    Sinh viên tham gia học phần EXE cam kết tuân thủ quy tắc nhóm liên ngành (tối đa 6 thành viên, tối đa 3 SV khối Công nghệ SE/AI/IA) và đồng ý với sự phân bổ điều phối của Moderator / Giảng viên khi hết hạn ghép nhóm tự do.
+                  </p>
+                </div>
+              </div>
+
+              {authUser?.hasAcceptedTerms ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.4rem 0.85rem',
+                    borderRadius: 999,
+                    background: '#f0fdf4',
+                    color: '#008837',
+                    border: '1px solid #bbf7d0',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <CheckCircle2 size={15} />
+                  <span>Đã xác nhận đồng ý (BR-34)</span>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      const res = await acceptTerms();
+                      setSuccessMsg(res.message);
+                    } catch {
+                      setError('Không thể ghi nhận xác nhận điều khoản.');
+                    }
+                  }}
+                >
+                  Xác nhận đồng ý ngay
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Card 2: Đổi mật khẩu tài khoản */}
+          <div className="card" style={{ padding: '1.75rem' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                Đổi mật khẩu đăng nhập
+              </h2>
+              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                Nếu bạn vừa nhận mật khẩu khởi tạo từ danh sách FAP qua email trường, hãy đổi sang mật khẩu cá nhân để bảo mật tài khoản.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} style={{ maxWidth: 520 }}>
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>
+                  Mật khẩu hiện tại *
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    className="form-control"
+                    placeholder="Nhập mật khẩu đang sử dụng..."
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    disabled={changingPassword}
+                    style={{ paddingLeft: '2.35rem', paddingRight: '2.5rem' }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords((v) => !v)}
+                    aria-label={showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                    style={{
+                      position: 'absolute',
+                      right: 10,
+                      top: 10,
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>
+                  Mật khẩu mới *
+                </label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>
+                  Xác nhận mật khẩu mới *
+                </label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={changingPassword}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+              >
+                <KeyRound size={16} />
+                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
+              </button>
+            </form>
           </div>
         </div>
       )}

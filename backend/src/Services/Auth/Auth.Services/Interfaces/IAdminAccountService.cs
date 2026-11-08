@@ -18,8 +18,19 @@ public interface IAdminAccountService
     Task<AccountResponse> UnlockAccountAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// Khởi tạo tài khoản Giảng viên (Lecturer) bởi Quản trị viên (Admin),
+    /// Khởi tạo tài khoản Giảng viên (Lecturer) hoặc Điều phối viên (Moderator) bởi Moderator/Admin,
     /// kèm phát sinh sự kiện UserRegisteredEvent ghi nhận nguyên tử qua Transactional Outbox.
     /// </summary>
     Task<AccountResponse> CreateLecturerAsync(CreateLecturerRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Đồng bộ & cấp phát tài khoản hàng loạt cho danh sách sinh viên đủ điều kiện học EXE từ FAP (BR-01).
+    /// Sinh mật khẩu khởi tạo, phát UserRegisteredEvent sang User Service (gắn MSSV + Major) và Notification Service (gửi email mật khẩu).
+    /// </summary>
+    Task<ProvisionFapStudentsResponse> ProvisionFapStudentsAsync(ProvisionFapStudentsRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Đồng bộ nhanh danh sách sinh viên FAP mẫu kỳ FA26 (1-click demo) để kiểm thử đầy đủ luồng cấp tài khoản + gửi email MailHog.
+    /// </summary>
+    Task<ProvisionFapStudentsResponse> ProvisionMockFapStudentsAsync(string semesterCode = "FA26", string subjectCode = "EXE101", CancellationToken ct = default);
 }

@@ -167,10 +167,47 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Xem danh sách tài khoản phân trang (Chỉ dành cho Admin).
+    /// Người dùng đang đăng nhập tự đổi mật khẩu (bao gồm đổi mật khẩu khởi tạo lần đầu nhận từ FAP).
+    /// </summary>
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(typeof(ChangePasswordResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
+    {
+        if (!_currentUser.UserId.HasValue)
+        {
+            throw new UnauthorizedException("Phiên đăng nhập không hợp lệ hoặc thiếu claim UserId.");
+        }
+
+        var result = await _authService.ChangePasswordAsync(_currentUser.UserId.Value, request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Sinh viên xác nhận đồng ý quy định ghép nhóm & sự điều phối của Moderator/Giảng viên ở lần đầu đăng nhập (BR-34).
+    /// </summary>
+    [HttpPost("accept-terms")]
+    [Authorize]
+    [ProducesResponseType(typeof(AcceptTermsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AcceptTerms([FromBody] AcceptTermsRequest? request, CancellationToken ct)
+    {
+        if (!_currentUser.UserId.HasValue)
+        {
+            throw new UnauthorizedException("Phiên đăng nhập không hợp lệ hoặc thiếu claim UserId.");
+        }
+
+        var result = await _authService.AcceptTermsAsync(_currentUser.UserId.Value, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Xem danh sách tài khoản phân trang (Dành cho Moderator).
     /// </summary>
     [HttpGet("accounts")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(PagedResult<AccountResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -181,10 +218,11 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Khóa tài khoản và thu hồi toàn bộ Refresh Token (Chỉ dành cho Admin).
+    /// Khóa tài khoản và thu hồi toàn bộ Refresh Token (Dành cho Moderator).
     /// </summary>
     [HttpPatch("accounts/{id:guid}/lock")]
-    [Authorize(Roles = "Admin")]
+    [HttpPut("accounts/{id:guid}/lock")]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(AccountResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -196,10 +234,11 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Mở khóa tài khoản (Chỉ dành cho Admin).
+    /// Mở khóa tài khoản (Dành cho Moderator).
     /// </summary>
     [HttpPatch("accounts/{id:guid}/unlock")]
-    [Authorize(Roles = "Admin")]
+    [HttpPut("accounts/{id:guid}/unlock")]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(AccountResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -211,10 +250,10 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Khởi tạo tài khoản Giảng viên (Chỉ dành cho Admin).
+    /// Khởi tạo tài khoản Giảng viên (Lecturer) hoặc Điều phối viên (Moderator) (Dành cho Moderator).
     /// </summary>
     [HttpPost("accounts/lecturers")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(AccountResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -224,5 +263,38 @@ public class AuthController : ControllerBase
     {
         var result = await _adminAccountService.CreateLecturerAsync(request, ct);
         return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>
+    /// Đồng bộ & cấp phát tài khoản hàng loạt cho danh sách sinh viên đủ điều kiện học EXE từ FAP (BR-01).
+    /// Tự động tạo tài khoản Student, gắn MSSV, tách ngành/khóa (BR-04) và gửi email mật khẩu khởi tạo về MailHog/SMTP.
+    /// </summary>
+    [HttpPost("accounts/provision-fap")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType(typeof(ProvisionFapStudentsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ProvisionFapStudents([FromBody] ProvisionFapStudentsRequest request, CancellationToken ct)
+    {
+        var result = await _adminAccountService.ProvisionFapStudentsAsync(request, ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Đồng bộ nhanh danh sách sinh viên FAP mẫu kỳ FA26 (1-click demo) dành cho Moderator.
+    /// </summary>
+    [HttpPost("accounts/provision-mock-fap")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType(typeof(ProvisionFapStudentsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ProvisionMockFapStudents(
+        [FromQuery] string semesterCode = "FA26",
+        [FromQuery] string subjectCode = "EXE101",
+        CancellationToken ct = default)
+    {
+        var result = await _adminAccountService.ProvisionMockFapStudentsAsync(semesterCode, subjectCode, ct);
+        return Ok(result);
     }
 }

@@ -39,6 +39,8 @@ public static class EventBusExtensions
                                  ?? configuration["ConnectionStrings:Redis"]
                                  ?? "localhost:6379";
 
+        services.Configure<EventBusOptions>(configuration.GetSection(EventBusOptions.SectionName));
+
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
             var options = ConfigurationOptions.Parse(redisConnectionString);

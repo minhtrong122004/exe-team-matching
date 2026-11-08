@@ -26,6 +26,7 @@ public class AdminAccountService : IAdminAccountService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IValidator<CreateLecturerRequest> _createLecturerValidator;
+    private readonly IValidator<ProvisionFapStudentsRequest> _provisionFapValidator;
     private readonly ILogger<AdminAccountService> _logger;
 
     public AdminAccountService(
@@ -35,6 +36,7 @@ public class AdminAccountService : IAdminAccountService
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         IValidator<CreateLecturerRequest> createLecturerValidator,
+        IValidator<ProvisionFapStudentsRequest> provisionFapValidator,
         ILogger<AdminAccountService> logger)
     {
         _accountRepository = accountRepository;
@@ -43,8 +45,23 @@ public class AdminAccountService : IAdminAccountService
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _createLecturerValidator = createLecturerValidator;
+        _provisionFapValidator = provisionFapValidator;
         _logger = logger;
     }
+
+    private static AccountResponse MapToResponse(Account a) => new(
+        a.Id,
+        a.Email,
+        a.RegistrationFullName,
+        a.Role.ToString(),
+        a.IsActive,
+        a.CreatedAt,
+        a.UpdatedAt,
+        a.MustChangePassword,
+        a.AcceptedTermsAt.HasValue,
+        a.AcceptedTermsAt,
+        a.StudentCode
+    );
 
     public async Task<PagedResult<AccountResponse>> GetAccountsPagedAsync(GetAccountsQuery query, CancellationToken ct = default)
     {
@@ -60,15 +77,7 @@ public class AdminAccountService : IAdminAccountService
             ct
         );
 
-        var dtos = items.Select(a => new AccountResponse(
-            a.Id,
-            a.Email,
-            a.RegistrationFullName,
-            a.Role.ToString(),
-            a.IsActive,
-            a.CreatedAt,
-            a.UpdatedAt
-        )).ToList();
+        var dtos = items.Select(MapToResponse).ToList();
 
         return PagedResult<AccountResponse>.Create(dtos, query.Page, query.PageSize, totalCount);
     }
@@ -81,15 +90,7 @@ public class AdminAccountService : IAdminAccountService
             throw new NotFoundException("Không tìm thấy thông tin tài khoản.", "ACCOUNT_NOT_FOUND");
         }
 
-        return new AccountResponse(
-            account.Id,
-            account.Email,
-            account.RegistrationFullName,
-            account.Role.ToString(),
-            account.IsActive,
-            account.CreatedAt,
-            account.UpdatedAt
-        );
+        return MapToResponse(account);
     }
 
     public async Task<AccountResponse> LockAccountAsync(Guid id, CancellationToken ct = default)
@@ -110,15 +111,7 @@ public class AdminAccountService : IAdminAccountService
 
         _logger.LogInformation("Account {AccountId} has been locked by administrator", id);
 
-        return new AccountResponse(
-            account.Id,
-            account.Email,
-            account.RegistrationFullName,
-            account.Role.ToString(),
-            account.IsActive,
-            account.CreatedAt,
-            account.UpdatedAt
-        );
+        return MapToResponse(account);
     }
 
     public async Task<AccountResponse> UnlockAccountAsync(Guid id, CancellationToken ct = default)
@@ -137,15 +130,7 @@ public class AdminAccountService : IAdminAccountService
 
         _logger.LogInformation("Account {AccountId} has been unlocked by administrator", id);
 
-        return new AccountResponse(
-            account.Id,
-            account.Email,
-            account.RegistrationFullName,
-            account.Role.ToString(),
-            account.IsActive,
-            account.CreatedAt,
-            account.UpdatedAt
-        );
+        return MapToResponse(account);
     }
 
     public async Task<AccountResponse> CreateLecturerAsync(CreateLecturerRequest request, CancellationToken ct = default)
@@ -170,14 +155,21 @@ public class AdminAccountService : IAdminAccountService
         var passwordHash = _passwordHasher.HashPassword(request.Password);
         var now = DateTime.UtcNow;
 
-        // 5. Khởi tạo đối tượng Account với vai trò Lecturer
+        var targetRole = !string.IsNullOrWhiteSpace(request.Role) &&
+                         request.Role.Trim().Equals("Moderator", StringComparison.OrdinalIgnoreCase)
+            ? AccountRole.Moderator
+            : AccountRole.Lecturer;
+
+        // 5. Khởi tạo đối tượng Account với vai trò Lecturer hoặc Moderator
         var account = new Account
         {
             Id = Guid.NewGuid(),
             Email = normalizedEmail,
             PasswordHash = passwordHash,
             RegistrationFullName = request.FullName.Trim(),
-            Role = AccountRole.Lecturer,
+            Role = targetRole,
+            MustChangePassword = false,
+            AcceptedTermsAt = now,
             IsActive = true,
             EmailConfirmed = true,
             EmailConfirmedAt = now,
@@ -185,7 +177,7 @@ public class AdminAccountService : IAdminAccountService
             UpdatedAt = now
         };
 
-        // 6. Tạo sự kiện UserRegisteredEvent cho Transactional Outbox (Role = Lecturer)
+        // 6. Tạo sự kiện UserRegisteredEvent cho Transactional Outbox
         var userRegisteredEvent = new UserRegisteredEvent(
             EventId: Guid.NewGuid(),
             UserId: account.Id,
@@ -218,21 +210,193 @@ public class AdminAccountService : IAdminAccountService
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogWarning(ex, "DbUpdateException during lecturer provisioning for email {Email}", normalizedEmail);
+            _logger.LogWarning(ex, "DbUpdateException during staff provisioning for email {Email}", normalizedEmail);
             throw new ConflictException("Email đã được đăng ký trong hệ thống.", "EMAIL_ALREADY_EXISTS");
         }
 
         // 8. Ghi log an toàn tuyệt đối không lộ mật khẩu hay password hash
-        _logger.LogInformation("Lecturer account created successfully by administrator: {AccountId} with email {Email}", account.Id, account.Email);
+        _logger.LogInformation("{Role} account created successfully by administrator: {AccountId} with email {Email}", account.Role, account.Id, account.Email);
 
-        return new AccountResponse(
-            account.Id,
-            account.Email,
-            account.RegistrationFullName,
-            account.Role.ToString(),
-            account.IsActive,
-            account.CreatedAt,
-            account.UpdatedAt
+        return MapToResponse(account);
+    }
+
+    public async Task<ProvisionFapStudentsResponse> ProvisionFapStudentsAsync(ProvisionFapStudentsRequest request, CancellationToken ct = default)
+    {
+        var validationResult = await _provisionFapValidator.ValidateAsync(request, ct);
+        if (!validationResult.IsValid)
+        {
+            throw new FluentValidation.ValidationException(validationResult.Errors);
+        }
+
+        var semesterCode = request.SemesterCode.Trim().ToUpperInvariant();
+        var subjectCode = request.SubjectCode.Trim().ToUpperInvariant();
+        var results = new List<ProvisionStudentResultItem>();
+        var newlyCreatedCount = 0;
+        var existingCount = 0;
+        var now = DateTime.UtcNow;
+
+        foreach (var item in request.Students)
+        {
+            var normalizedEmail = item.Email.Trim().ToLowerInvariant();
+            var normalizedStudentCode = item.StudentCode.Trim().ToUpperInvariant();
+            var fullName = item.FullName.Trim();
+
+            var existingAccount = await _accountRepository.GetByEmailAsync(normalizedEmail, ct);
+            if (existingAccount != null)
+            {
+                existingCount++;
+                var updated = false;
+
+                if (string.IsNullOrWhiteSpace(existingAccount.StudentCode) && !string.IsNullOrWhiteSpace(normalizedStudentCode))
+                {
+                    existingAccount.StudentCode = normalizedStudentCode;
+                    updated = true;
+                }
+
+                if (!existingAccount.EmailConfirmed)
+                {
+                    existingAccount.EmailConfirmed = true;
+                    existingAccount.EmailConfirmedAt = now;
+                    updated = true;
+                }
+
+                if (updated)
+                {
+                    existingAccount.UpdatedAt = now;
+                    await _accountRepository.UpdateAsync(existingAccount, ct);
+                }
+
+                results.Add(new ProvisionStudentResultItem(
+                    existingAccount.Id,
+                    existingAccount.StudentCode ?? normalizedStudentCode,
+                    existingAccount.RegistrationFullName,
+                    existingAccount.Email,
+                    IsNewlyCreated: false,
+                    StatusMessage: $"Tài khoản đã tồn tại từ kỳ trước ({semesterCode} - {subjectCode}) — giữ nguyên mật khẩu hiện tại."
+                ));
+                continue;
+            }
+
+            // Tạo mật khẩu khởi tạo chuẩn: Fpt@{MSSV}! (đạt chuẩn >= 8 ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt)
+            var initialPassword = $"Fpt@{normalizedStudentCode}!";
+            var passwordHash = _passwordHasher.HashPassword(initialPassword);
+
+            var newAccount = new Account
+            {
+                Id = Guid.NewGuid(),
+                Email = normalizedEmail,
+                PasswordHash = passwordHash,
+                RegistrationFullName = fullName,
+                Role = AccountRole.Student,
+                StudentCode = normalizedStudentCode,
+                MustChangePassword = true,
+                AcceptedTermsAt = null,
+                IsActive = true,
+                EmailConfirmed = true,
+                EmailConfirmedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            var normalizedMajor = NormalizeMajor(item.Major);
+
+            var userRegisteredEvent = new UserRegisteredEvent(
+                EventId: Guid.NewGuid(),
+                UserId: newAccount.Id,
+                Email: newAccount.Email,
+                FullName: newAccount.RegistrationFullName,
+                Role: newAccount.Role.ToString(),
+                OccurredAt: now,
+                SchemaVersion: 1,
+                StudentCode: normalizedStudentCode,
+                InitialPassword: initialPassword,
+                SemesterCode: semesterCode,
+                SubjectCode: subjectCode,
+                Major: normalizedMajor
+            );
+
+            var outboxMessage = new OutboxMessage
+            {
+                Id = Guid.NewGuid(),
+                EventType = nameof(UserRegisteredEvent),
+                Payload = JsonSerializer.Serialize(userRegisteredEvent, new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                }),
+                CreatedAt = now
+            };
+
+            await _unitOfWork.ExecuteInTransactionAsync(async () =>
+            {
+                await _accountRepository.AddAsync(newAccount, ct);
+                await _outboxRepository.AddAsync(outboxMessage, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+            }, ct);
+
+            newlyCreatedCount++;
+            results.Add(new ProvisionStudentResultItem(
+                newAccount.Id,
+                normalizedStudentCode,
+                newAccount.RegistrationFullName,
+                newAccount.Email,
+                IsNewlyCreated: true,
+                StatusMessage: $"Đã cấp tài khoản mới & gửi email mật khẩu khởi tạo ({initialPassword}) qua hệ thống."
+            ));
+        }
+
+        _logger.LogInformation(
+            "FAP student provisioning completed for {SemesterCode}-{SubjectCode}: {NewlyCreated} newly created, {Existing} existing",
+            semesterCode, subjectCode, newlyCreatedCount, existingCount);
+
+        return new ProvisionFapStudentsResponse(
+            semesterCode,
+            subjectCode,
+            results.Count,
+            newlyCreatedCount,
+            existingCount,
+            results
         );
+    }
+
+    public async Task<ProvisionFapStudentsResponse> ProvisionMockFapStudentsAsync(
+        string semesterCode = "FA26",
+        string subjectCode = "EXE101",
+        CancellationToken ct = default)
+    {
+        var mockStudents = new List<FapStudentImportItem>
+        {
+            new("SE180101", "Nguyễn Hoàng Phương Huyền Trân", "trannhphse180101@fpt.edu.vn", "SE"),
+            new("AI180205", "Trần Minh Khôi", "khoitmai180205@fpt.edu.vn", "AI"),
+            new("GD180312", "Lê Ngọc Bảo Châu", "chaulnbgd180312@fpt.edu.vn", "GD"),
+            new("MKT180408", "Phạm Quốc Đạt", "datpqmkt180408@fpt.edu.vn", "MKT"),
+            new("IB180519", "Võ Thị Thanh Thảo", "thaovttib180519@fpt.edu.vn", "IB"),
+            new("IA180622", "Đặng Gia Huy", "huydgia180622@fpt.edu.vn", "IA")
+        };
+
+        return await ProvisionFapStudentsAsync(
+            new ProvisionFapStudentsRequest(mockStudents, semesterCode, subjectCode),
+            ct);
+    }
+
+    private static string? NormalizeMajor(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var trimmed = raw.Trim();
+        var upper = trimmed.ToUpperInvariant();
+
+        if (upper is "SE" or "KỸ THUẬT PHẦN MỀM" or "KY THUAT PHAN MEM" or "SOFTWARE ENGINEERING" or "KTPM")
+            return "SE";
+        if (upper is "AI" or "TRÍ TUỆ NHÂN TẠO" or "TRI TUE NHAN TAO" or "ARTIFICIAL INTELLIGENCE")
+            return "AI";
+        if (upper is "IA" or "AN TOÀN THÔNG TIN" or "AN TOAN THONG TIN" or "INFORMATION ASSURANCE" or "ATTT")
+            return "IA";
+        if (upper is "GD" or "THIẾT KẾ ĐỒ HỌA" or "THIET KE DO HOA" or "GRAPHIC DESIGN" or "TKDH")
+            return "GD";
+        if (upper is "MKT" or "MK" or "MARKETING" or "DIGITAL MARKETING")
+            return "MKT";
+        if (upper is "IB" or "KINH DOANH QUỐC TẾ" or "KINH DOANH QUOC TE" or "INTERNATIONAL BUSINESS" or "KDQT" or "QUẢN TRỊ KINH DOANH" or "QTKD")
+            return "IB";
+
+        return upper;
     }
 }
