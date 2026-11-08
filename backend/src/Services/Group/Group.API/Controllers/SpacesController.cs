@@ -1,0 +1,137 @@
+using Exe.BuildingBlocks.Auth;
+using Group.Repository.Enums;
+using Group.Services.DTOs;
+using Group.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace Group.API.Controllers;
+
+/// <summary>
+/// Quản lý Không gian học phần (Course Space), danh sách sinh viên hợp lệ FAP và tạo Room tự động.
+/// Route qua API Gateway: /api/spaces.
+/// </summary>
+[ApiController]
+[Route("api/spaces")]
+[Authorize]
+[Produces("application/json")]
+public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
+{
+    /// <summary>Tạo Không gian học phần mới (Moderator only, BR-08).</summary>
+    [HttpPost]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<CourseSpaceResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CourseSpaceResponse>> CreateSpace(
+        [FromBody] CreateCourseSpaceRequest request, CancellationToken ct)
+    {
+        var space = await spaceService.CreateSpaceAsync(request, ct);
+        return CreatedAtAction(nameof(GetSpaceById), new { id = space.Id }, space);
+    }
+
+    /// <summary>Danh sách tất cả Không gian học phần (Lecturer hoặc Moderator).</summary>
+    [HttpGet]
+    [Authorize(Roles = Roles.LecturerOrModerator)]
+    [ProducesResponseType<IReadOnlyList<CourseSpaceResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<CourseSpaceResponse>>> GetAllSpaces(
+        [FromQuery] string? semesterCode,
+        [FromQuery] CourseSpaceStatus? status,
+        CancellationToken ct) =>
+        Ok(await spaceService.GetAllSpacesAsync(semesterCode, status, ct));
+
+    /// <summary>Danh sách Không gian học phần của sinh viên hiện tại (BR-01, BR-03).</summary>
+    [HttpGet("my")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<IReadOnlyList<CourseSpaceResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<CourseSpaceResponse>>> GetMySpaces(
+        [FromServices] ICurrentUser currentUser,
+        CancellationToken ct)
+    {
+        if (currentUser.UserId is null)
+            return Unauthorized();
+
+        return Ok(await spaceService.GetMySpacesAsync(currentUser.UserId.Value, currentUser.Email, ct));
+    }
+
+    /// <summary>Chi tiết một Không gian học phần theo ID.</summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<CourseSpaceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CourseSpaceResponse>> GetSpaceById(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.GetSpaceByIdAsync(id, ct));
+
+    /// <summary>Cập nhật cấu hình Space (sĩ số, buffer ratio, deadline, trạng thái) (Moderator only, BR-08).</summary>
+    [HttpPut("{id:guid}/config")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<CourseSpaceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CourseSpaceResponse>> UpdateSpaceConfig(
+        Guid id, [FromBody] UpdateSpaceConfigRequest request, CancellationToken ct) =>
+        Ok(await spaceService.UpdateSpaceConfigAsync(id, request, ct));
+
+    /// <summary>Import danh sách sinh viên hợp lệ từ FAP (Moderator only, BR-08).</summary>
+    [HttpPost("{id:guid}/import-fap")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<int>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<int>> ImportFapStudents(
+        Guid id, [FromBody] ImportFapStudentsRequest request, CancellationToken ct) =>
+        Ok(await spaceService.ImportFapStudentsAsync(id, request, ct));
+
+    /// <summary>Đồng bộ dữ liệu Mock FAP 50 sinh viên mẫu đa ngành (Moderator only, BR-08).</summary>
+    [HttpPost("{id:guid}/sync-mock-fap")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<int>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<int>> SyncMockFapStudents(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.SyncMockFapStudentsAsync(id, ct));
+
+    /// <summary>
+    /// Sinh Room tự động theo công thức CEIL(N / MaxMembers * BufferRatio) (Moderator only, BR-09, BR-11).
+    /// </summary>
+    [HttpPost("{id:guid}/generate-rooms")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<GenerateRoomsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GenerateRoomsResponse>> GenerateRooms(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.GenerateRoomsAsync(id, ct));
+
+    /// <summary>Danh sách sinh viên đã được ghi danh (enrollment) trong Space (Lecturer hoặc Moderator).</summary>
+    [HttpGet("{id:guid}/enrollments")]
+    [Authorize(Roles = Roles.LecturerOrModerator)]
+    [ProducesResponseType<IReadOnlyList<SpaceEnrollmentResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<SpaceEnrollmentResponse>>> GetSpaceEnrollments(
+        Guid id, CancellationToken ct) =>
+        Ok(await spaceService.GetSpaceEnrollmentsAsync(id, ct));
+
+    /// <summary>Danh sách các Room thuộc Space kèm trạng thái sĩ số và mã phòng (BR-09, BR-10).</summary>
+    [HttpGet("{id:guid}/rooms")]
+    [ProducesResponseType<IReadOnlyList<RoomSummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<RoomSummaryResponse>>> GetSpaceRooms(
+        Guid id, [FromQuery] GroupStatus? status, CancellationToken ct) =>
+        Ok(await spaceService.GetSpaceRoomsAsync(id, status, ct));
+}

@@ -181,6 +181,29 @@ public class UserProfileServiceTests
     }
 
     [Fact]
+    public async Task UpdateProfile_WhenStudentCodeAlreadyLockedFromFap_ShouldThrowBadRequestException()
+    {
+        // Arrange (BR-04: Sinh viên đã có StudentCode từ FAP không được đổi sang mã khác)
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "student.fap@fpt.edu.vn",
+            FullName = "Student FAP",
+            StudentCode = "SE180001"
+        });
+
+        var request = new UpdateUserProfileRequest(
+            FullName: "Student FAP",
+            StudentCode: "SE189999"
+        );
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.UpdateUserProfileAsync(userId, request));
+        Assert.Equal("STUDENT_CODE_LOCKED", ex.ErrorCode);
+    }
+
+    [Fact]
     public async Task UpdateProfile_WhenInvalidFields_ShouldThrowValidationException()
     {
         // Arrange: Empty FullName and invalid StudentCode with special characters
@@ -357,6 +380,149 @@ public class UserProfileServiceTests
         Assert.Equal(userId, published.UserId);
         Assert.Equal("New Name", published.FullName);
         Assert.Equal("SE", published.Major);
+    }
+
+    [Fact]
+    public async Task UpdateProfileSkills_WhenValidAndCommitted_ShouldSet5ScoresAndMarkCompleted()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "skills.student@fpt.edu.vn",
+            FullName = "Skills Student",
+            StudentCode = "SE180999",
+            Cohort = "K18",
+            Major = Major.SE
+        });
+
+        var request = new UpdateProfileSkillsRequest(
+            TechScore: 85,
+            ManagementScore: 70,
+            GraphicDesignScore: 60,
+            MarketingScore: 50,
+            SaleScore: 40,
+            IsCommitted: true,
+            DesiredRole: "Fullstack Lead",
+            Bio: "Experienced in .NET and React",
+            Interests: new List<string> { "EdTech", "FinTech" }
+        );
+
+        // Act
+        var result = await _service.UpdateProfileSkillsAsync(userId, request);
+
+        // Assert
+        Assert.Equal(85, result.TechScore);
+        Assert.Equal(70, result.ManagementScore);
+        Assert.Equal(60, result.GraphicDesignScore);
+        Assert.Equal(50, result.MarketingScore);
+        Assert.Equal(40, result.SaleScore);
+        Assert.True(result.IsCommitted);
+        Assert.NotNull(result.CommittedAt);
+        Assert.True(result.IsProfileCompleted);
+        Assert.Equal("Fullstack Lead", result.DesiredRole);
+        Assert.Equal("Experienced in .NET and React", result.Bio);
+        Assert.Equal("K18", result.Cohort);
+    }
+
+    [Fact]
+    public async Task UpdateProfileSkills_WhenNotCommitted_ShouldThrowValidationException()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "uncommitted@fpt.edu.vn",
+            FullName = "Uncommitted Student"
+        });
+
+        var request = new UpdateProfileSkillsRequest(
+            TechScore: 85,
+            ManagementScore: 70,
+            GraphicDesignScore: 60,
+            MarketingScore: 50,
+            SaleScore: 40,
+            IsCommitted: false // Violates BR-06
+        );
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => _service.UpdateProfileSkillsAsync(userId, request));
+        Assert.Contains(ex.Errors, e => e.PropertyName == "IsCommitted");
+    }
+
+    [Theory]
+    [InlineData(-1, 50, 50, 50, 50)]
+    [InlineData(101, 50, 50, 50, 50)]
+    [InlineData(50, 105, 50, 50, 50)]
+    [InlineData(50, 50, -5, 50, 50)]
+    public async Task UpdateProfileSkills_WhenScoresOutOfRange_ShouldThrowValidationException(
+        int tech, int mgmt, int gd, int mkt, int sale)
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var request = new UpdateProfileSkillsRequest(
+            TechScore: tech,
+            ManagementScore: mgmt,
+            GraphicDesignScore: gd,
+            MarketingScore: mkt,
+            SaleScore: sale,
+            IsCommitted: true
+        );
+
+        // Act & Assert
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => _service.UpdateProfileSkillsAsync(userId, request));
+    }
+
+    [Fact]
+    public async Task UpdateProfileSkills_ShouldPublishEventWith5ScoresAndCohort()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "event.skills@fpt.edu.vn",
+            FullName = "Event Skills Student",
+            StudentCode = "SE180777",
+            Cohort = "K18",
+            Major = Major.SE
+        });
+
+        var fakePublisher = new FakeEventPublisher();
+        var serviceWithPublisher = new UserProfileService(
+            _profileRepo,
+            _unitOfWork,
+            _currentUser,
+            new UpdateUserProfileRequestValidator(),
+            new CreateUserProfileInternalRequestValidator(),
+            new BatchUsersRequestValidator(),
+            fakePublisher);
+
+        var request = new UpdateProfileSkillsRequest(
+            TechScore: 90,
+            ManagementScore: 80,
+            GraphicDesignScore: 70,
+            MarketingScore: 60,
+            SaleScore: 50,
+            IsCommitted: true
+        );
+
+        // Act
+        await serviceWithPublisher.UpdateProfileSkillsAsync(userId, request);
+
+        // Assert
+        Assert.Single(fakePublisher.PublishedEvents);
+        var published = Assert.IsType<UserProfileUpdated>(fakePublisher.PublishedEvents[0]);
+        Assert.Equal(userId, published.UserId);
+        Assert.Equal(90, published.TechScore);
+        Assert.Equal(80, published.ManagementScore);
+        Assert.Equal(70, published.GraphicDesignScore);
+        Assert.Equal(60, published.MarketingScore);
+        Assert.Equal(50, published.SaleScore);
+        Assert.True(published.IsProfileCompleted);
+        Assert.Equal("K18", published.Cohort);
     }
 
     private class FakeEventPublisher : IEventPublisher

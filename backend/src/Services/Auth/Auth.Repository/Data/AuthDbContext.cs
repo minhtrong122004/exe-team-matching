@@ -47,6 +47,17 @@ public class AuthDbContext : DbContext
                   .HasMaxLength(20)
                   .IsRequired();
 
+            entity.Property(a => a.StudentCode)
+                  .HasMaxLength(32)
+                  .IsRequired(false);
+
+            entity.Property(a => a.MustChangePassword)
+                  .IsRequired()
+                  .HasDefaultValue(false);
+
+            entity.Property(a => a.AcceptedTermsAt)
+                  .IsRequired(false);
+
             entity.Property(a => a.IsActive)
                   .IsRequired()
                   .HasDefaultValue(true);

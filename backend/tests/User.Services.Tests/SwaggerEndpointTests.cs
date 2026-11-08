@@ -66,6 +66,6 @@ public class SwaggerEndpointTests
 
         var auth = method.GetCustomAttribute<AuthorizeAttribute>();
         Assert.NotNull(auth);
-        Assert.Equal("Admin", auth.Roles);
+        Assert.Equal("Moderator", auth.Roles);
     }
 }

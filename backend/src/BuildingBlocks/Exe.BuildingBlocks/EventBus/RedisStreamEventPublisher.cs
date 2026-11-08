@@ -27,6 +27,32 @@ public class RedisStreamEventPublisher : IEventPublisher
         _httpContextAccessor = httpContextAccessor;
     }
 
+    public async Task<Guid> PublishAsync<TEvent>(TEvent @event, CancellationToken cancellationToken = default) where TEvent : class
+    {
+        ArgumentNullException.ThrowIfNull(@event);
+
+        var eventType = typeof(TEvent).Name;
+        if (eventType.EndsWith("Event", StringComparison.Ordinal) && eventType.Length > 5)
+        {
+            eventType = eventType[..^5];
+        }
+
+        var streamName = EventStreams.For(eventType);
+        await PublishAsync(streamName, @event, cancellationToken);
+
+        var propVal = typeof(TEvent).GetProperty("EventId")?.GetValue(@event);
+        if (propVal is Guid guidVal && guidVal != Guid.Empty)
+        {
+            return guidVal;
+        }
+        if (propVal is string strVal && Guid.TryParse(strVal, out var parsedGuid))
+        {
+            return parsedGuid;
+        }
+
+        return Guid.NewGuid();
+    }
+
     public async Task PublishAsync<T>(string streamName, T @event, CancellationToken cancellationToken = default) where T : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(streamName);

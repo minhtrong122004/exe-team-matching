@@ -17,11 +17,15 @@ public record AuthUserDto(
     Guid Id,
     string Email,
     string FullName,
-    string Role
+    string Role,
+    bool MustChangePassword = false,
+    bool HasAcceptedTerms = false,
+    DateTime? AcceptedTermsAt = null,
+    string? StudentCode = null
 );
 
 /// <summary>
-/// DTO phản hồi chi tiết tài khoản cho /api/auth/me và danh sách tài khoản Admin.
+/// DTO phản hồi chi tiết tài khoản cho /api/auth/me và danh sách tài khoản Moderator/Admin.
 /// </summary>
 public record AccountResponse(
     Guid Id,
@@ -30,7 +34,11 @@ public record AccountResponse(
     string Role,
     bool IsActive,
     DateTime CreatedAt,
-    DateTime? UpdatedAt = null
+    DateTime? UpdatedAt = null,
+    bool MustChangePassword = false,
+    bool HasAcceptedTerms = false,
+    DateTime? AcceptedTermsAt = null,
+    string? StudentCode = null
 );
 
 /// <summary>
@@ -77,4 +85,45 @@ public record ForgotPasswordResponse(
 public record ResetPasswordResponse(
     string Message,
     string Email
+);
+
+/// <summary>
+/// DTO phản hồi sau khi người dùng tự đổi mật khẩu thành công.
+/// </summary>
+public record ChangePasswordResponse(
+    string Message,
+    bool MustChangePassword
+);
+
+/// <summary>
+/// DTO phản hồi sau khi sinh viên xác nhận đồng ý điều khoản ghép nhóm lần đầu (BR-34).
+/// </summary>
+public record AcceptTermsResponse(
+    string Message,
+    bool HasAcceptedTerms,
+    DateTime AcceptedTermsAt
+);
+
+/// <summary>
+/// Kết quả cấp phát tài khoản cho từng sinh viên trong danh sách FAP.
+/// </summary>
+public record ProvisionStudentResultItem(
+    Guid AccountId,
+    string StudentCode,
+    string FullName,
+    string Email,
+    bool IsNewlyCreated,
+    string StatusMessage
+);
+
+/// <summary>
+/// Tổng hợp kết quả đồng bộ & cấp phát tài khoản sinh viên từ danh sách FAP (BR-01).
+/// </summary>
+public record ProvisionFapStudentsResponse(
+    string SemesterCode,
+    string SubjectCode,
+    int TotalProcessed,
+    int NewlyCreatedCount,
+    int ExistingCount,
+    IReadOnlyList<ProvisionStudentResultItem> Results
 );

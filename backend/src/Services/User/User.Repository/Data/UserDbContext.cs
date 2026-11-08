@@ -64,6 +64,39 @@ public class UserDbContext : DbContext
                   .HasConversion<string>()
                   .HasMaxLength(20);
 
+            entity.Property(u => u.Cohort)
+                  .HasMaxLength(10);
+
+            entity.Property(u => u.TechScore)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+
+            entity.Property(u => u.ManagementScore)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+
+            entity.Property(u => u.GraphicDesignScore)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+
+            entity.Property(u => u.MarketingScore)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+
+            entity.Property(u => u.SaleScore)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+
+            entity.Property(u => u.IsCommitted)
+                  .IsRequired()
+                  .HasDefaultValue(false);
+
+            entity.Property(u => u.CommittedAt);
+
+            entity.Property(u => u.IsProfileCompleted)
+                  .IsRequired()
+                  .HasDefaultValue(false);
+
             entity.Property(u => u.Bio)
                   .HasMaxLength(1000);
 

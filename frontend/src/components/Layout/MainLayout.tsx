@@ -6,6 +6,7 @@ import { notificationsApi } from '../../api/notifications';
 import type { UserRole } from '../../types';
 import {
   Lightbulb,
+  Layers,
   Users,
   FileText,
   Bell,
@@ -21,6 +22,12 @@ import {
   Sparkles,
   Moon,
   Sun,
+  CheckCircle2,
+  KeyRound,
+  Lock,
+  AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface NavSection {
@@ -34,13 +41,87 @@ interface NavSection {
 }
 
 export const MainLayout: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, acceptTerms, changePassword } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // First-Login Onboarding State (BR-34 Terms + Optional/Recommended Initial Password Change)
+  const [termsChecked, setTermsChecked] = useState(false);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [onboardingSuccess, setOnboardingSuccess] = useState<string | null>(null);
+  const [dismissedPasswordStep, setDismissedPasswordStep] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showOnboardingPasswords, setShowOnboardingPasswords] = useState(false);
+
+  const needsTermsAcceptance = user?.role === 'Student' && user.hasAcceptedTerms === false;
+  const needsPasswordChange =
+    user?.role === 'Student' && Boolean(user.mustChangePassword) && !dismissedPasswordStep;
+  const showOnboardingModal = needsTermsAcceptance || needsPasswordChange;
+
+  const handleAcceptTermsSubmit = async () => {
+    if (!termsChecked) {
+      setOnboardingError('Vui lòng tích chọn xác nhận đồng ý với Quy định ghép nhóm và điều phối (BR-34).');
+      return;
+    }
+    setOnboardingError(null);
+    setOnboardingLoading(true);
+    try {
+      await acceptTerms();
+      setOnboardingSuccess('Đã ghi nhận xác nhận đồng ý Quy định ghép nhóm (BR-34).');
+    } catch (err: any) {
+      setOnboardingError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          'Không thể lưu xác nhận điều khoản. Vui lòng thử lại.'
+      );
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
+
+  const handleOnboardingChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOnboardingError(null);
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setOnboardingError('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
+      return;
+    }
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
+      setOnboardingError('Mật khẩu mới phải từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setOnboardingError('Mật khẩu xác nhận không trùng khớp.');
+      return;
+    }
+
+    setOnboardingLoading(true);
+    try {
+      await changePassword({ currentPassword, newPassword, confirmNewPassword });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setDismissedPasswordStep(true);
+    } catch (err: any) {
+      setOnboardingError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          err.response?.data?.message ||
+          'Mật khẩu hiện tại không chính xác hoặc dữ liệu không hợp lệ.'
+      );
+    } finally {
+      setOnboardingLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -90,98 +171,216 @@ export const MainLayout: React.FC = () => {
     navigate('/login');
   };
 
-  // Grouped navigation with /profile accessible to ALL roles
-  const navSections: NavSection[] = [
-    {
-      title: 'Dự án & Ý tưởng',
-      items: [
-        {
-          to: '/projects',
-          label: 'Ý tưởng dự án (EXE)',
-          icon: <Lightbulb size={19} />,
-          roles: ['Student', 'Lecturer', 'Admin'],
-        },
-        {
-          to: '/groups',
-          label: 'Khám phá nhóm',
-          icon: <Compass size={19} />,
-          roles: ['Student', 'Lecturer', 'Admin'],
-        },
-        {
-          to: '/candidates',
-          label: 'Danh bạ ứng viên',
-          icon: <Users size={19} />,
-          roles: ['Student', 'Lecturer', 'Admin'],
-        },
-      ],
-    },
-    {
-      title: 'Kết nối nhóm',
-      items: [
-        {
-          to: '/my-group',
-          label: 'Nhóm của tôi',
-          icon: <Users size={19} />,
-          roles: ['Student'],
-        },
-        {
-          to: '/join-requests',
-          label: 'Yêu cầu tham gia',
-          icon: <UserPlus size={19} />,
-          roles: ['Student'],
-        },
-        {
-          to: '/invitations',
-          label: 'Lời mời vào nhóm',
-          icon: <Mail size={19} />,
-          roles: ['Student'],
-        },
-      ],
-    },
-    {
-      title: 'Cá nhân',
-      items: [
-        {
-          to: '/profile',
-          label: 'Hồ sơ cá nhân',
-          icon: <User size={19} />,
-          roles: ['Student', 'Lecturer', 'Admin'],
-        },
-        {
-          to: '/notifications',
-          label: 'Thông báo',
-          icon: <Bell size={19} />,
-          roles: ['Student', 'Lecturer', 'Admin'],
-        },
-      ],
-    },
-    {
-      title: 'Quản trị & Báo cáo',
-      items: [
-        {
-          to: '/reports',
-          label: 'Báo cáo ghép nhóm',
-          icon: <FileText size={19} />,
-          roles: ['Lecturer', 'Admin'],
-        },
-        {
-          to: '/admin/accounts',
-          label: 'Quản lý tài khoản',
-          icon: <Shield size={19} />,
-          roles: ['Admin'],
-        },
-      ],
-    },
-  ];
-
-  const sidebarWidth = isCollapsed ? 76 : 255;
-
-  // Extract avatar initials (SV: Sinh viên, GV: Giảng viên, AD: Admin)
+  // Extract avatar initials (SV: Sinh viên, ĐP: Điều phối viên, GV: Giảng viên)
   const getInitials = (role?: UserRole) => {
+    if (role === 'Moderator') return 'ĐP';
     if (role === 'Lecturer') return 'GV';
-    if (role === 'Admin') return 'AD';
     return 'SV';
   };
+
+  // Role-specific navigation sections (BR-01, BR-02, BR-03 Role Separation)
+  const getNavSectionsForRole = (role?: UserRole): NavSection[] => {
+    if (role === 'Moderator') {
+      return [
+        {
+          title: 'Quản trị & Điều phối học kỳ',
+          items: [
+            {
+              to: '/spaces',
+              label: 'Không gian học phần (FAP)',
+              icon: <Layers size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/admin/accounts',
+              label: 'Quản lý TK & Đồng bộ FAP',
+              icon: <Shield size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo & Thống kê ghép nhóm',
+              icon: <FileText size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+        {
+          title: 'Giám sát học vụ & Đề tài',
+          items: [
+            {
+              to: '/groups',
+              label: 'Giám sát nhóm & Room',
+              icon: <Compass size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/projects',
+              label: 'Ý tưởng dự án (EXE)',
+              icon: <Lightbulb size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+        {
+          title: 'Cá nhân & Hệ thống',
+          items: [
+            {
+              to: '/profile',
+              label: 'Hồ sơ điều phối viên',
+              icon: <User size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/notifications',
+              label: 'Thông báo hệ thống',
+              icon: <Bell size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+      ];
+    }
+
+    if (role === 'Lecturer') {
+      return [
+        {
+          title: 'Giảng dạy & Cố vấn EXE',
+          items: [
+            {
+              to: '/spaces',
+              label: 'Không gian học phần',
+              icon: <Layers size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo & Danh sách nhóm',
+              icon: <FileText size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/groups',
+              label: 'Các nhóm sinh viên',
+              icon: <Compass size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/projects',
+              label: 'Ý tưởng dự án (EXE)',
+              icon: <Lightbulb size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={19} />,
+              roles: ['Lecturer'],
+            },
+          ],
+        },
+        {
+          title: 'Cá nhân',
+          items: [
+            {
+              to: '/profile',
+              label: 'Hồ sơ giảng viên',
+              icon: <User size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/notifications',
+              label: 'Thông báo',
+              icon: <Bell size={19} />,
+              roles: ['Lecturer'],
+            },
+          ],
+        },
+      ];
+    }
+
+    // Default for Student
+    return [
+      {
+        title: 'Không gian & Ghép đội EXE',
+        items: [
+          {
+            to: '/spaces',
+            label: 'Không gian học phần của tôi',
+            icon: <Layers size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/my-group',
+            label: 'Nhóm của tôi',
+            icon: <Users size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/join-requests',
+            label: 'Yêu cầu tham gia',
+            icon: <UserPlus size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/invitations',
+            label: 'Lời mời vào nhóm',
+            icon: <Mail size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+      {
+        title: 'Khám phá & Đề tài',
+        items: [
+          {
+            to: '/projects',
+            label: 'Ý tưởng dự án (EXE)',
+            icon: <Lightbulb size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/groups',
+            label: 'Khám phá nhóm',
+            icon: <Compass size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/candidates',
+            label: 'Tìm bạn ghép đội (Ứng viên)',
+            icon: <Sparkles size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+      {
+        title: 'Cá nhân',
+        items: [
+          {
+            to: '/profile',
+            label: 'Hồ sơ 5 kỹ năng',
+            icon: <User size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/notifications',
+            label: 'Thông báo',
+            icon: <Bell size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+    ];
+  };
+
+  const navSections: NavSection[] = getNavSectionsForRole(user?.role);
+  const sidebarWidth = isCollapsed ? 76 : 255;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main, #f4f6fa)' }}>
@@ -511,10 +710,10 @@ export const MainLayout: React.FC = () => {
                     height: 34,
                     borderRadius: 8,
                     background:
-                      user?.role === 'Admin'
-                        ? '#dc2626'
-                        : user?.role === 'Lecturer'
+                      user?.role === 'Moderator'
                         ? '#0054a6'
+                        : user?.role === 'Lecturer'
+                        ? '#008837'
                         : '#f26f21',
                     color: '#ffffff',
                     display: 'flex',
@@ -522,14 +721,16 @@ export const MainLayout: React.FC = () => {
                     justifyContent: 'center',
                     fontWeight: 700,
                     fontSize: '0.85rem',
+                    flexShrink: 0,
                   }}
                 >
                   {getInitials(user?.role)}
                 </div>
 
                 {/* Name & ID/Role */}
-                <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
+                <div style={{ textAlign: 'left', lineHeight: 1.35, minWidth: 0 }}>
                   <div
+                    title={user?.fullName || 'Người dùng'}
                     style={{
                       fontSize: '0.85rem',
                       fontWeight: 700,
@@ -542,8 +743,20 @@ export const MainLayout: React.FC = () => {
                   >
                     {user?.fullName || 'Người dùng'}
                   </div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
-                    {user?.studentCode || user?.role}
+                  <div
+                    style={{
+                      fontSize: '0.725rem',
+                      color: 'var(--text-muted, #64748b)',
+                      fontWeight: 600,
+                      fontFamily: user?.studentCode ? 'var(--font-mono, monospace)' : undefined,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {user?.role === 'Moderator'
+                      ? 'Điều phối viên'
+                      : user?.role === 'Lecturer'
+                      ? 'Giảng viên'
+                      : user?.studentCode || 'Sinh viên'}
                   </div>
                 </div>
 
@@ -590,14 +803,14 @@ export const MainLayout: React.FC = () => {
                         padding: '0.2rem 0.55rem',
                         borderRadius: 6,
                         background:
-                          user?.role === 'Admin'
-                            ? '#fef2f2'
+                          user?.role === 'Moderator'
+                            ? '#f0fdf4'
                             : user?.role === 'Lecturer'
                             ? '#eef2ff'
                             : '#fff7ed',
                         color:
-                          user?.role === 'Admin'
-                            ? '#dc2626'
+                          user?.role === 'Moderator'
+                            ? '#008837'
                             : user?.role === 'Lecturer'
                             ? '#0054a6'
                             : '#ea580c',
@@ -610,7 +823,7 @@ export const MainLayout: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Account Link - Accessible to Student, Lecturer & Admin */}
+                  {/* Account Link - Accessible to Student, Lecturer & Moderator */}
                   <button
                     onClick={() => {
                       setUserMenuOpen(false);
@@ -664,21 +877,21 @@ export const MainLayout: React.FC = () => {
                           fontWeight: 700,
                           fontSize: '0.75rem',
                           background:
-                            user?.role === 'Admin'
-                              ? '#fef2f2'
+                            user?.role === 'Moderator'
+                              ? '#f0fdf4'
                               : user?.role === 'Lecturer'
                               ? '#eff6ff'
                               : '#fff7ed',
                           color:
-                            user?.role === 'Admin'
-                              ? '#dc2626'
+                            user?.role === 'Moderator'
+                              ? '#008837'
                               : user?.role === 'Lecturer'
                               ? '#2563eb'
                               : '#ea580c',
                         }}
                       >
-                        {user?.role === 'Admin'
-                          ? 'Quản trị viên'
+                        {user?.role === 'Moderator'
+                          ? 'Điều phối viên'
                           : user?.role === 'Lecturer'
                           ? 'Giảng viên'
                           : 'Sinh viên'}
@@ -721,6 +934,330 @@ export const MainLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════
+          FIRST-LOGIN ONBOARDING MODAL (BR-34 TERMS & INITIAL PASSWORD)
+         ══════════════════════════════════════════════════════════════ */}
+      {showOnboardingModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="onboarding-modal-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(10, 25, 47, 0.72)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1.25rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: '100%',
+              maxWidth: 580,
+              padding: 0,
+              overflow: 'hidden',
+              border: '1px solid var(--border-light, #e2e8f0)',
+              borderRadius: 14,
+              background: 'var(--bg-card, #ffffff)',
+              animation: 'onboardingPopIn 220ms cubic-bezier(0.23, 1, 0.32, 1)',
+            }}
+          >
+            {/* Modal Banner Header */}
+            <div
+              style={{
+                background: '#0a192f',
+                color: '#ffffff',
+                padding: '1.35rem 1.75rem',
+                borderBottom: '3px solid #f26f21',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    background: 'rgba(242, 111, 33, 0.2)',
+                    border: '1px solid rgba(242, 111, 33, 0.45)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#f26f21',
+                    flexShrink: 0,
+                  }}
+                >
+                  {needsTermsAcceptance ? <Shield size={20} /> : <KeyRound size={20} />}
+                </div>
+                <div>
+                  <h2
+                    id="onboarding-modal-title"
+                    style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}
+                  >
+                    {needsTermsAcceptance
+                      ? 'Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)'
+                      : 'Thiết lập Mật khẩu Bảo mật Lần đầu'}
+                  </h2>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                    Sinh viên: <strong>{user?.fullName}</strong>
+                    {user?.studentCode ? ` • MSSV: ${user.studentCode}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono, monospace)',
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: 999,
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  color: '#f8fafc',
+                  flexShrink: 0,
+                }}
+              >
+                {needsTermsAcceptance ? 'Bước 1 / 2' : 'Bước 2 / 2'}
+              </span>
+            </div>
+
+            <div style={{ padding: '1.5rem 1.75rem' }}>
+              {onboardingError && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.75rem 1rem',
+                    borderRadius: 10,
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#991b1b',
+                    fontSize: '0.85rem',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <AlertCircle size={17} style={{ flexShrink: 0, color: '#dc2626' }} />
+                  <span>{onboardingError}</span>
+                </div>
+              )}
+
+              {onboardingSuccess && !needsTermsAcceptance && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.6rem',
+                    padding: '0.75rem 1rem',
+                    borderRadius: 10,
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    color: '#166534',
+                    fontSize: '0.85rem',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <CheckCircle2 size={17} style={{ flexShrink: 0, color: '#16a34a' }} />
+                  <span>{onboardingSuccess}</span>
+                </div>
+              )}
+
+              {needsTermsAcceptance ? (
+                <div>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-main, #1e293b)', lineHeight: 1.55, marginTop: 0 }}>
+                    Chào mừng bạn đến với hệ thống ghép nhóm học phần <strong>Experiential Entrepreneurship (EXE)</strong>. Trước khi tham gia Room ghép nhóm, vui lòng đọc và xác nhận các nguyên tắc vận hành bắt buộc:
+                  </p>
+
+                  <div
+                    style={{
+                      background: 'var(--bg-main, #f8fafc)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
+                      borderRadius: 10,
+                      padding: '1rem 1.15rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.65rem',
+                      fontSize: '0.84rem',
+                      color: 'var(--text-main, #334155)',
+                      lineHeight: 1.5,
+                      marginBottom: '1.25rem',
+                    }}
+                  >
+                    <div>
+                      <strong>1. Quy mô & Tỷ lệ Liên ngành (BR-07, BR-08):</strong> Mỗi nhóm chuẩn gồm <strong>6 thành viên</strong> (tối thiểu 4 thành viên hợp lệ), trong đó <strong>tối đa 3 sinh viên khối Công nghệ (SE / AI / IA)</strong> và khuyến khích tối thiểu 2 chuyên ngành khác nhau.
+                    </div>
+                    <div>
+                      <strong>2. Cơ chế Biểu quyết Dân chủ & Bầu Leader (BR-17, BR-22):</strong> Khi phòng có từ 3 thành viên trở lên, ứng viên mới cần đạt <strong>tối thiểu 2/3 phiếu đồng ý</strong>. Khi đủ 6/6 thành viên hoặc đóng tuyển, nhóm có 24 giờ để bầu chọn Leader chính thức.
+                    </div>
+                    <div>
+                      <strong>3. Quyền Điều phối khi Chốt sổ Học kỳ (BR-26, BR-28, BR-34):</strong> Sau thời hạn chốt sổ (Deadline), những sinh viên chưa có nhóm hoặc phòng dưới 4 thành viên sẽ được <strong>Điều phối viên (Moderator) và Giảng viên</strong> ghép tự động để đảm bảo 100% sinh viên đủ điều kiện làm đồ án.
+                    </div>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem',
+                      padding: '0.85rem 1rem',
+                      borderRadius: 10,
+                      border: termsChecked ? '1px solid #f26f21' : '1px solid var(--border-light, #cbd5e1)',
+                      background: termsChecked ? '#fff7ed' : 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '0.86rem',
+                      fontWeight: 600,
+                      color: 'var(--text-main, #0f172a)',
+                      marginBottom: '1.35rem',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={termsChecked}
+                      onChange={(e) => {
+                        setTermsChecked(e.target.checked);
+                        if (e.target.checked) setOnboardingError(null);
+                      }}
+                      style={{ marginTop: 3, width: 17, height: 17, accentColor: '#f26f21', flexShrink: 0 }}
+                    />
+                    <span>
+                      Tôi đã đọc hiểu và đồng ý tuân thủ quy định ghép nhóm liên ngành cũng như sự điều phối của Moderator / Giảng viên (BR-34).
+                    </span>
+                  </label>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="btn btn-secondary"
+                      disabled={onboardingLoading}
+                    >
+                      Đăng xuất
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAcceptTermsSubmit}
+                      className="btn btn-primary"
+                      disabled={onboardingLoading || !termsChecked}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                    >
+                      <CheckCircle2 size={17} />
+                      <span>{onboardingLoading ? 'Đang xác nhận...' : 'Xác nhận & Tiếp tục'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleOnboardingChangePassword}>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #475569)', lineHeight: 1.55, marginTop: 0 }}>
+                    Tài khoản của bạn đang sử dụng <strong>mật khẩu khởi tạo từ danh sách FAP</strong>. Vui lòng thiết lập mật khẩu cá nhân mới để bảo vệ tài khoản trong suốt kỳ học EXE.
+                  </p>
+
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
+                      Mật khẩu khởi tạo hiện tại *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Lock size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+                      <input
+                        type={showOnboardingPasswords ? 'text' : 'password'}
+                        className="form-control"
+                        placeholder="Nhập mật khẩu khởi tạo trong email..."
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        disabled={onboardingLoading}
+                        style={{ paddingLeft: '2.35rem', paddingRight: '2.5rem' }}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOnboardingPasswords((v) => !v)}
+                        aria-label={showOnboardingPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                        style={{
+                          position: 'absolute',
+                          right: 10,
+                          top: 10,
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {showOnboardingPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
+                        Mật khẩu mới *
+                      </label>
+                      <input
+                        type={showOnboardingPasswords ? 'text' : 'password'}
+                        className="form-control"
+                        placeholder="Ít nhất 8 ký tự, chữ hoa, số, ký tự ĐB"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={onboardingLoading}
+                        required
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
+                        Xác nhận mật khẩu mới *
+                      </label>
+                      <input
+                        type={showOnboardingPasswords ? 'text' : 'password'}
+                        className="form-control"
+                        placeholder="Nhập lại mật khẩu mới"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        disabled={onboardingLoading}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setDismissedPasswordStep(true)}
+                      className="btn btn-secondary"
+                      disabled={onboardingLoading}
+                    >
+                      Để sau (Đổi tại Hồ sơ cá nhân)
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={onboardingLoading}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                    >
+                      <KeyRound size={16} />
+                      <span>{onboardingLoading ? 'Đang lưu mật khẩu...' : 'Cập nhật mật khẩu mới'}</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+          <style>{`
+            @keyframes onboardingPopIn {
+              from { opacity: 0; transform: scale(0.96) translateY(6px); }
+              to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 };

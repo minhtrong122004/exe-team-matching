@@ -5,10 +5,12 @@ using Microsoft.EntityFrameworkCore;
 namespace Group.Repository.Data;
 
 /// <summary>
-/// DbContext duy nhất của Group Service — ánh xạ vào database ExeGroupDb (CLAUDE.md mục 3, 6).
+/// DbContext duy nhất của Group Service — ánh xạ vào database ExeGroupDb.
 /// </summary>
 public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContext(options)
 {
+    public DbSet<CourseSpace> CourseSpaces => Set<CourseSpace>();
+    public DbSet<SpaceEnrollment> SpaceEnrollments => Set<SpaceEnrollment>();
     public DbSet<GroupEntity> Groups => Set<GroupEntity>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<RecruitmentSlot> RecruitmentSlots => Set<RecruitmentSlot>();
@@ -19,27 +21,86 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
     {
         base.OnModelCreating(modelBuilder);
 
-        // ── GroupEntity ────────────────────────────────────────────────────────
+        // ── CourseSpace ────────────────────────────────────────────────────────
+        modelBuilder.Entity<CourseSpace>(entity =>
+        {
+            entity.ToTable("CourseSpaces");
+            entity.HasKey(s => s.Id);
+
+            entity.Property(s => s.SemesterCode).IsRequired().HasMaxLength(20);
+            entity.Property(s => s.SubjectCode).IsRequired().HasMaxLength(20);
+            entity.Property(s => s.Name).IsRequired().HasMaxLength(100);
+            entity.Property(s => s.Status).HasConversion<string>().HasMaxLength(30);
+            entity.Property(s => s.BufferRatio).HasPrecision(5, 2);
+
+            entity.HasIndex(s => new { s.SemesterCode, s.SubjectCode })
+                  .HasDatabaseName(GroupIndexes.CourseSpaceCode)
+                  .IsUnique();
+
+            entity.HasIndex(s => s.Status);
+        });
+
+        // ── SpaceEnrollment ────────────────────────────────────────────────────
+        modelBuilder.Entity<SpaceEnrollment>(entity =>
+        {
+            entity.ToTable("SpaceEnrollments");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.StudentCode).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.FullName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Major).IsRequired().HasMaxLength(20);
+            entity.Property(e => e.Cohort).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.ClassCode).HasMaxLength(50);
+
+            entity.HasIndex(e => new { e.SpaceId, e.StudentId })
+                  .HasDatabaseName(GroupIndexes.SpaceEnrollmentStudent)
+                  .IsUnique();
+
+            entity.HasIndex(e => new { e.SpaceId, e.StudentCode })
+                  .HasDatabaseName(GroupIndexes.SpaceEnrollmentStudentCode)
+                  .IsUnique();
+
+            entity.HasOne(e => e.Space)
+                  .WithMany(s => s.Enrollments)
+                  .HasForeignKey(e => e.SpaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── GroupEntity (Room / Group) ─────────────────────────────────────────
         modelBuilder.Entity<GroupEntity>(entity =>
         {
             entity.ToTable("Groups");
             entity.HasKey(g => g.Id);
 
             entity.Property(g => g.Name).IsRequired().HasMaxLength(100);
+            entity.Property(g => g.RoomCode).HasMaxLength(50);
             entity.Property(g => g.Description).HasMaxLength(1000);
-            entity.Property(g => g.ProjectDomain).IsRequired().HasMaxLength(50);
+            entity.Property(g => g.ProjectDomain).HasMaxLength(50);
             entity.Property(g => g.Status).HasConversion<string>().HasMaxLength(20);
             entity.Property(g => g.RowVersion).IsRowVersion();
             entity.Ignore(g => g.IsActive);
 
-            // BR-11: một dự án chỉ thuộc một nhóm chưa giải tán.
+            // BR-11: một dự án chỉ thuộc một nhóm chưa giải tán (khi đã gán dự án).
             entity.HasIndex(g => g.ProjectId)
                   .HasDatabaseName(GroupIndexes.ProjectId)
                   .IsUnique()
-                  .HasFilter("[Status] <> 'Disbanded'");
+                  .HasFilter("[ProjectId] IS NOT NULL AND [Status] <> 'Disbanded'");
 
+            // Unique RoomCode trong một Space (BR-11)
+            entity.HasIndex(g => new { g.SpaceId, g.RoomCode })
+                  .HasDatabaseName(GroupIndexes.RoomCode)
+                  .IsUnique()
+                  .HasFilter("[SpaceId] IS NOT NULL AND [RoomCode] IS NOT NULL");
+
+            entity.HasIndex(g => g.SpaceId);
             entity.HasIndex(g => g.Status);
             entity.HasIndex(g => g.LeaderId);
+
+            entity.HasOne(g => g.Space)
+                  .WithMany(s => s.Rooms)
+                  .HasForeignKey(g => g.SpaceId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ── GroupMember ────────────────────────────────────────────────────────

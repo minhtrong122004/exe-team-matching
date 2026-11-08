@@ -70,7 +70,8 @@ public class AccountRepository : IAccountRepository
             var keyword = search.Trim().ToLower();
             query = query.Where(a =>
                 a.Email.ToLower().Contains(keyword) ||
-                a.RegistrationFullName.ToLower().Contains(keyword));
+                a.RegistrationFullName.ToLower().Contains(keyword) ||
+                (a.StudentCode != null && a.StudentCode.ToLower().Contains(keyword)));
         }
 
         if (role.HasValue)

@@ -1,4 +1,4 @@
-﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -143,3 +143,89 @@ END;
 
 COMMIT;
 GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [Cohort] nvarchar(10) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [CommittedAt] datetime2 NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [GraphicDesignScore] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [IsCommitted] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [IsProfileCompleted] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [ManagementScore] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [MarketingScore] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [SaleScore] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    ALTER TABLE [UserProfiles] ADD [TechScore] int NOT NULL DEFAULT 0;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108045308_Phase2UserSkillsAndCohort'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261108045308_Phase2UserSkillsAndCohort', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

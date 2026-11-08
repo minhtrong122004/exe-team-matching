@@ -7,6 +7,8 @@ import type {
   GetAccountsQuery,
   UserRole,
   PagedResult,
+  FapStudentImportItem,
+  ProvisionFapStudentsResponse,
 } from '../types';
 import {
   Users,
@@ -24,17 +26,22 @@ import {
   EyeOff,
   GraduationCap,
   Shield,
+  ShieldCheck,
+  FileSpreadsheet,
+  KeyRound,
   X,
   Mail,
   User as UserIcon,
+  Download,
+  FolderUp,
 } from 'lucide-react';
 
 const MOCK_ADMIN_ACCOUNTS: AccountResponse[] = [
   {
     id: 'acc-1',
     email: 'admin@fpt.edu.vn',
-    fullName: 'Quản trị viên Hệ thống',
-    role: 'Admin',
+    fullName: 'Điều phối viên Hệ thống',
+    role: 'Moderator',
     isActive: true,
     createdAt: '2026-09-01T08:00:00Z',
     updatedAt: '2026-09-01T08:00:00Z',
@@ -126,14 +133,71 @@ export const AdminAccountsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Modal tạo giảng viên
+  // Modal tạo giảng viên / điều phối viên
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [createFullName, setCreateFullName] = useState<string>('');
   const [createEmail, setCreateEmail] = useState<string>('');
   const [createPassword, setCreatePassword] = useState<string>('');
+  const [createRole, setCreateRole] = useState<'Lecturer' | 'Moderator'>('Lecturer');
   const [showCreatePassword, setShowCreatePassword] = useState<boolean>(false);
   const [createLoading, setCreateLoading] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Modal đồng bộ danh sách Sinh viên từ FAP (BR-01)
+  const [isFapModalOpen, setIsFapModalOpen] = useState<boolean>(false);
+  const [fapSemesterCode, setFapSemesterCode] = useState<string>('FA26');
+  const [fapSubjectCode, setFapSubjectCode] = useState<string>('EXE101');
+  const [fapRawText, setFapRawText] = useState<string>(
+    [
+      'SE180101, Nguyễn Hoàng Phương Huyền Trân, trannhphse180101@fpt.edu.vn, SE',
+      'AI180205, Trần Minh Khôi, khoitmai180205@fpt.edu.vn, AI',
+      'GD180312, Lê Ngọc Bảo Châu, chaulnbgd180312@fpt.edu.vn, GD',
+      'MKT180408, Phạm Quốc Đạt, datpqmkt180408@fpt.edu.vn, MKT',
+      'IB180519, Võ Thị Thanh Thảo, thaovttib180519@fpt.edu.vn, IB',
+      'IA180622, Đặng Gia Huy, huydgia180622@fpt.edu.vn, IA',
+      'SA180123, Nguyễn Văn Chuyển Ngành, chuyennganh.sa180123@fpt.edu.vn, SE',
+    ].join('\n')
+  );
+  const [fapLoading, setFapLoading] = useState<boolean>(false);
+  const [fapError, setFapError] = useState<string | null>(null);
+  const [fapResult, setFapResult] = useState<ProvisionFapStudentsResponse | null>(null);
+  const fapFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Tải file mẫu CSV danh sách sinh viên FAP
+  const handleDownloadAdminSampleCsv = () => {
+    const csvHeader = 'MSSV, Họ và tên, Email, Chuyên ngành\n';
+    const csvRows = [
+      'SE180101, Nguyễn Hoàng Phương Huyền Trân, trannhphse180101@fpt.edu.vn, SE',
+      'AI180205, Trần Minh Khôi, khoitmai180205@fpt.edu.vn, AI',
+      'GD180312, Lê Ngọc Bảo Châu, chaulnbgd180312@fpt.edu.vn, GD',
+      'MKT180408, Phạm Quốc Đạt, datpqmkt180408@fpt.edu.vn, MKT',
+      'IB180519, Võ Thị Thanh Thảo, thaovttib180519@fpt.edu.vn, IB',
+      'IA180622, Đặng Gia Huy, huydgia180622@fpt.edu.vn, IA',
+      'SA180123, Nguyễn Văn Chuyển Ngành, chuyennganh.sa180123@fpt.edu.vn, SE',
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `danh_sach_sinh_vien_fap_${fapSemesterCode}_${fapSubjectCode}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Tải file CSV từ máy tính lên
+  const handleFapFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = (event.target?.result as string) || '';
+      setFapRawText(text);
+      setFapError(null);
+    };
+    reader.readAsText(file);
+  };
 
   // Modal xác nhận khóa tài khoản
   const [accountToLock, setAccountToLock] = useState<AccountResponse | null>(null);
@@ -255,6 +319,7 @@ export const AdminAccountsPage: React.FC = () => {
         fullName: trimmedName,
         email: trimmedEmail,
         password: createPassword,
+        role: createRole,
       };
 
       await apiClient.post<AccountResponse>('/auth/accounts/lecturers', payload);
@@ -264,7 +329,9 @@ export const AdminAccountsPage: React.FC = () => {
       setCreateFullName('');
       setCreateEmail('');
       setIsCreateModalOpen(false);
-      setSuccessMessage(`Đã khởi tạo thành công tài khoản Giảng viên cho "${trimmedEmail}"!`);
+      setSuccessMessage(
+        `Đã khởi tạo thành công tài khoản ${createRole === 'Moderator' ? 'Điều phối viên (Moderator)' : 'Giảng viên (Lecturer)'} cho "${trimmedEmail}"!`
+      );
 
       // Làm mới danh sách tài khoản
       await fetchAccounts();
@@ -298,6 +365,66 @@ export const AdminAccountsPage: React.FC = () => {
       }
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  // Xử lý đồng bộ danh sách sinh viên từ FAP (BR-01)
+  const handleProvisionFapSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFapError(null);
+    setFapResult(null);
+
+    const lines = fapRawText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      setFapError('Vui lòng nhập ít nhất 1 dòng sinh viên theo định dạng: MSSV, Họ và tên, Email, Chuyên ngành (tùy chọn).');
+      return;
+    }
+
+    const parsedStudents: FapStudentImportItem[] = [];
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split(/[,\t;|]/).map((p) => p.trim());
+      if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) {
+        setFapError(
+          `Dòng ${i + 1} không đúng định dạng ("${lines[i]}"). Định dạng chuẩn: MSSV, Họ và tên, Email, Chuyên ngành (tùy chọn)`
+        );
+        return;
+      }
+      parsedStudents.push({
+        studentCode: parts[0].toUpperCase(),
+        fullName: parts[1],
+        email: parts[2].toLowerCase(),
+        major: parts[3] ? parts[3] : undefined,
+      });
+    }
+
+    setFapLoading(true);
+    try {
+      const res = await apiClient.post<ProvisionFapStudentsResponse>(
+        '/auth/accounts/provision-fap',
+        {
+          students: parsedStudents,
+          semesterCode: fapSemesterCode.trim().toUpperCase() || 'FA26',
+          subjectCode: fapSubjectCode.trim().toUpperCase() || 'EXE101',
+        }
+      );
+      setFapResult(res.data);
+      setSuccessMessage(
+        `Đồng bộ FAP (${res.data.semesterCode} - ${res.data.subjectCode}) hoàn tất: Cấp mới ${res.data.newlyCreatedCount} SV, giữ nguyên ${res.data.existingCount} SV kỳ trước.`
+      );
+      await fetchAccounts();
+    } catch (err: any) {
+      setFapError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          err.response?.data?.message ||
+          'Không thể đồng bộ danh sách sinh viên FAP. Vui lòng kiểm tra định dạng dữ liệu.'
+      );
+    } finally {
+      setFapLoading(false);
     }
   };
 
@@ -414,25 +541,47 @@ export const AdminAccountsPage: React.FC = () => {
               <Shield size={20} />
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-              Quản trị Tài khoản Hệ thống
+              Quản trị Tài khoản & Đồng bộ FAP
             </h1>
           </div>
           <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.925rem' }}>
-            Quản lý người dùng, phân quyền, cấp tài khoản Giảng viên và kiểm soát trạng thái truy cập hệ thống.
+            Đồng bộ danh sách sinh viên đủ điều kiện học EXE từ FAP (BR-01), cấp tài khoản Giảng viên / Moderator và kiểm soát quyền truy cập.
           </p>
         </div>
 
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setCreateError(null);
-            setIsCreateModalOpen(true);
-          }}
-          style={{ whiteSpace: 'nowrap' }}
-        >
-          <UserPlus size={18} />
-          <span>Thêm tài khoản Giảng viên</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setFapError(null);
+              setIsFapModalOpen(true);
+            }}
+            style={{
+              whiteSpace: 'nowrap',
+              borderColor: '#0054a6',
+              color: '#0054a6',
+              background: '#eff6ff',
+              fontWeight: 700,
+            }}
+          >
+            <FileSpreadsheet size={18} />
+            <span>Cấp tài khoản Sinh viên từ FAP (BR-01)</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              setCreateError(null);
+              setIsCreateModalOpen(true);
+            }}
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            <UserPlus size={18} />
+            <span>Thêm Giảng viên / Moderator</span>
+          </button>
+        </div>
       </div>
 
       {/* ── THÔNG BÁO PHẢN HỒI (SUCCESS / ERROR) ────────────────────────── */}
@@ -582,8 +731,8 @@ export const AdminAccountsPage: React.FC = () => {
             >
               <option value="ALL">Tất cả vai trò</option>
               <option value="Student">Sinh viên (Student)</option>
+              <option value="Moderator">Điều phối viên (Moderator)</option>
               <option value="Lecturer">Giảng viên (Lecturer)</option>
-              <option value="Admin">Quản trị viên (Admin)</option>
             </select>
           </div>
 
@@ -800,8 +949,8 @@ export const AdminAccountsPage: React.FC = () => {
                               height: 36,
                               borderRadius: '50%',
                               backgroundColor:
-                                acc.role === 'Admin'
-                                  ? '#0a192f'
+                                acc.role === 'Moderator'
+                                  ? '#008837'
                                   : acc.role === 'Lecturer'
                                   ? '#f26f21'
                                   : '#2563eb',
@@ -814,9 +963,13 @@ export const AdminAccountsPage: React.FC = () => {
                               flexShrink: 0,
                             }}
                           >
-                            {acc.role === 'Lecturer' ? 'GV' : acc.role === 'Admin' ? 'AD' : 'SV'}
+                            {acc.role === 'Moderator'
+                              ? 'ĐP'
+                              : acc.role === 'Lecturer'
+                              ? 'GV'
+                              : 'SV'}
                           </div>
-                          <div>
+                          <div style={{ minWidth: 0 }}>
                             <div
                               style={{
                                 fontWeight: 600,
@@ -824,9 +977,28 @@ export const AdminAccountsPage: React.FC = () => {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '0.4rem',
+                                flexWrap: 'wrap',
                               }}
                             >
                               <span>{acc.fullName}</span>
+                              {acc.studentCode && (
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-mono, monospace)',
+                                    fontVariantNumeric: 'tabular-nums',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    backgroundColor: '#eff6ff',
+                                    color: '#0054a6',
+                                    padding: '0.1rem 0.45rem',
+                                    borderRadius: 6,
+                                    border: '1px solid #bfdbfe',
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {acc.studentCode}
+                                </span>
+                              )}
                               {isSelf && (
                                 <span
                                   style={{
@@ -860,17 +1032,17 @@ export const AdminAccountsPage: React.FC = () => {
 
                       {/* Vai trò */}
                       <td style={{ padding: '1rem 1.25rem' }}>
-                        {acc.role === 'Admin' && (
+                        {acc.role === 'Moderator' && (
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: '#1e293b',
-                              color: '#f8fafc',
-                              border: '1px solid #334155',
+                              backgroundColor: '#f0fdf4',
+                              color: '#008837',
+                              border: '1px solid #bbf7d0',
                             }}
                           >
-                            <Shield size={12} />
-                            Quản trị viên
+                            <ShieldCheck size={12} />
+                            Điều phối viên
                           </span>
                         )}
                         {acc.role === 'Lecturer' && (
@@ -903,17 +1075,51 @@ export const AdminAccountsPage: React.FC = () => {
 
                       {/* Trạng thái */}
                       <td style={{ padding: '1rem 1.25rem' }}>
-                        {acc.isActive ? (
-                          <span className="badge badge-active">
-                            <CheckCircle2 size={12} />
-                            Hoạt động
-                          </span>
-                        ) : (
-                          <span className="badge badge-cancelled">
-                            <Lock size={12} />
-                            Bị khóa
-                          </span>
-                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-start' }}>
+                          {acc.isActive ? (
+                            <span className="badge badge-active">
+                              <CheckCircle2 size={12} />
+                              Hoạt động
+                            </span>
+                          ) : (
+                            <span className="badge badge-cancelled">
+                              <Lock size={12} />
+                              Bị khóa
+                            </span>
+                          )}
+                          {acc.role === 'Student' && (
+                            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 600,
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: 4,
+                                  backgroundColor: acc.hasAcceptedTerms ? '#f0fdf4' : '#fffbeb',
+                                  color: acc.hasAcceptedTerms ? '#15803d' : '#b45309',
+                                  border: acc.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                                }}
+                              >
+                                {acc.hasAcceptedTerms ? 'Đã đồng ý BR-34' : 'Chờ đồng ý BR-34'}
+                              </span>
+                              {acc.mustChangePassword && (
+                                <span
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: 4,
+                                    backgroundColor: '#fff7ed',
+                                    color: '#c2410c',
+                                    border: '1px solid #fed7aa',
+                                  }}
+                                >
+                                  MK khởi tạo FAP
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Ngày đăng ký */}
@@ -1117,7 +1323,7 @@ export const AdminAccountsPage: React.FC = () => {
                   <GraduationCap size={20} />
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Khởi tạo tài khoản Giảng viên
+                  Khởi tạo tài khoản Giảng viên / Moderator
                 </h3>
               </div>
               <button
@@ -1143,12 +1349,14 @@ export const AdminAccountsPage: React.FC = () => {
                 marginBottom: '1.25rem',
                 fontSize: '0.825rem',
                 color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.55rem',
               }}
             >
+              <ShieldCheck size={16} color="#0054a6" style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0 }}>
-                💡 <strong>Lưu ý:</strong> Tài khoản được tạo tại đây sẽ có vai trò{' '}
-                <strong>Giảng viên (Lecturer)</strong> để tham gia quản trị hội đồng và duyệt đề
-                tài. Sinh viên tự đăng ký qua cổng chung.
+                <strong>Lưu ý phân quyền (BR-02):</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
               </p>
             </div>
 
@@ -1173,6 +1381,22 @@ export const AdminAccountsPage: React.FC = () => {
             )}
 
             <form onSubmit={handleCreateLecturerSubmit}>
+              {/* Vai trò khởi tạo */}
+              <div className="form-group">
+                <label className="form-label">
+                  Vai trò hệ thống <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select
+                  className="form-control"
+                  value={createRole}
+                  onChange={(e) => setCreateRole(e.target.value as 'Lecturer' | 'Moderator')}
+                  disabled={createLoading}
+                >
+                  <option value="Lecturer">Giảng viên (Lecturer — Quan sát nhóm & Xem báo cáo)</option>
+                  <option value="Moderator">Điều phối viên (Moderator — Đồng bộ FAP & Điều phối kỳ học)</option>
+                </select>
+              </div>
+
               {/* Họ và tên */}
               <div className="form-group">
                 <label htmlFor={lecturerNameId} className="form-label">
@@ -1345,10 +1569,15 @@ export const AdminAccountsPage: React.FC = () => {
                 marginBottom: '1.5rem',
                 fontSize: '0.825rem',
                 color: '#92400e',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem',
               }}
             >
-              ⚠️ Khi bị khóa, người dùng sẽ bị thu hồi phiên đăng nhập hiện tại và không thể truy cập
-              vào hệ thống cho đến khi được Admin mở khóa trở lại.
+              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                Khi bị khóa, người dùng sẽ bị thu hồi phiên đăng nhập hiện tại và không thể truy cập vào hệ thống cho đến khi được Moderator hoặc Admin mở khóa trở lại.
+              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
@@ -1379,6 +1608,318 @@ export const AdminAccountsPage: React.FC = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ĐỒNG BỘ DANH SÁCH SINH VIÊN TỪ FAP (BR-01, BR-04) ──── */}
+      {isFapModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fap-provision-modal-title"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(10, 25, 47, 0.68)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card modal-content"
+            style={{
+              width: '100%',
+              maxWidth: 740,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '1.75rem',
+              boxShadow: 'var(--shadow-xl)',
+              animation: 'fadeIn 0.2s cubic-bezier(0.23, 1, 0.32, 1)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.15rem',
+                borderBottom: '1px solid var(--border-light, #eaedf2)',
+                paddingBottom: '0.85rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    backgroundColor: '#eff6ff',
+                    color: '#0054a6',
+                    border: '1px solid #bfdbfe',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h3 id="fap-provision-modal-title" style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
+                    Đồng bộ Danh sách Sinh viên từ FAP (BR-01 & BR-04)
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                    Tự động khởi tạo tài khoản Student, tách ngành từ MSSV và gửi email mật khẩu khởi tạo qua MailHog
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!fapLoading) setIsFapModalOpen(false);
+                }}
+                disabled={fapLoading}
+                style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
+                aria-label="Đóng cửa sổ đồng bộ FAP"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {fapError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: '#fef2f2',
+                  color: '#991b1b',
+                  border: '1px solid #fecaca',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 10,
+                  marginBottom: '1rem',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <AlertCircle size={16} style={{ flexShrink: 0, color: '#ef4444' }} />
+                <span>{fapError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleProvisionFapSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '0.85rem', alignItems: 'flex-end', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                    Mã Học kỳ (Semester) *
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={fapSemesterCode}
+                    onChange={(e) => setFapSemesterCode(e.target.value.toUpperCase())}
+                    placeholder="FA26"
+                    disabled={fapLoading}
+                    style={{ fontFamily: 'var(--font-mono, monospace)' }}
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                    Mã Môn học (Subject) *
+                  </label>
+                  <select
+                    className="form-control"
+                    value={fapSubjectCode}
+                    onChange={(e) => setFapSubjectCode(e.target.value)}
+                    disabled={fapLoading}
+                    style={{ fontFamily: 'var(--font-mono, monospace)' }}
+                  >
+                    <option value="EXE101">EXE101 — Experiential Entrepreneurship 1</option>
+                    <option value="EXE201">EXE201 — Experiential Entrepreneurship 2</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Toolbar for CSV Import & Download */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.65rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 10,
+                  background: 'var(--bg-main, #f8fafc)',
+                  border: '1px solid var(--border-light, #e2e8f0)',
+                  marginBottom: '1rem',
+                }}
+              >
+                <input
+                  ref={fapFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFapFileUpload}
+                  style={{ display: 'none' }}
+                />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={fapLoading}
+                    onClick={() => fapFileInputRef.current?.click()}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                  >
+                    <FolderUp size={14} />
+                    <span>📁 Tải lên File CSV từ máy</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={fapLoading}
+                    onClick={handleDownloadAdminSampleCsv}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', color: 'var(--fpt-blue, #0054a6)' }}
+                  >
+                    <Download size={14} />
+                    <span>📥 Tải file mẫu CSV</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={fapLoading}
+                  onClick={() => {
+                    setFapRawText(
+                      [
+                        'SE180101, Nguyễn Hoàng Phương Huyền Trân, trannhphse180101@fpt.edu.vn, SE',
+                        'AI180205, Trần Minh Khôi, khoitmai180205@fpt.edu.vn, AI',
+                        'GD180312, Lê Ngọc Bảo Châu, chaulnbgd180312@fpt.edu.vn, GD',
+                        'MKT180408, Phạm Quốc Đạt, datpqmkt180408@fpt.edu.vn, MKT',
+                        'IB180519, Võ Thị Thanh Thảo, thaovttib180519@fpt.edu.vn, IB',
+                        'IA180622, Đặng Gia Huy, huydgia180622@fpt.edu.vn, IA',
+                        'SA180123, Nguyễn Văn Chuyển Ngành, chuyennganh.sa180123@fpt.edu.vn, SE',
+                      ].join('\n')
+                    );
+                    setFapError(null);
+                  }}
+                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                >
+                  ⚡ Nạp danh sách mẫu (7 SV)
+                </button>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                  Nội dung Danh sách Sinh viên FAP (Mỗi dòng: <code>MSSV, Họ và tên, Email, Chuyên ngành (tùy chọn)</code>) *
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={7}
+                  value={fapRawText}
+                  onChange={(e) => setFapRawText(e.target.value)}
+                  disabled={fapLoading}
+                  placeholder="SE180101, Nguyễn Văn A, anvse180101@fpt.edu.vn, SE"
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.82rem', lineHeight: 1.55 }}
+                />
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.55 }}>
+                  • <strong>Cột 4 (Chuyên ngành)</strong>: Có thể nhập mã (<code>SE</code>, <code>AI</code>, <code>IA</code>, <code>GD</code>, <code>MKT</code>, <code>IB</code>) hoặc tên tiếng Việt (<code>Kỹ thuật phần mềm</code>...). Nếu để trống, hệ thống sẽ tự động nhận diện từ tiền tố MSSV (ví dụ: <code>SE18...</code> &rarr; SE). Phù hợp cho trường hợp sinh viên chuyển cơ sở / chuyển ngành (như MSSV <code>SA...</code> học SE).<br />
+                  • <strong>Quy tắc mật khẩu khởi tạo tự động</strong>: <code>Fpt@&#123;MSSV&#125;!</code> (ví dụ: <code>Fpt@SE180101!</code>). Nếu email đã tồn tại từ kỳ trước, hệ thống giữ nguyên mật khẩu cũ của sinh viên.
+                </div>
+              </div>
+
+              {fapResult && (
+                <div
+                  style={{
+                    marginBottom: '1.25rem',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 10,
+                    overflow: 'hidden',
+                    backgroundColor: '#f8fafc',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '0.7rem 1rem',
+                      backgroundColor: '#eff6ff',
+                      borderBottom: '1px solid #bfdbfe',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      color: '#0054a6',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    <span>
+                      Kết quả đồng bộ ({fapResult.semesterCode} • {fapResult.subjectCode}): Tổng {fapResult.totalProcessed} SV
+                    </span>
+                    <span>
+                      Cấp mới: {fapResult.newlyCreatedCount} • Đã có TK: {fapResult.existingCount}
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>MSSV</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Họ và tên</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Email</th>
+                          <th style={{ padding: '0.5rem 0.75rem' }}>Trạng thái & Mật khẩu</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fapResult.results.map((item) => (
+                          <tr key={item.accountId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '0.5rem 0.75rem', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700 }}>
+                              {item.studentCode}
+                            </td>
+                            <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600 }}>{item.fullName}</td>
+                            <td style={{ padding: '0.5rem 0.75rem', color: '#475569' }}>{item.email}</td>
+                            <td style={{ padding: '0.5rem 0.75rem', color: item.isNewlyCreated ? '#008837' : '#0054a6', fontWeight: 600 }}>
+                              {item.statusMessage}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-light, #eaedf2)', paddingTop: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsFapModalOpen(false)}
+                  disabled={fapLoading}
+                >
+                  Đóng
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={fapLoading}>
+                  {fapLoading ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Đang đồng bộ & gửi email...</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound size={16} />
+                      <span>Thực thi Đồng bộ & Gửi Email Mật khẩu</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

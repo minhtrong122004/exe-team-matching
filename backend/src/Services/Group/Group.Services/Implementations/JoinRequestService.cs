@@ -86,7 +86,7 @@ public class JoinRequestService(
         var leader = group.Leader();
         await events.PublishAsync(new JoinRequestCreated(
             joinRequest.Id, group.Id, group.Name, studentId, joinRequest.StudentName,
-            group.LeaderId, leader?.Email ?? string.Empty, leader?.FullName ?? string.Empty), ct);
+            group.LeaderId ?? Guid.Empty, leader?.Email ?? string.Empty, leader?.FullName ?? string.Empty), ct);
 
         return joinRequest.ToResponse();
     }

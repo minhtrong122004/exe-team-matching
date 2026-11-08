@@ -18,13 +18,16 @@ internal static class GroupMappings
             LeaderId:      g.LeaderId,
             LeaderName:    g.LeaderName(),
             ProjectId:     g.ProjectId,
-            ProjectDomain: g.ProjectDomain,
+            ProjectDomain: g.ProjectDomain ?? "General",
             MemberCount:   g.Members.Count,
             MaxMembers:    g.MaxMembers,
             Status:        g.Status.ToString(),
             OpenMajors:    openSlots.Where(s => s.RequiredMajor != null).Select(s => s.RequiredMajor!).Distinct().ToList(),
             OpenSkills:    openSlots.SelectMany(s => s.RequiredSkills).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-            CreatedAt:     g.CreatedAt);
+            CreatedAt:     g.CreatedAt,
+            SpaceId:       g.SpaceId,
+            RoomCode:      g.RoomCode,
+            IsClosedByLeader: g.IsClosedByLeader);
     }
 
     public static GroupDetailResponse ToDetail(this GroupEntity g) => new(
@@ -34,7 +37,7 @@ internal static class GroupMappings
         LeaderId:      g.LeaderId,
         LeaderName:    g.LeaderName(),
         ProjectId:     g.ProjectId,
-        ProjectDomain: g.ProjectDomain,
+        ProjectDomain: g.ProjectDomain ?? "General",
         MemberCount:   g.Members.Count,
         MaxMembers:    g.MaxMembers,
         Status:        g.Status.ToString(),
@@ -45,7 +48,10 @@ internal static class GroupMappings
                            .ToList(),
         Slots:         g.Slots.Select(ToResponse).ToList(),
         CreatedAt:     g.CreatedAt,
-        UpdatedAt:     g.UpdatedAt);
+        UpdatedAt:     g.UpdatedAt,
+        SpaceId:       g.SpaceId,
+        RoomCode:      g.RoomCode,
+        IsClosedByLeader: g.IsClosedByLeader);
 
     public static SlotResponse ToResponse(this RecruitmentSlot s) =>
         new(s.Id, s.RequiredMajor, s.RequiredSkills, s.Quantity, s.Filled);

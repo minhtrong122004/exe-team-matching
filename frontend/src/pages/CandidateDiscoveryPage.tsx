@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useId } from 'react';
 import apiClient from '../api/client';
+import { groupsApi } from '../api/groups';
+import { useAuth } from '../contexts/AuthContext';
 import type {
   CandidateProfileResponse,
+  GroupResponse,
   Major,
   UserAvailability,
   SkillResponse,
@@ -44,6 +47,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'Fullstack / Tech Lead',
     availability: 'LookingForTeam',
     bio: 'Sinh viên K18 ngành Kỹ thuật phần mềm. Đam mê kiến trúc microservices (.NET 8, React, Redis), mong muốn tìm kiếm đồng đội làm đồ án khởi nghiệp ứng dụng AI.',
+    techScore: 90,
+    managementScore: 75,
+    graphicDesignScore: 50,
+    marketingScore: 60,
+    saleScore: 55,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's1', skillName: '.NET 8 / C#', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's2', skillName: 'React / TypeScript', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
@@ -64,6 +73,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'AI / Backend Engineer',
     availability: 'LookingForTeam',
     bio: 'Chuyên nghiên cứu NLP, computer vision và thuật toán matching gRPC. Sẵn sàng phụ trách mảng AI pipeline và logic xử lý backend hiệu năng cao.',
+    techScore: 92,
+    managementScore: 65,
+    graphicDesignScore: 40,
+    marketingScore: 50,
+    saleScore: 45,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's5', skillName: 'Python / PyTorch', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's6', skillName: 'gRPC & Protobuf', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
@@ -83,6 +98,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'UI/UX & Product Designer',
     availability: 'LookingForTeam',
     bio: 'Sinh viên Graphic Design K18. Đã có kinh nghiệm thiết kế UI/UX theo Design System chuẩn Figma, am hiểu phong cách Notion/Linear và tư duy sản phẩm tinh gọn.',
+    techScore: 45,
+    managementScore: 60,
+    graphicDesignScore: 95,
+    marketingScore: 70,
+    saleScore: 50,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's8', skillName: 'Figma & Design System', level: 5, category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's9', skillName: 'UI/UX Prototyping', level: 4, category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
@@ -102,6 +123,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'Growth & Digital Marketing',
     availability: 'LookingForTeam',
     bio: 'Kinh nghiệm chạy chiến dịch truyền thông sinh viên, lập kế hoạch Go-To-Market (GTM) và xây dựng phễu chuyển đổi cho các dự án khởi nghiệp sinh viên FPT.',
+    techScore: 40,
+    managementScore: 70,
+    graphicDesignScore: 65,
+    marketingScore: 90,
+    saleScore: 80,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's11', skillName: 'Digital Marketing & SEO', level: 4, category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's12', skillName: 'Content Strategy', level: 4, category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
@@ -121,6 +148,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'Business Analyst / Finance',
     availability: 'LookingForTeam',
     bio: 'Sinh viên Kinh doanh quốc tế. Thế mạnh về thẩm định mô hình tài chính Business Model Canvas (BMC), phân tích đối thủ cạnh tranh và chuẩn bị Pitch Deck gọi vốn.',
+    techScore: 50,
+    managementScore: 90,
+    graphicDesignScore: 55,
+    marketingScore: 75,
+    saleScore: 85,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's14', skillName: 'Business Model Canvas', level: 4, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's15', skillName: 'Financial Modeling', level: 4, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
@@ -140,6 +173,12 @@ const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
     desiredRole: 'Security / Cloud Engineer',
     availability: 'InTeam',
     bio: 'Chuyên ngành An toàn thông tin. Quan tâm đến bảo mật ứng dụng web (OWASP), xác thực JWT/OAuth2 và tối ưu hóa hạ tầng Cloud AWS/Azure.',
+    techScore: 88,
+    managementScore: 60,
+    graphicDesignScore: 35,
+    marketingScore: 40,
+    saleScore: 45,
+    isProfileCompleted: true,
     skills: [
       { skillId: 's17', skillName: 'Web Security & OWASP', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
       { skillId: 's18', skillName: 'DevSecOps & CI/CD', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
@@ -179,6 +218,38 @@ export const CandidateDiscoveryPage: React.FC = () => {
 
   // Modal xem chi tiết ứng viên
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateProfileResponse | null>(null);
+  const { user: authUser } = useAuth();
+  const [myGroup, setMyGroup] = useState<GroupResponse | null>(null);
+  const [inviteStatusMsg, setInviteStatusMsg] = useState<string | null>(null);
+  const [inviting, setInviting] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (authUser?.role === 'Student') {
+      groupsApi
+        .getMyGroup()
+        .then((g) => setMyGroup(g))
+        .catch(() => setMyGroup(null));
+    }
+  }, [authUser]);
+
+  const handleInviteCandidate = async (candidate: CandidateProfileResponse) => {
+    if (!myGroup) return;
+    setInviting(true);
+    setInviteStatusMsg(null);
+    try {
+      await groupsApi.createInvitation(myGroup.id, {
+        invitedUserId: candidate.userId,
+        message: `Chào ${candidate.fullName}, nhóm ${myGroup.name} trân trọng mời bạn tham gia cùng thực hiện dự án khởi nghiệp môn EXE!`,
+      });
+      setInviteStatusMsg(`Đã gửi lời mời tham gia nhóm "${myGroup.name}" tới ${candidate.fullName}!`);
+    } catch (err: any) {
+      setInviteStatusMsg(
+        err?.response?.data?.detail || 'Không thể gửi lời mời (Ứng viên đã được mời hoặc đã có nhóm).'
+      );
+    } finally {
+      setInviting(false);
+    }
+  };
 
   // Debounce search input
   useEffect(() => {
@@ -841,7 +912,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     <div style={{ flexShrink: 0 }}>{renderAvailabilityBadge(c.availability)}</div>
                   </div>
 
-                  {/* Major Badge & Desired Role */}
+                  {/* Major Badge, Cohort & Desired Role */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                     {majorMeta && (
                       <span
@@ -856,6 +927,23 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         }}
                       >
                         {majorMeta.label}
+                      </span>
+                    )}
+                    {c.cohort && (
+                      <span
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: 6,
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#fff7ed',
+                          color: '#c2410c',
+                          border: '1px solid #fed7aa',
+                          fontFamily: 'var(--font-mono, monospace)',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        Khóa {c.cohort}
                       </span>
                     )}
                     {c.desiredRole && (
@@ -1175,9 +1263,9 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 padding: '1rem',
                 border: '1px solid var(--border-subtle)',
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '0.75rem',
-                marginBottom: '1.5rem',
+                marginBottom: '1.25rem',
                 fontSize: '0.85rem',
               }}
             >
@@ -1188,8 +1276,65 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 </strong>
               </div>
               <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Khóa học:</span>
+                <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
+                  {selectedCandidate.cohort ? `Khóa ${selectedCandidate.cohort}` : 'Chưa cập nhật'}
+                </strong>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Vị trí mong muốn:</span>
                 <strong style={{ color: 'var(--text-main)' }}>{selectedCandidate.desiredRole || 'Linh hoạt'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Hồ sơ 5 kỹ năng:</span>
+                {selectedCandidate.isProfileCompleted ? (
+                  <span style={{ color: '#15803d', fontWeight: 700 }}>Đã hoàn tất (BR-07)</span>
+                ) : (
+                  <span style={{ color: '#b91c1c', fontWeight: 700 }}>Chưa hoàn tất (BR-07)</span>
+                )}
+              </div>
+            </div>
+
+            {/* 5 Core Skills Bars (BR-05) */}
+            <div style={{ marginBottom: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.15rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                  Điểm 5 Kỹ năng Cốt lõi (BR-05)
+                </h4>
+                {selectedCandidate.isProfileCompleted && (
+                  <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <ShieldCheck size={14} /> Đã cam kết trung thực (BR-06)
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                {[
+                  { name: 'Kỹ thuật (Tech)', score: selectedCandidate.techScore },
+                  { name: 'Quản trị (Management)', score: selectedCandidate.managementScore },
+                  { name: 'Thiết kế (Graphic Design)', score: selectedCandidate.graphicDesignScore },
+                  { name: 'Tiếp thị (Marketing)', score: selectedCandidate.marketingScore },
+                  { name: 'Bán hàng (Sale)', score: selectedCandidate.saleScore },
+                ].map((s, idx) => (
+                  <div key={idx} style={{ background: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
+                      <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{s.name}</span>
+                      <span style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
+                        {s.score}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: 6, background: 'var(--border-light)', borderRadius: 999, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, Math.max(0, s.score))}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #f26f21 0%, #ea580c 100%)',
+                          borderRadius: 999,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1309,11 +1454,45 @@ export const CandidateDiscoveryPage: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
+            {inviteStatusMsg && (
+              <div
+                style={{
+                  marginBottom: '1rem',
+                  padding: '0.65rem 1rem',
+                  borderRadius: 8,
+                  background: '#eff6ff',
+                  color: '#1d4ed8',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                }}
+              >
+                {inviteStatusMsg}
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              {myGroup &&
+                authUser &&
+                myGroup.leaderId === authUser.id &&
+                myGroup.status === 'Recruiting' &&
+                selectedCandidate.availability === 'LookingForTeam' &&
+                selectedCandidate.userId !== authUser.id && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={inviting}
+                    onClick={() => void handleInviteCandidate(selectedCandidate)}
+                    style={{ borderRadius: 10, padding: '0.65rem 1.25rem', fontWeight: 600 }}
+                  >
+                    {inviting ? 'Đang gửi lời mời...' : `Mời vào nhóm "${myGroup.name}"`}
+                  </button>
+                )}
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() => setSelectedCandidate(null)}
+                onClick={() => {
+                  setSelectedCandidate(null);
+                  setInviteStatusMsg(null);
+                }}
                 style={{ borderRadius: 10, padding: '0.65rem 1.25rem', fontWeight: 600, border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
               >
                 Đóng

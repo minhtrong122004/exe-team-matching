@@ -8,11 +8,11 @@ using Report.Services.Interfaces;
 namespace Report.API.Controllers;
 
 /// <summary>
-/// Báo cáo và thống kê tổng hợp dành cho Giảng viên và Quản trị viên (CLAUDE.md mục 6, 10).
+/// Báo cáo và thống kê tổng hợp dành cho Giảng viên (Lecturer) và Điều phối viên (Moderator).
 /// </summary>
 [ApiController]
 [Route("api/reports")]
-[Authorize(Roles = Roles.LecturerOrAdmin)]
+[Authorize(Roles = Roles.LecturerOrModerator)]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
@@ -63,9 +63,9 @@ public class ReportsController : ControllerBase
         return File(csv.Content, csv.ContentType, csv.FileName);
     }
 
-    /// <summary>Chạy job tạo bản chụp báo cáo ngay lập tức (chỉ Admin, dùng khi demo thay vì chờ lịch).</summary>
+    /// <summary>Chạy job tạo bản chụp báo cáo ngay lập tức (dành cho Moderator, dùng khi demo thay vì chờ lịch).</summary>
     [HttpPost("snapshots/generate")]
-    [Authorize(Roles = Roles.Admin)]
+    [Authorize(Roles = Roles.Moderator)]
     [ProducesResponseType(typeof(ReportSnapshotResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ReportSnapshotResponse>> GenerateSnapshot(CancellationToken ct)

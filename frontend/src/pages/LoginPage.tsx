@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { AlertCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  ShieldCheck,
+  GraduationCap,
+  UserCheck,
+  Users,
+} from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
 
@@ -34,7 +40,7 @@ export const LoginPage: React.FC = () => {
     try {
       const authUser = await login(loginEmail, loginPass);
       // Điều hướng theo vai trò thực tế trả về từ Backend JWT
-      if (authUser.role === 'Admin') {
+      if ((authUser.role as string) === 'Admin' || authUser.role === 'Moderator') {
         navigate('/admin/accounts');
       } else if (authUser.role === 'Lecturer') {
         navigate('/reports');
@@ -161,7 +167,7 @@ export const LoginPage: React.FC = () => {
               backgroundColor: '#FFFFFF',
               borderRadius: '16px',
               border: '1px solid #E2E8F0',
-              padding: '36px 32px',
+              padding: '32px 28px',
               boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05)',
               boxSizing: 'border-box',
             }}
@@ -177,7 +183,7 @@ export const LoginPage: React.FC = () => {
             >
               Đăng nhập hệ thống
             </h2>
-            <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 24px 0' }}>
+            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px 0' }}>
               Vui lòng nhập thông tin tài khoản của bạn để tiếp tục
             </p>
 
@@ -224,7 +230,7 @@ export const LoginPage: React.FC = () => {
             )}
 
             <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '16px' }}>
+              <div style={{ marginBottom: '14px' }}>
                 <label
                   style={{
                     display: 'block',
@@ -267,7 +273,7 @@ export const LoginPage: React.FC = () => {
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label
                     style={{
@@ -335,7 +341,7 @@ export const LoginPage: React.FC = () => {
                   color: '#FFFFFF',
                   border: 'none',
                   cursor: loading ? 'default' : 'pointer',
-                  marginTop: '8px',
+                  marginTop: '4px',
                   transition: 'all 0.15s ease',
                   boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
                 }}
@@ -354,7 +360,29 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#64748B' }}>
+            {/* Thông báo chính sách cấp tài khoản từ danh sách FAP (BR-01) */}
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '10px 12px',
+                borderRadius: 10,
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                fontSize: '12px',
+                color: '#475569',
+                lineHeight: 1.45,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+              }}
+            >
+              <ShieldCheck size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <strong style={{ color: '#0F172A' }}>Chính sách FAP (BR-01):</strong> Sinh viên được Điều phối viên (Moderator) đồng bộ trực tiếp từ FAP và nhận mật khẩu qua email trường.
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#64748B' }}>
               Chưa có tài khoản?{' '}
               <Link to="/register" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
                 Đăng ký ngay
@@ -362,16 +390,16 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ── QUICK DEMO BAR (Bỏ qua Backend) ── */}
+          {/* ── QUICK DEMO BAR (Bỏ qua Backend hoặc Test 1-Click) ── */}
           <div
             style={{
               width: '100%',
               maxWidth: '420px',
               backgroundColor: '#F1F5F9',
               borderRadius: '12px',
-              padding: '12px 16px',
+              padding: '12px 14px',
               border: '1px solid #E2E8F0',
-              marginTop: '16px',
+              marginTop: '14px',
               boxSizing: 'border-box',
             }}
           >
@@ -387,78 +415,98 @@ export const LoginPage: React.FC = () => {
                 letterSpacing: '0.04em',
               }}
             >
-              Chế độ kiểm tra UI nhanh (Bỏ qua Backend):
+              Đăng nhập nhanh tài khoản kiểm thử (1-Click Demo):
             </span>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
               <button
                 type="button"
-                onClick={() => handleDemoLogin('Student')}
+                onClick={() => {
+                  setEmail('moderator@fpt.edu.vn');
+                  setPassword('Moderator@123');
+                  handleDemoLogin('Admin');
+                }}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   backgroundColor: '#FFFFFF',
                   color: '#0F172A',
                   border: '1px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '6px 8px',
+                  padding: '6px 10px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
+                  e.currentTarget.style.borderColor = '#0054A6';
+                  e.currentTarget.style.color = '#0054A6';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = '#CBD5E1';
                   e.currentTarget.style.color = '#0F172A';
                 }}
               >
-                Sinh viên (Tú)
+                <ShieldCheck size={14} color="#0054A6" />
+                <span>Moderator</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleDemoLogin('Lecturer')}
+                onClick={() => {
+                  setEmail('lecturer@fpt.edu.vn');
+                  setPassword('Lecturer@123');
+                  handleDemoLogin('Lecturer');
+                }}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   backgroundColor: '#FFFFFF',
                   color: '#0F172A',
                   border: '1px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '6px 8px',
+                  padding: '6px 10px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
+                  e.currentTarget.style.borderColor = '#008837';
+                  e.currentTarget.style.color = '#008837';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = '#CBD5E1';
                   e.currentTarget.style.color = '#0F172A';
                 }}
               >
-                Giảng viên
+                <GraduationCap size={14} color="#008837" />
+                <span>Giảng viên</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleDemoLogin('Admin')}
+                onClick={() => {
+                  setEmail('tunp@fpt.edu.vn');
+                  setPassword('Student@123');
+                  handleDemoLogin('Student');
+                }}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   backgroundColor: '#FFFFFF',
                   color: '#0F172A',
                   border: '1px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '6px 8px',
+                  padding: '6px 10px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
@@ -472,7 +520,43 @@ export const LoginPage: React.FC = () => {
                   e.currentTarget.style.color = '#0F172A';
                 }}
               >
-                Quản trị viên
+                <Users size={14} color="#F27024" />
+                <span>SV Tú (SE185102)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('sinhvien.moi@fpt.edu.vn');
+                  setPassword('Student@123');
+                  handleDemoLogin('Student');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.color = '#F27024';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#0F172A';
+                }}
+              >
+                <UserCheck size={14} color="#EA580C" />
+                <span>Tân SV (BR-34)</span>
               </button>
             </div>
           </div>

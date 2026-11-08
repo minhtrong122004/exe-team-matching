@@ -419,4 +419,34 @@ public class UserRegisteredConsumerServiceTests
         Assert.Equal("lecturer_new@fpt.edu.vn", profile.Email);
         Assert.Equal("Giảng Viên Tran", profile.FullName);
     }
+
+    [Theory]
+    [InlineData("SE180101", "K18")]
+    [InlineData("AI180205", "K18")]
+    [InlineData("GD170312", "K17")]
+    [InlineData("SA180123", "K18")]
+    [InlineData("MKT190408", "K19")]
+    [InlineData("HE160001", "K16")]
+    public async Task ConsumeAsync_WithStudentCode_ExtractsCohortCorrectly(string studentCode, string expectedCohort)
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var @event = new UserRegisteredEvent(
+            Guid.NewGuid(),
+            userId,
+            $"{studentCode.ToLowerInvariant()}@fpt.edu.vn",
+            "Sinh Vien Test",
+            "Student",
+            DateTime.UtcNow,
+            StudentCode: studentCode,
+            SchemaVersion: 1);
+
+        // Act
+        var result = await _service.ConsumeAsync(@event);
+
+        // Assert
+        Assert.Equal(ConsumerExecutionStatus.Success, result.Status);
+        var profile = _profileRepo.Profiles.First(p => p.UserId == userId);
+        Assert.Equal(expectedCohort, profile.Cohort);
+    }
 }

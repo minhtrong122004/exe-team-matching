@@ -140,6 +140,7 @@ services:
       Services__User: http://user-service:8080
       Services__Project: http://project-service:8080
       Services__Matching: http://matching-service:8080
+      Services__Auth: http://auth-service:8080
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -158,6 +159,8 @@ services:
     environment:
       <<: *dotnet-env
       ConnectionStrings__Default: Server=sqlserver,1433;Database=ExeNotificationDb;User Id=sa;Password=${SA_PASSWORD:-Exe@Passw0rd2025};TrustServerCertificate=True
+      Smtp__Host: mailhog
+      Smtp__Port: "1025"
     depends_on:
       sqlserver:
         condition: service_healthy
