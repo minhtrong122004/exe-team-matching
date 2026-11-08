@@ -16,6 +16,7 @@ import type {
   SuggestedGroupResponse,
   RankedCandidateResponse,
   CandidateProfileResponse,
+  LeaderElectionResponse,
   ProjectItem,
   PagedResult,
   SkillResponse,
@@ -46,6 +47,12 @@ import {
   Award,
   ChevronLeft,
   ChevronRight,
+  Vote,
+  ThumbsUp,
+  ThumbsDown,
+  Zap,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 const MAJOR_LIST: { value: Major; label: string }[] = [
@@ -266,6 +273,14 @@ export const GroupsPage: React.FC = () => {
   const handleSubmitJoinRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedGroup) return;
+    if (user?.role === 'Student' && !user?.isProfileCompleted) {
+      setError(
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn xin gia nhập nhóm.'
+      );
+      setSelectedGroup(null);
+      navigate('/profile');
+      return;
+    }
     setJoinSubmitting(true);
     setError(null);
     try {
@@ -287,6 +302,13 @@ export const GroupsPage: React.FC = () => {
   };
 
   const handleOpenCreateModal = async () => {
+    if (user?.role === 'Student' && !user?.isProfileCompleted) {
+      setError(
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tạo nhóm.'
+      );
+      navigate('/profile');
+      return;
+    }
     setShowCreateModal(true);
     try {
       const [projRes, skillRes] = await Promise.all([
@@ -415,6 +437,81 @@ export const GroupsPage: React.FC = () => {
           </span>
           <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* BR-07 Profile Incomplete Banner for Student */}
+      {user?.role === 'Student' && !user?.isProfileCompleted && (
+        <div
+          className="card"
+          style={{
+            padding: '1.15rem 1.35rem',
+            marginBottom: '1.25rem',
+            background: 'rgba(242, 111, 33, 0.06)',
+            border: '1.5px solid rgba(242, 111, 33, 0.35)',
+            borderRadius: 'var(--radius-lg, 14px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', maxWidth: 780 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '10px',
+                background: 'rgba(242, 111, 33, 0.12)',
+                color: 'var(--fpt-orange, #f26f21)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '5px',
+                    background: 'var(--fpt-orange, #f26f21)',
+                    color: '#ffffff',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  YÊU CẦU BẮT BUỘC • BR-07
+                </span>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-main, #0f172a)' }}>
+                  Hồ sơ 5 kỹ năng cốt lõi chưa hoàn tất
+                </strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5 }}>
+                Bạn cần khai báo 5 kỹ năng cốt lõi và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ để mở khóa quyền vào phòng, nộp đơn ứng tuyển hoặc tạo nhóm.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="btn btn-primary"
+            style={{
+              padding: '0.55rem 1.15rem',
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              gap: '0.35rem',
+            }}
+          >
+            <span>Khai báo 5 kỹ năng →</span>
           </button>
         </div>
       )}
@@ -555,15 +652,48 @@ export const GroupsPage: React.FC = () => {
                       <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
                         {g.name}
                       </h3>
-                      <span
-                        className="badge"
-                        style={{
-                          background: g.status === 'Recruiting' ? '#dcfce7' : '#f1f5f9',
-                          color: g.status === 'Recruiting' ? '#15803d' : '#475569',
-                        }}
-                      >
-                        {g.status} ({g.memberCount}/{g.maxMembers})
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {g.roomCode && (
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '6px',
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            {g.roomCode}
+                          </span>
+                        )}
+                        <span
+                          className="badge"
+                          style={{
+                            background:
+                              g.status === 'Recruiting'
+                                ? '#dcfce7'
+                                : g.status === 'Forming' || g.status === 'Empty'
+                                ? '#dbeafe'
+                                : g.status === 'Closed'
+                                ? '#fee2e2'
+                                : '#f1f5f9',
+                            color:
+                              g.status === 'Recruiting'
+                                ? '#15803d'
+                                : g.status === 'Forming' || g.status === 'Empty'
+                                ? '#1d4ed8'
+                                : g.status === 'Closed'
+                                ? '#b91c1c'
+                                : '#475569',
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {g.status} ({g.memberCount}/{g.maxMembers})
+                        </span>
+                      </div>
                     </div>
 
                     <p
@@ -617,7 +747,11 @@ export const GroupsPage: React.FC = () => {
                     }}
                   >
                     <span>Tạo ngày {formatDateTime(g.createdAt)}</span>
-                    <span style={{ color: '#f26f21', fontWeight: 700 }}>Chi tiết & Xin vào →</span>
+                    <span style={{ color: '#f26f21', fontWeight: 700 }}>
+                      {g.memberCount < (g.groupThreshold || Math.floor((g.maxMembers || 5) / 2) + 1)
+                        ? '⚡ Vào thẳng / Chi tiết →'
+                        : 'Chi tiết & Xin vào →'}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -859,70 +993,150 @@ export const GroupsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Join Request Form */}
+                {/* Direct Join or Join Request Form */}
                 {user?.role === 'Student' &&
-                  selectedGroup.status === 'Recruiting' &&
-                  !selectedGroup.members.some((m) => m.userId === user.id) && (
-                    <form
-                      onSubmit={(e) => void handleSubmitJoinRequest(e)}
-                      style={{
-                        borderTop: '1px solid #e2e8f0',
-                        paddingTop: '1.15rem',
-                        marginTop: '1rem',
-                      }}
-                    >
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                        Ứng tuyển vào nhóm này
-                      </h4>
+                  !selectedGroup.members.some((m) => m.userId === user.id) &&
+                  (() => {
+                    const threshold = selectedGroup.groupThreshold || Math.floor((selectedGroup.maxMembers || 5) / 2) + 1;
+                    const isUnder = selectedGroup.members.length < threshold;
+                    const isDirectJoin = (selectedGroup.status === 'Empty' || selectedGroup.status === 'Forming') && isUnder;
 
-                      {selectedGroup.slots.length > 0 && (
-                        <div style={{ marginBottom: '0.75rem' }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
-                            Chọn vị trí ứng tuyển:
-                          </label>
-                          <select
-                            className="form-control"
-                            value={joinSlotId}
-                            onChange={(e) => setJoinSlotId(e.target.value)}
-                          >
-                            <option value="">-- Ứng tuyển chung vào nhóm --</option>
-                            {selectedGroup.slots.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {s.roleName} — Ngành {s.major} (Cần: {s.requiredSkills.join(', ') || 'Linh hoạt'})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <div style={{ marginBottom: '0.85rem' }}>
-                        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
-                          Lời nhắn gửi Trưởng nhóm:
-                        </label>
-                        <textarea
-                          className="form-control"
-                          rows={3}
-                          placeholder="Giới thiệu ngắn gọn kinh nghiệm, kỹ năng và mong muốn đóng góp của bạn..."
-                          value={joinMessage}
-                          onChange={(e) => setJoinMessage(e.target.value)}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => setSelectedGroup(null)}
+                    if (isDirectJoin) {
+                      return (
+                        <div
+                          style={{
+                            borderTop: '1px solid #e2e8f0',
+                            paddingTop: '1.15rem',
+                            marginTop: '1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.75rem',
+                          }}
                         >
-                          Đóng
-                        </button>
-                        <button type="submit" className="btn btn-primary" disabled={joinSubmitting}>
-                          <Send size={15} />
-                          {joinSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu tham gia'}
-                        </button>
+                          <div
+                            style={{
+                              padding: '0.85rem 1rem',
+                              borderRadius: 8,
+                              background: 'rgba(0, 84, 166, 0.05)',
+                              border: '1px solid rgba(0, 84, 166, 0.2)',
+                              fontSize: '0.825rem',
+                              color: 'var(--text-main)',
+                            }}
+                          >
+                            ⚡ <strong>Phòng chờ đang dưới ngưỡng ({threshold} SV):</strong> Bạn được tham gia trực tiếp ngay mà không cần gửi đơn xét duyệt. {selectedGroup.members.length === 0 ? 'Vì phòng đang trống, bạn sẽ trở thành Trưởng nhóm (Leader) (BR-15)!' : 'Vào nhóm ngay (BR-14)!'}
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setSelectedGroup(null)}
+                            >
+                              Đóng
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              disabled={joinSubmitting}
+                              onClick={async () => {
+                                if (user?.role === 'Student' && !user?.isProfileCompleted) {
+                                  setError(
+                                    'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
+                                  );
+                                  setSelectedGroup(null);
+                                  navigate('/profile');
+                                  return;
+                                }
+                                setJoinSubmitting(true);
+                                try {
+                                  const res = await groupsApi.directJoinRoom(selectedGroup.id);
+                                  setFeedback(`Chúc mừng bạn đã vào phòng ${res.roomCode || res.name} thành công! (${res.role === 'Leader' ? 'Bạn là Trưởng nhóm' : 'Thành viên'})`);
+                                  setSelectedGroup(null);
+                                  navigate('/my-group');
+                                } catch (err: any) {
+                                  setError(err?.response?.data?.detail || 'Không thể vào phòng trực tiếp.');
+                                } finally {
+                                  setJoinSubmitting(false);
+                                }
+                              }}
+                            >
+                              <Zap size={15} />
+                              {joinSubmitting ? 'Đang vào...' : 'Vào phòng trực tiếp (BR-14)'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (selectedGroup.status === 'Recruiting') {
+                      return (
+                        <form
+                          onSubmit={(e) => void handleSubmitJoinRequest(e)}
+                          style={{
+                            borderTop: '1px solid #e2e8f0',
+                            paddingTop: '1.15rem',
+                            marginTop: '1rem',
+                          }}
+                        >
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+                            Ứng tuyển vào nhóm này
+                          </h4>
+
+                          {selectedGroup.slots.length > 0 && (
+                            <div style={{ marginBottom: '0.75rem' }}>
+                              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
+                                Chọn vị trí ứng tuyển:
+                              </label>
+                              <select
+                                className="form-control"
+                                value={joinSlotId}
+                                onChange={(e) => setJoinSlotId(e.target.value)}
+                              >
+                                <option value="">-- Ứng tuyển chung vào nhóm --</option>
+                                {selectedGroup.slots.map((s) => (
+                                  <option key={s.id} value={s.id}>
+                                    {s.roleName} — Ngành {s.major} (Cần: {s.requiredSkills.join(', ') || 'Linh hoạt'})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          <div style={{ marginBottom: '0.85rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
+                              Lời nhắn gửi Trưởng nhóm:
+                            </label>
+                            <textarea
+                              className="form-control"
+                              rows={3}
+                              placeholder="Giới thiệu ngắn gọn kinh nghiệm, kỹ năng và mong muốn đóng góp của bạn..."
+                              value={joinMessage}
+                              onChange={(e) => setJoinMessage(e.target.value)}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => setSelectedGroup(null)}
+                            >
+                              Đóng
+                            </button>
+                            <button type="submit" className="btn btn-primary" disabled={joinSubmitting}>
+                              <Send size={15} />
+                              {joinSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu tham gia'}
+                            </button>
+                          </div>
+                        </form>
+                      );
+                    }
+
+                    return (
+                      <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        Nhóm hiện tại không nhận thêm thành viên ({selectedGroup.status}).
                       </div>
-                    </form>
-                  )}
+                    );
+                  })()}
               </>
             )}
           </div>
@@ -1153,6 +1367,25 @@ export const MyGroupPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Phase 4: Leader election & 24h timer (BR-18, BR-19)
+  const [currentElection, setCurrentElection] = useState<LeaderElectionResponse | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
+  const [showNominateModal, setShowNominateModal] = useState<boolean>(false);
+  const [nominatedCandidateId, setNominatedCandidateId] = useState<string>('');
+  const [electionSubmitting, setElectionSubmitting] = useState<boolean>(false);
+  const [votingElection, setVotingElection] = useState<boolean>(false);
+
+  // Phase 4: Application voting with comments (BR-25)
+  const [voteCommentModal, setVoteCommentModal] = useState<{ requestId: string; isUpvote: boolean } | null>(null);
+  const [voteComment, setVoteComment] = useState<string>('');
+  const [votingApp, setVotingApp] = useState<boolean>(false);
+
+  // Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log (Phương án 3, BR-05)
+  const [kickModal, setKickModal] = useState<{ userId: string; fullName: string } | null>(null);
+  const [kickCategory, setKickCategory] = useState<string>('Mất liên lạc / Không phản hồi (>48h)');
+  const [kickReason, setKickReason] = useState<string>('');
+  const [isSubmittingKick, setIsSubmittingKick] = useState<boolean>(false);
+
   // Edit Group state
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [editForm, setEditForm] = useState<UpdateGroupRequest>({
@@ -1209,36 +1442,46 @@ export const MyGroupPage: React.FC = () => {
           .catch(() => null);
       }
 
-      // If current user is leader, load join requests, ranked candidates, and projects
-      if (user && myGrp.leaderId === user.id) {
-        const [reqRes, candRes, projRes] = await Promise.all([
-          groupsApi.getGroupJoinRequests(myGrp.id, { page: 1, pageSize: 30 }).catch(() => null),
-          groupsApi.getRankedCandidates(myGrp.id, 10).catch(() => []),
-          apiClient
-            .get<PagedResult<ProjectItem>>('/projects', {
-              params: { ownerId: user.id, pageSize: 50 },
-            })
-            .catch(() => null),
-        ]);
+      // Load join requests for ALL members (BR-25 application voting)
+      // Load ranked candidates & projects for leader
+      // Load active election for all members (BR-18, BR-19)
+      const [reqRes, candRes, projRes, electionRes] = await Promise.all([
+        groupsApi.getGroupJoinRequests(myGrp.id, { page: 1, pageSize: 30 }).catch(() => null),
+        user && myGrp.leaderId === user.id ? groupsApi.getRankedCandidates(myGrp.id, 10).catch(() => []) : Promise.resolve([]),
+        user && myGrp.leaderId === user.id
+          ? apiClient
+              .get<PagedResult<ProjectItem>>('/projects', {
+                params: { ownerId: user.id, pageSize: 50 },
+              })
+              .then((r) => r.data?.items || [])
+              .catch(() => [])
+          : Promise.resolve([]),
+        groupsApi.getCurrentElection(myGrp.id).catch(() => null),
+      ]);
 
-        const reqItems = reqRes?.items || [];
-        setJoinRequests(reqItems);
-        setCandidates(candRes || []);
-        setMyProjects(projRes?.data?.items || []);
+      const reqItems = reqRes?.items || [];
+      setJoinRequests(reqItems);
+      setCandidates(candRes || []);
+      setMyProjects(projRes || []);
+      setCurrentElection(electionRes);
+      if (electionRes && electionRes.status === 'Active') {
+        setCountdownSeconds(Math.max(0, Math.floor(electionRes.secondsRemaining || 0)));
+      } else {
+        setCountdownSeconds(0);
+      }
 
-        const applicantIds = reqItems.map((r) => r.userId);
-        if (applicantIds.length > 0) {
-          apiClient
-            .post<CandidateProfileResponse[]>('/users/batch', { userIds: applicantIds })
-            .then((r) => {
-              const map: Record<string, CandidateProfileResponse> = {};
-              (r.data || []).forEach((p) => {
-                map[p.userId] = p;
-              });
-              setApplicantProfiles(map);
-            })
-            .catch(() => null);
-        }
+      const applicantIds = reqItems.map((r) => r.userId);
+      if (applicantIds.length > 0) {
+        apiClient
+          .post<CandidateProfileResponse[]>('/users/batch', { userIds: applicantIds })
+          .then((r) => {
+            const map: Record<string, CandidateProfileResponse> = {};
+            (r.data || []).forEach((p) => {
+              map[p.userId] = p;
+            });
+            setApplicantProfiles(map);
+          })
+          .catch(() => null);
       }
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Không thể tải thông tin nhóm của bạn.');
@@ -1250,6 +1493,112 @@ export const MyGroupPage: React.FC = () => {
   useEffect(() => {
     void loadMyGroupData();
   }, [loadMyGroupData]);
+
+  // Phase 4: 24h Countdown Timer for active leader election
+  useEffect(() => {
+    if (!currentElection || currentElection.status !== 'Active' || countdownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          void loadMyGroupData();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentElection, countdownSeconds, loadMyGroupData]);
+
+  const formatCountdown = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    const hh = h < 10 ? `0${h}` : `${h}`;
+    const mm = m < 10 ? `0${m}` : `${m}`;
+    const ss = s < 10 ? `0${s}` : `${s}`;
+    return `${hh}:${mm}:${ss}`;
+  };
+
+  const handleStartElection = async (candidateId: string) => {
+    if (!group) return;
+    setElectionSubmitting(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      await groupsApi.startElection(group.id, candidateId);
+      setShowNominateModal(false);
+      setFeedback('Đã khởi tạo cuộc bầu chọn Trưởng nhóm mới thành công! Thời hạn bỏ phiếu là 24 giờ (BR-18, BR-19).');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể khởi tạo cuộc bầu cử.');
+    } finally {
+      setElectionSubmitting(false);
+    }
+  };
+
+  const handleVoteElection = async (isAgree: boolean) => {
+    if (!group || !currentElection) return;
+    setVotingElection(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await groupsApi.voteElection(group.id, currentElection.id, isAgree);
+      if (res.status === 'Passed') {
+        setFeedback('Chúc mừng! Cuộc bầu cử đã thông qua (> 50% tán thành). Quyền Trưởng nhóm đã chuyển giao thành công (BR-19)!');
+      } else {
+        setFeedback(`Đã ghi nhận phiếu bầu của bạn: ${isAgree ? 'Đồng ý' : 'Không đồng ý'}.`);
+      }
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể gửi phiếu bầu.');
+    } finally {
+      setVotingElection(false);
+    }
+  };
+
+  const handleCloseRecruitment = async () => {
+    if (!group) return;
+    if (
+      !window.confirm(
+        'Đóng tuyển sớm sẽ tự động từ chối toàn bộ đơn xin gia nhập còn chờ duyệt (BR-28). Bạn có chắc chắn muốn đóng tuyển sớm?'
+      )
+    )
+      return;
+    try {
+      await groupsApi.closeRecruitment(group.id);
+      setFeedback('Đã đóng tuyển dụng sớm thành công. Toàn bộ đơn đang chờ đã được từ chối (BR-28).');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể đóng tuyển dụng sớm.');
+    }
+  };
+
+  const handleReopenRecruitment = async () => {
+    if (!group) return;
+    try {
+      await groupsApi.reopenRecruitment(group.id);
+      setFeedback('Đã mở lại tuyển dụng thành công.');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể mở lại tuyển dụng.');
+    }
+  };
+
+  const handleVoteApplication = async (requestId: string, isUpvote: boolean, comment?: string) => {
+    setVotingApp(true);
+    try {
+      await groupsApi.voteApplication(requestId, isUpvote, comment);
+      setFeedback(`Đã gửi phiếu ${isUpvote ? 'Ủng hộ' : 'Phản đối'} tham khảo cho ứng viên thành công (BR-25).`);
+      setVoteCommentModal(null);
+      setVoteComment('');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể bỏ phiếu cho ứng viên này.');
+    } finally {
+      setVotingApp(false);
+    }
+  };
 
   const handleUpdateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1265,16 +1614,26 @@ export const MyGroupPage: React.FC = () => {
   };
 
   const handleLeaveGroup = async () => {
-    if (!group || !window.confirm('Bạn có chắc chắn muốn rời khỏi nhóm này?')) return;
+    if (!group) return;
+    let msg = 'Bạn có chắc chắn muốn rời khỏi nhóm này?';
+    if (isLeader) {
+      const otherMembers = (group.members || [])
+        .filter((m) => m.userId !== user?.id)
+        .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+      if (otherMembers.length > 0) {
+        const successor = otherMembers[0];
+        msg = `Bạn đang là Trưởng nhóm. Nếu bạn rời phòng, quyền Trưởng nhóm sẽ TỰ ĐỘNG chuyển giao cho thành viên vào sớm nhất kế tiếp: "${successor.fullName}" (theo quy định BR-20).\n\nLưu ý: Nếu bạn muốn chỉ định một thành viên cụ thể khác, hãy dùng nút "Nhượng quyền Leader" trước khi rời.\n\nBạn có chắc chắn muốn rời nhóm?`;
+      } else {
+        msg = 'Bạn là thành viên duy nhất trong phòng. Khi bạn rời, phòng sẽ trở về trạng thái Trống (Empty). Bạn có chắc chắn muốn rời nhóm?';
+      }
+    }
+    if (!window.confirm(msg)) return;
     try {
       await groupsApi.leaveGroup(group.id);
       setGroup(null);
       setFeedback('Bạn đã rời nhóm thành công.');
     } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          'Không thể rời nhóm (Trưởng nhóm cần chuyển quyền Leader trước khi rời nhóm).'
-      );
+      setError(err?.response?.data?.detail || 'Không thể rời nhóm.');
     }
   };
 
@@ -1301,14 +1660,27 @@ export const MyGroupPage: React.FC = () => {
     }
   };
 
-  const handleRemoveMember = async (memberUserId: string) => {
-    if (!group || !window.confirm('Xóa thành viên này khỏi nhóm?')) return;
+  const handleConfirmKick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group || !kickModal) return;
+    if (kickReason.trim().length < 10) {
+      setError('Vui lòng nhập lý do cụ thể tối thiểu 10 ký tự.');
+      return;
+    }
+    setIsSubmittingKick(true);
+    setError(null);
     try {
-      await groupsApi.removeMember(group.id, memberUserId);
-      setFeedback('Đã xóa thành viên khỏi nhóm.');
+      await groupsApi.removeMember(group.id, kickModal.userId, {
+        category: kickCategory,
+        reason: kickReason.trim(),
+      });
+      setFeedback(`Đã mời thành viên ${kickModal.fullName} ra khỏi nhóm và gửi email thông báo thành công.`);
+      setKickModal(null);
       await loadMyGroupData();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể xóa thành viên.');
+      setError(err?.response?.data?.detail || 'Không thể mời thành viên ra khỏi nhóm.');
+    } finally {
+      setIsSubmittingKick(false);
     }
   };
 
@@ -1459,12 +1831,32 @@ export const MyGroupPage: React.FC = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-secondary btn-sm" onClick={() => void loadMyGroupData()}>
               <RefreshCw size={15} /> Làm mới
             </button>
             {isLeader && (
               <>
+                {group.status === 'Recruiting' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                    onClick={() => void handleCloseRecruitment()}
+                    title="Đóng tuyển sớm khi nhóm đã đạt số lượng mong muốn (BR-28)"
+                  >
+                    <Lock size={14} /> Đóng tuyển sớm (BR-28)
+                  </button>
+                )}
+                {group.status === 'Closed' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#008837', borderColor: '#86efac' }}
+                    onClick={() => void handleReopenRecruitment()}
+                    title="Mở lại tuyển dụng nếu nhóm chưa đủ sĩ số tối đa"
+                  >
+                    <Unlock size={14} /> Mở lại tuyển dụng
+                  </button>
+                )}
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowEditGroup((v) => !v)}
@@ -1483,12 +1875,21 @@ export const MyGroupPage: React.FC = () => {
             {!isLeader && (
               <button
                 className="btn btn-secondary btn-sm"
-                style={{ color: '#dc2626' }}
-                onClick={() => void handleLeaveGroup()}
+                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
+                onClick={() => setShowNominateModal(true)}
+                title="Đề cử một thành viên khác làm Trưởng nhóm mới (BR-18, BR-19)"
               >
-                <LogOut size={15} /> Rời nhóm
+                <Vote size={15} /> Bầu Leader mới (BR-19)
               </button>
             )}
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ color: '#dc2626' }}
+              onClick={() => void handleLeaveGroup()}
+              title={isLeader ? 'Leader rời nhóm sẽ tự động chuyển giao cho thành viên sớm nhất kế tiếp (BR-20)' : 'Rời nhóm'}
+            >
+              <LogOut size={15} /> Rời nhóm
+            </button>
           </div>
         </div>
 
@@ -1620,6 +2021,148 @@ export const MyGroupPage: React.FC = () => {
         </div>
       )}
 
+      {/* Phase 4: Active Leader Election Banner (BR-18, BR-19) */}
+      {currentElection && currentElection.status === 'Active' && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.25rem',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, rgba(10, 25, 47, 0.04) 0%, rgba(242, 111, 33, 0.06) 100%)',
+            border: '2px solid #f26f21',
+            boxShadow: '0 4px 12px rgba(242, 111, 33, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: 'rgba(242, 111, 33, 0.15)',
+                  color: '#f26f21',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Vote size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  🗳️ Đang diễn ra cuộc bầu chọn Trưởng nhóm mới (BR-18, BR-19)
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Ứng viên được đề cử: <strong style={{ color: 'var(--text-main)' }}>{currentElection.candidateName}</strong> • Người khởi xướng: <strong>{currentElection.initiatedByName}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* 24-hour Countdown Timer */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '8px',
+                background: '#fff',
+                border: '1px solid #fed7aa',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <Clock size={16} style={{ color: '#ea580c' }} />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Thời hạn còn lại:</div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.95rem',
+                  fontWeight: 800,
+                  color: '#ea580c',
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {formatCountdown(countdownSeconds)}
+              </div>
+            </div>
+          </div>
+
+          {/* Voting Progress */}
+          <div style={{ marginTop: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', marginBottom: '0.35rem' }}>
+              <span>
+                Tiến độ phiếu tán thành: <strong style={{ fontFamily: 'var(--font-mono)', color: '#008837' }}>{currentElection.totalAgreed}</strong> / <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentElection.requiredVotesToPass} phiếu</strong> cần thiết để đắc cử (&gt; 50% tổng số {currentElection.totalMembers} SV)
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)' }}>
+                {currentElection.totalVotes} / {currentElection.totalMembers} đã bầu
+              </span>
+            </div>
+            <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  background: currentElection.totalAgreed >= currentElection.requiredVotesToPass ? '#10b981' : '#f26f21',
+                  width: `${Math.min(100, (currentElection.totalAgreed / (currentElection.totalMembers || 1)) * 100)}%`,
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Voting Actions for User */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            {(() => {
+              const myVote = currentElection.votes?.find((v) => v.voterId === user?.id);
+              if (myVote) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                    <CheckCircle2 size={16} style={{ color: myVote.isAgree ? '#10b981' : '#ef4444' }} />
+                    <span>
+                      Bạn đã bỏ phiếu: <strong>{myVote.isAgree ? '👍 Tán thành (Đồng ý)' : '👎 Không đồng ý'}</strong>
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    Bỏ phiếu của bạn:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleVoteElection(true)}
+                    disabled={votingElection}
+                    className="btn btn-primary btn-sm"
+                    style={{ background: '#008837', borderColor: '#008837', gap: '0.35rem' }}
+                  >
+                    <ThumbsUp size={14} />
+                    <span>Đồng ý</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleVoteElection(false)}
+                    disabled={votingElection}
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#dc2626', gap: '0.35rem' }}
+                  >
+                    <ThumbsDown size={14} />
+                    <span>Không đồng ý</span>
+                  </button>
+                </div>
+              );
+            })()}
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Theo BR-19: Ngay khi số phiếu đồng ý đạt &gt; 50% ({currentElection.requiredVotesToPass} phiếu), quyền Leader chuyển giao lập tức.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sub-navigation Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <button
@@ -1634,21 +2177,19 @@ export const MyGroupPage: React.FC = () => {
         >
           <Briefcase size={15} /> Vị trí Tuyển dụng ({group.slots.length})
         </button>
+        <button
+          className={activeTab === 'requests' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('requests')}
+        >
+          <Mail size={15} /> Đơn xin vào nhóm ({pendingReqCount} chờ duyệt)
+        </button>
         {isLeader && (
-          <>
-            <button
-              className={activeTab === 'requests' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-              onClick={() => setActiveTab('requests')}
-            >
-              <Mail size={15} /> Đơn xin vào nhóm ({pendingReqCount} chờ duyệt)
-            </button>
-            <button
-              className={activeTab === 'candidates' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-              onClick={() => setActiveTab('candidates')}
-            >
-              <Sparkles size={15} /> Gợi ý Ứng viên phù hợp (gRPC)
-            </button>
-          </>
+          <button
+            className={activeTab === 'candidates' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+            onClick={() => setActiveTab('candidates')}
+          >
+            <Sparkles size={15} /> Gợi ý Ứng viên phù hợp (gRPC)
+          </button>
         )}
       </div>
 
@@ -1712,9 +2253,14 @@ export const MyGroupPage: React.FC = () => {
                       <button
                         className="btn btn-secondary btn-sm"
                         style={{ color: '#dc2626' }}
-                        onClick={() => void handleRemoveMember(m.userId)}
+                        onClick={() => {
+                          setKickModal({ userId: m.userId, fullName: m.fullName || 'Thành viên' });
+                          setKickCategory('Mất liên lạc / Không phản hồi (>48h)');
+                          setKickReason('');
+                        }}
+                        title="Mời thành viên ra khỏi nhóm kèm lý do và thông báo email (Phương án 3, BR-05)"
                       >
-                        <UserMinus size={14} /> Xóa
+                        <UserMinus size={14} /> Mời rời nhóm
                       </button>
                     </div>
                   )}
@@ -1871,62 +2417,197 @@ export const MyGroupPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB C: INCOMING JOIN REQUESTS */}
-      {activeTab === 'requests' && isLeader && (
+      {/* TAB C: INCOMING JOIN REQUESTS (BR-24, BR-25, BR-26, BR-28) */}
+      {activeTab === 'requests' && (
         <div className="card">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>
-            Đơn xin gia nhập nhóm ({joinRequests.length})
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                Đơn xin gia nhập nhóm ({joinRequests.length})
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+                {isLeader
+                  ? 'Trưởng nhóm xem xét và quyết định chấp thuận/từ chối. Thành viên nhóm bỏ phiếu tham khảo (BR-25).'
+                  : 'Mọi thành viên trong nhóm đều có quyền bỏ phiếu Ủng hộ / Phản đối kèm nhận xét tham khảo (BR-25).'}
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: '0.78rem',
+                padding: '0.25rem 0.65rem',
+                borderRadius: '6px',
+                background: 'rgba(0, 84, 166, 0.08)',
+                color: 'var(--fpt-blue)',
+                fontWeight: 600,
+                border: '1px solid rgba(0, 84, 166, 0.2)',
+              }}
+            >
+              Cơ chế bỏ phiếu nội bộ (BR-25)
+            </span>
+          </div>
+
           {joinRequests.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>Chưa có sinh viên nào gửi đơn xin gia nhập nhóm.</p>
+            <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>Chưa có sinh viên nào gửi đơn xin gia nhập nhóm.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {joinRequests.map((req) => {
                 const prof = applicantProfiles[req.userId];
+                const upvotes = req.upvotes || 0;
+                const downvotes = req.downvotes || 0;
+                const hasVoted = req.votes?.some((v) => v.voterId === user?.id);
+
                 return (
                   <div
                     key={req.id}
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                      gap: '0.75rem',
-                      padding: '0.9rem 1rem',
+                      padding: '1.15rem',
                       borderRadius: 10,
                       background: '#f8fafc',
                       border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.85rem',
                     }}
                   >
-                    <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
+                            {req.studentName || prof?.fullName || `Ứng viên (${req.userId.slice(0, 8)})`}
+                          </strong>
+                          {prof?.major && <span className="badge badge-domain">Ngành {prof.major}</span>}
+                          <span
+                            className="badge"
+                            style={{
+                              background: req.status === 'Accepted' ? '#dcfce7' : req.status === 'Pending' ? '#fff7ed' : '#fee2e2',
+                              color: req.status === 'Accepted' ? '#15803d' : req.status === 'Pending' ? '#c2410c' : '#b91c1c',
+                              border: `1px solid ${req.status === 'Accepted' ? '#86efac' : req.status === 'Pending' ? '#fed7aa' : '#fca5a5'}`,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {req.status === 'Pending' ? 'Đang chờ duyệt' : req.status === 'Accepted' ? 'Đã chấp nhận' : req.status === 'Cancelled' ? 'Tự động hủy (BR-26)' : 'Đã từ chối'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#334155', marginTop: 6, fontStyle: 'italic' }}>
+                          &quot;{req.message || 'Mong muốn tham gia cùng nhóm phát triển đề tài.'}&quot;
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                          Gửi lúc: {formatDateTime(req.createdAt)}
+                        </div>
+                      </div>
+
+                      {/* Vote Score Badges */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <strong>{prof?.fullName || `Ứng viên (${req.userId.slice(0, 8)})`}</strong>
-                        {prof?.major && <span className="badge badge-domain">Ngành {prof.major}</span>}
-                        <span className="badge badge-recruiting">{req.status}</span>
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: '#334155', marginTop: 4 }}>
-                        Lời nhắn: &quot;{req.message || 'Mong muốn tham gia cùng nhóm.'}&quot;
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>
-                        Gửi lúc: {formatDateTime(req.createdAt)}
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.3rem 0.65rem',
+                            borderRadius: '6px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #86efac',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          <ThumbsUp size={13} /> {upvotes} Ủng hộ
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.3rem 0.65rem',
+                            borderRadius: '6px',
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: '1px solid #fca5a5',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          <ThumbsDown size={13} /> {downvotes} Phản đối
+                        </span>
                       </div>
                     </div>
 
+                    {/* Member votes and comments breakdown */}
+                    {req.votes && req.votes.length > 0 && (
+                      <div style={{ padding: '0.75rem 0.85rem', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                          Ý kiến tham khảo của thành viên ({req.votes.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {req.votes.map((v, idx) => (
+                            <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, color: v.isUpvote ? '#15803d' : '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                {v.isUpvote ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
+                                {v.isUpvote ? 'Ủng hộ' : 'Phản đối'}
+                              </span>
+                              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{v.voterName}:</span>
+                              <span style={{ color: '#475569' }}>{v.comment || '(Không có nhận xét)'}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>({formatDateTime(v.votedAt)})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions Row (Member Vote + Leader Decide) */}
                     {req.status === 'Pending' && (
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => void handleDecideJoinRequest(req.id, true)}
-                        >
-                          <Check size={14} /> Chấp nhận
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ color: '#dc2626' }}
-                          onClick={() => void handleDecideJoinRequest(req.id, false)}
-                        >
-                          <X size={14} /> Từ chối
-                        </button>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
+                        {/* Member Reference Vote Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            {hasVoted ? 'Bạn đã bỏ phiếu tham khảo:' : 'Bỏ phiếu tham khảo (BR-25):'}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#15803d', borderColor: '#86efac', gap: '0.3rem' }}
+                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: true })}
+                          >
+                            <ThumbsUp size={13} />
+                            <span>Ủng hộ</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#b91c1c', borderColor: '#fca5a5', gap: '0.3rem' }}
+                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: false })}
+                          >
+                            <ThumbsDown size={13} />
+                            <span>Phản đối</span>
+                          </button>
+                        </div>
+
+                        {/* Leader Decision Buttons */}
+                        {isLeader && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              style={{ background: '#008837', borderColor: '#008837' }}
+                              onClick={() => void handleDecideJoinRequest(req.id, true)}
+                            >
+                              <Check size={14} /> Chấp thuận (Duyệt)
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: '#dc2626' }}
+                              onClick={() => void handleDecideJoinRequest(req.id, false)}
+                            >
+                              <X size={14} /> Từ chối
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2047,6 +2728,305 @@ export const MyGroupPage: React.FC = () => {
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm">
                   <Send size={14} /> Gửi lời mời
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 4: Modal Đề cử Trưởng nhóm mới (BR-18, BR-19) */}
+      {showNominateModal && (
+        <div className="modal-overlay" onClick={() => setShowNominateModal(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 480, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Vote size={20} style={{ color: 'var(--fpt-orange)' }} />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+                  Bầu chọn Trưởng nhóm mới (BR-18, BR-19)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNominateModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (nominatedCandidateId) void handleStartElection(nominatedCandidateId);
+              }}
+              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
+              <div
+                style={{
+                  padding: '0.8rem 0.95rem',
+                  borderRadius: 8,
+                  background: 'rgba(242, 111, 33, 0.06)',
+                  border: '1px solid rgba(242, 111, 33, 0.25)',
+                  fontSize: '0.825rem',
+                  lineHeight: 1.5,
+                  color: 'var(--text-main)',
+                }}
+              >
+                <strong>Quy chế bầu cử (BR-18, BR-19):</strong> Cuộc bầu chọn kéo dài tối đa <strong>24 giờ</strong>. Toàn bộ thành viên có quyền bỏ phiếu. Khi số phiếu đồng ý đạt <strong>&gt; 50%</strong> tổng sĩ số nhóm, quyền Trưởng nhóm sẽ được chuyển giao lập tức.
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.825rem', fontWeight: 700, marginBottom: '0.45rem', display: 'block' }}>
+                  Chọn thành viên bạn muốn đề cử làm Trưởng nhóm mới:
+                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
+                  {group.members
+                    .filter((m) => m.userId !== user?.id && m.userId !== group.leaderId)
+                    .map((m) => {
+                      const prof = memberProfiles[m.userId];
+                      const isSelected = nominatedCandidateId === m.userId;
+                      return (
+                        <div
+                          key={m.userId}
+                          onClick={() => setNominatedCandidateId(m.userId)}
+                          style={{
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: 8,
+                            border: isSelected ? '2px solid #f26f21' : '1px solid #e2e8f0',
+                            background: isSelected ? 'rgba(242, 111, 33, 0.05)' : '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>
+                              {prof?.fullName || m.userId}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                              Tham gia từ: {formatDateTime(m.joinedAt)}
+                            </div>
+                          </div>
+                          <input
+                            type="radio"
+                            name="candidateNominee"
+                            checked={isSelected}
+                            onChange={() => setNominatedCandidateId(m.userId)}
+                          />
+                        </div>
+                      );
+                    })}
+                </div>
+                {group.members.filter((m) => m.userId !== user?.id && m.userId !== group.leaderId).length === 0 && (
+                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.5rem 0 0 0' }}>
+                    Không có thành viên nào khác để đề cử (nhóm hiện chỉ có bạn và Trưởng nhóm hiện tại).
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowNominateModal(false)}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={!nominatedCandidateId || electionSubmitting}
+                  className="btn btn-primary btn-sm"
+                  style={{ gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <Vote size={14} />
+                  <span>{electionSubmitting ? 'Đang khởi tạo...' : 'Bắt đầu cuộc bầu chọn (24h)'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 4: Modal Bỏ phiếu tham khảo ứng viên kèm nhận xét (BR-25) */}
+      {voteCommentModal && (
+        <div className="modal-overlay" onClick={() => setVoteCommentModal(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 440, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                {voteCommentModal.isUpvote ? (
+                  <ThumbsUp size={18} style={{ color: '#15803d' }} />
+                ) : (
+                  <ThumbsDown size={18} style={{ color: '#b91c1c' }} />
+                )}
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                  Bỏ phiếu {voteCommentModal.isUpvote ? 'Ủng hộ' : 'Phản đối'} (BR-25)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoteCommentModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleVoteApplication(voteCommentModal.requestId, voteCommentModal.isUpvote, voteComment);
+              }}
+              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+            >
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                Phiếu vote và nhận xét của bạn sẽ được hiển thị cho toàn đội và Trưởng nhóm tham khảo trước khi ra quyết định duyệt (BR-25).
+              </p>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
+                  Ý kiến / Nhận xét của bạn (không bắt buộc):
+                </label>
+                <textarea
+                  rows={3}
+                  className="form-control"
+                  placeholder="Ví dụ: Em thấy bạn này rất hợp vai trò Backend, kỹ năng khá tốt..."
+                  value={voteComment}
+                  onChange={(e) => setVoteComment(e.target.value)}
+                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setVoteCommentModal(null)}
+                  disabled={votingApp}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={votingApp}
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    background: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
+                    borderColor: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
+                    gap: '0.35rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {voteCommentModal.isUpvote ? <ThumbsUp size={14} /> : <ThumbsDown size={14} />}
+                  <span>{votingApp ? 'Đang gửi...' : 'Xác nhận bỏ phiếu'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log (Phương án 3, BR-05) */}
+      {kickModal && (
+        <div className="modal-overlay" onClick={() => !isSubmittingKick && setKickModal(null)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 480, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserMinus size={18} style={{ color: '#b91c1c' }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                    Mời thành viên ra khỏi nhóm (BR-05)
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Thành viên: <strong style={{ color: 'var(--text-main)' }}>{kickModal.fullName}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSubmittingKick && setKickModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => void handleConfirmKick(e)}
+              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+            >
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 12px', fontSize: '0.8rem', color: '#991b1b', lineHeight: 1.5 }}>
+                <strong>Lưu ý quan trọng:</strong> Hành động này sẽ được ghi vào <strong>Nhật ký hệ thống (Audit Log)</strong>. Đồng thời một <strong>email thông báo chính thức kèm lý do</strong> sẽ được gửi tự động đến hòm thư sinh viên qua MailHog.
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
+                  Phân loại lý do <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <select
+                  className="form-control"
+                  value={kickCategory}
+                  onChange={(e) => setKickCategory(e.target.value)}
+                  style={{ fontSize: '0.825rem' }}
+                >
+                  <option value="Mất liên lạc / Không phản hồi (>48h)">Mất liên lạc / Không phản hồi (&gt;48h)</option>
+                  <option value="Không hoàn thành nhiệm vụ / Bỏ bê dự án">Không hoàn thành nhiệm vụ / Bỏ bê dự án</option>
+                  <option value="Không phù hợp định hướng đề tài / phong cách làm việc">Không phù hợp định hướng đề tài / phong cách làm việc</option>
+                  <option value="Lý do cá nhân / Khác">Lý do cá nhân / Khác</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>
+                    Giải trình lý do chi tiết <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <span style={{ fontSize: '0.725rem', color: kickReason.trim().length < 10 ? '#dc2626' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    {kickReason.trim().length}/1000 (tối thiểu 10 ký tự)
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  className="form-control"
+                  placeholder="Nhập giải trình rõ ràng, lịch sự để gửi đến sinh viên (ví dụ: Thành viên không tham gia họp nhóm 3 buổi liên tiếp và không phản hồi tin nhắn phân chia task...)"
+                  value={kickReason}
+                  onChange={(e) => setKickReason(e.target.value)}
+                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setKickModal(null)}
+                  disabled={isSubmittingKick}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+                  disabled={isSubmittingKick || kickReason.trim().length < 10}
+                >
+                  {isSubmittingKick ? 'Đang gửi thông báo...' : 'Xác nhận mời ra khỏi nhóm'}
                 </button>
               </div>
             </form>
@@ -2196,11 +3176,66 @@ export const JoinRequestsPage: React.FC = () => {
               }}
             >
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: '1.05rem', color: 'var(--text-main)' }}>
                     Nhóm: {r.groupName}
                   </strong>
-                  <span className="badge badge-domain">{r.status}</span>
+                  <span
+                    className="badge"
+                    style={{
+                      background:
+                        r.status === 'Accepted'
+                          ? '#dcfce7'
+                          : r.status === 'Pending'
+                          ? '#fff7ed'
+                          : r.status === 'Cancelled'
+                          ? '#f1f5f9'
+                          : '#fee2e2',
+                      color:
+                        r.status === 'Accepted'
+                          ? '#15803d'
+                          : r.status === 'Pending'
+                          ? '#c2410c'
+                          : r.status === 'Cancelled'
+                          ? '#475569'
+                          : '#b91c1c',
+                      border: `1px solid ${
+                        r.status === 'Accepted'
+                          ? '#86efac'
+                          : r.status === 'Pending'
+                          ? '#fed7aa'
+                          : r.status === 'Cancelled'
+                          ? '#cbd5e1'
+                          : '#fca5a5'
+                      }`,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {r.status === 'Pending'
+                      ? 'Đang chờ duyệt'
+                      : r.status === 'Accepted'
+                      ? 'Đã chấp nhận'
+                      : r.status === 'Cancelled'
+                      ? 'Tự động hủy do đã có nhóm (BR-26)'
+                      : 'Đã từ chối (BR-28)'}
+                  </span>
+
+                  {((r.upvotes || 0) > 0 || (r.downvotes || 0) > 0) && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: '#64748b',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: 4,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    >
+                      👍 {r.upvotes || 0} • 👎 {r.downvotes || 0}
+                    </span>
+                  )}
                 </div>
                 {r.message && (
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
@@ -2235,6 +3270,7 @@ export const JoinRequestsPage: React.FC = () => {
 // ══════════════════════════════════════════════════════════════════════════════
 export const InvitationsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [invitations, setInvitations] = useState<InvitationResponse[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -2265,6 +3301,13 @@ export const InvitationsPage: React.FC = () => {
   const handleDecision = async (invId: string, accept: boolean) => {
     try {
       if (accept) {
+        if (user?.role === 'Student' && !user?.isProfileCompleted) {
+          setError(
+            'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi chấp nhận lời mời.'
+          );
+          navigate('/profile');
+          return;
+        }
         await groupsApi.acceptInvitation(invId);
         setFeedback('Bạn đã chấp nhận lời mời vào nhóm! Đang chuyển tới Nhóm của tôi...');
         setTimeout(() => navigate('/my-group'), 900);

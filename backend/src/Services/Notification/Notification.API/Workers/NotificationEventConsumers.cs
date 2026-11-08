@@ -81,3 +81,16 @@ public sealed class MemberLeftConsumer(IServiceProvider services) : EventConsume
         services.GetRequiredService<INotificationEventHandler>()
             .HandleMemberLeftAsync(@event, envelope.EventId, cancellationToken);
 }
+
+public sealed class MemberRemovedConsumer(IServiceProvider services) : EventConsumerBase<MemberRemoved>(services)
+{
+    protected override string ConsumerGroup => "notification-service";
+
+    protected override Task HandleAsync(
+        MemberRemoved @event,
+        EventEnvelope envelope,
+        IServiceProvider services,
+        CancellationToken cancellationToken) =>
+        services.GetRequiredService<INotificationEventHandler>()
+            .HandleMemberRemovedAsync(@event, envelope.EventId, cancellationToken);
+}

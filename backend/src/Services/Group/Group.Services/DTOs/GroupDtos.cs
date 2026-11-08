@@ -25,6 +25,10 @@ public record SlotRequest(string? RequiredMajor, List<string>? RequiredSkills, i
 /// <summary>PUT /api/groups/{id}/leader — chuyển quyền trưởng nhóm cho một thành viên khác.</summary>
 public record TransferLeaderRequest(Guid NewLeaderId);
 
+/// <summary>DELETE /api/groups/{id}/members/{userId} hoặc POST /api/groups/{id}/members/{userId}/remove — mời thành viên ra khỏi nhóm (Phương án 3, BR-05).</summary>
+public record RemoveMemberRequest(string Reason, string? Category = null);
+
+
 /// <summary>
 /// GET /api/groups?search=&amp;status=&amp;domain=&amp;major=&amp;sortBy=&amp;sortDir=&amp;page=&amp;pageSize=
 /// sortBy: name | memberCount | maxMembers | createdAt (mặc định, desc).

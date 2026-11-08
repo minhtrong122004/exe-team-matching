@@ -22,6 +22,34 @@ namespace Group.Repository.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Group.Repository.Entities.ApplicationVote", b =>
+                {
+                    b.Property<Guid>("JoinRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsUpvote")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("VotedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VoterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("JoinRequestId", "VoterId");
+
+                    b.ToTable("ApplicationVotes", (string)null);
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.CourseSpace", b =>
                 {
                     b.Property<Guid>("Id")
@@ -79,6 +107,30 @@ namespace Group.Repository.Migrations
                         .HasDatabaseName("IX_CourseSpaces_SemesterCode_SubjectCode");
 
                     b.ToTable("CourseSpaces", (string)null);
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.ElectionVote", b =>
+                {
+                    b.Property<Guid>("ElectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VoterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsAgree")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("VotedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("VoterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("ElectionId", "VoterId");
+
+                    b.ToTable("ElectionVotes", (string)null);
                 });
 
             modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>
@@ -299,6 +351,107 @@ namespace Group.Repository.Migrations
                     b.ToTable("JoinRequests", (string)null);
                 });
 
+            modelBuilder.Entity("Group.Repository.Entities.LeaderElection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CandidateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CandidateName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InitiatedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InitiatedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId", "Status")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LeaderElections_GroupId_Active")
+                        .HasFilter("[Status] = 'Active'");
+
+                    b.ToTable("LeaderElections", (string)null);
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.MemberRemovalLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("LeaderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("LeaderName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("RemovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RemovedUserEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("RemovedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RemovedUserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("RemovedUserId");
+
+                    b.ToTable("MemberRemovalLogs", (string)null);
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.RecruitmentSlot", b =>
                 {
                     b.Property<Guid>("Id")
@@ -387,6 +540,28 @@ namespace Group.Repository.Migrations
                     b.ToTable("SpaceEnrollments", (string)null);
                 });
 
+            modelBuilder.Entity("Group.Repository.Entities.ApplicationVote", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.JoinRequest", "JoinRequest")
+                        .WithMany("Votes")
+                        .HasForeignKey("JoinRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("JoinRequest");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.ElectionVote", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.LeaderElection", "Election")
+                        .WithMany("Votes")
+                        .HasForeignKey("ElectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Election");
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>
                 {
                     b.HasOne("Group.Repository.Entities.CourseSpace", "Space")
@@ -430,6 +605,28 @@ namespace Group.Repository.Migrations
                     b.Navigation("Group");
                 });
 
+            modelBuilder.Entity("Group.Repository.Entities.LeaderElection", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.GroupEntity", "Group")
+                        .WithMany("Elections")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.MemberRemovalLog", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.GroupEntity", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.RecruitmentSlot", b =>
                 {
                     b.HasOne("Group.Repository.Entities.GroupEntity", "Group")
@@ -461,9 +658,21 @@ namespace Group.Repository.Migrations
 
             modelBuilder.Entity("Group.Repository.Entities.GroupEntity", b =>
                 {
+                    b.Navigation("Elections");
+
                     b.Navigation("Members");
 
                     b.Navigation("Slots");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.JoinRequest", b =>
+                {
+                    b.Navigation("Votes");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.LeaderElection", b =>
+                {
+                    b.Navigation("Votes");
                 });
 #pragma warning restore 612, 618
         }

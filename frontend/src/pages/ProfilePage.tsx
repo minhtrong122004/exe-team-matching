@@ -659,6 +659,7 @@ export const ProfilePage: React.FC = () => {
       setIsCommitted(res.data.isCommitted);
       setCommittedAt(res.data.committedAt ?? null);
       setIsProfileCompleted(res.data.isProfileCompleted);
+      updateUserData({ isProfileCompleted: res.data.isProfileCompleted });
       setSkills5Changed(false);
       setSuccessMsg('Đã lưu hồ sơ 5 kỹ năng cốt lõi và ghi nhận cam kết thành công (BR-05 & BR-06)!');
     } catch (err: any) {

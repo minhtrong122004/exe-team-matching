@@ -55,3 +55,21 @@ public record MemberJoined(
 /// Nhận: User (đặt LookingForTeam), Notification, Report.
 /// </summary>
 public record MemberLeft(Guid GroupId, string GroupName, Guid UserId, int MemberCount);
+
+/// <summary>
+/// Sinh viên bị trưởng nhóm mời ra khỏi nhóm có kèm lý do và phân loại (Phương án 3, BR-05).
+/// Nhận: User (đặt LookingForTeam), Notification (in-app + gửi email qua MailHog), Report.
+/// </summary>
+public record MemberRemoved(
+    Guid GroupId,
+    string GroupName,
+    Guid UserId,
+    string UserEmail,
+    string UserName,
+    Guid LeaderId,
+    string LeaderName,
+    string Reason,
+    string? Category,
+    int MemberCount,
+    DateTime RemovedAt);
+

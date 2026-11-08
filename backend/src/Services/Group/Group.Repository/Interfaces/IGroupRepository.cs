@@ -50,4 +50,16 @@ public interface IGroupRepository
     /// vào group.Slots, EF coi là bản ghi cũ và sinh UPDATE (0 dòng → lỗi concurrency) thay vì INSERT.
     /// </summary>
     void AddSlot(RecruitmentSlot slot);
+
+    /// <summary>Lấy cuộc bầu Leader đang Active của nhóm (kèm Votes).</summary>
+    Task<LeaderElection?> GetActiveElectionAsync(Guid groupId, CancellationToken ct = default);
+
+    /// <summary>Lấy chi tiết cuộc bầu Leader theo Id (kèm Votes và Group).</summary>
+    Task<LeaderElection?> GetElectionByIdAsync(Guid electionId, CancellationToken ct = default);
+
+    void AddElection(LeaderElection election);
+
+    void AddElectionVote(ElectionVote vote);
+
+    void AddMemberRemovalLog(MemberRemovalLog log);
 }

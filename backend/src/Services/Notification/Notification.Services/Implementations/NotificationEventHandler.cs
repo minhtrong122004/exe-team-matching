@@ -280,6 +280,82 @@ public class NotificationEventHandler : INotificationEventHandler
         return true;
     }
 
+    public async Task<bool> HandleMemberRemovedAsync(MemberRemoved @event, Guid eventId, CancellationToken ct = default)
+    {
+        if (await IsAlreadyProcessedAsync(eventId, nameof(MemberRemoved), ct))
+            return false;
+
+        var categoryText = string.IsNullOrWhiteSpace(@event.Category) ? "Khác" : @event.Category;
+        var title = $"Thông báo rời khỏi nhóm {@event.GroupName}";
+        var message = $"Trưởng nhóm {@event.LeaderName} đã mời bạn ra khỏi nhóm \"{@event.GroupName}\". Phân loại: [{categoryText}]. Lý do: {@event.Reason}";
+
+        await _notificationRepo.AddAsync(new NotificationEntity
+        {
+            Id = Guid.NewGuid(),
+            RecipientId = @event.UserId,
+            Type = NotificationType.MemberRemoved,
+            Title = title,
+            Message = message,
+            RelatedEntityId = @event.GroupId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        }, ct);
+
+        if (!string.IsNullOrWhiteSpace(@event.UserEmail))
+        {
+            var htmlBody = $"""
+               <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff;">
+                 <div style="background: #0a192f; color: #ffffff; padding: 20px 24px; border-bottom: 3px solid #f26f21;">
+                   <h2 style="margin: 0; font-size: 18px; font-weight: 700;">FPT University — EXE Team Matching</h2>
+                   <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Thông báo thay đổi nhân sự nhóm học phần EXE</p>
+                 </div>
+                 <div style="padding: 24px; color: #0f172a; line-height: 1.6;">
+                   <p>Xin chào <strong>{@event.UserName}</strong>,</p>
+                   <p>Hệ thống ghi nhận bạn đã được Trưởng nhóm mời ra khỏi nhóm với thông tin chi tiết dưới đây:</p>
+                   <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                     <p style="margin: 4px 0;"><strong>Tên nhóm / Phòng:</strong> {@event.GroupName}</p>
+                     <p style="margin: 4px 0;"><strong>Trưởng nhóm thực hiện:</strong> {@event.LeaderName}</p>
+                     <p style="margin: 4px 0;"><strong>Phân loại lý do:</strong> <span style="background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 13px;">{categoryText}</span></p>
+                     <p style="margin: 8px 0 4px 0;"><strong>Giải trình chi tiết từ Trưởng nhóm:</strong></p>
+                     <blockquote style="margin: 4px 0; padding: 8px 12px; background: #ffffff; border-left: 3px solid #f26f21; color: #334155; font-style: italic;">
+                       {@event.Reason}
+                     </blockquote>
+                     <p style="margin: 6px 0 0 0; font-size: 12px; color: #64748b;">Thời gian: {@event.RemovedAt:dd/MM/yyyy HH:mm:ss} UTC</p>
+                   </div>
+                   <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px; margin: 16px 0; font-size: 13px; color: #1e3a8a;">
+                     <p style="margin: 0 0 6px 0; font-weight: 700;">Hướng dẫn dành cho bạn:</p>
+                     <ul style="margin: 0; padding-left: 20px;">
+                       <li>Trạng thái của bạn hiện đã được đưa về <strong>Sẵn sàng tìm nhóm (Looking for team)</strong>.</li>
+                       <li>Bạn có thể vào lại hệ thống để vào trực tiếp các Room mở hoặc nộp đơn Apply vào các nhóm khác phù hợp với kỹ năng của mình.</li>
+                       <li>Nếu bạn nhận thấy có sự nhầm lẫn hoặc mâu thuẫn không thể tự giải quyết, vui lòng phản ánh đến <strong>Giảng viên hướng dẫn</strong> hoặc <strong>Điều phối viên học kỳ (Moderator)</strong>.</li>
+                     </ul>
+                   </div>
+                   <div style="text-align: center; margin: 24px 0 12px;">
+                     <a href="http://localhost:3000/spaces" style="display: inline-block; background: #0054a6; color: #ffffff; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; font-size: 14px;">Khám phá Không gian & Nhóm mới</a>
+                   </div>
+                   <p style="font-size: 12px; color: #64748b; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                     Email tự động từ Hệ thống Khởi nghiệp & Ghép nhóm EXE FPT University. Vui lòng không trả lời trực tiếp email này.
+                   </p>
+                 </div>
+               </div>
+               """;
+
+            await _emailLogRepo.AddAsync(new EmailLog
+            {
+                Id = Guid.NewGuid(),
+                To = @event.UserEmail,
+                Subject = $"[EXE Team Matching] Thông báo mời ra khỏi nhóm: {@event.GroupName}",
+                Body = htmlBody,
+                Status = EmailStatus.Pending,
+                Attempts = 0,
+                CreatedAt = DateTime.UtcNow
+            }, ct);
+        }
+
+        await MarkProcessedAndCommitAsync(eventId, ct);
+        return true;
+    }
+
     private async Task<bool> IsAlreadyProcessedAsync(Guid eventId, string eventType, CancellationToken ct)
     {
         if (await _processedEventRepo.ExistsAsync(eventId, ct))

@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IInvitationService, InvitationService>();
         services.AddScoped<IGroupMatchingService, GroupMatchingService>();
         services.AddScoped<ICourseSpaceService, CourseSpaceService>();
+        services.AddScoped<IElectionService, ElectionService>();
         services.AddScoped<GroupMembershipManager>();
         services.AddScoped<GroupEventPublisher>();
 

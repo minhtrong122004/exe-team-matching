@@ -43,3 +43,11 @@ public enum InvitationStatus
     Cancelled,
     Expired
 }
+
+public enum ElectionStatus
+{
+    Active,
+    Passed,
+    Failed,
+    TimedOut
+}

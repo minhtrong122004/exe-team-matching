@@ -9,6 +9,7 @@ import type {
   UpdateSlotRequest,
   RecruitmentSlotResponse,
   TransferLeaderRequest,
+  RemoveMemberRequest,
   GroupQueryParams,
   JoinRequestResponse,
   CreateJoinRequestPayload,
@@ -17,6 +18,8 @@ import type {
   MatchScoreResponse,
   SuggestedGroupResponse,
   RankedCandidateResponse,
+  LeaderElectionResponse,
+  DirectJoinRoomResponse,
 } from '../types';
 
 export const groupsApi = {
@@ -80,8 +83,12 @@ export const groupsApi = {
   },
 
   // ── 3. Members & Leadership ────────────────────────────────────────────────
-  async removeMember(groupId: string, userId: string): Promise<void> {
-    await apiClient.delete(`/groups/${groupId}/members/${userId}`);
+  async removeMember(groupId: string, userId: string, payload?: RemoveMemberRequest): Promise<void> {
+    if (payload) {
+      await apiClient.post(`/groups/${groupId}/members/${userId}/remove`, payload);
+    } else {
+      await apiClient.delete(`/groups/${groupId}/members/${userId}`);
+    }
   },
 
   async leaveGroup(groupId: string): Promise<void> {
@@ -192,6 +199,68 @@ export const groupsApi = {
 
   async rejectInvitation(invitationId: string): Promise<InvitationResponse> {
     const res = await apiClient.put<InvitationResponse>(`/invitations/${invitationId}/reject`);
+    return res.data;
+  },
+
+  // ── 7. Phase 4: Room Lifecycle, Direct Join, Early Close & Leader Elections ──
+  async directJoinRoom(groupId: string): Promise<DirectJoinRoomResponse> {
+    const res = await apiClient.post<DirectJoinRoomResponse>(`/groups/${groupId}/direct-join`);
+    return res.data;
+  },
+
+  async closeRecruitment(groupId: string): Promise<GroupResponse> {
+    const res = await apiClient.put<GroupResponse>(`/groups/${groupId}/close-recruitment`);
+    return res.data;
+  },
+
+  async reopenRecruitment(groupId: string): Promise<GroupResponse> {
+    const res = await apiClient.put<GroupResponse>(`/groups/${groupId}/reopen-recruitment`);
+    return res.data;
+  },
+
+  async startElection(groupId: string, candidateId: string): Promise<LeaderElectionResponse> {
+    const res = await apiClient.post<LeaderElectionResponse>(`/groups/${groupId}/elections`, {
+      candidateId,
+    });
+    return res.data;
+  },
+
+  async voteElection(
+    groupId: string,
+    electionId: string,
+    isAgree: boolean
+  ): Promise<LeaderElectionResponse> {
+    const res = await apiClient.post<LeaderElectionResponse>(
+      `/groups/${groupId}/elections/${electionId}/vote`,
+      { isAgree }
+    );
+    return res.data;
+  },
+
+  async getCurrentElection(groupId: string): Promise<LeaderElectionResponse | null> {
+    try {
+      const res = await apiClient.get<LeaderElectionResponse>(`/groups/${groupId}/elections/current`);
+      if (res.status === 204 || !res.data) {
+        return null;
+      }
+      return res.data;
+    } catch (err: any) {
+      if (err?.response?.status === 204 || err?.response?.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
+  async voteApplication(
+    requestId: string,
+    isUpvote: boolean,
+    comment?: string
+  ): Promise<JoinRequestResponse> {
+    const res = await apiClient.post<JoinRequestResponse>(`/join-requests/${requestId}/vote`, {
+      isUpvote,
+      comment: comment?.trim() || undefined,
+    });
     return res.data;
   },
 };

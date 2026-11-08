@@ -100,6 +100,14 @@ public class InvitationService(
 
     public async Task<InvitationResponse> AcceptAsync(Guid id, CancellationToken ct = default)
     {
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi tham gia nhóm
+        var profile = await userClient.GetProfileAsync(currentUser.UserId, ct);
+        if (profile == null || !profile.IsProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi chấp nhận lời mời vào nhóm (BR-07).");
+        }
+
         var (invitation, member) = await uow.RetryOnConcurrencyAsync(async () =>
         {
             var inv = await LoadPendingForStudentAsync(id, ct);

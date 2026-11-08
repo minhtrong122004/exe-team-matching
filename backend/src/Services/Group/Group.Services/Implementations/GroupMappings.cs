@@ -56,17 +56,34 @@ internal static class GroupMappings
     public static SlotResponse ToResponse(this RecruitmentSlot s) =>
         new(s.Id, s.RequiredMajor, s.RequiredSkills, s.Quantity, s.Filled);
 
-    public static JoinRequestResponse ToResponse(this JoinRequest r) => new(
-        Id:          r.Id,
-        GroupId:     r.GroupId,
-        GroupName:   r.Group?.Name ?? string.Empty,
-        SlotId:      r.SlotId,
-        StudentId:   r.StudentId,
-        StudentName: r.StudentName,
-        Message:     r.Message,
-        Status:      r.Status.ToString(),
-        CreatedAt:   r.CreatedAt,
-        DecidedAt:   r.DecidedAt);
+    public static JoinRequestResponse ToResponse(this JoinRequest r)
+    {
+        var distinctVotes = r.Votes?.DistinctBy(v => v.VoterId).ToList() ?? [];
+        var upvotes = distinctVotes.Count(v => v.IsUpvote);
+        var downvotes = distinctVotes.Count(v => !v.IsUpvote);
+        var votes = distinctVotes.Select(v => new ApplicationVoteResponse(
+            v.VoterId,
+            v.VoterName,
+            v.IsUpvote,
+            v.Comment,
+            v.VotedAt
+        )).ToList();
+
+        return new JoinRequestResponse(
+            Id:          r.Id,
+            GroupId:     r.GroupId,
+            GroupName:   r.Group?.Name ?? string.Empty,
+            SlotId:      r.SlotId,
+            StudentId:   r.StudentId,
+            StudentName: r.StudentName,
+            Message:     r.Message,
+            Status:      r.Status.ToString(),
+            CreatedAt:   r.CreatedAt,
+            DecidedAt:   r.DecidedAt,
+            Upvotes:     upvotes,
+            Downvotes:   downvotes,
+            Votes:       votes);
+    }
 
     public static InvitationResponse ToResponse(this Invitation i) => new(
         Id:          i.Id,

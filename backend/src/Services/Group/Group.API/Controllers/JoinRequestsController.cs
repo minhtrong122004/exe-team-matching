@@ -77,4 +77,18 @@ public class JoinRequestsController(IJoinRequestService joinRequestService) : Co
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<JoinRequestResponse>> Cancel(Guid id, CancellationToken ct) =>
         Ok(await joinRequestService.CancelAsync(id, ct));
+
+    /// <summary>
+    /// Thành viên nhóm bỏ phiếu vote (Upvote / Downvote) tham khảo cho ứng viên nộp đơn Apply (BR-25).
+    /// </summary>
+    [HttpPost("{id:guid}/vote")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<JoinRequestResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<JoinRequestResponse>> Vote(
+        Guid id, [FromBody] VoteApplicationRequest request, CancellationToken ct) =>
+        Ok(await joinRequestService.VoteApplicationAsync(id, request, ct));
 }

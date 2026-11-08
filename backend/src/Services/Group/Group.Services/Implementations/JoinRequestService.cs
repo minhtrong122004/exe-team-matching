@@ -5,6 +5,7 @@ using FluentValidation;
 using Group.Repository.Entities;
 using Group.Repository.Enums;
 using Group.Repository.Interfaces;
+using Group.Services.Clients;
 using Group.Services.DTOs;
 using Group.Services.Exceptions;
 using Group.Services.Interfaces;
@@ -16,8 +17,10 @@ namespace Group.Services.Implementations;
 public class JoinRequestService(
     IGroupRepository groups,
     IJoinRequestRepository joinRequests,
+    ICourseSpaceRepository spaceRepo,
     IGroupUnitOfWork uow,
     GroupMembershipManager membership,
+    IUserClient userClient,
     ICurrentUser currentUser,
     GroupEventPublisher events,
     IOptions<GroupOptions> options,
@@ -27,6 +30,14 @@ public class JoinRequestService(
     {
         await createValidator.ValidateAndThrowAsync(request, ct);
         var studentId = currentUser.UserId;
+
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
+        var profile = await userClient.GetProfileAsync(studentId, ct);
+        if (profile == null || !profile.IsProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi nộp đơn Apply (BR-07).");
+        }
 
         var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
 
@@ -45,11 +56,17 @@ public class JoinRequestService(
             throw new BusinessRuleException(GroupErrorCodes.DuplicateJoinRequest,
                 "You already have a pending request to this group.");
 
-        // BR-03
+        // BR-03, BR-22: Giới hạn số đơn ứng tuyển đồng thời
         var limit = options.Value.MaxPendingJoinRequests;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null) limit = space.MaxConcurrentApplies;
+        }
+
         if (await joinRequests.CountPendingByStudentAsync(studentId, ct) >= limit)
             throw new BusinessRuleException(GroupErrorCodes.JoinRequestLimit,
-                $"You can have at most {limit} pending join requests.");
+                $"Bạn chỉ được nộp tối đa {limit} đơn ứng tuyển cùng lúc (BR-22). Vui lòng rút bớt đơn cũ trước khi nộp thêm.");
 
         if (request.SlotId is { } slotId)
         {
@@ -94,7 +111,7 @@ public class JoinRequestService(
     public async Task<PagedResult<JoinRequestResponse>> GetByGroupAsync(Guid groupId, JoinRequestQuery query, CancellationToken ct = default)
     {
         var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
-        group.EnsureLeader(currentUser.UserId, "view join requests");
+        group.EnsureMemberOrLeader(currentUser.UserId, "view join requests");
 
         var page = await joinRequests.GetPagedByGroupAsync(
             groupId, query.Status, query.NormalizedPage, query.NormalizedPageSize, ct);
@@ -175,6 +192,49 @@ public class JoinRequestService(
         });
 
         return joinRequest.ToResponse();
+    }
+
+    public async Task<JoinRequestResponse> VoteApplicationAsync(Guid requestId, VoteApplicationRequest request, CancellationToken ct = default)
+    {
+        var r = await joinRequests.GetByIdAsync(requestId, ct) ?? throw new NotFoundException("JoinRequest", requestId);
+        var currentUserId = currentUser.UserId;
+
+        // Thành viên trong nhóm mới được bỏ phiếu tham khảo (BR-25)
+        var member = r.Group.Members.FirstOrDefault(m => m.UserId == currentUserId)
+            ?? throw new BusinessRuleException("NOT_MEMBER", "Chỉ thành viên của nhóm mới được bỏ phiếu tham khảo cho ứng viên này (BR-25).");
+
+        if (r.Status != JoinRequestStatus.Pending)
+        {
+            throw new BusinessRuleException("REQUEST_NOT_PENDING", "Chỉ có thể bỏ phiếu khi đơn ứng tuyển đang ở trạng thái chờ duyệt (Pending).");
+        }
+
+        var vote = await joinRequests.GetVoteAsync(requestId, currentUserId, ct);
+        if (vote is null)
+        {
+            vote = new ApplicationVote
+            {
+                JoinRequestId = requestId,
+                VoterId = currentUserId,
+                VoterName = member.FullName,
+                IsUpvote = request.IsUpvote,
+                Comment = request.Comment?.Trim(),
+                VotedAt = DateTime.UtcNow
+            };
+            joinRequests.AddVote(vote);
+            if (!r.Votes.Any(v => v.VoterId == currentUserId))
+            {
+                r.Votes.Add(vote);
+            }
+        }
+        else
+        {
+            vote.IsUpvote = request.IsUpvote;
+            vote.Comment = request.Comment?.Trim();
+            vote.VotedAt = DateTime.UtcNow;
+        }
+
+        await uow.SaveChangesAsync(ct);
+        return r.ToResponse();
     }
 
     private async Task<JoinRequest> LoadPendingAsync(Guid id, CancellationToken ct)

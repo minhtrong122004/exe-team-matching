@@ -20,4 +20,5 @@ public class JoinRequest
     public DateTime? DecidedAt { get; set; }
 
     public GroupEntity Group { get; set; } = null!;
+    public List<ApplicationVote> Votes { get; set; } = [];
 }

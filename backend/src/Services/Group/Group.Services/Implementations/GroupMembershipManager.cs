@@ -63,23 +63,149 @@ public sealed class GroupMembershipManager(
             i.RespondedAt = now;
         }
 
-        // BR-08: đủ người thì nhóm thành Full và hủy yêu cầu/lời mời Pending của nhóm.
+        // BR-08: đủ người thì nhóm thành Closed/Full và hủy yêu cầu/lời mời Pending của nhóm.
         if (group.Members.Count >= group.MaxMembers)
             await MarkFullAsync(group, now, ct);
 
         return member;
     }
 
-    /// <summary>Xóa thành viên khỏi nhóm, trả lại chỗ của vị trí tuyển, Full → Recruiting.</summary>
-    public void RemoveMember(GroupEntity group, GroupMember member, DateTime now)
+    /// <summary>
+    /// Vào thẳng phòng trống hoặc phòng dưới ngưỡng (BR-14, BR-15, BR-16).
+    /// Người đầu tiên vào phòng làm Leader tạm thời (BR-15).
+    /// Khi đạt ngưỡng GroupThreshold: phòng chuyển thành Group và khóa vào thẳng (BR-16).
+    /// </summary>
+    public async Task<GroupMember> AddDirectMemberAsync(
+        GroupEntity group, Guid userId, string fullName, string email, int groupThreshold, DateTime now, CancellationToken ct)
+    {
+        group.EnsureNotDisbanded();
+
+        if (group.Members.Any(m => m.UserId == userId))
+            throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Bạn đã là thành viên của phòng này rồi.");
+
+        if (await groups.IsUserInActiveGroupAsync(userId, ct))
+            throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Bạn hiện đang ở một nhóm/phòng khác. Mỗi sinh viên chỉ ở 1 phòng trong 1 môn (BR-21).");
+
+        if (group.Members.Count >= group.MaxMembers)
+            throw new BusinessRuleException("GROUP_FULL", "Phòng đã đủ sĩ số tối đa.");
+
+        if (group.Members.Count >= groupThreshold && group.Status != GroupStatus.Empty && group.Status != GroupStatus.Forming)
+        {
+            throw new BusinessRuleException("ROOM_REACHED_THRESHOLD",
+                $"Phòng đã đạt ngưỡng {groupThreshold} thành viên và chuyển thành Group chính thức (BR-16). Vui lòng nộp đơn Apply để tham gia.");
+        }
+
+        var isFirst = group.Members.Count == 0 || group.Status == GroupStatus.Empty;
+        var role = isFirst ? MemberRole.Leader : MemberRole.Member;
+        if (isFirst)
+        {
+            group.LeaderId = userId;
+        }
+
+        var member = new GroupMember
+        {
+            GroupId = group.Id,
+            UserId = userId,
+            Role = role,
+            SlotId = null,
+            FullName = fullName,
+            Email = email,
+            JoinedAt = now
+        };
+        group.Members.Add(member);
+
+        // BR-16: Đủ ngưỡng thì chuyển thành Group (Recruiting)
+        if (group.Members.Count >= groupThreshold)
+        {
+            group.Status = GroupStatus.Recruiting;
+        }
+        else
+        {
+            group.Status = GroupStatus.Forming;
+        }
+
+        group.UpdatedAt = now;
+
+        // BR-26: Sinh viên vào được một nhóm thì mọi đơn Apply và lời mời Pending khác tự động bị hủy (Cancelled)
+        foreach (var r in (await joinRequests.GetPendingByStudentAsync(userId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
+        {
+            r.Status = JoinRequestStatus.Cancelled;
+            r.DecidedAt = now;
+        }
+        foreach (var i in (await invitations.GetPendingByStudentAsync(userId, ct)).Where(i => i.Status == InvitationStatus.Pending))
+        {
+            i.Status = InvitationStatus.Cancelled;
+            i.RespondedAt = now;
+        }
+
+        return member;
+    }
+
+    /// <summary>
+    /// Xóa thành viên khỏi nhóm:
+    /// - Nếu Leader rời: Quyền Leader tự chuyển cho người vào sớm nhất tiếp theo (BR-20).
+    /// - Nếu nhóm rớt dưới ngưỡng: Group quay lại thành Room (Forming), mở lại cho vào thẳng (BR-17).
+    /// </summary>
+    public void RemoveMember(GroupEntity group, GroupMember member, DateTime now, int groupThreshold = 3)
     {
         group.Members.Remove(member);
 
         var slot = group.Slots.FirstOrDefault(s => s.Id == member.SlotId);
         if (slot is { Filled: > 0 }) slot.Filled--;
 
-        if (group.Status == GroupStatus.Full) group.Status = GroupStatus.Recruiting;
+        // BR-20: Leader rời Room thì quyền Leader tự chuyển cho người vào sớm nhất
+        if (member.UserId == group.LeaderId)
+        {
+            var earliest = group.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
+            if (earliest is not null)
+            {
+                earliest.Role = MemberRole.Leader;
+                group.LeaderId = earliest.UserId;
+            }
+            else
+            {
+                group.LeaderId = null;
+                group.Status = GroupStatus.Empty;
+                group.IsClosedByLeader = false;
+            }
+        }
+
+        // BR-17: Group có người rời và rớt dưới ngưỡng thì quay lại thành Room, mở lại cho vào thẳng
+        if (group.Members.Count > 0)
+        {
+            if (group.Members.Count < groupThreshold)
+            {
+                group.Status = GroupStatus.Forming;
+                group.IsClosedByLeader = false;
+            }
+            else if (group.Status == GroupStatus.Closed && !group.IsClosedByLeader)
+            {
+                group.Status = GroupStatus.Recruiting;
+            }
+        }
+        else
+        {
+            group.Status = GroupStatus.Empty;
+            group.IsClosedByLeader = false;
+            group.LeaderId = null;
+        }
+
         group.UpdatedAt = now;
+    }
+
+    /// <summary>BR-28: Nhóm đủ người hoặc Leader đóng tuyển thì mọi đơn đang chờ chuyển thành Reject.</summary>
+    public async Task RejectPendingOfGroupAsync(Guid groupId, DateTime now, CancellationToken ct)
+    {
+        foreach (var r in (await joinRequests.GetPendingByGroupAsync(groupId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
+        {
+            r.Status = JoinRequestStatus.Rejected;
+            r.DecidedAt = now;
+        }
+        foreach (var i in (await invitations.GetPendingByGroupAsync(groupId, ct)).Where(i => i.Status == InvitationStatus.Pending))
+        {
+            i.Status = InvitationStatus.Cancelled;
+            i.RespondedAt = now;
+        }
     }
 
     /// <summary>BR-08: trạng thái Full và hủy mọi yêu cầu/lời mời Pending của nhóm.</summary>

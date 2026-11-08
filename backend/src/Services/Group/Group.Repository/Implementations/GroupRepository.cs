@@ -111,4 +111,24 @@ public class GroupRepository(GroupDbContext db) : IGroupRepository
     public void Add(GroupEntity group) => db.Groups.Add(group);
 
     public void AddSlot(RecruitmentSlot slot) => db.RecruitmentSlots.Add(slot);
+
+    public Task<LeaderElection?> GetActiveElectionAsync(Guid groupId, CancellationToken ct = default) =>
+        db.LeaderElections
+            .Include(e => e.Votes)
+            .Include(e => e.Group)
+                .ThenInclude(g => g.Members)
+            .FirstOrDefaultAsync(e => e.GroupId == groupId && e.Status == ElectionStatus.Active, ct);
+
+    public Task<LeaderElection?> GetElectionByIdAsync(Guid electionId, CancellationToken ct = default) =>
+        db.LeaderElections
+            .Include(e => e.Votes)
+            .Include(e => e.Group)
+                .ThenInclude(g => g.Members)
+            .FirstOrDefaultAsync(e => e.Id == electionId, ct);
+
+    public void AddElection(LeaderElection election) => db.LeaderElections.Add(election);
+
+    public void AddElectionVote(ElectionVote vote) => db.ElectionVotes.Add(vote);
+
+    public void AddMemberRemovalLog(MemberRemovalLog log) => db.MemberRemovalLogs.Add(log);
 }
