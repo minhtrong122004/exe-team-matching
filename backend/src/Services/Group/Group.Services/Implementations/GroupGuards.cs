@@ -15,6 +15,15 @@ internal static class GroupGuards
             throw new ForbiddenException($"Only the group leader can {action}.");
     }
 
+    /// <summary>BR-25: Thành viên hoặc trưởng nhóm.</summary>
+    public static void EnsureMemberOrLeader(this GroupEntity group, Guid userId, string action)
+    {
+        if (group.LeaderId == userId || group.Members.Any(m => m.UserId == userId))
+            return;
+
+        throw new ForbiddenException($"Only group members can {action}.");
+    }
+
     public static void EnsureNotDisbanded(this GroupEntity group)
     {
         if (group.Status == GroupStatus.Disbanded)

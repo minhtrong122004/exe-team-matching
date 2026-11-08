@@ -15,7 +15,10 @@ namespace Group.API.Controllers;
 [Route("api/groups")]
 [Authorize]
 [Produces("application/json")]
-public class GroupsController(IGroupService groupService, IGroupMatchingService matchingService) : ControllerBase
+public class GroupsController(
+    IGroupService groupService,
+    IGroupMatchingService matchingService,
+    IElectionService electionService) : ControllerBase
 {
     // ─────────────────────────────────────────────────────────────────────────
     // Nhóm
@@ -173,15 +176,30 @@ public class GroupsController(IGroupService groupService, IGroupMatchingService 
     // Thành viên
     // ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Xóa thành viên khỏi nhóm (chỉ trưởng nhóm, BR-05). Phát MemberLeft.</summary>
+    /// <summary>Mời thành viên ra khỏi nhóm kèm lý do bắt buộc (chỉ trưởng nhóm, Phương án 3, BR-05). Phát MemberLeft và MemberRemoved.</summary>
     [HttpDelete("{id:guid}/members/{userId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RemoveMember(Guid id, Guid userId, CancellationToken ct)
+    public async Task<IActionResult> RemoveMember(
+        Guid id, Guid userId, [FromBody] RemoveMemberRequest? request, CancellationToken ct)
     {
-        await groupService.RemoveMemberAsync(id, userId, ct);
+        var req = request ?? new RemoveMemberRequest("Trưởng nhóm mời ra khỏi nhóm", "Khác");
+        await groupService.RemoveMemberAsync(id, userId, req, ct);
+        return NoContent();
+    }
+
+    /// <summary>Mời thành viên ra khỏi nhóm qua POST (chỉ trưởng nhóm, Phương án 3, BR-05).</summary>
+    [HttpPost("{id:guid}/members/{userId:guid}/remove")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveMemberPost(
+        Guid id, Guid userId, [FromBody] RemoveMemberRequest request, CancellationToken ct)
+    {
+        await groupService.RemoveMemberAsync(id, userId, request, ct);
         return NoContent();
     }
 
@@ -206,4 +224,91 @@ public class GroupsController(IGroupService groupService, IGroupMatchingService 
     public async Task<ActionResult<GroupDetailResponse>> TransferLeader(
         Guid id, [FromBody] TransferLeaderRequest request, CancellationToken ct) =>
         Ok(await groupService.TransferLeaderAsync(id, request, ct));
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 4: Vòng đời Room, Vào phòng trực tiếp, Đóng tuyển & Bầu Leader 24h
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sinh viên vào thẳng phòng trống (trở thành Leader) hoặc phòng dưới ngưỡng (BR-14, BR-15, BR-16, BR-21).
+    /// </summary>
+    [HttpPost("{id:guid}/direct-join")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<DirectJoinRoomResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<DirectJoinRoomResponse>> DirectJoinRoom(Guid id, CancellationToken ct) =>
+        Ok(await groupService.DirectJoinRoomAsync(id, ct));
+
+    /// <summary>
+    /// Leader chủ động đóng tuyển sớm khi nhóm đã đạt ngưỡng (BR-28). Toàn bộ đơn Apply còn chờ tự chuyển thành Reject.
+    /// </summary>
+    [HttpPut("{id:guid}/close-recruitment")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<GroupDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<GroupDetailResponse>> CloseRecruitment(Guid id, CancellationToken ct) =>
+        Ok(await groupService.CloseRecruitmentAsync(id, ct));
+
+    /// <summary>
+    /// Leader mở lại tuyển dụng khi nhóm chưa đủ sĩ số tối đa MaxMembers.
+    /// </summary>
+    [HttpPut("{id:guid}/reopen-recruitment")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<GroupDetailResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<GroupDetailResponse>> ReopenRecruitment(Guid id, CancellationToken ct) =>
+        Ok(await groupService.ReopenRecruitmentAsync(id, ct));
+
+    /// <summary>
+    /// Thành viên mở cuộc bầu chọn Leader mới với thời hạn 24 giờ (BR-18, BR-19).
+    /// </summary>
+    [HttpPost("{id:guid}/elections")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<LeaderElectionResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<LeaderElectionResponse>> StartElection(
+        Guid id, [FromBody] StartElectionRequest request, CancellationToken ct)
+    {
+        var result = await electionService.StartElectionAsync(id, request, ct);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>
+    /// Thành viên bỏ phiếu cho cuộc bầu chọn Leader (BR-19).
+    /// Khi đạt > 50% số phiếu đồng ý, ứng viên chính thức trở thành Leader mới.
+    /// </summary>
+    [HttpPost("{id:guid}/elections/{electionId:guid}/vote")]
+    [Authorize(Roles = Roles.Student)]
+    [ProducesResponseType<LeaderElectionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<LeaderElectionResponse>> VoteElection(
+        Guid id, Guid electionId, [FromBody] VoteElectionRequest request, CancellationToken ct) =>
+        Ok(await electionService.VoteElectionAsync(id, electionId, request, ct));
+
+    /// <summary>
+    /// Lấy thông tin cuộc bầu chọn Leader đang diễn ra kèm thời gian đếm ngược (BR-19).
+    /// </summary>
+    [HttpGet("{id:guid}/elections/current")]
+    [ProducesResponseType<LeaderElectionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LeaderElectionResponse>> GetCurrentElection(Guid id, CancellationToken ct)
+    {
+        var result = await electionService.GetCurrentElectionAsync(id, ct);
+        return result is null ? NoContent() : Ok(result);
+    }
 }

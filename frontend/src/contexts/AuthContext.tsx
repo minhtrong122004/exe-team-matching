@@ -122,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             verifiedUser.studentCode = profileRes.data.studentCode || undefined;
             verifiedUser.campus = profileRes.data.campus || undefined;
             verifiedUser.major = profileRes.data.major || undefined;
+            verifiedUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
           }
         } catch {
           // Bỏ qua nếu UserProfile chưa được tạo hoặc User.API tạm thời bận
@@ -188,6 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               verifiedUser.studentCode = profileRes.data.studentCode || undefined;
               verifiedUser.campus = profileRes.data.campus || undefined;
               verifiedUser.major = profileRes.data.major || undefined;
+              verifiedUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
             }
           } catch {
             // Giữ nguyên fallback fullName từ Auth.API nếu Profile chưa khả dụng
@@ -255,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentUser.studentCode = profileRes.data.studentCode || currentUser.studentCode || undefined;
           currentUser.campus = profileRes.data.campus || undefined;
           currentUser.major = profileRes.data.major || undefined;
+          currentUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
         }
       } catch {
         // Fallback to authUser

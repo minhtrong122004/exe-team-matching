@@ -12,6 +12,7 @@ public class JoinRequestRepository(GroupDbContext db) : IJoinRequestRepository
 {
     public Task<JoinRequest?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         db.JoinRequests
+            .Include(r => r.Votes)
             .Include(r => r.Group).ThenInclude(g => g.Members)
             .Include(r => r.Group).ThenInclude(g => g.Slots)
             .AsSplitQuery()
@@ -46,9 +47,17 @@ public class JoinRequestRepository(GroupDbContext db) : IJoinRequestRepository
 
     public void Add(JoinRequest request) => db.JoinRequests.Add(request);
 
+    public Task<ApplicationVote?> GetVoteAsync(Guid joinRequestId, Guid voterId, CancellationToken ct = default) =>
+        db.ApplicationVotes.FirstOrDefaultAsync(v => v.JoinRequestId == joinRequestId && v.VoterId == voterId, ct);
+
+    public void AddVote(ApplicationVote vote) => db.ApplicationVotes.Add(vote);
+
     private static IOrderedQueryable<JoinRequest> Filter(IQueryable<JoinRequest> query, JoinRequestStatus? status)
     {
-        query = query.Include(r => r.Group).AsNoTracking();
+        query = query
+            .Include(r => r.Votes)
+            .Include(r => r.Group)
+            .AsNoTracking();
         if (status.HasValue) query = query.Where(r => r.Status == status.Value);
         return query.OrderByDescending(r => r.CreatedAt);
     }

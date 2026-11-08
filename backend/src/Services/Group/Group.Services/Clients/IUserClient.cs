@@ -24,6 +24,7 @@ public sealed record UserProfileDto(
     string? DesiredRole,
     string Availability,
     List<string> Interests,
-    List<UserSkillDto> Skills);
+    List<UserSkillDto> Skills,
+    bool IsProfileCompleted = false);
 
 public sealed record UserSkillDto(string SkillName, int Level);

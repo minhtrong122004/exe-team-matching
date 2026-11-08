@@ -16,6 +16,10 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
     public DbSet<RecruitmentSlot> RecruitmentSlots => Set<RecruitmentSlot>();
     public DbSet<JoinRequest> JoinRequests => Set<JoinRequest>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<LeaderElection> LeaderElections => Set<LeaderElection>();
+    public DbSet<ElectionVote> ElectionVotes => Set<ElectionVote>();
+    public DbSet<ApplicationVote> ApplicationVotes => Set<ApplicationVote>();
+    public DbSet<MemberRemovalLog> MemberRemovalLogs => Set<MemberRemovalLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -186,6 +190,77 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.HasOne(i => i.Group)
                   .WithMany()
                   .HasForeignKey(i => i.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── LeaderElection (BR-18, BR-19) ──────────────────────────────────────
+        modelBuilder.Entity<LeaderElection>(entity =>
+        {
+            entity.ToTable("LeaderElections");
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.CandidateName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.InitiatedByName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasIndex(e => new { e.GroupId, e.Status })
+                  .HasDatabaseName(GroupIndexes.ActiveElection)
+                  .IsUnique()
+                  .HasFilter("[Status] = 'Active'");
+
+            entity.HasOne(e => e.Group)
+                  .WithMany(g => g.Elections)
+                  .HasForeignKey(e => e.GroupId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── ElectionVote (BR-19) ───────────────────────────────────────────────
+        modelBuilder.Entity<ElectionVote>(entity =>
+        {
+            entity.ToTable("ElectionVotes");
+            entity.HasKey(v => new { v.ElectionId, v.VoterId });
+
+            entity.Property(v => v.VoterName).IsRequired().HasMaxLength(200);
+
+            entity.HasOne(v => v.Election)
+                  .WithMany(e => e.Votes)
+                  .HasForeignKey(v => v.ElectionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── ApplicationVote (BR-25) ────────────────────────────────────────────
+        modelBuilder.Entity<ApplicationVote>(entity =>
+        {
+            entity.ToTable("ApplicationVotes");
+            entity.HasKey(v => new { v.JoinRequestId, v.VoterId });
+
+            entity.Property(v => v.VoterName).IsRequired().HasMaxLength(200);
+            entity.Property(v => v.Comment).HasMaxLength(500);
+
+            entity.HasOne(v => v.JoinRequest)
+                  .WithMany(r => r.Votes)
+                  .HasForeignKey(v => v.JoinRequestId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ── MemberRemovalLog (Phương án 3, BR-05) ──────────────────────────────
+        modelBuilder.Entity<MemberRemovalLog>(entity =>
+        {
+            entity.ToTable("MemberRemovalLogs");
+            entity.HasKey(l => l.Id);
+
+            entity.Property(l => l.RemovedUserName).IsRequired().HasMaxLength(200);
+            entity.Property(l => l.RemovedUserEmail).IsRequired().HasMaxLength(256);
+            entity.Property(l => l.LeaderName).IsRequired().HasMaxLength(200);
+            entity.Property(l => l.Category).IsRequired().HasMaxLength(100);
+            entity.Property(l => l.Reason).IsRequired().HasMaxLength(1000);
+
+            entity.HasIndex(l => l.GroupId);
+            entity.HasIndex(l => l.RemovedUserId);
+
+            entity.HasOne(l => l.Group)
+                  .WithMany()
+                  .HasForeignKey(l => l.GroupId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
     }

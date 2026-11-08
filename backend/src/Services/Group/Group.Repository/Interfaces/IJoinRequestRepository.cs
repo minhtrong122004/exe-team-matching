@@ -28,4 +28,8 @@ public interface IJoinRequestRepository
     Task<List<JoinRequest>> GetPendingByGroupAsync(Guid groupId, CancellationToken ct = default);
 
     void Add(JoinRequest request);
+
+    Task<ApplicationVote?> GetVoteAsync(Guid joinRequestId, Guid voterId, CancellationToken ct = default);
+
+    void AddVote(ApplicationVote vote);
 }

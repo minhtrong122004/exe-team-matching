@@ -22,4 +22,7 @@ public record JoinRequestResponse(
     string? Message,
     string Status,
     DateTime CreatedAt,
-    DateTime? DecidedAt);
+    DateTime? DecidedAt,
+    int Upvotes = 0,
+    int Downvotes = 0,
+    IReadOnlyList<ApplicationVoteResponse>? Votes = null);

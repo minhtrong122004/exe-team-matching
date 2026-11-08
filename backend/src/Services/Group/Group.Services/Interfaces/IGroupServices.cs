@@ -23,8 +23,18 @@ public interface IGroupService
     Task DeleteSlotAsync(Guid groupId, Guid slotId, CancellationToken ct = default);
 
     Task RemoveMemberAsync(Guid groupId, Guid userId, CancellationToken ct = default);
+    Task RemoveMemberAsync(Guid groupId, Guid userId, RemoveMemberRequest request, CancellationToken ct = default);
     Task LeaveGroupAsync(Guid groupId, CancellationToken ct = default);
     Task<GroupDetailResponse> TransferLeaderAsync(Guid groupId, TransferLeaderRequest request, CancellationToken ct = default);
+
+    /// <summary>Vào thẳng phòng dưới ngưỡng (BR-14, BR-15, BR-21, BR-26).</summary>
+    Task<DirectJoinRoomResponse> DirectJoinRoomAsync(Guid roomId, CancellationToken ct = default);
+
+    /// <summary>Leader chủ động đóng tuyển sớm (BR-28).</summary>
+    Task<GroupDetailResponse> CloseRecruitmentAsync(Guid groupId, CancellationToken ct = default);
+
+    /// <summary>Leader mở lại tuyển dụng khi nhóm chưa đủ MaxMembers.</summary>
+    Task<GroupDetailResponse> ReopenRecruitmentAsync(Guid groupId, CancellationToken ct = default);
 }
 
 /// <summary>Yêu cầu tham gia nhóm.</summary>
@@ -36,6 +46,9 @@ public interface IJoinRequestService
     Task<JoinRequestResponse> AcceptAsync(Guid id, CancellationToken ct = default);
     Task<JoinRequestResponse> RejectAsync(Guid id, CancellationToken ct = default);
     Task<JoinRequestResponse> CancelAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Thành viên vote tham khảo cho ứng viên (BR-25).</summary>
+    Task<JoinRequestResponse> VoteApplicationAsync(Guid requestId, VoteApplicationRequest request, CancellationToken ct = default);
 }
 
 /// <summary>Lời mời vào nhóm.</summary>

@@ -45,6 +45,7 @@ public class GroupEntity
     public CourseSpace? Space { get; set; }
     public List<GroupMember> Members { get; set; } = [];
     public List<RecruitmentSlot> Slots { get; set; } = [];
+    public List<LeaderElection> Elections { get; set; } = [];
 
     /// <summary>Nhóm còn hoạt động (chưa giải tán).</summary>
     public bool IsActive => Status != GroupStatus.Disbanded;

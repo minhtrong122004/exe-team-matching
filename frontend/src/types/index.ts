@@ -16,6 +16,7 @@ export interface User {
   mustChangePassword?: boolean;
   hasAcceptedTerms?: boolean;
   acceptedTermsAt?: string | null;
+  isProfileCompleted?: boolean;
 }
 
 export type ProjectDomain = 

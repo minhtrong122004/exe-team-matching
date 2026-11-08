@@ -26,4 +26,7 @@ public static class GroupIndexes
 
     /// <summary>Không có hai lời mời Pending của cùng một nhóm cho cùng sinh viên.</summary>
     public const string PendingInvitation = "IX_Invitations_StudentId_GroupId_Pending";
+
+    /// <summary>BR-19: mỗi Room chỉ có tối đa một cuộc bầu Leader Active tại một thời điểm.</summary>
+    public const string ActiveElection = "IX_LeaderElections_GroupId_Active";
 }

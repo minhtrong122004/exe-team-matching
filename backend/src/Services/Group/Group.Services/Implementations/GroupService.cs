@@ -17,12 +17,15 @@ public class GroupService(
     IGroupUnitOfWork uow,
     GroupMembershipManager membership,
     IProjectClient projectClient,
+    IUserClient userClient,
+    ICourseSpaceRepository spaceRepo,
     ICurrentUser currentUser,
     GroupEventPublisher events,
     IValidator<CreateGroupRequest> createValidator,
     IValidator<UpdateGroupRequest> updateValidator,
     IValidator<SlotRequest> slotValidator,
-    IValidator<TransferLeaderRequest> transferValidator) : IGroupService
+    IValidator<TransferLeaderRequest> transferValidator,
+    IValidator<RemoveMemberRequest> removeValidator) : IGroupService
 {
     // ─────────────────────────────────────────────────────────────────────────
     // Query
@@ -58,6 +61,14 @@ public class GroupService(
     {
         await createValidator.ValidateAndThrowAsync(request, ct);
         var userId = currentUser.UserId;
+
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
+        var profile = await userClient.GetProfileAsync(userId, ct);
+        if (profile == null || !profile.IsProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
+        }
 
         // BR-01
         if (await groups.IsUserInActiveGroupAsync(userId, ct))
@@ -221,15 +232,73 @@ public class GroupService(
     // Thành viên
     // ─────────────────────────────────────────────────────────────────────────
 
-    public async Task RemoveMemberAsync(Guid groupId, Guid userId, CancellationToken ct = default)
+    public Task RemoveMemberAsync(Guid groupId, Guid userId, CancellationToken ct = default) =>
+        RemoveMemberAsync(groupId, userId, new RemoveMemberRequest("Trưởng nhóm mời ra khỏi nhóm", "Khác"), ct);
+
+    public async Task RemoveMemberAsync(Guid groupId, Guid userId, RemoveMemberRequest request, CancellationToken ct = default)
     {
+        await removeValidator.ValidateAndThrowAsync(request, ct);
+
         var group = await LoadForLeaderAsync(groupId, "remove members", ct);
+        if (group.Status == GroupStatus.Locked)
+        {
+            throw new BusinessRuleException("ROOM_LOCKED", "Học phần đã chốt sổ, không thể mời thành viên ra khỏi nhóm (BR-33).");
+        }
+
         if (userId == group.LeaderId)
             throw new BusinessRuleException(GroupErrorCodes.LeaderCannotLeave,
                 "The leader cannot be removed. Transfer leadership or disband the group.");
 
         var member = FindMember(group, userId);
-        await RemoveAndPublishAsync(group, member, ct);
+
+        var leaderMember = group.Members.FirstOrDefault(m => m.UserId == group.LeaderId);
+        var leaderName = leaderMember?.FullName ?? currentUser.FullName ?? "Trưởng nhóm";
+
+        // Ghi Audit Log vào ExeGroupDb (Phương án 3, BR-05)
+        var category = string.IsNullOrWhiteSpace(request.Category) ? "Khác" : request.Category.Trim();
+        var reason = request.Reason.Trim();
+        var removalLog = new MemberRemovalLog
+        {
+            Id = Guid.NewGuid(),
+            GroupId = group.Id,
+            RemovedUserId = member.UserId,
+            RemovedUserName = member.FullName,
+            RemovedUserEmail = member.Email,
+            LeaderId = currentUser.UserId,
+            LeaderName = leaderName,
+            Category = category,
+            Reason = reason,
+            RemovedAt = DateTime.UtcNow
+        };
+        groups.AddMemberRemovalLog(removalLog);
+
+        // Xóa thành viên và cập nhật trạng thái phòng (BR-17)
+        var threshold = (group.MaxMembers / 2) + 1;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null) threshold = space.GroupThreshold;
+        }
+
+        membership.RemoveMember(group, member, DateTime.UtcNow, threshold);
+        await uow.SaveOrConflictAsync(ct);
+
+        // Phát MemberLeft (cho User Service chuyển trạng thái LookingForTeam và Report Service cập nhật thống kê)
+        await events.PublishAsync(new MemberLeft(group.Id, group.Name, member.UserId, group.Members.Count), ct);
+
+        // Phát MemberRemoved (cho Notification Service gửi email + in-app notification)
+        await events.PublishAsync(new MemberRemoved(
+            group.Id,
+            group.Name,
+            member.UserId,
+            member.Email,
+            member.FullName,
+            currentUser.UserId,
+            leaderName,
+            reason,
+            category,
+            group.Members.Count,
+            DateTime.UtcNow), ct);
     }
 
     public async Task LeaveGroupAsync(Guid groupId, CancellationToken ct = default)
@@ -237,16 +306,158 @@ public class GroupService(
         var group = await LoadAsync(groupId, ct);
         group.EnsureNotDisbanded();
 
+        if (group.Status == GroupStatus.Locked)
+        {
+            throw new BusinessRuleException("ROOM_LOCKED", "Học phần đã chốt sổ, các thành viên bị khóa cứng vào nhóm và không thể tự rời (BR-33).");
+        }
+
         var userId = currentUser.UserId;
         var member = group.Members.FirstOrDefault(m => m.UserId == userId)
-            ?? throw new BusinessRuleException(GroupErrorCodes.NotGroupMember, "You are not a member of this group.");
+            ?? throw new BusinessRuleException(GroupErrorCodes.NotGroupMember, "Bạn không phải là thành viên của nhóm này.");
 
-        // BR-09
-        if (userId == group.LeaderId)
-            throw new BusinessRuleException(GroupErrorCodes.LeaderCannotLeave,
-                "The leader cannot leave. Transfer leadership or disband the group.");
-
+        // Theo BR-20: Leader rời Room thì quyền Leader tự chuyển cho người vào sớm nhất; người cuối cùng rời thì Room trở về trống.
         await RemoveAndPublishAsync(group, member, ct);
+    }
+
+    public async Task<DirectJoinRoomResponse> DirectJoinRoomAsync(Guid roomId, CancellationToken ct = default)
+    {
+        var group = await LoadAsync(roomId, ct);
+        group.EnsureNotDisbanded();
+
+        if (group.Status == GroupStatus.Locked)
+        {
+            throw new BusinessRuleException("ROOM_LOCKED", "Phòng này đã bị khóa sau khi chốt sổ (BR-33).");
+        }
+
+        var userId = currentUser.UserId;
+
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
+        var profile = await userClient.GetProfileAsync(userId, ct);
+        if (profile == null || !profile.IsProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
+        }
+
+        // Kiểm tra sinh viên trong Space (BR-01)
+        int threshold = (group.MaxMembers / 2) + 1;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null)
+            {
+                if (space.Status == CourseSpaceStatus.Locked)
+                {
+                    throw new BusinessRuleException("SPACE_LOCKED", "Không gian học phần đã bị khóa.");
+                }
+
+                var isEnrolled = await spaceRepo.IsStudentEnrolledAsync(space.Id, userId, ct);
+                if (!isEnrolled)
+                {
+                    var enrolledSpaces = await spaceRepo.GetSpacesForStudentAsync(userId, currentUser.Email, ct);
+                    if (!enrolledSpaces.Any(s => s.Id == space.Id))
+                    {
+                        throw new BusinessRuleException("NOT_ENROLLED_IN_SPACE",
+                            $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode} (BR-01).");
+                    }
+                }
+
+                threshold = space.GroupThreshold;
+            }
+        }
+
+        var member = await membership.AddDirectMemberAsync(
+            group,
+            userId,
+            currentUser.FullName ?? string.Empty,
+            currentUser.Email ?? string.Empty,
+            threshold,
+            DateTime.UtcNow,
+            ct);
+
+        await uow.SaveOrConflictAsync(ct);
+
+        await events.PublishAsync(new MemberJoined(
+            group.Id,
+            group.Name,
+            member.UserId,
+            member.Email,
+            member.FullName,
+            group.Members.Count,
+            group.MaxMembers), ct);
+
+        var message = member.Role == MemberRole.Leader
+            ? "Bạn là thành viên đầu tiên vào phòng và trở thành Trưởng nhóm (Leader) tạm thời (BR-15)."
+            : (group.Status == GroupStatus.Recruiting
+                ? $"Phòng đã đạt ngưỡng {threshold} thành viên và chính thức trở thành Group (BR-16)."
+                : $"Gia nhập phòng thành công ({group.Members.Count}/{group.MaxMembers}).");
+
+        return new DirectJoinRoomResponse(
+            GroupId: group.Id,
+            RoomCode: group.RoomCode,
+            Name: group.Name,
+            Status: group.Status.ToString(),
+            Role: member.Role.ToString(),
+            MemberCount: group.Members.Count,
+            MaxMembers: group.MaxMembers,
+            JoinedAt: member.JoinedAt,
+            Message: message
+        );
+    }
+
+    public async Task<GroupDetailResponse> CloseRecruitmentAsync(Guid groupId, CancellationToken ct = default)
+    {
+        var group = await LoadForLeaderAsync(groupId, "đóng tuyển sớm", ct);
+
+        int threshold = (group.MaxMembers / 2) + 1;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null) threshold = space.GroupThreshold;
+        }
+
+        if (group.Members.Count < threshold)
+        {
+            throw new BusinessRuleException("BELOW_THRESHOLD",
+                $"Nhóm cần đạt tối thiểu ngưỡng {threshold} thành viên mới có thể chốt tuyển sớm (BR-16, BR-28).");
+        }
+
+        var now = DateTime.UtcNow;
+        group.IsClosedByLeader = true;
+        group.Status = GroupStatus.Closed;
+        group.UpdatedAt = now;
+
+        // BR-28: Nhóm đủ người hoặc Leader đóng tuyển thì mọi đơn đang chờ chuyển thành Reject
+        await membership.RejectPendingOfGroupAsync(groupId, now, ct);
+
+        await uow.SaveOrConflictAsync(ct);
+        return group.ToDetail();
+    }
+
+    public async Task<GroupDetailResponse> ReopenRecruitmentAsync(Guid groupId, CancellationToken ct = default)
+    {
+        var group = await LoadForLeaderAsync(groupId, "mở lại tuyển dụng", ct);
+
+        if (group.Members.Count >= group.MaxMembers)
+        {
+            throw new BusinessRuleException("GROUP_FULL", "Nhóm đã đủ sĩ số tối đa, không thể mở lại tuyển dụng.");
+        }
+
+        var now = DateTime.UtcNow;
+        group.IsClosedByLeader = false;
+
+        int threshold = (group.MaxMembers / 2) + 1;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null) threshold = space.GroupThreshold;
+        }
+
+        group.Status = group.Members.Count >= threshold ? GroupStatus.Recruiting : GroupStatus.Forming;
+        group.UpdatedAt = now;
+
+        await uow.SaveOrConflictAsync(ct);
+        return group.ToDetail();
     }
 
     public async Task<GroupDetailResponse> TransferLeaderAsync(Guid groupId, TransferLeaderRequest request, CancellationToken ct = default)
@@ -303,7 +514,14 @@ public class GroupService(
 
     private async Task RemoveAndPublishAsync(GroupEntity group, GroupMember member, CancellationToken ct)
     {
-        membership.RemoveMember(group, member, DateTime.UtcNow);
+        var threshold = (group.MaxMembers / 2) + 1;
+        if (group.SpaceId.HasValue)
+        {
+            var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
+            if (space != null) threshold = space.GroupThreshold;
+        }
+
+        membership.RemoveMember(group, member, DateTime.UtcNow, threshold);
         await uow.SaveOrConflictAsync(ct);
         await events.PublishAsync(new MemberLeft(group.Id, group.Name, member.UserId, group.Members.Count), ct);
     }

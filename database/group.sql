@@ -437,3 +437,110 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108072526_Phase4RoomGroupLifecycleAndVoting'
+)
+BEGIN
+    CREATE TABLE [ApplicationVotes] (
+        [JoinRequestId] uniqueidentifier NOT NULL,
+        [VoterId] uniqueidentifier NOT NULL,
+        [VoterName] nvarchar(200) NOT NULL,
+        [IsUpvote] bit NOT NULL,
+        [Comment] nvarchar(500) NULL,
+        [VotedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_ApplicationVotes] PRIMARY KEY ([JoinRequestId], [VoterId]),
+        CONSTRAINT [FK_ApplicationVotes_JoinRequests_JoinRequestId] FOREIGN KEY ([JoinRequestId]) REFERENCES [JoinRequests] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108072526_Phase4RoomGroupLifecycleAndVoting'
+)
+BEGIN
+    CREATE TABLE [LeaderElections] (
+        [Id] uniqueidentifier NOT NULL,
+        [GroupId] uniqueidentifier NOT NULL,
+        [CandidateId] uniqueidentifier NOT NULL,
+        [CandidateName] nvarchar(200) NOT NULL,
+        [InitiatedById] uniqueidentifier NOT NULL,
+        [InitiatedByName] nvarchar(200) NOT NULL,
+        [Status] nvarchar(20) NOT NULL,
+        [StartedAt] datetime2 NOT NULL,
+        [ExpiresAt] datetime2 NOT NULL,
+        [CompletedAt] datetime2 NULL,
+        CONSTRAINT [PK_LeaderElections] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_LeaderElections_Groups_GroupId] FOREIGN KEY ([GroupId]) REFERENCES [Groups] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108072526_Phase4RoomGroupLifecycleAndVoting'
+)
+BEGIN
+    CREATE TABLE [ElectionVotes] (
+        [ElectionId] uniqueidentifier NOT NULL,
+        [VoterId] uniqueidentifier NOT NULL,
+        [VoterName] nvarchar(200) NOT NULL,
+        [IsAgree] bit NOT NULL,
+        [VotedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_ElectionVotes] PRIMARY KEY ([ElectionId], [VoterId]),
+        CONSTRAINT [FK_ElectionVotes_LeaderElections_ElectionId] FOREIGN KEY ([ElectionId]) REFERENCES [LeaderElections] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108072526_Phase4RoomGroupLifecycleAndVoting'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_LeaderElections_GroupId_Active] ON [LeaderElections] ([GroupId], [Status]) WHERE [Status] = ''Active''');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108072526_Phase4RoomGroupLifecycleAndVoting'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261108072526_Phase4RoomGroupLifecycleAndVoting', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108104453_Phase4MemberRemovalAuditLog'
+)
+BEGIN
+    CREATE TABLE [MemberRemovalLogs] (
+        [Id] uniqueidentifier NOT NULL,
+        [GroupId] uniqueidentifier NOT NULL,
+        [RemovedUserId] uniqueidentifier NOT NULL,
+        [RemovedUserName] nvarchar(200) NOT NULL,
+        [RemovedUserEmail] nvarchar(256) NOT NULL,
+        [LeaderId] uniqueidentifier NOT NULL,
+        [LeaderName] nvarchar(200) NOT NULL,
+        [Category] nvarchar(100) NOT NULL,
+        [Reason] nvarchar(1000) NOT NULL,
+        [RemovedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_MemberRemovalLogs] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_MemberRemovalLogs_Groups_GroupId] FOREIGN KEY ([GroupId]) REFERENCES [Groups] ([Id]) ON DELETE CASCADE
+    );
+
+    CREATE INDEX [IX_MemberRemovalLogs_GroupId] ON [MemberRemovalLogs] ([GroupId]);
+    CREATE INDEX [IX_MemberRemovalLogs_RemovedUserId] ON [MemberRemovalLogs] ([RemovedUserId]);
+
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261108104453_Phase4MemberRemovalAuditLog', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+
