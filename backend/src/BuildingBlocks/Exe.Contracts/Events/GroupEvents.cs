@@ -73,3 +73,16 @@ public record MemberRemoved(
     int MemberCount,
     DateTime RemovedAt);
 
+/// <summary>
+/// Không gian môn học được chốt sổ (BR-33).
+/// Khóa toàn bộ các nhóm có thành viên, hủy toàn bộ đơn chờ.
+/// Nhận: Notification, Report.
+/// </summary>
+public record SpaceFinalized(
+    Guid SpaceId,
+    string SemesterCode,
+    string SubjectCode,
+    int LockedRoomsCount,
+    int RejectedRequestsCount,
+    DateTime FinalizedAt);
+

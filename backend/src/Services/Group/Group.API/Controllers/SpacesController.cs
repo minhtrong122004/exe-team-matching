@@ -134,4 +134,57 @@ public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<RoomSummaryResponse>>> GetSpaceRooms(
         Guid id, [FromQuery] GroupStatus? status, CancellationToken ct) =>
         Ok(await spaceService.GetSpaceRoomsAsync(id, status, ct));
+
+    /// <summary>Đóng cổng đăng ký của Space khi hết hạn (Moderator only, BR-30).</summary>
+    [HttpPut("{id:guid}/close-registration")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<CourseSpaceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CourseSpaceResponse>> CloseRegistration(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.CloseRegistrationAsync(id, ct));
+
+    /// <summary>Thống kê sinh viên lẻ chưa có nhóm và các phòng còn trống (Lecturer hoặc Moderator, BR-30).</summary>
+    [HttpGet("{id:guid}/unmatched-summary")]
+    [Authorize(Roles = Roles.LecturerOrModerator)]
+    [ProducesResponseType<UnmatchedSummaryResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UnmatchedSummaryResponse>> GetUnmatchedSummary(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.GetUnmatchedSummaryAsync(id, ct));
+
+    /// <summary>Xem trước phương án phân phối sinh viên lẻ từ Matching Service gRPC (Moderator only, BR-31, BR-32).</summary>
+    [HttpPost("{id:guid}/distribute-preview")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<DistributePreviewResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DistributePreviewResponse>> PreviewDistribution(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.PreviewDistributionAsync(id, ct));
+
+    /// <summary>Xác nhận thực thi phân phối cưỡng chế sinh viên lẻ vào các Room (Moderator only, BR-31, BR-32).</summary>
+    [HttpPost("{id:guid}/distribute-confirm")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<DistributeConfirmResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DistributeConfirmResponse>> ConfirmDistribution(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.ConfirmDistributionAsync(id, ct));
+
+    /// <summary>Chốt sổ không gian môn học: Khóa Space, khóa toàn bộ Room, từ chối toàn bộ đơn chờ (Moderator only, BR-33).</summary>
+    [HttpPost("{id:guid}/finalize")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType<FinalizeSpaceResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<FinalizeSpaceResponse>> FinalizeSpace(Guid id, CancellationToken ct) =>
+        Ok(await spaceService.FinalizeSpaceAsync(id, ct));
 }

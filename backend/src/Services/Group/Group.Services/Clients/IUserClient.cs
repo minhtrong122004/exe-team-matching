@@ -25,6 +25,11 @@ public sealed record UserProfileDto(
     string Availability,
     List<string> Interests,
     List<UserSkillDto> Skills,
-    bool IsProfileCompleted = false);
+    bool IsProfileCompleted = false,
+    int TechScore = 0,
+    int ManagementScore = 0,
+    int GraphicDesignScore = 0,
+    int MarketingScore = 0,
+    int SaleScore = 0);
 
 public sealed record UserSkillDto(string SkillName, int Level);

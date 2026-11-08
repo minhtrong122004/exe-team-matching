@@ -222,3 +222,102 @@ export interface RankedCandidateResponse {
   missingSkills: string[];
 }
 
+// ── Phase 5: Distribution & Finalize Types (BR-30, BR-31, BR-32, BR-33) ──
+
+export interface UnmatchedStudentItem {
+  userId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  major: string;
+  cohort: string;
+  techScore: number;
+  managementScore: number;
+  graphicDesignScore: number;
+  marketingScore: number;
+  saleScore: number;
+}
+
+export interface RoomMemberSummary {
+  userId: string;
+  fullName: string;
+  major?: string | null;
+  isLeader: boolean;
+  joinedAt: string;
+}
+
+export interface RoomDistributionItem {
+  roomId: string;
+  roomCode: string;
+  name: string;
+  memberCount: number;
+  maxMembers: number;
+  leaderId?: string | null;
+  leaderName?: string | null;
+  members: RoomMemberSummary[];
+}
+
+export interface UnmatchedSummaryResponse {
+  spaceId: string;
+  semesterCode: string;
+  subjectCode: string;
+  status: string;
+  totalEnrolled: number;
+  totalMatched: number;
+  totalUnmatched: number;
+  unmatchedStudents: UnmatchedStudentItem[];
+  incompleteRooms: RoomDistributionItem[];
+  emptyRooms: RoomDistributionItem[];
+  fullRooms: RoomDistributionItem[];
+}
+
+export interface AssignedStudentDto {
+  userId: string;
+  studentCode: string;
+  fullName: string;
+  major: string;
+  isLeader: boolean;
+  managementScore: number;
+}
+
+export interface DistributedRoomPlanDto {
+  roomId: string;
+  roomCode: string;
+  name: string;
+  leaderId?: string | null;
+  leaderName: string;
+  isNewlyFormed: boolean;
+  memberCountBefore: number;
+  memberCountAfter: number;
+  addedStudents: AssignedStudentDto[];
+  finalMembers: AssignedStudentDto[];
+  balanceScore: number;
+}
+
+export interface DistributePreviewResponse {
+  spaceId: string;
+  totalUnmatched: number;
+  totalDistributed: number;
+  totalRemaining: number;
+  roomPlans: DistributedRoomPlanDto[];
+}
+
+export interface DistributeConfirmResponse {
+  spaceId: string;
+  totalDistributed: number;
+  totalRemaining: number;
+  updatedRoomsCount: number;
+  confirmedRoomPlans: DistributedRoomPlanDto[];
+}
+
+export interface FinalizeSpaceResponse {
+  spaceId: string;
+  semesterCode: string;
+  subjectCode: string;
+  status: string;
+  lockedRoomsCount: number;
+  rejectedRequestsCount: number;
+  finalizedAt: string;
+}
+
+

@@ -1,10 +1,13 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Exe.BuildingBlocks.Web;
+using Exe.Contracts.Events;
+using Exe.Contracts.Matching;
 using FluentValidation;
 using Group.Repository.Entities;
 using Group.Repository.Enums;
 using Group.Repository.Interfaces;
+using Group.Services.Clients;
 using Group.Services.DTOs;
 using Group.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +23,9 @@ public partial class CourseSpaceService(
     IValidator<ImportFapStudentsRequest> importValidator,
     IHttpClientFactory httpClientFactory,
     IHttpContextAccessor httpContextAccessor,
+    IMatchingClient matchingClient,
+    IUserClient userClient,
+    GroupEventPublisher eventPublisher,
     ILogger<CourseSpaceService> logger) : ICourseSpaceService
 {
     public async Task<CourseSpaceResponse> CreateSpaceAsync(CreateCourseSpaceRequest request, CancellationToken ct = default)
@@ -152,15 +158,15 @@ public partial class CourseSpaceService(
 
         if (toAdd.Count > 0)
         {
+            // Bắn request sang Auth Service để tạo tài khoản & đồng bộ StudentId chuẩn xác theo AccountId
+            var authHeader = httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
+            await TryTriggerAuthProvisioningAsync(space.SemesterCode, space.SubjectCode, toAdd, authHeader);
+
             spaceRepo.AddEnrollmentsRange(toAdd);
             space.UpdatedAt = now;
             await uow.SaveChangesAsync(ct);
-            logger.LogInformation("Imported {Count} students into CourseSpace {SpaceId}", toAdd.Count, spaceId);
+            logger.LogInformation("Imported {Count} students into CourseSpace {SpaceId} with synchronized StudentIds", toAdd.Count, spaceId);
         }
-
-        // Bắn request sang Auth Service để tạo tài khoản & gửi email mật khẩu khởi tạo nếu chưa có
-        var authHeader = httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
-        await TryTriggerAuthProvisioningAsync(space.SemesterCode, space.SubjectCode, toAdd, authHeader);
 
         return toAdd.Count;
     }
@@ -308,6 +314,410 @@ public partial class CourseSpaceService(
             r.SpaceId,
             r.CreatedAt
         )).ToList();
+    }
+
+    public async Task<CourseSpaceResponse> CloseRegistrationAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        if (space.Status == CourseSpaceStatus.Locked)
+        {
+            throw new BusinessRuleException("SPACE_LOCKED", "Không gian môn học đã chốt sổ, không thể thay đổi trạng thái (BR-33).");
+        }
+
+        space.Status = CourseSpaceStatus.ClosedRegistration;
+        space.UpdatedAt = DateTime.UtcNow;
+
+        await uow.SaveChangesAsync(ct);
+        logger.LogInformation("Moderator closed registration for CourseSpace {SpaceId} (BR-30)", spaceId);
+
+        return ToResponse(space, space.Enrollments.Count, space.Rooms.Count);
+    }
+
+    public async Task<UnmatchedSummaryResponse> GetUnmatchedSummaryAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
+        var rooms = await spaceRepo.GetRoomsBySpaceAsync(spaceId, null, ct);
+
+        var joinedUserIds = rooms
+            .SelectMany(r => r.Members.Select(m => m.UserId))
+            .ToHashSet();
+
+        var unmatchedEnrollments = enrollments
+            .Where(e => !joinedUserIds.Contains(e.StudentId))
+            .ToList();
+
+        var studentIds = unmatchedEnrollments.Select(e => e.StudentId).ToList();
+        var profiles = studentIds.Count > 0
+            ? (await userClient.GetProfilesAsync(studentIds, ct)).ToDictionary(p => p.UserId)
+            : new Dictionary<Guid, UserProfileDto>();
+
+        var unmatchedList = unmatchedEnrollments.Select(e =>
+        {
+            profiles.TryGetValue(e.StudentId, out var profile);
+            return new UnmatchedStudentItem(
+                e.StudentId,
+                e.StudentCode,
+                e.FullName,
+                e.Email,
+                e.Major,
+                e.Cohort,
+                profile?.TechScore ?? 50,
+                profile?.ManagementScore ?? 50,
+                profile?.GraphicDesignScore ?? 50,
+                profile?.MarketingScore ?? 50,
+                profile?.SaleScore ?? 50
+            );
+        }).ToList();
+
+        var incompleteRooms = rooms
+            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Closed && r.Status != GroupStatus.Locked)
+            .Select(ToRoomDistributionItem)
+            .ToList();
+
+        var emptyRooms = rooms
+            .Where(r => r.Members.Count == 0 || r.Status == GroupStatus.Empty)
+            .Select(ToRoomDistributionItem)
+            .ToList();
+
+        var fullRooms = rooms
+            .Where(r => r.Members.Count >= space.MaxMembersPerGroup || r.Status == GroupStatus.Closed || r.Status == GroupStatus.Locked)
+            .Select(ToRoomDistributionItem)
+            .ToList();
+
+        return new UnmatchedSummaryResponse(
+            space.Id,
+            space.SemesterCode,
+            space.SubjectCode,
+            space.Status.ToString(),
+            enrollments.Count,
+            enrollments.Count - unmatchedList.Count,
+            unmatchedList.Count,
+            unmatchedList,
+            incompleteRooms,
+            emptyRooms,
+            fullRooms
+        );
+    }
+
+    public async Task<DistributePreviewResponse> PreviewDistributionAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        var summary = await GetUnmatchedSummaryAsync(spaceId, ct);
+        if (summary.TotalUnmatched == 0)
+        {
+            return new DistributePreviewResponse(spaceId, 0, 0, 0, []);
+        }
+
+        var grpcRequest = new DistributeRequest
+        {
+            SpaceId = spaceId.ToString(),
+            MaxMembers = space.MaxMembersPerGroup,
+            GroupThreshold = space.GroupThreshold
+        };
+
+        foreach (var s in summary.UnmatchedStudents)
+        {
+            grpcRequest.UnmatchedStudents.Add(new DistributeCandidate
+            {
+                UserId = s.UserId.ToString(),
+                FullName = s.FullName,
+                StudentCode = s.StudentCode,
+                Major = s.Major,
+                TechScore = s.TechScore,
+                ManagementScore = s.ManagementScore,
+                GraphicDesignScore = s.GraphicDesignScore,
+                MarketingScore = s.MarketingScore,
+                SaleScore = s.SaleScore
+            });
+        }
+
+        var rooms = await spaceRepo.GetRoomsBySpaceAsync(spaceId, null, ct);
+        var existingRoomsWithMembers = rooms
+            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Closed && r.Status != GroupStatus.Locked)
+            .ToList();
+
+        var emptyRooms = rooms
+            .Where(r => r.Members.Count == 0 || r.Status == GroupStatus.Empty)
+            .ToList();
+
+        var existingMemberIds = existingRoomsWithMembers.SelectMany(r => r.Members.Select(m => m.UserId)).Distinct().ToList();
+        var existingProfiles = existingMemberIds.Count > 0
+            ? (await userClient.GetProfilesAsync(existingMemberIds, ct)).ToDictionary(p => p.UserId)
+            : new Dictionary<Guid, UserProfileDto>();
+
+        foreach (var r in existingRoomsWithMembers)
+        {
+            var distRoom = new DistributeRoom
+            {
+                RoomId = r.Id.ToString(),
+                RoomCode = r.RoomCode,
+                Name = r.Name,
+                LeaderId = r.LeaderId?.ToString() ?? string.Empty,
+                IsEmpty = false
+            };
+
+            foreach (var m in r.Members)
+            {
+                existingProfiles.TryGetValue(m.UserId, out var prof);
+                distRoom.CurrentMembers.Add(new DistributeRoomMember
+                {
+                    UserId = m.UserId.ToString(),
+                    FullName = m.FullName,
+                    StudentCode = string.Empty,
+                    Major = prof?.Major ?? string.Empty,
+                    IsLeader = m.UserId == r.LeaderId,
+                    TechScore = prof?.TechScore ?? 50,
+                    ManagementScore = prof?.ManagementScore ?? 50,
+                    GraphicDesignScore = prof?.GraphicDesignScore ?? 50,
+                    MarketingScore = prof?.MarketingScore ?? 50,
+                    SaleScore = prof?.SaleScore ?? 50
+                });
+            }
+
+            grpcRequest.ExistingRooms.Add(distRoom);
+        }
+
+        foreach (var r in emptyRooms)
+        {
+            grpcRequest.EmptyRooms.Add(new DistributeRoom
+            {
+                RoomId = r.Id.ToString(),
+                RoomCode = r.RoomCode,
+                Name = r.Name,
+                IsEmpty = true
+            });
+        }
+
+        var grpcResponse = await matchingClient.DistributeUnmatchedStudentsAsync(grpcRequest, ct);
+
+        var plans = grpcResponse.RoomPlans.Select(p => new DistributedRoomPlanDto(
+            Guid.Parse(p.RoomId),
+            p.RoomCode,
+            p.Name,
+            Guid.TryParse(p.LeaderId, out var lid) ? lid : null,
+            p.LeaderName,
+            p.IsNewlyFormed,
+            p.MemberCountBefore,
+            p.MemberCountAfter,
+            p.AddedStudents.Select(a => new AssignedStudentDto(
+                Guid.Parse(a.UserId),
+                a.StudentCode,
+                a.FullName,
+                a.Major,
+                a.IsLeader,
+                a.ManagementScore)).ToList(),
+            p.FinalMembers.Select(f => new AssignedStudentDto(
+                Guid.Parse(f.UserId),
+                f.StudentCode,
+                f.FullName,
+                f.Major,
+                f.IsLeader,
+                f.ManagementScore)).ToList(),
+            p.BalanceScore
+        )).ToList();
+
+        return new DistributePreviewResponse(
+            spaceId,
+            grpcResponse.TotalUnmatched,
+            grpcResponse.TotalDistributed,
+            grpcResponse.TotalRemaining,
+            plans
+        );
+    }
+
+    public async Task<DistributeConfirmResponse> ConfirmDistributionAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        if (space.Status == CourseSpaceStatus.Locked)
+        {
+            throw new BusinessRuleException("SPACE_LOCKED", "Không thể phân phối sinh viên vào không gian môn học đã chốt sổ (BR-33).");
+        }
+
+        var preview = await PreviewDistributionAsync(spaceId, ct);
+        if (preview.TotalDistributed == 0)
+        {
+            return new DistributeConfirmResponse(spaceId, 0, preview.TotalRemaining, 0, []);
+        }
+
+        var trackedRooms = (await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct))
+            .ToDictionary(r => r.Id);
+
+        var enrollments = (await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct))
+            .ToDictionary(e => e.StudentId);
+
+        var now = DateTime.UtcNow;
+        int updatedRoomsCount = 0;
+
+        foreach (var plan in preview.RoomPlans)
+        {
+            if (plan.AddedStudents.Count == 0) continue;
+            if (!trackedRooms.TryGetValue(plan.RoomId, out var room)) continue;
+
+            foreach (var student in plan.AddedStudents)
+            {
+                if (room.Members.Any(m => m.UserId == student.UserId)) continue;
+
+                var role = student.IsLeader ? MemberRole.Leader : MemberRole.Member;
+                enrollments.TryGetValue(student.UserId, out var enrollment);
+                var email = enrollment?.Email ?? $"{student.StudentCode.ToLowerInvariant()}@fpt.edu.vn";
+                var resolvedUserId = enrollment?.StudentId != null && enrollment.StudentId != Guid.Empty
+                    ? enrollment.StudentId
+                    : student.UserId;
+
+                room.Members.Add(new GroupMember
+                {
+                    GroupId = room.Id,
+                    UserId = resolvedUserId,
+                    FullName = student.FullName,
+                    Email = email,
+                    Role = role,
+                    JoinedAt = now
+                });
+
+                if (student.IsLeader)
+                {
+                    room.LeaderId = resolvedUserId;
+                }
+
+                await eventPublisher.PublishAsync(new MemberJoined(
+                    room.Id,
+                    room.Name,
+                    student.UserId,
+                    email,
+                    student.FullName,
+                    room.Members.Count,
+                    room.MaxMembers), ct);
+            }
+
+            if (room.Members.Count >= space.MaxMembersPerGroup)
+            {
+                room.Status = GroupStatus.Closed;
+            }
+            else if (room.Members.Count >= space.GroupThreshold)
+            {
+                room.Status = GroupStatus.Recruiting;
+            }
+            else if (room.Members.Count > 0)
+            {
+                room.Status = GroupStatus.Forming;
+            }
+
+            room.UpdatedAt = now;
+            updatedRoomsCount++;
+        }
+
+        space.UpdatedAt = now;
+        await uow.SaveChangesAsync(ct);
+
+        logger.LogInformation("Confirmed distribution for CourseSpace {SpaceId}: {Distributed} students distributed to {Rooms} rooms (BR-31, BR-32)",
+            spaceId, preview.TotalDistributed, updatedRoomsCount);
+
+        return new DistributeConfirmResponse(
+            spaceId,
+            preview.TotalDistributed,
+            preview.TotalRemaining,
+            updatedRoomsCount,
+            preview.RoomPlans
+        );
+    }
+
+    public async Task<FinalizeSpaceResponse> FinalizeSpaceAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        if (space.Status == CourseSpaceStatus.Locked)
+        {
+            throw new BusinessRuleException("ALREADY_FINALIZED", "Không gian môn học này đã được chốt sổ trước đó (BR-33).");
+        }
+
+        var now = DateTime.UtcNow;
+
+        space.Status = CourseSpaceStatus.Locked;
+        space.UpdatedAt = now;
+
+        var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        int lockedRoomsCount = 0;
+
+        foreach (var room in trackedRooms)
+        {
+            if (room.Members.Count > 0)
+            {
+                room.Status = GroupStatus.Locked;
+                room.UpdatedAt = now;
+                lockedRoomsCount++;
+            }
+            else
+            {
+                // Phòng dự phòng dư không có thành viên: đóng phòng (BR-33)
+                room.Status = GroupStatus.Closed;
+                room.UpdatedAt = now;
+            }
+        }
+
+        var pendingRequests = await spaceRepo.GetPendingJoinRequestsBySpaceAsync(spaceId, ct);
+        int rejectedRequestsCount = pendingRequests.Count;
+
+        foreach (var req in pendingRequests)
+        {
+            req.Status = JoinRequestStatus.Rejected;
+            req.DecidedAt = now;
+        }
+
+        await uow.SaveChangesAsync(ct);
+
+        await eventPublisher.PublishAsync(new SpaceFinalized(
+            space.Id,
+            space.SemesterCode,
+            space.SubjectCode,
+            lockedRoomsCount,
+            rejectedRequestsCount,
+            now), ct);
+
+        logger.LogInformation("CourseSpace {SpaceId} finalized (BR-33): {LockedRooms} rooms locked, {RejectedRequests} requests rejected",
+            spaceId, lockedRoomsCount, rejectedRequestsCount);
+
+        return new FinalizeSpaceResponse(
+            space.Id,
+            space.SemesterCode,
+            space.SubjectCode,
+            space.Status.ToString(),
+            lockedRoomsCount,
+            rejectedRequestsCount,
+            now
+        );
+    }
+
+    private static RoomDistributionItem ToRoomDistributionItem(GroupEntity r)
+    {
+        var leader = r.Members.FirstOrDefault(m => m.UserId == r.LeaderId);
+        var members = r.Members.Select(m => new RoomMemberSummary(
+            m.UserId,
+            m.FullName,
+            null,
+            m.UserId == r.LeaderId,
+            m.JoinedAt
+        )).ToList();
+
+        return new RoomDistributionItem(
+            r.Id,
+            r.RoomCode ?? r.Name,
+            r.Name,
+            r.Members.Count,
+            r.MaxMembers,
+            r.LeaderId,
+            leader?.FullName,
+            members
+        );
     }
 
     private static CourseSpaceResponse ToResponse(CourseSpace s, int totalStudents, int totalRooms)
@@ -461,7 +871,41 @@ public partial class CourseSpaceService(
             var response = await client.PostAsync("/api/auth/accounts/provision-fap", content);
             if (response.IsSuccessStatusCode)
             {
-                logger.LogInformation("Successfully dispatched {Count} FAP accounts to Auth Service", enrollments.Count);
+                var body = await response.Content.ReadAsStringAsync();
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("results", out var resultsElem) && resultsElem.ValueKind == JsonValueKind.Array)
+                    {
+                        var map = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var item in resultsElem.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("accountId", out var idElem) && idElem.TryGetGuid(out var accId) &&
+                                item.TryGetProperty("email", out var emailElem))
+                            {
+                                var email = emailElem.GetString();
+                                if (!string.IsNullOrWhiteSpace(email))
+                                {
+                                    map[email.Trim()] = accId;
+                                }
+                            }
+                        }
+
+                        foreach (var e in enrollments)
+                        {
+                            if (map.TryGetValue(e.Email, out var realId) && realId != Guid.Empty)
+                            {
+                                e.StudentId = realId;
+                            }
+                        }
+                    }
+                }
+                catch (Exception parseEx)
+                {
+                    logger.LogWarning(parseEx, "Failed to parse accountIds from Auth Service provision-fap response");
+                }
+
+                logger.LogInformation("Successfully dispatched {Count} FAP accounts to Auth Service and mapped StudentIds", enrollments.Count);
             }
             else
             {

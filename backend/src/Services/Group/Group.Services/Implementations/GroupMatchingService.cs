@@ -102,9 +102,15 @@ public class GroupMatchingService(
     {
         var student = new StudentProfile
         {
-            UserId       = p.UserId.ToString(),
-            Major        = p.Major ?? string.Empty,
-            Availability = p.Availability ?? string.Empty
+            UserId               = p.UserId.ToString(),
+            Major                = p.Major ?? string.Empty,
+            Availability         = p.Availability ?? string.Empty,
+            FullName             = p.FullName ?? string.Empty,
+            TechScore            = p.TechScore,
+            ManagementScore      = p.ManagementScore,
+            GraphicDesignScore   = p.GraphicDesignScore,
+            MarketingScore       = p.MarketingScore,
+            SaleScore            = p.SaleScore
         };
         student.Skills.AddRange(p.Skills.Select(s => s.SkillName));
         student.Interests.AddRange(p.Interests);

@@ -8,6 +8,7 @@ service MatchingService {
   rpc CalculateMatch (MatchRequest) returns (MatchResult);
   rpc RankGroups (RankGroupsRequest) returns (RankGroupsResponse);
   rpc RankCandidates (RankCandidatesRequest) returns (RankCandidatesResponse);
+  rpc DistributeUnmatchedStudents (DistributeRequest) returns (DistributeResponse);
 }
 
 message StudentProfile {
@@ -16,6 +17,13 @@ message StudentProfile {
   repeated string skills = 3;
   repeated string interests = 4;   // lĩnh vực dự án quan tâm
   string availability = 5;
+  int32 tech_score = 6;
+  int32 management_score = 7;
+  int32 graphic_design_score = 8;
+  int32 marketing_score = 9;
+  int32 sale_score = 10;
+  string full_name = 11;
+  string student_code = 12;
 }
 
 message GroupNeed {
@@ -40,3 +48,79 @@ message RankGroupsResponse { repeated MatchResult results = 1; }
 
 message RankCandidatesRequest { GroupNeed group = 1; repeated StudentProfile candidates = 2; int32 top = 3; }
 message RankCandidatesResponse { repeated MatchResult results = 1; }
+
+// ── Phase 5: gRPC Distribution & Finalize (BR-31, BR-32) ──────────────────
+
+message DistributeCandidate {
+  string user_id = 1;
+  string full_name = 2;
+  string student_code = 3;
+  string major = 4;
+  int32 tech_score = 5;
+  int32 management_score = 6;
+  int32 graphic_design_score = 7;
+  int32 marketing_score = 8;
+  int32 sale_score = 9;
+}
+
+message DistributeRoomMember {
+  string user_id = 1;
+  string full_name = 2;
+  string student_code = 3;
+  string major = 4;
+  bool is_leader = 5;
+  int32 tech_score = 6;
+  int32 management_score = 7;
+  int32 graphic_design_score = 8;
+  int32 marketing_score = 9;
+  int32 sale_score = 10;
+}
+
+message DistributeRoom {
+  string room_id = 1;
+  string room_code = 2;
+  string name = 3;
+  string leader_id = 4;
+  repeated DistributeRoomMember current_members = 5;
+  bool is_empty = 6;
+}
+
+message DistributeRequest {
+  string space_id = 1;
+  int32 max_members = 2;
+  int32 group_threshold = 3;
+  repeated DistributeCandidate unmatched_students = 4;
+  repeated DistributeRoom existing_rooms = 5;      // Rooms 1-4 members
+  repeated DistributeRoom empty_rooms = 6;         // Rooms 0 members
+}
+
+message AssignedStudent {
+  string user_id = 1;
+  string student_code = 2;
+  string full_name = 3;
+  string major = 4;
+  bool is_leader = 5;
+  int32 management_score = 6;
+}
+
+message DistributedRoomPlan {
+  string room_id = 1;
+  string room_code = 2;
+  string name = 3;
+  string leader_id = 4;
+  string leader_name = 5;
+  bool is_newly_formed = 6;
+  int32 member_count_before = 7;
+  int32 member_count_after = 8;
+  repeated AssignedStudent added_students = 9;
+  repeated AssignedStudent final_members = 10;
+  double balance_score = 11;                       // 0 - 100
+}
+
+message DistributeResponse {
+  string space_id = 1;
+  int32 total_unmatched = 2;
+  int32 total_distributed = 3;
+  int32 total_remaining = 4;
+  repeated DistributedRoomPlan room_plans = 5;
+}
