@@ -51,3 +51,12 @@ public enum ElectionStatus
     Failed,
     TimedOut
 }
+
+public enum TransferRequestStatus
+{
+    Pending,
+    Approved,
+    Rejected,
+    Cancelled
+}
+

@@ -20,6 +20,8 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
     public DbSet<ElectionVote> ElectionVotes => Set<ElectionVote>();
     public DbSet<ApplicationVote> ApplicationVotes => Set<ApplicationVote>();
     public DbSet<MemberRemovalLog> MemberRemovalLogs => Set<MemberRemovalLog>();
+    public DbSet<GroupTransferRequest> GroupTransferRequests => Set<GroupTransferRequest>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -263,5 +265,43 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
                   .HasForeignKey(l => l.GroupId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // ── GroupTransferRequest (BR-35, BR-36, BR-37) ─────────────────────────
+        modelBuilder.Entity<GroupTransferRequest>(entity =>
+        {
+            entity.ToTable("GroupTransferRequests");
+            entity.HasKey(t => t.Id);
+
+            entity.Property(t => t.RequesterStudentName).IsRequired().HasMaxLength(200);
+            entity.Property(t => t.RequesterStudentCode).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.FromGroupCode).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.TargetGroupCode).IsRequired().HasMaxLength(50);
+            entity.Property(t => t.SwapWithStudentName).HasMaxLength(200);
+            entity.Property(t => t.SwapWithStudentCode).HasMaxLength(50);
+            entity.Property(t => t.Reason).IsRequired().HasMaxLength(1000);
+            entity.Property(t => t.Status).HasConversion<string>().HasMaxLength(30);
+            entity.Property(t => t.DecisionReason).HasMaxLength(1000);
+
+            entity.HasIndex(t => t.SpaceId);
+            entity.HasIndex(t => t.RequesterStudentId);
+            entity.HasIndex(t => t.Status);
+            entity.HasIndex(t => new { t.SpaceId, t.RequesterStudentId, t.Status });
+
+            entity.HasOne(t => t.Space)
+                  .WithMany()
+                  .HasForeignKey(t => t.SpaceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.FromGroup)
+                  .WithMany()
+                  .HasForeignKey(t => t.FromGroupId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.TargetGroup)
+                  .WithMany()
+                  .HasForeignKey(t => t.TargetGroupId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
+

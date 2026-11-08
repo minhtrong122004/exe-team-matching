@@ -120,6 +120,44 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
             .ToListAsync(ct);
     }
 
+    public async Task<GroupTransferRequest?> GetTransferRequestByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await db.GroupTransferRequests
+            .Include(t => t.Space)
+            .Include(t => t.FromGroup)
+            .Include(t => t.TargetGroup)
+            .FirstOrDefaultAsync(t => t.Id == id, ct);
+    }
+
+    public async Task<IReadOnlyList<GroupTransferRequest>> GetTransferRequestsBySpaceAsync(Guid spaceId, TransferRequestStatus? status, CancellationToken ct = default)
+    {
+        var query = db.GroupTransferRequests
+            .Where(t => t.SpaceId == spaceId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(t => t.Status == status.Value);
+        }
+
+        return await query.OrderByDescending(t => t.CreatedAt).ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<GroupTransferRequest>> GetTransferRequestsByStudentAsync(Guid studentId, CancellationToken ct = default)
+    {
+        return await db.GroupTransferRequests
+            .Where(t => t.RequesterStudentId == studentId || t.SwapWithStudentId == studentId)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> HasPendingTransferRequestAsync(Guid spaceId, Guid studentId, CancellationToken ct = default)
+    {
+        return await db.GroupTransferRequests
+            .AnyAsync(t => t.SpaceId == spaceId &&
+                           t.Status == TransferRequestStatus.Pending &&
+                           (t.RequesterStudentId == studentId || t.SwapWithStudentId == studentId), ct);
+    }
+
     public void Add(CourseSpace space) => db.CourseSpaces.Add(space);
 
     public void AddEnrollment(SpaceEnrollment enrollment) => db.SpaceEnrollments.Add(enrollment);
@@ -128,7 +166,10 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
 
     public void AddRoomsRange(IEnumerable<GroupEntity> rooms) => db.Groups.AddRange(rooms);
 
+    public void AddTransferRequest(GroupTransferRequest request) => db.GroupTransferRequests.Add(request);
+
     public void RemoveRoomsRange(IEnumerable<GroupEntity> rooms)
+
     {
         var roomIds = rooms.Select(r => r.Id).ToList();
         var tracked = db.Groups

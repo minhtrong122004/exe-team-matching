@@ -9,4 +9,6 @@ public interface IReportEventHandler
     Task<bool> HandleGroupCreatedAsync(GroupCreated @event, Guid eventId, CancellationToken ct = default);
     Task<bool> HandleMemberJoinedAsync(MemberJoined @event, Guid eventId, CancellationToken ct = default);
     Task<bool> HandleMemberLeftAsync(MemberLeft @event, Guid eventId, CancellationToken ct = default);
+    Task<bool> HandleMemberTransferredPostLockAsync(MemberTransferredPostLock @event, Guid eventId, CancellationToken ct = default);
 }
+

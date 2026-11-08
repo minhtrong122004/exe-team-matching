@@ -918,4 +918,632 @@ public partial class CourseSpaceService(
             logger.LogWarning(ex, "Could not notify Auth Service of new FAP enrollments (Auth service might be offline or handled asynchronously)");
         }
     }
+
+    // ── Phase 6: Post-Lock Transfer & Lecturer Dashboard (BR-35, BR-36, BR-37, BR-38) ──
+
+    public async Task<TransferRequestResponse> DirectTransferAsync(
+        Guid spaceId, DirectTransferRequest request, Guid moderatorId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy Không gian môn học '{spaceId}'.");
+
+        if (space.Status != CourseSpaceStatus.Locked)
+        {
+            throw new BusinessRuleException("SPACE_NOT_LOCKED",
+                "Điều chuyển sinh viên sau chốt sổ chỉ được thực hiện khi Không gian học phần đã Chốt sổ (Locked) theo BR-35.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do điều chuyển sinh viên (BR-36).");
+        }
+
+        var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
+        var studentEnrollment = enrollments.FirstOrDefault(e => e.StudentId == request.StudentId)
+            ?? throw new BusinessRuleException("STUDENT_NOT_ENROLLED", "Sinh viên không thuộc danh sách Không gian học phần này.");
+
+        var effectiveSwapId = request.EffectiveSwapStudentId;
+        SpaceEnrollment? swapEnrollment = null;
+        if (effectiveSwapId.HasValue)
+        {
+            swapEnrollment = enrollments.FirstOrDefault(e => e.StudentId == effectiveSwapId.Value)
+                ?? throw new BusinessRuleException("SWAP_STUDENT_NOT_ENROLLED", "Sinh viên đổi chéo không thuộc danh sách Không gian học phần này.");
+        }
+
+        var rooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        var fromGroup = rooms.FirstOrDefault(r => r.Members.Any(m => m.UserId == request.StudentId))
+            ?? throw new BusinessRuleException("STUDENT_NOT_IN_GROUP", "Sinh viên hiện không ở trong bất kỳ nhóm nào của Không gian học phần này.");
+
+        var targetGroup = rooms.FirstOrDefault(r => r.Id == request.TargetGroupId)
+            ?? throw new NotFoundException($"Không tìm thấy nhóm đích '{request.TargetGroupId}'.");
+
+        if (fromGroup.Id == targetGroup.Id)
+        {
+            throw new BusinessRuleException("SAME_GROUP", "Nhóm đích trùng với nhóm hiện tại của sinh viên.");
+        }
+
+        // BR-37 Validation
+        if (!effectiveSwapId.HasValue)
+        {
+            // One-way transfer: Target group must have capacity, source group must stay >= GroupThreshold
+            if (targetGroup.Members.Count >= space.MaxMembersPerGroup)
+            {
+                throw new BusinessRuleException("TARGET_GROUP_FULL",
+                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Theo BR-37, hãy chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
+            }
+
+            if (fromGroup.Members.Count - 1 < space.GroupThreshold)
+            {
+                throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
+                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ có {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV của môn học). Theo BR-37, bắt buộc phải chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
+            }
+        }
+        else
+        {
+            // Two-way swap: Swap student must belong to target group
+            if (!targetGroup.Members.Any(m => m.UserId == effectiveSwapId.Value))
+            {
+                throw new BusinessRuleException("SWAP_STUDENT_NOT_IN_TARGET_GROUP",
+                    $"Sinh viên {swapEnrollment?.FullName ?? "đối ứng"} không thuộc nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}).");
+            }
+        }
+
+        // Execute Member Transfer
+        var memberToMove = fromGroup.Members.First(m => m.UserId == request.StudentId);
+        fromGroup.Members.Remove(memberToMove);
+
+        GroupMember? swapMemberToMove = null;
+        if (effectiveSwapId.HasValue)
+        {
+            swapMemberToMove = targetGroup.Members.First(m => m.UserId == effectiveSwapId.Value);
+            targetGroup.Members.Remove(swapMemberToMove);
+
+            fromGroup.Members.Add(new GroupMember
+            {
+                GroupId = fromGroup.Id,
+                UserId = swapMemberToMove.UserId,
+                FullName = swapMemberToMove.FullName,
+                Email = swapMemberToMove.Email,
+                Role = MemberRole.Member,
+                JoinedAt = DateTime.UtcNow
+            });
+        }
+
+        targetGroup.Members.Add(new GroupMember
+        {
+            GroupId = targetGroup.Id,
+            UserId = memberToMove.UserId,
+            FullName = memberToMove.FullName,
+            Email = memberToMove.Email,
+            Role = MemberRole.Member,
+            JoinedAt = DateTime.UtcNow
+        });
+
+        fromGroup.UpdatedAt = DateTime.UtcNow;
+        targetGroup.UpdatedAt = DateTime.UtcNow;
+
+        // Leader Promotion in fromGroup if student was Leader
+        if (fromGroup.LeaderId == request.StudentId)
+        {
+            var nextLeader = fromGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
+            if (nextLeader != null)
+            {
+                fromGroup.LeaderId = nextLeader.UserId;
+                nextLeader.Role = MemberRole.Leader;
+            }
+            else
+            {
+                fromGroup.LeaderId = null;
+            }
+        }
+
+        // Leader Promotion in targetGroup if swap student was Leader
+        if (request.SwapWithStudentId.HasValue && targetGroup.LeaderId == request.SwapWithStudentId.Value)
+        {
+            var nextLeader = targetGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
+            if (nextLeader != null)
+            {
+                targetGroup.LeaderId = nextLeader.UserId;
+                nextLeader.Role = MemberRole.Leader;
+            }
+            else
+            {
+                targetGroup.LeaderId = null;
+            }
+        }
+
+        // Log transfer record (BR-35 audit)
+        var transferLog = new GroupTransferRequest
+        {
+            Id = Guid.NewGuid(),
+            SpaceId = spaceId,
+            RequesterStudentId = memberToMove.UserId,
+            RequesterStudentName = memberToMove.FullName,
+            RequesterStudentCode = studentEnrollment.StudentCode,
+            FromGroupId = fromGroup.Id,
+            FromGroupCode = fromGroup.RoomCode ?? fromGroup.Name,
+            TargetGroupId = targetGroup.Id,
+            TargetGroupCode = targetGroup.RoomCode ?? targetGroup.Name,
+            SwapWithStudentId = effectiveSwapId,
+            SwapWithStudentName = swapMemberToMove?.FullName,
+            SwapWithStudentCode = swapEnrollment?.StudentCode,
+            Reason = request.Reason.Trim(),
+            Status = TransferRequestStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            DecidedAt = DateTime.UtcNow,
+            DecidedByModeratorId = moderatorId,
+            DecisionReason = "Điều chuyển trực tiếp bởi Moderator (BR-35)"
+        };
+
+        spaceRepo.AddTransferRequest(transferLog);
+        await uow.SaveChangesAsync(ct);
+
+        logger.LogInformation("Direct transfer executed by Moderator {ModId}: Student {StudentCode} moved from Group {FromGroup} to Group {TargetGroup} (Swap: {IsSwap})",
+            moderatorId, studentEnrollment.StudentCode, fromGroup.RoomCode, targetGroup.RoomCode, effectiveSwapId.HasValue);
+
+        // Publish Event
+        await eventPublisher.PublishAsync(new MemberTransferredPostLock(
+            spaceId,
+            memberToMove.UserId,
+            memberToMove.FullName,
+            memberToMove.Email,
+            fromGroup.Id,
+            fromGroup.RoomCode ?? fromGroup.Name,
+            targetGroup.Id,
+            targetGroup.RoomCode ?? targetGroup.Name,
+            effectiveSwapId,
+            swapMemberToMove?.FullName,
+            request.Reason.Trim(),
+            DateTime.UtcNow), ct);
+
+        return MapTransferRequestResponse(transferLog);
+    }
+
+    public async Task<TransferRequestResponse> CreateTransferRequestAsync(
+        Guid spaceId, CreateTransferRequest request, Guid studentId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy Không gian môn học '{spaceId}'.");
+
+        if (space.Status != CourseSpaceStatus.Locked)
+        {
+            throw new BusinessRuleException("SPACE_NOT_LOCKED",
+                "Yêu cầu chuyển nhóm chỉ được gửi sau khi Không gian học phần đã Chốt sổ (Locked) theo BR-36.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do xin chuyển nhóm (BR-36).");
+        }
+
+        var hasPending = await spaceRepo.HasPendingTransferRequestAsync(spaceId, studentId, ct);
+        if (hasPending)
+        {
+            throw new BusinessRuleException("PENDING_REQUEST_EXISTS",
+                "Bạn đã có một yêu cầu chuyển nhóm đang chờ Moderator duyệt trong môn học này (BR-36).");
+        }
+
+        var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
+        var studentEnrollment = enrollments.FirstOrDefault(e => e.StudentId == studentId)
+            ?? throw new BusinessRuleException("STUDENT_NOT_ENROLLED", "Bạn không thuộc danh sách ghi danh của Không gian học phần này.");
+
+        var effectiveSwapId = request.EffectiveSwapStudentId;
+        SpaceEnrollment? swapEnrollment = null;
+        if (effectiveSwapId.HasValue)
+        {
+            swapEnrollment = enrollments.FirstOrDefault(e => e.StudentId == effectiveSwapId.Value)
+                ?? throw new BusinessRuleException("SWAP_STUDENT_NOT_ENROLLED", "Sinh viên đổi chéo không thuộc Không gian học phần này.");
+        }
+
+        var rooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        var fromGroup = rooms.FirstOrDefault(r => r.Members.Any(m => m.UserId == studentId))
+            ?? throw new BusinessRuleException("STUDENT_NOT_IN_GROUP", "Bạn hiện không ở trong bất kỳ nhóm nào của môn này.");
+
+        var targetGroup = rooms.FirstOrDefault(r => r.Id == request.TargetGroupId)
+            ?? throw new NotFoundException($"Không tìm thấy nhóm đích '{request.TargetGroupId}'.");
+
+        if (fromGroup.Id == targetGroup.Id)
+        {
+            throw new BusinessRuleException("SAME_GROUP", "Nhóm đích trùng với nhóm hiện tại của bạn.");
+        }
+
+        // BR-37 Validation check at request time
+        if (!effectiveSwapId.HasValue)
+        {
+            if (targetGroup.Members.Count >= space.MaxMembersPerGroup)
+            {
+                throw new BusinessRuleException("TARGET_GROUP_FULL",
+                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Theo BR-37, bạn cần chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
+            }
+
+            if (fromGroup.Members.Count - 1 < space.GroupThreshold)
+            {
+                throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
+                    $"Nhóm hiện tại của bạn ({fromGroup.RoomCode ?? fromGroup.Name}) chỉ có {fromGroup.Members.Count} SV. Nếu bạn chuyển đi sẽ còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Theo BR-37, bạn bắt buộc phải chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
+            }
+        }
+        else
+        {
+            if (!targetGroup.Members.Any(m => m.UserId == effectiveSwapId.Value))
+            {
+                throw new BusinessRuleException("SWAP_STUDENT_NOT_IN_TARGET_GROUP",
+                    $"Sinh viên {swapEnrollment?.FullName ?? "đối ứng"} không thuộc nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}).");
+            }
+        }
+
+        var entity = new GroupTransferRequest
+        {
+            Id = Guid.NewGuid(),
+            SpaceId = spaceId,
+            RequesterStudentId = studentId,
+            RequesterStudentName = studentEnrollment.FullName,
+            RequesterStudentCode = studentEnrollment.StudentCode,
+            FromGroupId = fromGroup.Id,
+            FromGroupCode = fromGroup.RoomCode ?? fromGroup.Name,
+            TargetGroupId = targetGroup.Id,
+            TargetGroupCode = targetGroup.RoomCode ?? targetGroup.Name,
+            SwapWithStudentId = effectiveSwapId,
+            SwapWithStudentName = swapEnrollment?.FullName,
+            SwapWithStudentCode = swapEnrollment?.StudentCode,
+            Reason = request.Reason.Trim(),
+            Status = TransferRequestStatus.Pending,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        spaceRepo.AddTransferRequest(entity);
+        await uow.SaveChangesAsync(ct);
+
+        logger.LogInformation("Student {StudentCode} submitted transfer request {ReqId} in space {SpaceId}",
+            studentEnrollment.StudentCode, entity.Id, spaceId);
+
+        return MapTransferRequestResponse(entity);
+    }
+
+    public async Task<IReadOnlyList<TransferRequestResponse>> GetTransferRequestsAsync(
+        Guid spaceId, TransferRequestStatus? status, CancellationToken ct = default)
+    {
+        var list = await spaceRepo.GetTransferRequestsBySpaceAsync(spaceId, status, ct);
+        return list.Select(MapTransferRequestResponse).ToList();
+    }
+
+    public async Task<IReadOnlyList<TransferRequestResponse>> GetMyTransferRequestsAsync(
+        Guid studentId, CancellationToken ct = default)
+    {
+        var list = await spaceRepo.GetTransferRequestsByStudentAsync(studentId, ct);
+        return list.Select(MapTransferRequestResponse).ToList();
+    }
+
+    public async Task<TransferRequestResponse> CancelTransferRequestAsync(
+        Guid requestId, Guid studentId, CancellationToken ct = default)
+    {
+        var transferReq = await spaceRepo.GetTransferRequestByIdAsync(requestId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy yêu cầu chuyển nhóm '{requestId}'.");
+
+        if (transferReq.RequesterStudentId != studentId)
+        {
+            throw new BusinessRuleException("NOT_REQUEST_OWNER", "Bạn không có quyền hủy yêu cầu chuyển nhóm của sinh viên khác.");
+        }
+
+        if (transferReq.Status != TransferRequestStatus.Pending)
+        {
+            throw new BusinessRuleException("REQUEST_NOT_PENDING",
+                $"Chỉ có thể hủy yêu cầu đang ở trạng thái Chờ duyệt (Pending). Trạng thái hiện tại: {transferReq.Status}.");
+        }
+
+        transferReq.Status = TransferRequestStatus.Cancelled;
+        transferReq.DecidedAt = DateTime.UtcNow;
+        transferReq.DecisionReason = "Sinh viên đã chủ động hủy yêu cầu chuyển nhóm.";
+
+        await uow.SaveChangesAsync(ct);
+        logger.LogInformation("Student {StudentId} cancelled transfer request {ReqId}", studentId, requestId);
+
+        return MapTransferRequestResponse(transferReq);
+    }
+
+    public async Task<TransferRequestResponse> DecideTransferRequestAsync(
+        Guid spaceId, Guid requestId, DecideTransferRequest request, Guid moderatorId, CancellationToken ct = default)
+    {
+        var transferReq = await spaceRepo.GetTransferRequestByIdAsync(requestId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy yêu cầu chuyển nhóm '{requestId}'.");
+
+        if (transferReq.SpaceId != spaceId)
+        {
+            throw new BusinessRuleException("SPACE_MISMATCH", "Yêu cầu chuyển nhóm không thuộc Không gian học phần này.");
+        }
+
+        if (transferReq.Status != TransferRequestStatus.Pending)
+        {
+            throw new BusinessRuleException("REQUEST_ALREADY_DECIDED",
+                $"Yêu cầu chuyển nhóm này đã được xử lý trước đó với trạng thái: {transferReq.Status}.");
+        }
+
+        if (!request.IsApproved)
+        {
+            transferReq.Status = TransferRequestStatus.Rejected;
+            transferReq.DecidedAt = DateTime.UtcNow;
+            transferReq.DecidedByModeratorId = moderatorId;
+            transferReq.DecisionReason = request.DecisionReason?.Trim() ?? "Moderator từ chối yêu cầu chuyển nhóm.";
+
+            await uow.SaveChangesAsync(ct);
+            logger.LogInformation("Moderator {ModId} REJECTED transfer request {ReqId}: {Reason}",
+                moderatorId, requestId, transferReq.DecisionReason);
+
+            return MapTransferRequestResponse(transferReq);
+        }
+
+        // Approved: Execute transfer
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy Không gian môn học '{spaceId}'.");
+
+        var rooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        var fromGroup = rooms.FirstOrDefault(r => r.Id == transferReq.FromGroupId)
+            ?? throw new NotFoundException("Nhóm nguồn của sinh viên không còn tồn tại.");
+
+        var targetGroup = rooms.FirstOrDefault(r => r.Id == transferReq.TargetGroupId)
+            ?? throw new NotFoundException("Nhóm đích không còn tồn tại.");
+
+        var memberToMove = fromGroup.Members.FirstOrDefault(m => m.UserId == transferReq.RequesterStudentId);
+        if (memberToMove == null)
+        {
+            throw new BusinessRuleException("STUDENT_NOT_IN_FROM_GROUP",
+                "Sinh viên hiện không còn ở trong nhóm nguồn ban đầu.");
+        }
+
+        // Re-validate BR-37 at approval time
+        if (!transferReq.SwapWithStudentId.HasValue)
+        {
+            if (targetGroup.Members.Count >= space.MaxMembersPerGroup)
+            {
+                throw new BusinessRuleException("TARGET_GROUP_FULL",
+                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) hiện đã đủ {space.MaxMembersPerGroup} SV. Không thể duyệt chuyển 1 chiều. Hãy yêu cầu SV chọn đổi chéo (Swap).");
+            }
+
+            if (fromGroup.Members.Count - 1 < space.GroupThreshold)
+            {
+                throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
+                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ còn {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Theo BR-37, bắt buộc phải đổi chéo (Swap).");
+            }
+        }
+        else
+        {
+            if (!targetGroup.Members.Any(m => m.UserId == transferReq.SwapWithStudentId.Value))
+            {
+                throw new BusinessRuleException("SWAP_STUDENT_NOT_IN_TARGET_GROUP",
+                    $"Sinh viên đổi chéo ({transferReq.SwapWithStudentName}) không còn ở trong nhóm đích.");
+            }
+        }
+
+        // Apply member swaps
+        fromGroup.Members.Remove(memberToMove);
+
+        GroupMember? swapMemberToMove = null;
+        if (transferReq.SwapWithStudentId.HasValue)
+        {
+            swapMemberToMove = targetGroup.Members.First(m => m.UserId == transferReq.SwapWithStudentId.Value);
+            targetGroup.Members.Remove(swapMemberToMove);
+
+            fromGroup.Members.Add(new GroupMember
+            {
+                GroupId = fromGroup.Id,
+                UserId = swapMemberToMove.UserId,
+                FullName = swapMemberToMove.FullName,
+                Email = swapMemberToMove.Email,
+                Role = MemberRole.Member,
+                JoinedAt = DateTime.UtcNow
+            });
+        }
+
+        targetGroup.Members.Add(new GroupMember
+        {
+            GroupId = targetGroup.Id,
+            UserId = memberToMove.UserId,
+            FullName = memberToMove.FullName,
+            Email = memberToMove.Email,
+            Role = MemberRole.Member,
+            JoinedAt = DateTime.UtcNow
+        });
+
+        fromGroup.UpdatedAt = DateTime.UtcNow;
+        targetGroup.UpdatedAt = DateTime.UtcNow;
+
+        // Leader promotion in fromGroup
+        if (fromGroup.LeaderId == transferReq.RequesterStudentId)
+        {
+            var nextLeader = fromGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
+            if (nextLeader != null)
+            {
+                fromGroup.LeaderId = nextLeader.UserId;
+                nextLeader.Role = MemberRole.Leader;
+            }
+            else
+            {
+                fromGroup.LeaderId = null;
+            }
+        }
+
+        // Leader promotion in targetGroup
+        if (transferReq.SwapWithStudentId.HasValue && targetGroup.LeaderId == transferReq.SwapWithStudentId.Value)
+        {
+            var nextLeader = targetGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
+            if (nextLeader != null)
+            {
+                targetGroup.LeaderId = nextLeader.UserId;
+                nextLeader.Role = MemberRole.Leader;
+            }
+            else
+            {
+                targetGroup.LeaderId = null;
+            }
+        }
+
+        transferReq.Status = TransferRequestStatus.Approved;
+        transferReq.DecidedAt = DateTime.UtcNow;
+        transferReq.DecidedByModeratorId = moderatorId;
+        transferReq.DecisionReason = request.DecisionReason?.Trim() ?? "Moderator đã duyệt yêu cầu chuyển nhóm (BR-36).";
+
+        await uow.SaveChangesAsync(ct);
+        logger.LogInformation("Moderator {ModId} APPROVED transfer request {ReqId}: Student {StudentCode} moved to Group {TargetGroup}",
+            moderatorId, requestId, transferReq.RequesterStudentCode, targetGroup.RoomCode);
+
+        // Publish Event
+        await eventPublisher.PublishAsync(new MemberTransferredPostLock(
+            spaceId,
+            memberToMove.UserId,
+            memberToMove.FullName,
+            memberToMove.Email,
+            fromGroup.Id,
+            fromGroup.RoomCode ?? fromGroup.Name,
+            targetGroup.Id,
+            targetGroup.RoomCode ?? targetGroup.Name,
+            transferReq.SwapWithStudentId,
+            swapMemberToMove?.FullName,
+            transferReq.Reason,
+            DateTime.UtcNow), ct);
+
+        return MapTransferRequestResponse(transferReq);
+    }
+
+    public async Task<SpaceRosterResponse> GetSpaceRosterAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException($"Không tìm thấy Không gian môn học '{spaceId}'.");
+
+        var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
+        var enrollmentByStudentId = enrollments.ToDictionary(e => e.StudentId, e => e);
+
+        var rooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+
+        var allMemberUserIds = rooms.SelectMany(r => r.Members.Select(m => m.UserId)).Distinct().ToList();
+        var profileMap = new Dictionary<Guid, UserProfileDto>();
+        if (allMemberUserIds.Count > 0)
+        {
+            try
+            {
+                var profiles = await userClient.GetProfilesAsync(allMemberUserIds, ct);
+                profileMap = profiles.ToDictionary(p => p.UserId, p => p);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not fetch user profiles for space roster");
+            }
+        }
+
+        var groupItems = new List<SpaceRosterGroupItem>();
+        foreach (var r in rooms)
+        {
+            var members = new List<SpaceRosterMemberItem>();
+            foreach (var m in r.Members.OrderBy(x => x.Role == MemberRole.Leader ? 0 : 1).ThenBy(x => x.JoinedAt))
+            {
+                enrollmentByStudentId.TryGetValue(m.UserId, out var enr);
+                profileMap.TryGetValue(m.UserId, out var prof);
+
+                members.Add(new SpaceRosterMemberItem(
+                    m.UserId,
+                    enr?.StudentCode ?? "",
+                    m.FullName,
+                    m.Email,
+                    enr?.Major ?? prof?.Major ?? "",
+                    enr?.Cohort ?? "",
+                    m.Role == MemberRole.Leader ? "Leader" : "Member",
+                    prof?.TechScore ?? 0,
+                    prof?.ManagementScore ?? 0,
+                    prof?.GraphicDesignScore ?? 0,
+                    prof?.MarketingScore ?? 0,
+                    prof?.SaleScore ?? 0,
+                    m.JoinedAt));
+            }
+
+            var leaderMember = members.FirstOrDefault(m => m.Role == "Leader");
+
+            groupItems.Add(new SpaceRosterGroupItem(
+                r.Id,
+                r.RoomCode ?? r.Name,
+                r.Name,
+                r.Status,
+                r.Members.Count,
+                r.MaxMembers,
+                r.LeaderId,
+                leaderMember?.FullName,
+                r.ProjectDomain,
+                members));
+        }
+
+        var lockedGroups = groupItems.Count(g => g.Status == GroupStatus.Locked);
+
+        return new SpaceRosterResponse(
+            space.Id,
+            space.SemesterCode,
+            space.SubjectCode,
+            space.Name,
+            space.Status,
+            enrollments.Count,
+            groupItems.Count,
+            lockedGroups,
+            groupItems);
+    }
+
+    public async Task<CsvExportResult> ExportSpaceRosterCsvAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var roster = await GetSpaceRosterAsync(spaceId, ct);
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("STT,Mã phòng,Tên phòng/nhóm,Trạng thái phòng,MSSV,Họ và tên,Email trường,Chuyên ngành,Khóa,Vai trò,Tech (0-100),Management (0-100),Design (0-100),Marketing (0-100),Sale (0-100),Ngày vào nhóm,Đề tài");
+
+        int stt = 1;
+        foreach (var g in roster.Groups)
+        {
+            if (g.Members.Count == 0)
+            {
+                sb.AppendLine($"{stt++},{EscapeCsv(g.RoomCode)},{EscapeCsv(g.GroupName)},{g.Status},,,(Phòng trống),,,,0,0,0,0,0,,");
+                continue;
+            }
+
+            foreach (var m in g.Members)
+            {
+                sb.AppendLine($"{stt++},{EscapeCsv(g.RoomCode)},{EscapeCsv(g.GroupName)},{g.Status},{EscapeCsv(m.StudentCode)},{EscapeCsv(m.FullName)},{EscapeCsv(m.Email)},{EscapeCsv(m.Major)},{EscapeCsv(m.Cohort)},{m.Role},{m.TechScore},{m.ManagementScore},{m.GraphicDesignScore},{m.MarketingScore},{m.SaleScore},{m.JoinedAt:yyyy-MM-dd HH:mm},{EscapeCsv(g.ProjectTitle ?? "")}");
+            }
+        }
+
+        var utf8WithBom = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        var bodyBytes = utf8WithBom.GetBytes(sb.ToString());
+        var preamble = utf8WithBom.GetPreamble();
+        var content = new byte[preamble.Length + bodyBytes.Length];
+        Buffer.BlockCopy(preamble, 0, content, 0, preamble.Length);
+        Buffer.BlockCopy(bodyBytes, 0, content, preamble.Length, bodyBytes.Length);
+
+        var fileName = $"roster-{roster.SemesterCode}-{roster.SubjectCode}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+        return new CsvExportResult(content, "text/csv; charset=utf-8", fileName);
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
+    }
+
+    private static TransferRequestResponse MapTransferRequestResponse(GroupTransferRequest t) =>
+        new(
+            t.Id,
+            t.SpaceId,
+            t.RequesterStudentId,
+            t.RequesterStudentName,
+            t.RequesterStudentCode,
+            t.FromGroupId,
+            t.FromGroupCode,
+            t.TargetGroupId,
+            t.TargetGroupCode,
+            t.SwapWithStudentId,
+            t.SwapWithStudentName,
+            t.SwapWithStudentCode,
+            t.Reason,
+            t.Status,
+            t.CreatedAt,
+            t.DecidedAt,
+            t.DecidedByModeratorId,
+            t.DecisionReason);
 }
+

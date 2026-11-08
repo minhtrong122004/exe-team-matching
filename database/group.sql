@@ -560,3 +560,96 @@ GO
 
 
 
+
+-- ── Giai đoạn 6: Bảng GroupTransferRequests (BR-35, BR-36, BR-37) ─────────
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE TABLE [GroupTransferRequests] (
+        [Id] uniqueidentifier NOT NULL,
+        [SpaceId] uniqueidentifier NOT NULL,
+        [RequesterStudentId] uniqueidentifier NOT NULL,
+        [RequesterStudentName] nvarchar(200) NOT NULL,
+        [RequesterStudentCode] nvarchar(50) NOT NULL,
+        [FromGroupId] uniqueidentifier NOT NULL,
+        [FromGroupCode] nvarchar(50) NOT NULL,
+        [TargetGroupId] uniqueidentifier NOT NULL,
+        [TargetGroupCode] nvarchar(50) NOT NULL,
+        [SwapWithStudentId] uniqueidentifier NULL,
+        [SwapWithStudentName] nvarchar(200) NULL,
+        [SwapWithStudentCode] nvarchar(50) NULL,
+        [Reason] nvarchar(1000) NOT NULL,
+        [Status] nvarchar(30) NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        [DecidedAt] datetime2 NULL,
+        [DecidedByModeratorId] uniqueidentifier NULL,
+        [DecisionReason] nvarchar(1000) NULL,
+        CONSTRAINT [PK_GroupTransferRequests] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_GroupTransferRequests_CourseSpaces_SpaceId] FOREIGN KEY ([SpaceId]) REFERENCES [CourseSpaces] ([Id]) ON DELETE CASCADE,
+        CONSTRAINT [FK_GroupTransferRequests_Groups_FromGroupId] FOREIGN KEY ([FromGroupId]) REFERENCES [Groups] ([Id]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_GroupTransferRequests_Groups_TargetGroupId] FOREIGN KEY ([TargetGroupId]) REFERENCES [Groups] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_FromGroupId] ON [GroupTransferRequests] ([FromGroupId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_RequesterStudentId] ON [GroupTransferRequests] ([RequesterStudentId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_SpaceId] ON [GroupTransferRequests] ([SpaceId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_SpaceId_RequesterStudentId_Status] ON [GroupTransferRequests] ([SpaceId], [RequesterStudentId], [Status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_Status] ON [GroupTransferRequests] ([Status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    CREATE INDEX [IX_GroupTransferRequests_TargetGroupId] ON [GroupTransferRequests] ([TargetGroupId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108134037_AddGroupTransferRequests'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261108134037_AddGroupTransferRequests', N'10.0.12');
+END;
+
+COMMIT;
+GO

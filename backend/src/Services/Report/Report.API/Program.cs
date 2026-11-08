@@ -18,7 +18,9 @@ builder.Services.AddHostedService<UserProfileUpdatedConsumer>();
 builder.Services.AddHostedService<GroupCreatedConsumer>();
 builder.Services.AddHostedService<MemberJoinedConsumer>();
 builder.Services.AddHostedService<MemberLeftConsumer>();
+builder.Services.AddHostedService<MemberTransferredPostLockConsumer>();
 builder.Services.AddHostedService<ReportSnapshotWorker>();
+
 
 var app = builder.Build();
 

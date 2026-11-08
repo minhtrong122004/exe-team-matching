@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import { groupsApi } from '../api/groups';
+import { spacesApi } from '../api/spaces';
 import { useAuth } from '../contexts/AuthContext';
+import type { TransferRequestResponse, RoomSummaryResponse } from '../types/space';
 import type {
   GroupResponse,
+  GroupMemberResponse,
   GroupSummaryResponse,
   CreateGroupRequest,
   UpdateGroupRequest,
@@ -53,6 +56,7 @@ import {
   Zap,
   Lock,
   Unlock,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 const MAJOR_LIST: { value: Major; label: string }[] = [
@@ -1362,10 +1366,51 @@ export const MyGroupPage: React.FC = () => {
   const [candidates, setCandidates] = useState<RankedCandidateResponse[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'members' | 'slots' | 'requests' | 'candidates'>('members');
+  const [activeTab, setActiveTab] = useState<'members' | 'slots' | 'requests' | 'candidates' | 'transfers'>('members');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Phase 6: Post-lock transfer requests state (BR-36 & BR-37)
+  const [myTransfers, setMyTransfers] = useState<TransferRequestResponse[]>([]);
+  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [transferTargetGroupId, setTransferTargetGroupId] = useState<string>('');
+  const [transferIsSwap, setTransferIsSwap] = useState<boolean>(false);
+  const [transferSwapStudentId, setTransferSwapStudentId] = useState<string>('');
+  const [transferReason, setTransferReason] = useState<string>('');
+  const [submittingTransfer, setSubmittingTransfer] = useState<boolean>(false);
+  const [availableRooms, setAvailableRooms] = useState<RoomSummaryResponse[]>([]);
+  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState<boolean>(false);
+  const [targetGroupMembers, setTargetGroupMembers] = useState<GroupMemberResponse[]>([]);
+  const [loadingTargetMembers, setLoadingTargetMembers] = useState<boolean>(false);
+  const [cancellingTransferId, setCancellingTransferId] = useState<string | null>(null);
+
+  const pendingTransfer = useMemo(
+    () => myTransfers.find((t) => t.status === 'Pending') || null,
+    [myTransfers]
+  );
+
+  const approvedTransfer = useMemo(
+    () => myTransfers.find((t) => t.status === 'Approved') || null,
+    [myTransfers]
+  );
+
+  const selectedTargetRoom = useMemo(
+    () => availableRooms.find((r) => r.id === transferTargetGroupId) || null,
+    [availableRooms, transferTargetGroupId]
+  );
+
+  const isTargetFull = useMemo(
+    () => (selectedTargetRoom ? selectedTargetRoom.memberCount >= selectedTargetRoom.maxMembers : false),
+    [selectedTargetRoom]
+  );
+
+  const isSourceAtThreshold = useMemo(
+    () => (group?.members ? group.members.length <= (group.groupThreshold || 3) : false),
+    [group]
+  );
+
+  const isSwapMandatory = isTargetFull || isSourceAtThreshold;
 
   // Phase 4: Leader election & 24h timer (BR-18, BR-19)
   const [currentElection, setCurrentElection] = useState<LeaderElectionResponse | null>(null);
@@ -1409,12 +1454,125 @@ export const MyGroupPage: React.FC = () => {
 
   const isLeader = Boolean(group && user && group.leaderId === user.id);
 
+  const loadMyTransfers = useCallback(async () => {
+    try {
+      const res = await spacesApi.getMyTransferRequests();
+      setMyTransfers(res);
+    } catch {
+      setMyTransfers([]);
+    }
+  }, []);
+
+  const openTransferModal = async () => {
+    if (!group?.spaceId) return;
+    setShowTransferModal(true);
+    setLoadingAvailableRooms(true);
+    setTransferTargetGroupId('');
+    setTransferSwapStudentId('');
+    setTransferReason('');
+    setTargetGroupMembers([]);
+
+    const atThreshold = (group.members?.length || 0) <= (group.groupThreshold || 3);
+    setTransferIsSwap(atThreshold);
+
+    try {
+      const roomsRes = await spacesApi.getSpaceRooms(group.spaceId);
+      setAvailableRooms(roomsRes.filter((r) => r.id !== group.id));
+    } catch {
+      setAvailableRooms([]);
+    } finally {
+      setLoadingAvailableRooms(false);
+    }
+  };
+
+  const handleTargetGroupChange = async (targetId: string) => {
+    setTransferTargetGroupId(targetId);
+    setTransferSwapStudentId('');
+    if (!targetId) {
+      setTargetGroupMembers([]);
+      return;
+    }
+
+    const targetRoom = availableRooms.find((r) => r.id === targetId);
+    const targetFull = targetRoom ? targetRoom.memberCount >= targetRoom.maxMembers : false;
+    const sourceThreshold = (group?.members?.length || 0) <= (group?.groupThreshold || 3);
+
+    if (targetFull || sourceThreshold) {
+      setTransferIsSwap(true);
+    }
+
+    setLoadingTargetMembers(true);
+    try {
+      const detail = await groupsApi.getGroupById(targetId);
+      setTargetGroupMembers(detail.members || []);
+    } catch {
+      setTargetGroupMembers([]);
+    } finally {
+      setLoadingTargetMembers(false);
+    }
+  };
+
+  const handleCreateTransferRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group?.spaceId) return;
+    if (!transferTargetGroupId) {
+      setError('Vui lòng chọn nhóm đích muốn chuyển đến.');
+      return;
+    }
+    if (transferIsSwap && !transferSwapStudentId) {
+      setError('Vui lòng chọn sinh viên trong nhóm đích để đổi chéo.');
+      return;
+    }
+    if (!transferReason.trim()) {
+      setError('Vui lòng nêu rõ lý do xin chuyển nhóm (bắt buộc theo BR-36).');
+      return;
+    }
+    try {
+      setSubmittingTransfer(true);
+      setError(null);
+      await spacesApi.createTransferRequest(group.spaceId, {
+        targetGroupId: transferTargetGroupId,
+        swapStudentId: transferIsSwap ? transferSwapStudentId : null,
+        reason: transferReason.trim(),
+      });
+      setFeedback('Đã gửi đơn xin chuyển nhóm thành công (BR-36)! Trưởng phòng (Moderator) sẽ xem xét và phê duyệt.');
+      setShowTransferModal(false);
+      setTransferTargetGroupId('');
+      setTransferSwapStudentId('');
+      setTransferReason('');
+      setTransferIsSwap(false);
+      setTargetGroupMembers([]);
+      await loadMyTransfers();
+      setActiveTab('transfers');
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err?.response?.data?.title || 'Không thể gửi đơn xin chuyển nhóm.');
+    } finally {
+      setSubmittingTransfer(false);
+    }
+  };
+
+  const handleCancelTransferRequest = async (requestId: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy đơn xin chuyển nhóm này?')) return;
+    setCancellingTransferId(requestId);
+    setError(null);
+    try {
+      await spacesApi.cancelTransferRequest(requestId);
+      setFeedback('Đã hủy yêu cầu xin chuyển nhóm thành công! Bạn có thể tạo đơn mới nếu có nhu cầu.');
+      await loadMyTransfers();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể hủy yêu cầu chuyển nhóm.');
+    } finally {
+      setCancellingTransferId(null);
+    }
+  };
+
   const loadMyGroupData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const myGrp = await groupsApi.getMyGroup();
       setGroup(myGrp);
+      void loadMyTransfers();
       if (!myGrp) {
         return;
       }
@@ -1615,6 +1773,10 @@ export const MyGroupPage: React.FC = () => {
 
   const handleLeaveGroup = async () => {
     if (!group) return;
+    if (group.status === 'Locked') {
+      setError('Nhóm đã Chốt sổ học kỳ (Locked / BR-33). Theo quy tắc BR-37, bạn không thể tự ý rời nhóm. Vui lòng tạo đơn xin chuyển nhóm (BR-36) để Trưởng phòng phê duyệt.');
+      return;
+    }
     let msg = 'Bạn có chắc chắn muốn rời khỏi nhóm này?';
     if (isLeader) {
       const otherMembers = (group.members || [])
@@ -1638,7 +1800,12 @@ export const MyGroupPage: React.FC = () => {
   };
 
   const handleDisbandGroup = async () => {
-    if (!group || !window.confirm(`Giải tán nhóm "${group.name}"? Hành động này không thể hoàn tác.`))
+    if (!group) return;
+    if (group.status === 'Locked') {
+      setError('Nhóm đã Chốt sổ học kỳ (Locked / BR-33). Không thể giải tán nhóm.');
+      return;
+    }
+    if (!window.confirm(`Giải tán nhóm "${group.name}"? Hành động này không thể hoàn tác.`))
       return;
     try {
       await groupsApi.disbandGroup(group.id);
@@ -1882,14 +2049,38 @@ export const MyGroupPage: React.FC = () => {
                 <Vote size={15} /> Bầu Leader mới (BR-19)
               </button>
             )}
-            <button
-              className="btn btn-secondary btn-sm"
-              style={{ color: '#dc2626' }}
-              onClick={() => void handleLeaveGroup()}
-              title={isLeader ? 'Leader rời nhóm sẽ tự động chuyển giao cho thành viên sớm nhất kế tiếp (BR-20)' : 'Rời nhóm'}
-            >
-              <LogOut size={15} /> Rời nhóm
-            </button>
+            {group.status !== 'Locked' ? (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#dc2626' }}
+                onClick={() => void handleLeaveGroup()}
+                title={isLeader ? 'Leader rời nhóm sẽ tự động chuyển giao cho thành viên sớm nhất kế tiếp (BR-20)' : 'Rời nhóm'}
+              >
+                <LogOut size={15} /> Rời nhóm
+              </button>
+            ) : pendingTransfer ? (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#d97706', borderColor: '#fcd34d', gap: '0.35rem' }}
+                onClick={() => setActiveTab('transfers')}
+                title="Bạn đang có đơn xin chuyển nhóm đang chờ duyệt (BR-36)"
+              >
+                <Clock size={15} /> Đang có đơn chờ duyệt
+              </button>
+            ) : approvedTransfer ? (
+              <span className="badge badge-success" style={{ padding: '0.45rem 0.65rem' }}>
+                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
+              </span>
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
+                onClick={() => void openTransferModal()}
+                title="Tạo đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng duyệt (BR-36)"
+              >
+                <ArrowLeftRight size={15} /> Xin chuyển nhóm (BR-36)
+              </button>
+            )}
           </div>
         </div>
 
@@ -2163,6 +2354,73 @@ export const MyGroupPage: React.FC = () => {
         </div>
       )}
 
+      {/* Phase 6: Post-Lock Alert Banner (BR-33 / BR-36) */}
+      {group.status === 'Locked' && (
+        <div
+          style={{
+            padding: '0.85rem 1.25rem',
+            background: 'rgba(239, 68, 68, 0.06)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 'var(--radius-md, 10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Lock size={18} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.9rem' }}>
+                Nhóm đã Khóa cứng sau Chốt sổ học kỳ (Locked / BR-33)
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.15rem' }}>
+                Đội ngũ chính thức đã được chốt sổ. Thành viên không thể tự rời nhóm. Nếu cần thay đổi, hãy tạo đơn gửi Trưởng phòng xét duyệt (BR-36).
+              </div>
+            </div>
+          </div>
+          {pendingTransfer ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setActiveTab('transfers')}
+              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700, color: '#d97706', borderColor: '#fcd34d' }}
+            >
+              <Clock size={14} /> Xem đơn đang chờ duyệt
+            </button>
+          ) : approvedTransfer ? (
+            <div style={{ flexShrink: 0, color: '#059669', fontWeight: 700, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <CheckCircle2 size={16} /> Đã hoàn tất điều chuyển
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => void openTransferModal()}
+              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700 }}
+            >
+              <ArrowLeftRight size={14} /> Xin chuyển nhóm / Đổi chéo
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Sub-navigation Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
         <button
@@ -2191,6 +2449,28 @@ export const MyGroupPage: React.FC = () => {
             <Sparkles size={15} /> Gợi ý Ứng viên phù hợp (gRPC)
           </button>
         )}
+        <button
+          className={activeTab === 'transfers' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('transfers')}
+          style={{ gap: '0.35rem' }}
+        >
+          <ArrowLeftRight size={15} /> Đơn chuyển nhóm (BR-36)
+          {myTransfers.length > 0 && (
+            <span
+              style={{
+                padding: '0.05rem 0.45rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-mono)',
+                background: 'rgba(255, 255, 255, 0.25)',
+                fontVariantNumeric: 'tabular-nums',
+                fontWeight: 700,
+              }}
+            >
+              {myTransfers.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* TAB A: MEMBERS */}
@@ -2687,6 +2967,119 @@ export const MyGroupPage: React.FC = () => {
         </div>
       )}
 
+      {/* TAB E: TRANSFER REQUESTS (BR-36) */}
+      {activeTab === 'transfers' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                Đơn xin chuyển nhóm Hậu Chốt sổ của tôi (BR-36)
+              </h3>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Theo dõi tiến độ xét duyệt đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng (Moderator).
+              </p>
+            </div>
+            {pendingTransfer ? (
+              <span className="badge badge-warning" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Clock size={14} /> Đang có đơn chờ xét duyệt
+              </span>
+            ) : approvedTransfer ? (
+              <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => void openTransferModal()}
+                style={{ gap: '0.35rem', fontWeight: 700 }}
+              >
+                <ArrowLeftRight size={14} /> Tạo đơn mới (BR-36)
+              </button>
+            )}
+          </div>
+
+          {myTransfers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.65rem auto' }}>
+                <ArrowLeftRight size={20} />
+              </div>
+              <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                Bạn chưa gửi đơn xin chuyển nhóm nào
+              </div>
+              <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                Nếu có nhu cầu chuyển sang nhóm khác hoặc đổi chéo với thành viên nhóm bạn, hãy bấm "Tạo đơn mới".
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {myTransfers.map((t) => (
+                <div
+                  key={t.id}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: 8,
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-light)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--fpt-blue)' }}>{t.fromGroupCode}</span>
+                      <span>→</span>
+                      <span style={{ fontWeight: 700, color: 'var(--fpt-orange)' }}>{t.targetGroupCode}</span>
+                      {t.swapStudentId && (
+                        <span className="badge" style={{ fontSize: '0.7rem', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+                          Đổi chéo: {t.swapStudentName} ({t.swapStudentCode})
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {t.status === 'Pending' && (
+                        <>
+                          <span className="badge badge-warning">Đang chờ duyệt</span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: '#dc2626', borderColor: '#fca5a5', padding: '0.2rem 0.55rem', fontSize: '0.75rem', gap: '0.25rem' }}
+                            onClick={() => void handleCancelTransferRequest(t.id)}
+                            disabled={cancellingTransferId === t.id}
+                            title="Hủy đơn xin chuyển nhóm này"
+                          >
+                            <X size={13} /> {cancellingTransferId === t.id ? 'Đang hủy...' : 'Hủy đơn'}
+                          </button>
+                        </>
+                      )}
+                      {t.status === 'Approved' && <span className="badge badge-success">Đã chấp thuận</span>}
+                      {t.status === 'Rejected' && <span className="badge badge-danger">Đã từ chối</span>}
+                      {t.status === 'Cancelled' && <span className="badge badge-secondary">Đã hủy</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.825rem', color: 'var(--text-main)' }}>
+                    <strong>Lý do của bạn:</strong> {t.reason}
+                  </div>
+
+                  {t.decisionReason && (
+                    <div style={{ fontSize: '0.8rem', color: t.status === 'Approved' ? '#059669' : '#dc2626', background: 'var(--bg-card)', padding: '0.45rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-light)' }}>
+                      <strong>Phản hồi từ Trưởng phòng:</strong> {t.decisionReason}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    Gửi lúc: {new Date(t.requestedAt).toLocaleString('vi-VN')}
+                    {t.decidedAt && ` • Phản hồi lúc: ${new Date(t.decidedAt).toLocaleString('vi-VN')}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal gửi lời mời */}
       {invitingCandidate && (
         <div
@@ -3027,6 +3420,190 @@ export const MyGroupPage: React.FC = () => {
                   disabled={isSubmittingKick || kickReason.trim().length < 10}
                 >
                   {isSubmittingKick ? 'Đang gửi thông báo...' : 'Xác nhận mời ra khỏi nhóm'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 6: Modal Tạo đơn xin chuyển nhóm (BR-36) */}
+      {showTransferModal && (
+        <div className="modal-overlay" onClick={() => setShowTransferModal(false)}>
+          <div
+            className="modal-content"
+            style={{ maxWidth: 500, width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(242, 111, 33, 0.1)', color: 'var(--fpt-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ArrowLeftRight size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+                  Tạo đơn xin chuyển nhóm (BR-36)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTransferModal(false)}
+                style={{ color: 'var(--text-muted)', padding: '0.25rem' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTransferRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  1. Chọn Nhóm đích muốn chuyển đến <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                {loadingAvailableRooms ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Đang tải danh sách nhóm trong không gian...</div>
+                ) : (
+                  <select
+                    className="form-control"
+                    value={transferTargetGroupId}
+                    onChange={(e) => handleTargetGroupChange(e.target.value)}
+                    required
+                    style={{ fontSize: '0.85rem' }}
+                  >
+                    <option value="">-- Chọn nhóm đích --</option>
+                    {availableRooms.map((r) => {
+                      const isFull = r.memberCount >= r.maxMembers;
+                      return (
+                        <option key={r.id} value={r.id}>
+                          [{r.roomCode || r.name}] {r.name} ({r.memberCount}/{r.maxMembers} SV){isFull ? ' - ĐÃ ĐỦ (Cần đổi chéo)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+              </div>
+
+              {/* Thông tin nhóm đích & Cảnh báo BR-37 */}
+              {selectedTargetRoom && (
+                <div
+                  style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '8px',
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-light)',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Sĩ số nhóm đích:</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: isTargetFull ? '#ef4444' : 'var(--fpt-blue)' }}>
+                      {selectedTargetRoom.memberCount}/{selectedTargetRoom.maxMembers} SV {isTargetFull ? '(Đã đủ sĩ số)' : '(Còn chỗ)'}
+                    </span>
+                  </div>
+                  {isTargetFull && (
+                    <div style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                      <span>Nhóm đích đã đạt sĩ số tối đa ({selectedTargetRoom.maxMembers} SV). Hệ thống tự động kích hoạt Đổi chéo 2 chiều (Swap) theo BR-37.</span>
+                    </div>
+                  )}
+                  {isSourceAtThreshold && (
+                    <div style={{ color: '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                      <span>Nhóm hiện tại của bạn chỉ có {group?.members.length} SV (ngưỡng tối thiểu). Bắt buộc phải Đổi chéo 2 chiều (Swap) để bảo toàn sĩ số nhóm theo BR-37.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Swap Checkbox & Swap Student */}
+              <div
+                style={{
+                  padding: '0.75rem 0.85rem',
+                  borderRadius: '8px',
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-light)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.65rem',
+                }}
+              >
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isSwapMandatory ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={transferIsSwap}
+                    disabled={isSwapMandatory}
+                    onChange={(e) => {
+                      if (!isSwapMandatory) {
+                        setTransferIsSwap(e.target.checked);
+                        setTransferSwapStudentId('');
+                      }
+                    }}
+                    style={{ width: 16, height: 16, accentColor: 'var(--fpt-orange)' }}
+                  />
+                  <span>Đổi chéo 2 chiều (Swap với 1 bạn ở nhóm đích)</span>
+                </label>
+
+                {transferIsSwap && (
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                      Chọn sinh viên nhóm đích để đổi chéo ngược lại <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    {loadingTargetMembers ? (
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.35rem 0' }}>Đang nạp danh sách thành viên nhóm đích...</div>
+                    ) : (
+                      <select
+                        className="form-control"
+                        value={transferSwapStudentId}
+                        onChange={(e) => setTransferSwapStudentId(e.target.value)}
+                        disabled={!transferTargetGroupId || loadingTargetMembers}
+                        required={transferIsSwap}
+                        style={{ fontSize: '0.85rem' }}
+                      >
+                        <option value="">-- Chọn sinh viên đổi ngược --</option>
+                        {targetGroupMembers.map((m) => (
+                          <option key={m.userId} value={m.userId}>
+                            {m.fullName} {m.role === 'Leader' ? '(Leader 👑)' : '(Thành viên)'}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  2. Lý do xin chuyển nhóm (Bắt buộc theo BR-36) <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={transferReason}
+                  onChange={(e) => setTransferReason(e.target.value)}
+                  placeholder="Trình bày rõ lý do điều chuyển, thỏa thuận đổi chéo (nếu có) để Trưởng phòng phê duyệt..."
+                  required
+                  style={{ fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowTransferModal(false)}
+                  disabled={submittingTransfer}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingTransfer || !transferTargetGroupId}
+                  className="btn btn-primary btn-sm"
+                  style={{ gap: '0.35rem', fontWeight: 700 }}
+                >
+                  <Send size={14} />
+                  <span>{submittingTransfer ? 'Đang gửi đơn...' : 'Gửi đơn xin chuyển nhóm'}</span>
                 </button>
               </div>
             </form>

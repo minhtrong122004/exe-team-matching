@@ -245,6 +245,95 @@ namespace Group.Repository.Migrations
                     b.ToTable("GroupMembers", (string)null);
                 });
 
+            modelBuilder.Entity("Group.Repository.Entities.GroupTransferRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DecidedByModeratorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("FromGroupCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("FromGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RequesterStudentCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("RequesterStudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RequesterStudentName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("SpaceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SwapWithStudentCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("SwapWithStudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SwapWithStudentName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("TargetGroupCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("TargetGroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromGroupId");
+
+                    b.HasIndex("RequesterStudentId");
+
+                    b.HasIndex("SpaceId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TargetGroupId");
+
+                    b.HasIndex("SpaceId", "RequesterStudentId", "Status");
+
+                    b.ToTable("GroupTransferRequests", (string)null);
+                });
+
             modelBuilder.Entity("Group.Repository.Entities.Invitation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -581,6 +670,33 @@ namespace Group.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Group.Repository.Entities.GroupTransferRequest", b =>
+                {
+                    b.HasOne("Group.Repository.Entities.GroupEntity", "FromGroup")
+                        .WithMany()
+                        .HasForeignKey("FromGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Group.Repository.Entities.CourseSpace", "Space")
+                        .WithMany()
+                        .HasForeignKey("SpaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Group.Repository.Entities.GroupEntity", "TargetGroup")
+                        .WithMany()
+                        .HasForeignKey("TargetGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FromGroup");
+
+                    b.Navigation("Space");
+
+                    b.Navigation("TargetGroup");
                 });
 
             modelBuilder.Entity("Group.Repository.Entities.Invitation", b =>

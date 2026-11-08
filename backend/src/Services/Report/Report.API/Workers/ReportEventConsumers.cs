@@ -68,3 +68,17 @@ public sealed class MemberLeftConsumer(IServiceProvider services) : EventConsume
         services.GetRequiredService<IReportEventHandler>()
             .HandleMemberLeftAsync(@event, envelope.EventId, cancellationToken);
 }
+
+public sealed class MemberTransferredPostLockConsumer(IServiceProvider services) : EventConsumerBase<MemberTransferredPostLock>(services)
+{
+    protected override string ConsumerGroup => "report-service";
+
+    protected override Task HandleAsync(
+        MemberTransferredPostLock @event,
+        EventEnvelope envelope,
+        IServiceProvider services,
+        CancellationToken cancellationToken) =>
+        services.GetRequiredService<IReportEventHandler>()
+            .HandleMemberTransferredPostLockAsync(@event, envelope.EventId, cancellationToken);
+}
+

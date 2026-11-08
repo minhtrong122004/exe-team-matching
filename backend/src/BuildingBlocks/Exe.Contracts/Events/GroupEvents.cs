@@ -86,3 +86,22 @@ public record SpaceFinalized(
     int RejectedRequestsCount,
     DateTime FinalizedAt);
 
+/// <summary>
+/// Sinh viên được điều chuyển nhóm sau khi đã Chốt sổ (BR-35, BR-36, BR-37).
+/// Nhận: Notification (báo cho sinh viên + leader 2 nhóm), Report (cập nhật thống kê).
+/// </summary>
+public record MemberTransferredPostLock(
+    Guid SpaceId,
+    Guid StudentId,
+    string StudentName,
+    string StudentEmail,
+    Guid FromGroupId,
+    string FromGroupName,
+    Guid TargetGroupId,
+    string TargetGroupName,
+    Guid? SwapWithStudentId,
+    string? SwapWithStudentName,
+    string Reason,
+    DateTime TransferredAt);
+
+

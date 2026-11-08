@@ -216,7 +216,56 @@ public class ReportEventHandler : IReportEventHandler
         return true;
     }
 
+    public async Task<bool> HandleMemberTransferredPostLockAsync(MemberTransferredPostLock @event, Guid eventId, CancellationToken ct = default)
+    {
+        if (await IsAlreadyProcessedAsync(eventId, nameof(MemberTransferredPostLock), ct))
+            return false;
+
+        var student = await _studentRepo.GetByUserIdAsync(@event.StudentId, ct);
+        if (student is not null)
+        {
+            student.HasGroup = true;
+            student.GroupId = @event.TargetGroupId;
+            student.UpdatedAt = DateTime.UtcNow;
+            _studentRepo.Update(student);
+        }
+
+        if (@event.SwapWithStudentId.HasValue)
+        {
+            var swapStudent = await _studentRepo.GetByUserIdAsync(@event.SwapWithStudentId.Value, ct);
+            if (swapStudent is not null)
+            {
+                swapStudent.HasGroup = true;
+                swapStudent.GroupId = @event.FromGroupId;
+                swapStudent.UpdatedAt = DateTime.UtcNow;
+                _studentRepo.Update(swapStudent);
+            }
+        }
+        else
+        {
+            var fromGroup = await _groupRepo.GetByGroupIdAsync(@event.FromGroupId, ct);
+            if (fromGroup is not null)
+            {
+                fromGroup.MemberCount = Math.Max(0, fromGroup.MemberCount - 1);
+                fromGroup.UpdatedAt = DateTime.UtcNow;
+                _groupRepo.Update(fromGroup);
+            }
+
+            var targetGroup = await _groupRepo.GetByGroupIdAsync(@event.TargetGroupId, ct);
+            if (targetGroup is not null)
+            {
+                targetGroup.MemberCount++;
+                targetGroup.UpdatedAt = DateTime.UtcNow;
+                _groupRepo.Update(targetGroup);
+            }
+        }
+
+        await MarkProcessedAndCommitAsync(eventId, ct);
+        return true;
+    }
+
     private async Task<bool> IsAlreadyProcessedAsync(Guid eventId, string eventType, CancellationToken ct)
+
     {
         if (await _processedEventRepo.ExistsAsync(eventId, ct))
         {

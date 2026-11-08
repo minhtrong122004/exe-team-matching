@@ -9,9 +9,14 @@ import {
   Bell,
   RefreshCw,
   Mail,
+  FileSpreadsheet,
+  Crown,
+  Search,
 } from 'lucide-react';
 import { notificationsApi } from '../api/notifications';
 import { reportsApi } from '../api/reports';
+import { spacesApi } from '../api/spaces';
+import type { CourseSpaceResponse, SpaceRosterResponse } from '../types/space';
 import type {
   GroupReportItemResponse,
   GroupStatStatus,
@@ -438,10 +443,66 @@ export const ReportsPage: React.FC = () => {
   const [snapshotsTotal, setSnapshotsTotal] = useState<number>(0);
   const [selectedMajor, setSelectedMajor] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<GroupStatStatus | ''>('');
-  const [activeTab, setActiveTab] = useState<'students' | 'groups' | 'snapshots'>('students');
+  const [activeTab, setActiveTab] = useState<'students' | 'groups' | 'snapshots' | 'roster'>('students');
   const [loading, setLoading] = useState<boolean>(true);
   const [exporting, setExporting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 6: Space Roster for Lecturer & Admin (BR-38)
+  const [spaces, setSpaces] = useState<CourseSpaceResponse[]>([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string>('');
+  const [roster, setRoster] = useState<SpaceRosterResponse | null>(null);
+  const [loadingRoster, setLoadingRoster] = useState<boolean>(false);
+  const [rosterSearch, setRosterSearch] = useState<string>('');
+  const [exportingRosterCsv, setExportingRosterCsv] = useState<boolean>(false);
+
+  useEffect(() => {
+    spacesApi.getAllSpaces().then((list) => {
+      setSpaces(list);
+      if (list.length > 0 && !selectedSpaceId) {
+        setSelectedSpaceId(list[0].id);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const loadSpaceRoster = useCallback(async (spaceId: string) => {
+    setLoadingRoster(true);
+    try {
+      const res = await spacesApi.getSpaceRoster(spaceId);
+      setRoster(res);
+    } catch {
+      setRoster(null);
+    } finally {
+      setLoadingRoster(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedSpaceId && activeTab === 'roster') {
+      void loadSpaceRoster(selectedSpaceId);
+    }
+  }, [selectedSpaceId, activeTab, loadSpaceRoster]);
+
+  const handleExportRosterCsv = async () => {
+    if (!selectedSpaceId) return;
+    setExportingRosterCsv(true);
+    try {
+      const blob = await spacesApi.exportSpaceRosterCsv(selectedSpaceId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const sp = spaces.find((s) => s.id === selectedSpaceId);
+      a.download = `${sp?.semesterCode || 'EXE'}_${sp?.subjectCode || '101'}_Roster_BangDiem.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Không thể xuất file CSV bảng điểm.');
+    } finally {
+      setExportingRosterCsv(false);
+    }
+  };
 
   const loadReportData = useCallback(async () => {
     setLoading(true);
@@ -704,6 +765,14 @@ export const ReportsPage: React.FC = () => {
           >
             Lịch sử Snapshot ({snapshotsTotal})
           </button>
+          <button
+            className={activeTab === 'roster' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+            onClick={() => setActiveTab('roster')}
+            style={{ gap: '0.35rem', fontWeight: 700 }}
+          >
+            <FileSpreadsheet size={15} />
+            <span>Bảng điểm Roster Hậu Chốt sổ (BR-38)</span>
+          </button>
         </div>
 
         {activeTab === 'students' && (
@@ -824,7 +893,8 @@ export const ReportsPage: React.FC = () => {
               ))}
             </div>
           )
-        ) : snapshots.length === 0 ? (
+        ) : activeTab === 'snapshots' ? (
+          snapshots.length === 0 ? (
           <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             Chưa có bản chụp định kỳ nào được tạo.
           </div>
@@ -866,7 +936,199 @@ export const ReportsPage: React.FC = () => {
               </div>
             ))}
           </div>
-        )}
+        )
+      ) : activeTab === 'roster' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Space Selector & Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-main)', padding: '0.85rem 1rem', borderRadius: 8, border: '1px solid var(--border-light)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                  Không gian môn học:
+                </label>
+                <select
+                  value={selectedSpaceId}
+                  onChange={(e) => setSelectedSpaceId(e.target.value)}
+                  style={{
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: 6,
+                    border: '1px solid var(--border-medium)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {spaces.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      [{sp.semesterCode} • {sp.subjectCode}] {sp.name} ({sp.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => selectedSpaceId && void loadSpaceRoster(selectedSpaceId)}
+                  disabled={loadingRoster || !selectedSpaceId}
+                >
+                  <RefreshCw size={14} className={loadingRoster ? 'animate-spin' : ''} />
+                  <span>Tải lại</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleExportRosterCsv}
+                  disabled={exportingRosterCsv || !roster || roster.totalStudents === 0}
+                  style={{ gap: '0.4rem', fontWeight: 700, background: '#059669', borderColor: '#059669' }}
+                >
+                  <Download size={15} />
+                  <span>{exportingRosterCsv ? 'Đang xuất CSV...' : 'Xuất CSV Bảng điểm (UTF-8 BOM)'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Roster Summary */}
+            {roster && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG NHÓM</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster.totalGroups}
+                  </div>
+                </div>
+                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SINH VIÊN</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster.totalStudents}
+                  </div>
+                </div>
+                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>SĨ SỐ BÌNH QUÂN</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-orange)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    {roster.totalGroups > 0 ? (roster.totalStudents / roster.totalGroups).toFixed(1) : '0'} SV/nhóm
+                  </div>
+                </div>
+                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRẠNG THÁI</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: roster.status === 'Locked' ? '#dc2626' : 'var(--text-main)', marginTop: '0.25rem' }}>
+                    {roster.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : roster.status}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Filter Search */}
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Tìm kiếm nhóm, MSSV hoặc tên sinh viên trong Bảng điểm..."
+                value={rosterSearch}
+                onChange={(e) => setRosterSearch(e.target.value)}
+                style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
+              />
+            </div>
+
+            {/* Roster Groups List */}
+            {loadingRoster ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 0.5rem auto' }} />
+                <div>Đang tải bảng điểm Roster...</div>
+              </div>
+            ) : !roster || roster.groups.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
+                Không có dữ liệu nhóm nào trong Không gian này.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {roster.groups
+                  .filter((g) => {
+                    if (!rosterSearch.trim()) return true;
+                    const q = rosterSearch.trim().toLowerCase();
+                    return g.groupCode.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) || g.members.some(m => m.fullName.toLowerCase().includes(q) || m.studentCode.toLowerCase().includes(q));
+                  })
+                  .map((grp) => (
+                    <div key={grp.groupId} style={{ border: '1px solid var(--border-light)', borderRadius: 8, padding: '1rem', background: 'var(--bg-main)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--fpt-blue)', fontSize: '0.85rem' }}>
+                            {grp.groupCode}
+                          </span>
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{grp.name}</strong>
+                          {grp.projectIdeaTitle && (
+                            <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
+                              Đề tài: {grp.projectIdeaTitle}
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
+                          {grp.memberCount} / {grp.maxMembers} SV
+                        </span>
+                      </div>
+
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: 'var(--bg-card)', borderRadius: 6, overflow: 'hidden' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', textAlign: 'left' }}>
+                            <th style={{ padding: '0.45rem 0.65rem' }}>MSSV</th>
+                            <th style={{ padding: '0.45rem 0.65rem' }}>Họ và tên</th>
+                            <th style={{ padding: '0.45rem 0.65rem' }}>Ngành</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>Vai trò</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#0284c7' }}>Tech</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#f59e0b' }}>Quản lý</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#ec4899' }}>Design</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#8b5cf6' }}>Mkt</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#10b981' }}>Sale</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {grp.members.map((m) => (
+                            <tr key={m.studentId} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                              <td style={{ padding: '0.45rem 0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                                {m.studentCode}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', fontWeight: 600 }}>{m.fullName}</td>
+                              <td style={{ padding: '0.45rem 0.65rem' }}>
+                                <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
+                                  {m.major}
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>
+                                {m.isLeader ? (
+                                  <span className="badge badge-warning" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 700 }}>
+                                    <Crown size={11} /> Leader
+                                  </span>
+                                ) : (
+                                  <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>Thành viên</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                {m.techScore}%
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#f59e0b' }}>
+                                {m.managementScore}%
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                {m.designScore}%
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                {m.marketingScore}%
+                              </td>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                                {m.saleScore}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

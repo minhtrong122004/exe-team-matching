@@ -21,14 +21,20 @@ export const LoginPage: React.FC = () => {
   const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
 
-  const handleDemoLogin = (role: 'Student' | 'Lecturer' | 'Admin') => {
-    loginDemo(role);
-    if (role === 'Admin') {
-      navigate('/admin/accounts');
-    } else if (role === 'Lecturer') {
-      navigate('/reports');
-    } else {
-      navigate('/projects');
+  const handleQuickLogin = async (loginEmail: string, loginPass: string, fallbackRole: 'Student' | 'Lecturer' | 'Admin') => {
+    setEmail(loginEmail);
+    setPassword(loginPass);
+    try {
+      await executeLogin(loginEmail, loginPass);
+    } catch {
+      loginDemo(fallbackRole);
+      if (fallbackRole === 'Admin') {
+        navigate('/admin/accounts');
+      } else if (fallbackRole === 'Lecturer') {
+        navigate('/spaces');
+      } else {
+        navigate('/projects');
+      }
     }
   };
 
@@ -43,7 +49,7 @@ export const LoginPage: React.FC = () => {
       if ((authUser.role as string) === 'Admin' || authUser.role === 'Moderator') {
         navigate('/admin/accounts');
       } else if (authUser.role === 'Lecturer') {
-        navigate('/reports');
+        navigate('/spaces');
       } else {
         navigate('/projects');
       }
@@ -421,11 +427,7 @@ export const LoginPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('moderator@fpt.edu.vn');
-                  setPassword('Moderator@123');
-                  handleDemoLogin('Admin');
-                }}
+                onClick={() => handleQuickLogin('moderator@fpt.edu.vn', 'Moderator@123', 'Admin')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -456,11 +458,7 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('lecturer@fpt.edu.vn');
-                  setPassword('Lecturer@123');
-                  handleDemoLogin('Lecturer');
-                }}
+                onClick={() => handleQuickLogin('lecturer@fpt.edu.vn', 'Lecturer@123', 'Lecturer')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -491,11 +489,7 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('tunp@fpt.edu.vn');
-                  setPassword('Student@123');
-                  handleDemoLogin('Student');
-                }}
+                onClick={() => handleQuickLogin('tunp@fpt.edu.vn', 'Student@123', 'Student')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -526,11 +520,7 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('sinhvien.moi@fpt.edu.vn');
-                  setPassword('Student@123');
-                  handleDemoLogin('Student');
-                }}
+                onClick={() => handleQuickLogin('sinhvien.moi@fpt.edu.vn', 'Student@123', 'Student')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
