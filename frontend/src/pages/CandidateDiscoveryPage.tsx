@@ -36,160 +36,6 @@ const MAJOR_OPTIONS: { value: Major; label: string }[] = [
   { value: 'Other', label: 'Khác' },
 ];
 
-const DEFAULT_MOCK_CANDIDATES: CandidateProfileResponse[] = [
-  {
-    userId: '11111111-1111-1111-1111-111111111101',
-    fullName: 'Lữ Phước Nhật Tú',
-    role: 'Student',
-    studentCode: 'SE185102',
-    major: 'SE',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'Fullstack / Tech Lead',
-    availability: 'LookingForTeam',
-    bio: 'Sinh viên K18 ngành Kỹ thuật phần mềm. Đam mê kiến trúc microservices (.NET 8, React, Redis), mong muốn tìm kiếm đồng đội làm đồ án khởi nghiệp ứng dụng AI.',
-    techScore: 90,
-    managementScore: 75,
-    graphicDesignScore: 50,
-    marketingScore: 60,
-    saleScore: 55,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's1', skillName: '.NET 8 / C#', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's2', skillName: 'React / TypeScript', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's3', skillName: 'Docker & Redis', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's4', skillName: 'Microservices Architecture', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['EdTech', 'FinTech', 'AI'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    userId: '11111111-1111-1111-1111-111111111102',
-    fullName: 'Nguyễn Minh Trọng',
-    role: 'Student',
-    studentCode: 'SE185103',
-    major: 'AI',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'AI / Backend Engineer',
-    availability: 'LookingForTeam',
-    bio: 'Chuyên nghiên cứu NLP, computer vision và thuật toán matching gRPC. Sẵn sàng phụ trách mảng AI pipeline và logic xử lý backend hiệu năng cao.',
-    techScore: 92,
-    managementScore: 65,
-    graphicDesignScore: 40,
-    marketingScore: 50,
-    saleScore: 45,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's5', skillName: 'Python / PyTorch', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's6', skillName: 'gRPC & Protobuf', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's7', skillName: 'FastAPI / Machine Learning', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['AI', 'Matching', 'BigData'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    userId: '11111111-1111-1111-1111-111111111103',
-    fullName: 'Trần Thảo Vy',
-    role: 'Student',
-    studentCode: 'GD185201',
-    major: 'GD',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'UI/UX & Product Designer',
-    availability: 'LookingForTeam',
-    bio: 'Sinh viên Graphic Design K18. Đã có kinh nghiệm thiết kế UI/UX theo Design System chuẩn Figma, am hiểu phong cách Notion/Linear và tư duy sản phẩm tinh gọn.',
-    techScore: 45,
-    managementScore: 60,
-    graphicDesignScore: 95,
-    marketingScore: 70,
-    saleScore: 50,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's8', skillName: 'Figma & Design System', level: 5, category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's9', skillName: 'UI/UX Prototyping', level: 4, category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's10', skillName: 'Brand Identity', level: 4, category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['EdTech', 'ProductDesign', 'SaaS'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    userId: '11111111-1111-1111-1111-111111111104',
-    fullName: 'Hoàng Đình Phú',
-    role: 'Student',
-    studentCode: 'MK185301',
-    major: 'MKT',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'Growth & Digital Marketing',
-    availability: 'LookingForTeam',
-    bio: 'Kinh nghiệm chạy chiến dịch truyền thông sinh viên, lập kế hoạch Go-To-Market (GTM) và xây dựng phễu chuyển đổi cho các dự án khởi nghiệp sinh viên FPT.',
-    techScore: 40,
-    managementScore: 70,
-    graphicDesignScore: 65,
-    marketingScore: 90,
-    saleScore: 80,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's11', skillName: 'Digital Marketing & SEO', level: 4, category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's12', skillName: 'Content Strategy', level: 4, category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's13', skillName: 'Market Research', level: 4, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['Marketing', 'GrowthHacking', 'F&B'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    userId: '11111111-1111-1111-1111-111111111105',
-    fullName: 'Lê Hoàng Kim Ngân',
-    role: 'Student',
-    studentCode: 'IB185401',
-    major: 'IB',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'Business Analyst / Finance',
-    availability: 'LookingForTeam',
-    bio: 'Sinh viên Kinh doanh quốc tế. Thế mạnh về thẩm định mô hình tài chính Business Model Canvas (BMC), phân tích đối thủ cạnh tranh và chuẩn bị Pitch Deck gọi vốn.',
-    techScore: 50,
-    managementScore: 90,
-    graphicDesignScore: 55,
-    marketingScore: 75,
-    saleScore: 85,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's14', skillName: 'Business Model Canvas', level: 4, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's15', skillName: 'Financial Modeling', level: 4, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's16', skillName: 'Pitch Deck & Presentation', level: 5, category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['FinTech', 'ECommerce', 'VentureCapital'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-  {
-    userId: '11111111-1111-1111-1111-111111111106',
-    fullName: 'Phạm Đăng Khôi',
-    role: 'Student',
-    studentCode: 'IA185501',
-    major: 'IA',
-    campus: 'TP. Hồ Chí Minh (HCM)',
-    desiredRole: 'Security / Cloud Engineer',
-    availability: 'InTeam',
-    bio: 'Chuyên ngành An toàn thông tin. Quan tâm đến bảo mật ứng dụng web (OWASP), xác thực JWT/OAuth2 và tối ưu hóa hạ tầng Cloud AWS/Azure.',
-    techScore: 88,
-    managementScore: 60,
-    graphicDesignScore: 35,
-    marketingScore: 40,
-    saleScore: 45,
-    isProfileCompleted: true,
-    skills: [
-      { skillId: 's17', skillName: 'Web Security & OWASP', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's18', skillName: 'DevSecOps & CI/CD', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      { skillId: 's19', skillName: 'Network Security', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-    ],
-    interests: ['CyberSecurity', 'Cloud', 'DevOps'],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  },
-];
-
 export const CandidateDiscoveryPage: React.FC = () => {
   const searchInputId = useId();
   const majorSelectId = useId();
@@ -303,39 +149,17 @@ export const CandidateDiscoveryPage: React.FC = () => {
       const res = await apiClient.get<PagedResult<CandidateProfileResponse>>('/users', { params });
       const data = res.data;
 
-      if (data.items && data.items.length > 0) {
-        setCandidates(data.items);
-        setTotalCount(data.totalCount || data.items.length);
-        setTotalPages(data.totalPages || 1);
-      } else {
-        // Fallback to mock candidates for dev testing
-        throw new Error('Fallback to mock candidates');
-      }
-    } catch {
-      // Offline / Dev fallback with realistic FPT student candidates
-      let list = [...DEFAULT_MOCK_CANDIDATES];
-      if (debouncedSearch) {
-        const kw = debouncedSearch.toLowerCase();
-        list = list.filter(
-          (c) =>
-            c.fullName.toLowerCase().includes(kw) ||
-            (c.desiredRole && c.desiredRole.toLowerCase().includes(kw)) ||
-            (c.bio && c.bio.toLowerCase().includes(kw)) ||
-            (c.studentCode && c.studentCode.toLowerCase().includes(kw))
-        );
-      }
-      if (selectedMajor !== 'ALL') {
-        list = list.filter((c) => c.major === selectedMajor);
-      }
-      if (selectedSkill) {
-        list = list.filter((c) => c.skills?.some((s) => s.skillName.toLowerCase().includes(selectedSkill.toLowerCase())));
-      }
-      if (onlyLookingForTeam) {
-        list = list.filter((c) => c.availability === 'LookingForTeam');
-      }
-      setCandidates(list);
-      setTotalCount(list.length);
-      setTotalPages(Math.max(1, Math.ceil(list.length / pageSize)));
+      setCandidates(data.items || []);
+      setTotalCount(data.totalCount || 0);
+      setTotalPages(data.totalPages || 1);
+    } catch (err: any) {
+      console.error('Lỗi khi tải danh sách ứng viên:', err);
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        'Không thể tải danh sách ứng viên. Vui lòng thử lại sau.';
+      setError(detail);
+      setCandidates([]);
     } finally {
       setLoading(false);
     }

@@ -452,86 +452,24 @@ export const ProfilePage: React.FC = () => {
           'Hồ sơ của bạn đang được hệ thống khởi tạo tự động. Vui lòng thử lại sau giây lát.'
         );
       } else {
-        // Dev / Offline fallback to realistic FPT student profile
-        const fallback: UserProfileResponse = {
-          userId: authUser?.id || 'usr-mock-1',
-          email: authUser?.email || 'tunp@fpt.edu.vn',
-          fullName: authUser?.fullName || 'Lữ Phước Nhật Tú',
-          studentCode: authUser?.studentCode || 'SE185102',
-          campus: authUser?.campus || 'TP. Hồ Chí Minh (HCM)',
-          major: (authUser?.major as Major) || 'SE',
-          role: authUser?.role || 'Student',
-          bio: 'Sinh viên K18 ngành Kỹ thuật phần mềm FPT HCM. Có kinh nghiệm làm việc với React, TypeScript, .NET Core, Microservices, gRPC và Clean Architecture. Đam mê xây dựng các sản phẩm công nghệ EdTech và FinTech.',
-          desiredRole: 'Full-stack Lead / Tech Lead',
-          availability: 'LookingForTeam',
-          interests: ['EdTech', 'FinTech', 'AI Application', 'SaaS', 'Microservices'],
-          techScore: 88,
-          managementScore: 72,
-          graphicDesignScore: 45,
-          marketingScore: 60,
-          saleScore: 50,
-          isCommitted: true,
-          committedAt: '2026-01-15T08:00:00Z',
-          isProfileCompleted: true,
-          skills: [
-            { skillId: 's1', skillName: 'React & TypeScript', level: 5, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-            { skillId: 's2', skillName: '.NET Core & C#', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-            { skillId: 's3', skillName: 'Microservices & gRPC', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-            { skillId: 's4', skillName: 'PostgreSQL & Redis', level: 4, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-            { skillId: 's5', skillName: 'Docker & DevOps', level: 3, category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-          ],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setProfile(fallback);
-        setFullName(fallback.fullName);
-        setStudentCode(fallback.studentCode || '');
-        setCampus(fallback.campus || 'TP. Hồ Chí Minh (HCM)');
-        setMajor(fallback.major || 'SE');
-        setBio(fallback.bio || '');
-        setDesiredRole(fallback.desiredRole || '');
-        setAvailability(fallback.availability);
-        setInterests([...fallback.interests]);
-        setUserSkills([...fallback.skills]);
-        setTechScore(fallback.techScore ?? 88);
-        setManagementScore(fallback.managementScore ?? 72);
-        setGraphicDesignScore(fallback.graphicDesignScore ?? 45);
-        setMarketingScore(fallback.marketingScore ?? 60);
-        setSaleScore(fallback.saleScore ?? 50);
-        setIsCommitted(true);
-        setIsProfileCompleted(true);
-        setSkills5Changed(false);
+        setError(
+          err.response?.data?.message ||
+            err.response?.data?.title ||
+            'Không thể tải dữ liệu hồ sơ người dùng. Vui lòng kiểm tra lại kết nối mạng.'
+        );
       }
     } finally {
       setLoading(false);
     }
-  }, [authUser]);
+  }, []);
 
   // Tải danh mục kỹ năng từ Backend
   const fetchSkillsCatalog = useCallback(async () => {
     try {
       const response = await apiClient.get<SkillResponse[]>('/skills');
-      if (response.data && response.data.length > 0) {
-        setSkillsCatalog(response.data);
-      } else {
-        throw new Error();
-      }
-    } catch {
-      // Mock catalog skills
-      setSkillsCatalog([
-        { id: 's1', name: 'React & TypeScript', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's2', name: '.NET Core & C#', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's3', name: 'Microservices & gRPC', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's4', name: 'PostgreSQL & Redis', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's5', name: 'Docker & DevOps', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's6', name: 'Figma & UI/UX Design', category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's7', name: 'Design System & Prototyping', category: 'Design', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's8', name: 'Digital Marketing & SEO', category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's9', name: 'Content Strategy & Social Media', category: 'Marketing', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's10', name: 'Business Model Canvas', category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's11', name: 'Financial Modeling & Pitch Deck', category: 'Business', createdAt: '2026-01-01T00:00:00Z' },
-        { id: 's12', name: 'Python & Machine Learning', category: 'Technical', createdAt: '2026-01-01T00:00:00Z' },
-      ]);
+      setSkillsCatalog(response.data || []);
+    } catch (err) {
+      console.warn('Không thể tải danh mục kỹ năng:', err);
     }
   }, []);
 
@@ -636,31 +574,24 @@ export const ProfilePage: React.FC = () => {
       setDesiredRole(response.data.desiredRole || '');
       setAvailability(response.data.availability);
       setInterests(response.data.interests ? [...response.data.interests] : []);
-    } catch {
-      // Offline / Dev fallback: save locally
-      setProfile((prev) =>
-        prev
-          ? ({
-              ...prev,
-              fullName: payload.fullName,
-              studentCode: payload.studentCode,
-              campus: payload.campus,
-              major: payload.major,
-              bio: payload.bio,
-              desiredRole: payload.desiredRole,
-              availability: payload.availability,
-              interests: payload.interests,
-            } as any)
-          : null
-      );
-      updateUserData({
-        fullName: payload.fullName,
-        studentCode: payload.studentCode || undefined,
-        campus: payload.campus || undefined,
-        major: payload.major || undefined,
-      });
-      setSuccessMsg('Hồ sơ của bạn đã được cập nhật thành công!');
-      setIsEditing(false);
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setError(
+          err.response.data?.detail ||
+            err.response.data?.message ||
+            'Mã số sinh viên này đã được sử dụng bởi một tài khoản khác.'
+        );
+      } else if (err.response?.data?.errors) {
+        const errorList = Object.values(err.response.data.errors).flat();
+        setError(errorList.join(' ') || 'Dữ liệu cập nhật không hợp lệ.');
+      } else {
+        setError(
+          err.response?.data?.detail ||
+            err.response?.data?.title ||
+            err.response?.data?.message ||
+            'Không thể lưu thay đổi. Vui lòng kiểm tra lại kết nối.'
+        );
+      }
     } finally {
       setSavingProfile(false);
     }
@@ -829,10 +760,12 @@ export const ProfilePage: React.FC = () => {
       setUserSkills(response.data);
       setSkillsChanged(false);
       setSuccessMsg('Đã lưu danh mục kỹ năng của bạn thành công!');
-    } catch {
-      // Offline fallback: persist in state
-      setSkillsChanged(false);
-      setSuccessMsg('Đã lưu danh mục kỹ năng thành công!');
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          err.response?.data?.title ||
+          'Không thể lưu danh mục kỹ năng. Vui lòng thử lại.'
+      );
     } finally {
       setSavingSkills(false);
     }

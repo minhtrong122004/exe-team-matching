@@ -28,45 +28,6 @@ export {
   InvitationsPage,
 } from './GroupsModulePages';
 
-const MOCK_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-1',
-    recipientId: 'usr-1',
-    title: 'Yêu cầu tham gia nhóm được chấp thuận',
-    message: 'Trưởng nhóm đề tài "EcoCampus - Green Living" đã chấp thuận yêu cầu gia nhập của bạn. Chào mừng bạn đến với nhóm!',
-    type: 'GROUP_ACCEPTED',
-    isRead: false,
-    createdAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'notif-2',
-    recipientId: 'usr-1',
-    title: 'Lời mời tham gia nhóm mới',
-    message: 'Nguyễn Minh Trọng (Trưởng nhóm F-Tour) đã gửi lời mời bạn tham gia nhóm với vai trò Frontend Lead.',
-    type: 'GROUP_INVITE',
-    isRead: false,
-    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'notif-3',
-    recipientId: 'usr-1',
-    title: 'Thuật toán Matching tìm thấy đồng đội phù hợp',
-    message: 'Hệ thống vừa đề xuất 3 ứng viên chuyên ngành GD và MKT có độ tương thích cao (>85%) với dự án của bạn.',
-    type: 'MATCHING_FOUND',
-    isRead: true,
-    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-  },
-  {
-    id: 'notif-4',
-    recipientId: 'usr-1',
-    title: 'Thông báo học kỳ khởi nghiệp EXE',
-    message: 'Hạn chót chốt danh sách nhóm dự án môn EXE là ngày 25/11/2026. Vui lòng hoàn tất đội ngũ trước thời hạn.',
-    type: 'SYSTEM',
-    isRead: true,
-    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-  },
-];
-
 // ── 6. NOTIFICATIONS PAGE ───────────────────────────────────────────────────
 const getNotificationTypeConfig = (type: string) => {
   switch (type) {
@@ -107,15 +68,17 @@ const getNotificationTypeConfig = (type: string) => {
 };
 
 export const NotificationsPage: React.FC = () => {
-  const [items, setItems] = useState<NotificationResponse[]>(MOCK_NOTIFICATIONS);
-  const [unreadCount, setUnreadCount] = useState<number>(2);
+  const [items, setItems] = useState<NotificationResponse[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [filterUnread, setFilterUnread] = useState<boolean | undefined>(undefined);
   const [page, setPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [pagedRes, unreadRes] = await Promise.all([
         notificationsApi.getMyNotifications({
@@ -125,28 +88,12 @@ export const NotificationsPage: React.FC = () => {
         }),
         notificationsApi.getUnreadCount(),
       ]);
-      if (pagedRes.items && pagedRes.items.length > 0) {
-        setItems(pagedRes.items);
-        setTotalPages(Math.max(1, pagedRes.totalPages || 1));
-        setUnreadCount(unreadRes.unreadCount ?? 0);
-      } else {
-        // Fallback to realistic mock notifications
-        let list = [...MOCK_NOTIFICATIONS];
-        if (filterUnread !== undefined) {
-          list = list.filter((n) => n.isRead === filterUnread);
-        }
-        setItems(list);
-        setUnreadCount(list.filter((n) => !n.isRead).length);
-      }
+      setItems(pagedRes.items || []);
+      setTotalPages(Math.max(1, pagedRes.totalPages || 1));
+      setUnreadCount(unreadRes.unreadCount ?? 0);
       window.dispatchEvent(new Event('notifications:updated'));
     } catch {
-      // Offline fallback: Use mock notifications gracefully without displaying red errors
-      let list = [...MOCK_NOTIFICATIONS];
-      if (filterUnread !== undefined) {
-        list = list.filter((n) => n.isRead === filterUnread);
-      }
-      setItems(list);
-      setUnreadCount(list.filter((n) => !n.isRead).length);
+      setError('Không thể tải danh sách thông báo từ Notification Service.');
     } finally {
       setLoading(false);
     }
@@ -301,6 +248,22 @@ export const NotificationsPage: React.FC = () => {
           Đã đọc
         </button>
       </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1.15rem',
+            color: '#dc2626',
+            backgroundColor: '#fee2e2',
+            border: '1px solid #fca5a5',
+            borderRadius: '10px',
+            fontSize: '13px',
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '14px', padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>

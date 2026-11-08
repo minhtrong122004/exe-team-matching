@@ -99,80 +99,6 @@ const STATUS_OPTIONS: { status: ProjectStatus; label: string; badgeClass: string
 
 const POPULAR_TAGS = ['AI', 'React', '.NET', 'Mobile', 'IoT', 'FinTech', 'Marketing', 'UI/UX', 'Cloud'];
 
-// ── Default Sample Projects (Dùng khi Offline / Kiểm tra giao diện không cần Backend) ──
-const DEFAULT_SAMPLE_PROJECTS: ProjectItem[] = [
-  {
-    id: '22222222-2222-2222-2222-222222222201',
-    ownerId: '11111111-1111-1111-1111-111111111101', // Tài khoản của Tú
-    title: 'EXE Team Matching Platform',
-    domain: 'EdTech',
-    status: 'Recruiting',
-    problem:
-      'Sinh viên Đại học FPT gặp nhiều rào cản khi lập nhóm đa ngành (SE, GD, MKT, IB) cho đồ án khởi nghiệp EXE. Việc ghép nhóm thủ công trên mạng xã hội thiếu minh bạch, khó thẩm định kỹ năng và không đo lường được mức độ phù hợp giữa các thành viên.',
-    solution:
-      'Nền tảng phân tán ứng dụng thuật toán matching chấm điểm năng lực (gRPC), đề xuất đồng đội tương thích theo chuyên ngành và kỹ năng, kết hợp quản lý quy trình ứng tuyển và tuyển dụng vị trí minh bạch.',
-    tags: ['edtech', 'dotnet', 'react', 'grpc', 'team-matching'],
-    createdAt: new Date(Date.now() - 10 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222202',
-    ownerId: '11111111-1111-1111-1111-111111111102',
-    title: 'EcoCampus - Hệ thống phân loại rác thông minh tích hợp AI',
-    domain: 'Other',
-    status: 'Recruiting',
-    problem:
-      'Rác thải nhựa và rác sinh hoạt tại các cơ sở trường học ngày càng lớn nhưng việc phân loại rác tại nguồn chưa hiệu quả do thiếu sự khuyến khích và hướng dẫn trực quan cho sinh viên.',
-    solution:
-      'Thùng rác thông minh tích hợp camera AI nhận diện tự động loại rác thải, tự động mở đúng ngăn và tích điểm thưởng đổi quà tại căn tin cho sinh viên thông qua ứng dụng di động.',
-    tags: ['ai', 'iot', 'greentech', 'smart-campus'],
-    createdAt: new Date(Date.now() - 8 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222203',
-    ownerId: '11111111-1111-1111-1111-111111111103',
-    title: 'UniFood - Đặt món và thanh toán không tiền mặt tại Căn tin',
-    domain: 'FnB',
-    status: 'Active',
-    problem:
-      'Tình trạng ùn tắc kéo dài 15-20 phút tại các quầy căn tin vào giờ cao điểm trưa, khiến sinh viên dễ bị muộn giờ học và gây áp lực lớn cho nhân viên phục vụ.',
-    solution:
-      'Hệ thống đặt món trước từ xa, thanh toán mã QR tức thì và nhận thông báo khi món ăn sẵn sàng, tối ưu hóa công suất vận hành cho các gian hàng ẩm thực.',
-    tags: ['fnb', 'canteen', 'qr-payment', 'mobile'],
-    createdAt: new Date(Date.now() - 14 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222204',
-    ownerId: '11111111-1111-1111-1111-111111111104',
-    title: 'FinPocket - Trợ lý quản lý tài chính thông minh cho sinh viên',
-    domain: 'FinTech',
-    status: 'Completed',
-    problem:
-      'Đa số sinh viên sống xa nhà chưa có kỹ năng quản lý ngân sách cá nhân, thường xuyên rơi vào cảnh thiếu hụt tài chính trước cuối tháng và khó khăn khi chia tiền phòng trọ.',
-    solution:
-      'Ứng dụng tài chính áp dụng quy tắc 6 chiếc lọ tự động, liên kết đồng bộ chi tiêu nhóm phòng trọ và đưa ra gợi ý tiết kiệm thông minh theo mức sinh hoạt phí thực tế.',
-    tags: ['fintech', 'budgeting', 'personal-finance'],
-    createdAt: new Date(Date.now() - 20 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-  },
-  {
-    id: '22222222-2222-2222-2222-222222222205',
-    ownerId: '11111111-1111-1111-1111-111111111101', // Dự án của Tú
-    title: 'F-Tour: Cổng trải nghiệm văn hóa và du lịch bản địa cho Gen Z',
-    domain: 'Tourism',
-    status: 'Draft',
-    problem:
-      'Giới trẻ ngày nay có xu hướng tìm kiếm các tour du lịch trải nghiệm văn hóa bản địa độc lạ thay vì các tour du lịch truyền thống, nhưng thị trường thiếu nền tảng kết nối trực tiếp với người bản địa.',
-    solution:
-      'Nền tảng kết nối du khách trẻ với các hướng dẫn viên địa phương và nghệ nhân làng nghề, cung cấp lịch trình cá nhân hóa và cộng đồng đánh giá thực tế.',
-    tags: ['tourism', 'genz', 'local-experience'],
-    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-  },
-];
-
 // ── In-App Toast Notification Interface ──
 interface Toast {
   id: number;
@@ -185,14 +111,6 @@ export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Data & State
-  const [localDemoProjects, setLocalDemoProjects] = useState<ProjectItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('demo_projects_data');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return DEFAULT_SAMPLE_PROJECTS;
-  });
-
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -261,47 +179,15 @@ export const ProjectsPage: React.FC = () => {
       setProjects(res.data.items || []);
       setTotalCount(res.data.totalCount || 0);
       setTotalPages(Math.max(1, res.data.totalPages || 1));
-    } catch {
-      // Offline fallback: filter local demo projects
-      let filtered = [...localDemoProjects];
-      if (search.trim()) {
-        const kw = search.trim().toLowerCase();
-        filtered = filtered.filter(
-          (p) => p.title.toLowerCase().includes(kw) || (p.problem && p.problem.toLowerCase().includes(kw))
-        );
-      }
-      if (domain) {
-        filtered = filtered.filter((p) => p.domain === domain);
-      }
-      if (status) {
-        filtered = filtered.filter((p) => p.status === status);
-      }
-      if (filterMyProjects && user?.id) {
-        filtered = filtered.filter((p) => p.ownerId === user.id);
-      }
-
-      if (sortBy === 'title') {
-        filtered.sort((a, b) => a.title.localeCompare(b.title));
-      } else if (sortBy === 'domain') {
-        filtered.sort((a, b) => a.domain.localeCompare(b.domain));
-      } else {
-        filtered.sort((a, b) =>
-          sortDir === 'asc' ? a.createdAt.localeCompare(b.createdAt) : b.createdAt.localeCompare(a.createdAt)
-        );
-      }
-
-      const pageSize = viewMode === 'grid' ? 6 : 10;
-      const total = filtered.length;
-      const totalP = Math.max(1, Math.ceil(total / pageSize));
-      const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
-
-      setProjects(paged);
-      setTotalCount(total);
-      setTotalPages(totalP);
+    } catch (err) {
+      console.warn('API /projects not accessible or offline:', err);
+      setProjects([]);
+      setTotalCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, localDemoProjects]);
+  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -319,8 +205,7 @@ export const ProjectsPage: React.FC = () => {
       const res = await apiClient.get<ProjectItem>(`/projects/${proj.id}`);
       setSelectedProject(res.data);
     } catch {
-      const found = localDemoProjects.find((p) => p.id === proj.id);
-      if (found) setSelectedProject(found);
+      setSelectedProject(proj);
     } finally {
       setIsDetailLoading(false);
     }
@@ -376,8 +261,7 @@ export const ProjectsPage: React.FC = () => {
       const res = await apiClient.get<ProjectItem>(`/projects/${proj.id}`);
       full = res.data;
     } catch {
-      const found = localDemoProjects.find((p) => p.id === proj.id);
-      if (found) full = found;
+      full = proj;
     }
     setEditingProject(full);
     setTitle(full.title);
@@ -425,46 +309,13 @@ export const ProjectsPage: React.FC = () => {
       setIsModalOpen(false);
       resetForm();
       fetchProjects();
-    } catch {
-      // Offline fallback: update local demo state
-      if (editingProject) {
-        setLocalDemoProjects((prev) =>
-          prev.map((p) =>
-            p.id === editingProject.id
-              ? {
-                  ...p,
-                  title: title.trim(),
-                  problem: problem.trim(),
-                  solution: solution.trim(),
-                  domain: selectedDomain,
-                  status: selectedStatus,
-                  tags,
-                  updatedAt: new Date().toISOString(),
-                }
-              : p
-          )
-        );
-        showToast('Cập nhật ý tưởng dự án thành công (Chế độ Demo)!', 'success');
-      } else {
-        const newProj: ProjectItem = {
-          id: 'demo-' + Date.now(),
-          ownerId: user?.id || '11111111-1111-1111-1111-111111111101',
-          title: title.trim(),
-          problem: problem.trim(),
-          solution: solution.trim(),
-          domain: selectedDomain,
-          status: 'Draft',
-          tags,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        setLocalDemoProjects((prev) => [newProj, ...prev]);
-        showToast('Đề xuất ý tưởng dự án thành công (Chế độ Demo)!', 'success');
-      }
-
-      setIsModalOpen(false);
-      resetForm();
-      fetchProjects();
+    } catch (err: any) {
+      showToast(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          (editingProject ? 'Không thể cập nhật dự án.' : 'Không thể tạo dự án, vui lòng thử lại.'),
+        'error'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -475,21 +326,15 @@ export const ProjectsPage: React.FC = () => {
     if (!confirmDelete) return;
     try {
       await apiClient.delete(`/projects/${confirmDelete.id}`);
-      showToast('Đã xóa ý tưởng dự án.', 'success');
+      showToast('Đã xóa ý tưởng dự án thành công.', 'success');
       if (selectedProject?.id === confirmDelete.id) {
         setSelectedProject(null);
       }
       setConfirmDelete(null);
       fetchProjects();
-    } catch {
-      // Offline fallback: remove from local demo state
-      setLocalDemoProjects((prev) => prev.filter((p) => p.id !== confirmDelete.id));
-      showToast('Đã xóa ý tưởng dự án (Chế độ Demo).', 'success');
-      if (selectedProject?.id === confirmDelete.id) {
-        setSelectedProject(null);
-      }
+    } catch (err: any) {
+      showToast(err.response?.data?.detail || err.response?.data?.title || 'Lỗi khi xóa dự án.', 'error');
       setConfirmDelete(null);
-      fetchProjects();
     }
   };
 
