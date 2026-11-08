@@ -3,6 +3,7 @@ export * from './user';
 export * from './notification';
 export * from './report';
 export * from './group';
+export * from './space';
 
 export interface User {
   id: string;

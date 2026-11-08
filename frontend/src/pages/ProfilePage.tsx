@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import type {
@@ -33,6 +34,12 @@ import {
   EyeOff,
   ChevronRight,
   Award,
+  Shield,
+  FileText,
+  Compass,
+  Lightbulb,
+  Users,
+  GraduationCap,
 } from 'lucide-react';
 
 const MAJORS: { value: Major; label: string }[] = [
@@ -334,8 +341,28 @@ export const ProfilePage: React.FC = () => {
   const [savingSkills, setSavingSkills] = useState<boolean>(false);
   const [skillsChanged, setSkillsChanged] = useState<boolean>(false);
 
-  // Active Tab: 'info' | 'skills' | 'security'
-  const [activeTab, setActiveTab] = useState<'info' | 'skills' | 'security'>('info');
+  const navigate = useNavigate();
+  const isModerator = profile?.role === 'Moderator' || authUser?.role === 'Moderator';
+  const isLecturer = profile?.role === 'Lecturer' || authUser?.role === 'Lecturer';
+  const isStudent = !isModerator && !isLecturer;
+
+  // Active Tab based on Role (BR-01, BR-02, BR-03 Role Separation)
+  // - Student: 'info' | 'skills' | 'security'
+  // - Moderator: 'mod_info' | 'mod_security' | 'mod_roles'
+  // - Lecturer: 'lec_info' | 'lec_security' | 'lec_roles'
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (isModerator) return 'mod_info';
+    if (isLecturer) return 'lec_info';
+    return 'info';
+  });
+
+  useEffect(() => {
+    if (isModerator && !activeTab.startsWith('mod_')) {
+      setActiveTab('mod_info');
+    } else if (isLecturer && !activeTab.startsWith('lec_')) {
+      setActiveTab('lec_info');
+    }
+  }, [isModerator, isLecturer]);
 
   // State đổi mật khẩu & BR-34
   const [currentPassword, setCurrentPassword] = useState('');
@@ -343,8 +370,6 @@ export const ProfilePage: React.FC = () => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-
-  const isStudent = profile?.role === 'Student' || authUser?.role === 'Student';
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -521,13 +546,13 @@ export const ProfilePage: React.FC = () => {
 
     const payload: UpdateUserProfileRequest = {
       fullName: fullName.trim(),
-      studentCode: studentCode.trim() || null,
+      studentCode: isStudent ? (studentCode.trim() || null) : null,
       campus: campus.trim() || null,
-      major: (major as Major) || null,
+      major: isStudent ? ((major as Major) || null) : null,
       bio: bio.trim() || null,
-      desiredRole: desiredRole.trim() || null,
-      availability,
-      interests: interests.length > 0 ? interests : [],
+      desiredRole: isStudent ? (desiredRole.trim() || null) : null,
+      availability: isStudent ? availability : 'LookingForTeam',
+      interests: isStudent && interests.length > 0 ? interests : [],
     };
 
     try {
@@ -912,15 +937,26 @@ export const ProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════
           PAGE HEADER & OVERVIEW BANNER (WITH COHORT & BR-07 STATUS)
          ══════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════
+          HEADER BANNER: TAILORED PER ROLE (STUDENT / MODERATOR / LECTURER)
+         ══════════════════════════════════════════════════════════════ */}
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #061325 0%, #0054a6 60%, #f26f21 150%)',
+          background: isModerator
+            ? 'linear-gradient(135deg, #0a192f 0%, #0054a6 100%)'
+            : isLecturer
+            ? 'linear-gradient(135deg, #0054a6 0%, #008837 100%)'
+            : 'linear-gradient(135deg, #061325 0%, #0054a6 60%, #f26f21 150%)',
           color: '#ffffff',
           padding: '2rem 2.25rem',
           borderRadius: 16,
           marginBottom: '1.5rem',
-          boxShadow: '0 10px 25px -5px rgba(0, 84, 166, 0.25)',
+          boxShadow: isModerator
+            ? '0 10px 25px -5px rgba(10, 25, 47, 0.35)'
+            : isLecturer
+            ? '0 10px 25px -5px rgba(0, 84, 166, 0.25)'
+            : '0 10px 25px -5px rgba(0, 84, 166, 0.25)',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -933,7 +969,11 @@ export const ProfilePage: React.FC = () => {
             width: 220,
             height: 220,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(242, 111, 33, 0.25) 0%, transparent 70%)',
+            background: isModerator
+              ? 'radial-gradient(circle, rgba(0, 84, 166, 0.3) 0%, transparent 70%)'
+              : isLecturer
+              ? 'radial-gradient(circle, rgba(0, 136, 55, 0.3) 0%, transparent 70%)'
+              : 'radial-gradient(circle, rgba(242, 111, 33, 0.25) 0%, transparent 70%)',
             pointerEvents: 'none',
           }}
         />
@@ -958,7 +998,7 @@ export const ProfilePage: React.FC = () => {
                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
               }}
             >
-              {profile?.fullName ? profile.fullName.charAt(0).toUpperCase() : 'SV'}
+              {isModerator ? 'ĐP' : isLecturer ? 'GV' : (profile?.fullName ? profile.fullName.charAt(0).toUpperCase() : 'SV')}
             </div>
 
             <div>
@@ -979,11 +1019,15 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid rgba(255, 255, 255, 0.3)',
                   }}
                 >
-                  {profile?.role || authUser?.role}
+                  {isModerator
+                    ? 'Điều phối viên (Moderator)'
+                    : isLecturer
+                    ? 'Giảng viên hướng dẫn (Lecturer)'
+                    : 'Sinh viên (Student)'}
                 </span>
 
-                {/* Cohort Badge (BR-04) */}
-                {profile?.cohort && (
+                {/* Cohort Badge for Student (BR-04) */}
+                {isStudent && profile?.cohort && (
                   <span
                     style={{
                       padding: '0.2rem 0.65rem',
@@ -1002,80 +1046,164 @@ export const ProfilePage: React.FC = () => {
                 )}
               </div>
 
+              {/* Sub-details tailored per role */}
               <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.9rem', flexWrap: 'wrap' }}>
                 <span>{profile?.email || authUser?.email}</span>
-                {profile?.studentCode && (
+
+                {isStudent && profile?.studentCode && (
                   <span>
                     • MSSV: <strong style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>{profile.studentCode}</strong>
                   </span>
                 )}
-                {profile?.major && (
+                {isStudent && profile?.major && (
                   <span>• Chuyên ngành: <strong>{currentMajorLabel}</strong></span>
                 )}
-                {profile?.campus && (
-                  <span>• Cơ sở: <strong>{profile.campus}</strong></span>
+
+                {isModerator && (
+                  <span>• Đơn vị: <strong>Ban Đào tạo & Điều phối Khởi nghiệp FPT</strong></span>
                 )}
+
+                {isLecturer && (
+                  <span>• Bộ môn: <strong>Khởi nghiệp & Đổi mới sáng tạo (EXE)</strong></span>
+                )}
+
+                <span>• Cơ sở: <strong>{profile?.campus || 'TP. Hồ Chí Minh (HCM)'}</strong></span>
               </div>
             </div>
           </div>
 
-          {/* Quick Badges: Availability & 5-Skills Completion */}
+          {/* Quick Badges: Role-specific */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-            <div
-              style={{
-                padding: '0.45rem 0.95rem',
-                borderRadius: 10,
-                background: currentAvailability.bg,
-                color: currentAvailability.color,
-                fontWeight: 700,
-                fontSize: '0.825rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-              }}
-            >
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: currentAvailability.color }} />
-              {currentAvailability.label}
-            </div>
+            {isStudent && (
+              <>
+                <div
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 10,
+                    background: currentAvailability.bg,
+                    color: currentAvailability.color,
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: currentAvailability.color }} />
+                  {currentAvailability.label}
+                </div>
 
-            {/* BR-07 Profile Completion Status Badge */}
-            {profile?.isProfileCompleted ? (
-              <div
-                style={{
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: 10,
-                  background: 'rgba(240, 253, 244, 0.95)',
-                  color: '#15803d',
-                  border: '1px solid #bbf7d0',
-                  fontWeight: 700,
-                  fontSize: '0.775rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                <CheckCircle2 size={14} color="#16a34a" />
-                <span>5 Kỹ năng: Đã hoàn tất (BR-07)</span>
-              </div>
-            ) : (
-              <div
-                style={{
-                  padding: '0.35rem 0.85rem',
-                  borderRadius: 10,
-                  background: 'rgba(254, 242, 242, 0.95)',
-                  color: '#b91c1c',
-                  border: '1px solid #fecaca',
-                  fontWeight: 700,
-                  fontSize: '0.775rem',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                }}
-              >
-                <AlertCircle size={14} color="#ef4444" />
-                <span>5 Kỹ năng: Chưa hoàn tất (BR-07)</span>
-              </div>
+                {profile?.isProfileCompleted ? (
+                  <div
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 10,
+                      background: 'rgba(240, 253, 244, 0.95)',
+                      color: '#15803d',
+                      border: '1px solid #bbf7d0',
+                      fontWeight: 700,
+                      fontSize: '0.775rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <CheckCircle2 size={14} color="#16a34a" />
+                    <span>5 Kỹ năng: Đã hoàn tất (BR-07)</span>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 10,
+                      background: 'rgba(254, 242, 242, 0.95)',
+                      color: '#b91c1c',
+                      border: '1px solid #fecaca',
+                      fontWeight: 700,
+                      fontSize: '0.775rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <AlertCircle size={14} color="#ef4444" />
+                    <span>5 Kỹ năng: Chưa hoàn tất (BR-07)</span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {isModerator && (
+              <>
+                <div
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 10,
+                    background: 'rgba(240, 253, 244, 0.95)',
+                    color: '#15803d',
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <ShieldCheck size={16} color="#16a34a" />
+                  <span>Quyền Quản trị Tối cao (Super Admin)</span>
+                </div>
+                <div
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: 10,
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(6px)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontWeight: 700,
+                    fontSize: '0.775rem',
+                  }}
+                >
+                  Kỳ học FA26 • Phân bổ & Ghép nhóm
+                </div>
+              </>
+            )}
+
+            {isLecturer && (
+              <>
+                <div
+                  style={{
+                    padding: '0.45rem 0.95rem',
+                    borderRadius: 10,
+                    background: 'rgba(238, 242, 255, 0.95)',
+                    color: '#0054a6',
+                    fontWeight: 700,
+                    fontSize: '0.825rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <GraduationCap size={16} color="#0054a6" />
+                  <span>Cố vấn Học phần (Mentor & Evaluator)</span>
+                </div>
+                <div
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: 10,
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(6px)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontWeight: 700,
+                    fontSize: '0.775rem',
+                  }}
+                >
+                  Học phần EXE101 / EXE201
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1141,7 +1269,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          NAVIGATION TABS
+          NAVIGATION TABS: TAILORED PER ROLE
          ══════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -1151,77 +1279,1017 @@ export const ProfilePage: React.FC = () => {
           marginBottom: '1.5rem',
         }}
       >
-        <button
-          type="button"
-          onClick={() => setActiveTab('info')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            border: 'none',
-            background: 'transparent',
-            borderBottom: activeTab === 'info' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-            color: activeTab === 'info' ? '#f26f21' : 'var(--text-muted, #64748b)',
-            fontWeight: 700,
-            fontSize: '0.925rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'color 150ms ease, border-color 150ms ease',
-          }}
-        >
-          <User size={18} />
-          <span>Thông tin cá nhân & Học thuật</span>
-        </button>
+        {/* MODERATOR TABS */}
+        {isModerator && (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('mod_info')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'mod_info' ? '2.5px solid #0054a6' : '2.5px solid transparent',
+                color: activeTab === 'mod_info' ? '#0054a6' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <User size={18} />
+              <span>Thông tin Điều phối viên</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('skills')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            border: 'none',
-            background: 'transparent',
-            borderBottom: activeTab === 'skills' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-            color: activeTab === 'skills' ? '#f26f21' : 'var(--text-muted, #64748b)',
-            fontWeight: 700,
-            fontSize: '0.925rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'color 150ms ease, border-color 150ms ease',
-          }}
-        >
-          <Sparkles size={18} />
-          <span>5 Kỹ năng Cốt lõi & Danh mục ({profile?.isProfileCompleted ? 'Đã hoàn tất' : 'Chưa hoàn tất'})</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('mod_security')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'mod_security' ? '2.5px solid #0054a6' : '2.5px solid transparent',
+                color: activeTab === 'mod_security' ? '#0054a6' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <KeyRound size={18} />
+              <span>Bảo mật & Tài khoản Quản trị</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('security')}
-          style={{
-            padding: '0.75rem 1.25rem',
-            border: 'none',
-            background: 'transparent',
-            borderBottom: activeTab === 'security' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-            color: activeTab === 'security' ? '#f26f21' : 'var(--text-muted, #64748b)',
-            fontWeight: 700,
-            fontSize: '0.925rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'color 150ms ease, border-color 150ms ease',
-          }}
-        >
-          <KeyRound size={18} />
-          <span>Bảo mật & Quy định (BR-34)</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('mod_roles')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'mod_roles' ? '2.5px solid #0054a6' : '2.5px solid transparent',
+                color: activeTab === 'mod_roles' ? '#0054a6' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <Shield size={18} />
+              <span>Thẩm quyền & Trách nhiệm Điều phối</span>
+            </button>
+          </>
+        )}
+
+        {/* LECTURER TABS */}
+        {isLecturer && (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('lec_info')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'lec_info' ? '2.5px solid #008837' : '2.5px solid transparent',
+                color: activeTab === 'lec_info' ? '#008837' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <User size={18} />
+              <span>Thông tin Giảng viên</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('lec_security')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'lec_security' ? '2.5px solid #008837' : '2.5px solid transparent',
+                color: activeTab === 'lec_security' ? '#008837' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <KeyRound size={18} />
+              <span>Bảo mật & Đổi mật khẩu</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('lec_roles')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'lec_roles' ? '2.5px solid #008837' : '2.5px solid transparent',
+                color: activeTab === 'lec_roles' ? '#008837' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <GraduationCap size={18} />
+              <span>Nhiệm vụ Giảng dạy & Cố vấn EXE</span>
+            </button>
+          </>
+        )}
+
+        {/* STUDENT TABS */}
+        {isStudent && (
+          <>
+            <button
+              type="button"
+              onClick={() => setActiveTab('info')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'info' ? '2.5px solid #f26f21' : '2.5px solid transparent',
+                color: activeTab === 'info' ? '#f26f21' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <User size={18} />
+              <span>Thông tin cá nhân & Học thuật</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('skills')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'skills' ? '2.5px solid #f26f21' : '2.5px solid transparent',
+                color: activeTab === 'skills' ? '#f26f21' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <Sparkles size={18} />
+              <span>5 Kỹ năng Cốt lõi & Danh mục ({profile?.isProfileCompleted ? 'Đã hoàn tất' : 'Chưa hoàn tất'})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('security')}
+              style={{
+                padding: '0.75rem 1.25rem',
+                border: 'none',
+                background: 'transparent',
+                borderBottom: activeTab === 'security' ? '2.5px solid #f26f21' : '2.5px solid transparent',
+                color: activeTab === 'security' ? '#f26f21' : 'var(--text-muted, #64748b)',
+                fontWeight: 700,
+                fontSize: '0.925rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'color 150ms ease, border-color 150ms ease',
+              }}
+            >
+              <KeyRound size={18} />
+              <span>Bảo mật & Quy định (BR-34)</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          TAB 1: THÔNG TIN HỒ SƠ & HỌC THUẬT (BR-04)
+          MODERATOR TAB 1: THÔNG TIN ĐIỀU PHỐI VIÊN
          ══════════════════════════════════════════════════════════════ */}
-      {activeTab === 'info' && (
+      {isModerator && activeTab === 'mod_info' && (
+        <div className="card" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                Thông tin Điều phối viên Học kỳ
+              </h2>
+              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+                Thông tin quản trị viên được sử dụng để liên hệ điều phối và quản lý học phần EXE
+              </p>
+            </div>
+
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="btn btn-outline"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem' }}
+              >
+                <Edit3 size={15} />
+                <span>Chỉnh sửa thông tin</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="btn"
+                style={{
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <X size={15} />
+                <span>Hủy bỏ</span>
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveProfile}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Họ và tên Điều phối viên *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={!isEditing || savingProfile}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Email quản trị</span>
+                  <span style={{ fontSize: '0.72rem', color: '#0054a6', fontWeight: 700 }}>Hệ thống cấp</span>
+                </label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={profile?.email || authUser?.email || ''}
+                  disabled
+                  style={{ background: 'var(--bg-sidebar-hover, #f8fafc)', color: 'var(--text-muted, #64748b)' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Cơ sở quản lý *</label>
+                <select
+                  className="form-control"
+                  value={campus}
+                  onChange={(e) => setCampus(e.target.value)}
+                  disabled={!isEditing || savingProfile}
+                >
+                  {CAMPUS_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Đơn vị công tác</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value="Ban Đào tạo & Điều phối Khởi nghiệp EXE - ĐH FPT"
+                  disabled
+                  style={{ background: 'var(--bg-sidebar-hover, #f8fafc)', color: 'var(--text-muted, #64748b)' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label" style={{ fontWeight: 600 }}>Ghi chú công tác điều phối / Thông báo chung</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                placeholder="Ghi chú phân công hoặc hướng dẫn dành cho giảng viên và sinh viên..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                disabled={!isEditing || savingProfile}
+              />
+            </div>
+
+            {isEditing && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="btn"
+                  style={{ background: '#f1f5f9', color: '#475569' }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingProfile}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                >
+                  <Save size={16} />
+                  <span>{savingProfile ? 'Đang lưu...' : 'Lưu thông tin điều phối'}</span>
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODERATOR TAB 2: BẢO MẬT & TÀI KHOẢN QUẢN TRỊ
+         ══════════════════════════════════════════════════════════════ */}
+      {isModerator && activeTab === 'mod_security' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div className="card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.35rem 0' }}>
+              Đổi mật khẩu Quản trị viên
+            </h2>
+            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              Bảo vệ tài khoản Điều phối viên học kỳ với quyền hạn cao nhất trong hệ thống
+            </p>
+
+            <form onSubmit={handleChangePasswordSubmit}>
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu hiện tại *</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    className="form-control"
+                    placeholder="Nhập mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    disabled={changingPassword}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  >
+                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu mới *</label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Xác nhận mật khẩu mới *</label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={changingPassword}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+              >
+                <KeyRound size={16} />
+                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
+              </button>
+            </form>
+          </div>
+
+          <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'inline-flex', padding: '0.35rem 0.65rem', borderRadius: 8, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.75rem', marginBottom: '1rem', gap: '0.4rem', alignItems: 'center' }}>
+                <ShieldCheck size={14} />
+                <span>TIÊU CHUẨN AN NINH TÀI KHOẢN QUẢN TRỊ</span>
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.5rem 0' }}>
+                Quy định an toàn tài khoản Quản trị viên
+              </h3>
+              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                Tài khoản Điều phối viên nắm giữ quyền hạn quản trị không gian học phần, cấp phát tài khoản FAP và điều phối sinh viên toàn trường:
+              </p>
+              <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.7, marginTop: '0.75rem' }}>
+                <li>Tuyệt đối không chia sẻ mật khẩu đăng nhập cho bất kỳ ai.</li>
+                <li>Đổi mật khẩu định kỳ tối thiểu 90 ngày một lần.</li>
+                <li>Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ số và ký tự đặc biệt.</li>
+                <li>Luôn đăng xuất sau khi hoàn thành phiên làm việc trên các máy tính công cộng.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          MODERATOR TAB 3: THẨM QUYỀN & TRÁCH NHIỆM ĐIỀU PHỐI
+         ══════════════════════════════════════════════════════════════ */}
+      {isModerator && activeTab === 'mod_roles' && (
+        <div>
+          <div className="card" style={{ padding: '1.75rem 2rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+              <span className="fpt-portal-badge">PHÂN QUYỀN HỆ THỐNG</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+                ROLE: MODERATOR (FULL ADMIN)
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
+              Thẩm quyền & Trách nhiệm Điều phối Học kỳ
+            </h2>
+            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.875rem', maxWidth: 800, lineHeight: 1.5, margin: 0 }}>
+              Tổng hợp các phân hệ nghiệp vụ và quyền hạn độc quyền của Điều phối viên học kỳ môn EXE trong chuỗi 6 giai đoạn phát triển hệ thống.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Card 1 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f26f21' }}>
+                    <Layers size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Giai đoạn 3 • Đã kích hoạt
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Không gian học phần & Phân bổ Room
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Tạo Không gian học kỳ, cấu hình công thức phân bổ CEIL(SV ÷ Max × Buffer) (BR-08, BR-09, BR-11), sinh Room tự động và giám sát sĩ số học phần.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/spaces')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Mở Không gian học phần</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 2 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054a6' }}>
+                    <Shield size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Giai đoạn 1 • Đã kích hoạt
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Quản lý Tài khoản & Đồng bộ FAP
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Import danh sách sinh viên đủ điều kiện từ FAP, cấp phát tài khoản tự động, tạo tài khoản Giảng viên và quản lý trạng thái tài khoản.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/accounts')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Mở Quản lý TK & FAP</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 3 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#008837' }}>
+                    <FileText size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Báo cáo học kỳ
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Báo cáo & Thống kê Ghép nhóm
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Theo dõi tiến độ ghép nhóm thời gian thực, số lượng sinh viên chưa có nhóm, danh sách các phòng và xuất báo cáo CSV nộp Phòng Đào tạo.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/reports')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Mở Báo cáo & Thống kê</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 4 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                    <Compass size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Học vụ
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Giám sát Nhóm & Room Học phần
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Theo dõi các nhóm đã chốt hoặc đang tuyển quân, kiểm tra cơ cấu thành viên và các đề tài dự án sinh viên đăng ký.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/groups')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Xem Giám sát nhóm</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 5 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ea580c' }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Giai đoạn 5 • Kế tiếp
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Điều phối Cưỡng chế (gRPC Matching)
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Chạy thuật toán Matching tự động phân bổ toàn bộ sinh viên lẻ còn lại vào các Room chưa đủ sĩ số sau khi hết hạn ghép tự do (BR-11, BR-12, BR-34).
+                </p>
+              </div>
+              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: '#b45309', fontWeight: 600 }}>
+                • Kích hoạt tự động khi hết hạn ghép tự do
+              </div>
+            </div>
+
+            {/* Card 6 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+                    <Users size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Giai đoạn 6 • Kế tiếp
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Phê duyệt Chuyển nhóm sau Khóa sổ
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Tiếp nhận, thẩm định và phê duyệt các yêu cầu hoán đổi hoặc rút/chuyển thành viên sau thời điểm chốt danh sách chính thức (Post-Lock Transfer).
+                </p>
+              </div>
+              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: '#0284c7', fontWeight: 600 }}>
+                • Thẩm quyền phê duyệt thuộc về Điều phối viên
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          LECTURER TAB 1: THÔNG TIN GIẢNG VIÊN
+         ══════════════════════════════════════════════════════════════ */}
+      {isLecturer && activeTab === 'lec_info' && (
+        <div className="card" style={{ padding: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                Thông tin Giảng viên Hướng dẫn
+              </h2>
+              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
+                Hồ sơ giảng viên cố vấn học phần EXE được hiển thị cho sinh viên và ban điều phối
+              </p>
+            </div>
+
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="btn btn-outline"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.85rem' }}
+              >
+                <Edit3 size={15} />
+                <span>Chỉnh sửa hồ sơ</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="btn"
+                style={{
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontSize: '0.85rem',
+                }}
+              >
+                <X size={15} />
+                <span>Hủy bỏ</span>
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveProfile}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.25rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Họ và tên Giảng viên *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={!isEditing || savingProfile}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Email giảng viên</span>
+                  <span style={{ fontSize: '0.72rem', color: '#008837', fontWeight: 700 }}>Hệ thống cấp</span>
+                </label>
+                <input
+                  type="email"
+                  className="form-control"
+                  value={profile?.email || authUser?.email || ''}
+                  disabled
+                  style={{ background: 'var(--bg-sidebar-hover, #f8fafc)', color: 'var(--text-muted, #64748b)' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Cơ sở giảng dạy *</label>
+                <select
+                  className="form-control"
+                  value={campus}
+                  onChange={(e) => setCampus(e.target.value)}
+                  disabled={!isEditing || savingProfile}
+                >
+                  {CAMPUS_OPTIONS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Bộ môn / Khoa</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value="Bộ môn Khởi nghiệp & Đổi mới sáng tạo (EXE) - ĐH FPT"
+                  disabled
+                  style={{ background: 'var(--bg-sidebar-hover, #f8fafc)', color: 'var(--text-muted, #64748b)' }}
+                />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label" style={{ fontWeight: 600 }}>Lĩnh vực chuyên môn & Định hướng cố vấn đề tài</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                placeholder="Giới thiệu về hướng nghiên cứu, lĩnh vực thế mạnh (EdTech, FinTech, E-Commerce, AI Applications...) để định hướng các nhóm sinh viên..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                disabled={!isEditing || savingProfile}
+              />
+            </div>
+
+            {isEditing && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="btn"
+                  style={{ background: '#f1f5f9', color: '#475569' }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={savingProfile}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+                >
+                  <Save size={16} />
+                  <span>{savingProfile ? 'Đang lưu...' : 'Lưu thông tin giảng viên'}</span>
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          LECTURER TAB 2: BẢO MẬT & ĐỔI MẬT KHẨU
+         ══════════════════════════════════════════════════════════════ */}
+      {isLecturer && activeTab === 'lec_security' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          <div className="card" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.35rem 0' }}>
+              Đổi mật khẩu Giảng viên
+            </h2>
+            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+              Cập nhật mật khẩu bảo mật tài khoản Giảng viên hướng dẫn
+            </p>
+
+            <form onSubmit={handleChangePasswordSubmit}>
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu hiện tại *</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPasswords ? 'text' : 'password'}
+                    className="form-control"
+                    placeholder="Nhập mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    disabled={changingPassword}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(!showPasswords)}
+                    style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                  >
+                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu mới *</label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
+                <label className="form-label" style={{ fontWeight: 600 }}>Xác nhận mật khẩu mới *</label>
+                <input
+                  type={showPasswords ? 'text' : 'password'}
+                  className="form-control"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={changingPassword}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
+              >
+                <KeyRound size={16} />
+                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
+              </button>
+            </form>
+          </div>
+
+          <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'inline-flex', padding: '0.35rem 0.65rem', borderRadius: 8, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.75rem', marginBottom: '1rem', gap: '0.4rem', alignItems: 'center' }}>
+                <ShieldCheck size={14} />
+                <span>BẢO MẬT TÀI KHOẢN GIẢNG VIÊN</span>
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.5rem 0' }}>
+                Hướng dẫn an toàn thông tin
+              </h3>
+              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                Tài khoản Giảng viên có quyền xem danh sách sinh viên, danh sách nhóm và báo cáo học phần:
+              </p>
+              <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.7, marginTop: '0.75rem' }}>
+                <li>Không chia sẻ tài khoản cho sinh viên hoặc người khác sử dụng.</li>
+                <li>Đổi mật khẩu ngay sau lần đầu đăng nhập.</li>
+                <li>Mật khẩu mới yêu cầu từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          LECTURER TAB 3: TRÁCH NHIỆM GIẢNG DẠY & CỐ VẤN
+         ══════════════════════════════════════════════════════════════ */}
+      {isLecturer && activeTab === 'lec_roles' && (
+        <div>
+          <div className="card" style={{ padding: '1.75rem 2rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
+              <span className="fpt-portal-badge">HỌC VỤ & CỐ VẤN</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+                ROLE: LECTURER (MENTOR & EVALUATOR)
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
+              Vai trò Giảng viên & Hướng dẫn môn EXE
+            </h2>
+            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.875rem', maxWidth: 800, lineHeight: 1.5, margin: 0 }}>
+              Các phân hệ và chức năng chính dành cho Giảng viên hướng dẫn trong quá trình sinh viên hình thành nhóm và triển khai dự án khởi nghiệp.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+            {/* Card 1 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054a6' }}>
+                    <Layers size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Quan sát Room
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Không gian học phần & Giám sát Room
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Theo dõi danh sách các phòng học phần mở ghi danh, kiểm tra sĩ số các phòng và danh sách sinh viên ghi danh từ FAP.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/spaces')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Xem Không gian học phần</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 2 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#008837' }}>
+                    <FileText size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Xuất CSV
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Báo cáo & Danh sách nhóm
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Xem báo cáo thống kê tình hình ghép nhóm theo thời gian thực và xuất danh sách nhóm CSV phục vụ quản lý lớp và chấm điểm.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/reports')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Xem Báo cáo nhóm</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 3 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f26f21' }}>
+                    <Compass size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Đội ngũ
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Khám phá Nhóm Sinh viên
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Xem danh sách các nhóm đã thành lập, thành viên nhóm và cơ cấu 5 kỹ năng để hỗ trợ định hướng chuyên môn.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/groups')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Xem Danh sách nhóm</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+
+            {/* Card 4 */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ca8a04' }}>
+                    <Lightbulb size={20} />
+                  </div>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                    Khởi nghiệp
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.4rem 0', color: 'var(--text-main, #0f172a)' }}>
+                  Cố vấn Ý tưởng Đề tài EXE
+                </h3>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5, margin: 0 }}>
+                  Đọc và góp ý cho các ý tưởng dự án khởi nghiệp sinh viên đề xuất, định hướng tính khả thi thị trường cho nhóm.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/projects')}
+                className="btn btn-outline"
+                style={{ marginTop: '1.25rem', width: '100%', fontSize: '0.825rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+              >
+                <span>Xem Ý tưởng dự án</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          STUDENT TAB 1: THÔNG TIN HỒ SƠ & HỌC THUẬT (BR-04)
+         ══════════════════════════════════════════════════════════════ */}
+      {isStudent && activeTab === 'info' && (
         <div className="card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <div>
@@ -1534,7 +2602,7 @@ export const ProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════
           TAB 2: 5 KỸ NĂNG CỐT LÕI (BR-05, BR-06, BR-07) & DANH MỤC KỸ NĂNG
          ══════════════════════════════════════════════════════════════ */}
-      {activeTab === 'skills' && (
+      {isStudent && activeTab === 'skills' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
           {/* ──────────────────────────────────────────────────────────
               PHẦN 1: HỒ SƠ 5 KỸ NĂNG CỐT LÕI & BIỂU ĐỒ RADAR (BR-05 & BR-06)
@@ -2274,7 +3342,7 @@ export const ProfilePage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════
           TAB 3: BẢO MẬT, ĐỔI MẬT KHẨU & QUY ĐỊNH ĐIỀU PHỐI (BR-34)
          ══════════════════════════════════════════════════════════════ */}
-      {activeTab === 'security' && (
+      {isStudent && activeTab === 'security' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Card 1: Trạng thái xác nhận quy định điều phối BR-34 */}
           <div className="card" style={{ padding: '1.75rem' }}>

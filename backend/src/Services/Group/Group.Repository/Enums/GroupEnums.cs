@@ -4,10 +4,21 @@ namespace Group.Repository.Enums;
 
 public enum GroupStatus
 {
-    Recruiting,
-    Full,
-    Locked,
+    Empty,        // Room trống (0 thành viên)
+    Forming,      // Room đang lập (1 đến < GroupThreshold thành viên, vào thẳng)
+    Recruiting,   // Group đang tuyển (>= GroupThreshold và < MaxMembers, qua Apply)
+    Closed,       // Đóng tuyển (đủ MaxMembers hoặc Leader chủ động đóng tuyển sớm)
+    Locked,       // Đã chốt sổ
+    Full,         // Tương đương Closed (giữ tương thích dữ liệu cũ)
     Disbanded
+}
+
+public enum CourseSpaceStatus
+{
+    Draft,
+    Open,
+    ClosedRegistration,
+    Locked
 }
 
 public enum MemberRole

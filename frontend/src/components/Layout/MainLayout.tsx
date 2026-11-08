@@ -6,6 +6,7 @@ import { notificationsApi } from '../../api/notifications';
 import type { UserRole } from '../../types';
 import {
   Lightbulb,
+  Layers,
   Users,
   FileText,
   Bell,
@@ -169,98 +170,216 @@ export const MainLayout: React.FC = () => {
     navigate('/login');
   };
 
-  // Grouped navigation with /profile accessible to ALL roles
-  const navSections: NavSection[] = [
-    {
-      title: 'Dự án & Ý tưởng',
-      items: [
-        {
-          to: '/projects',
-          label: 'Ý tưởng dự án (EXE)',
-          icon: <Lightbulb size={19} />,
-          roles: ['Student', 'Moderator', 'Lecturer'],
-        },
-        {
-          to: '/groups',
-          label: 'Khám phá nhóm',
-          icon: <Compass size={19} />,
-          roles: ['Student', 'Moderator', 'Lecturer'],
-        },
-        {
-          to: '/candidates',
-          label: 'Danh bạ ứng viên',
-          icon: <Users size={19} />,
-          roles: ['Student', 'Moderator', 'Lecturer'],
-        },
-      ],
-    },
-    {
-      title: 'Kết nối nhóm',
-      items: [
-        {
-          to: '/my-group',
-          label: 'Nhóm của tôi',
-          icon: <Users size={19} />,
-          roles: ['Student'],
-        },
-        {
-          to: '/join-requests',
-          label: 'Yêu cầu tham gia',
-          icon: <UserPlus size={19} />,
-          roles: ['Student'],
-        },
-        {
-          to: '/invitations',
-          label: 'Lời mời vào nhóm',
-          icon: <Mail size={19} />,
-          roles: ['Student'],
-        },
-      ],
-    },
-    {
-      title: 'Cá nhân',
-      items: [
-        {
-          to: '/profile',
-          label: 'Hồ sơ cá nhân',
-          icon: <User size={19} />,
-          roles: ['Student', 'Moderator', 'Lecturer'],
-        },
-        {
-          to: '/notifications',
-          label: 'Thông báo',
-          icon: <Bell size={19} />,
-          roles: ['Student', 'Moderator', 'Lecturer'],
-        },
-      ],
-    },
-    {
-      title: 'Điều phối & Báo cáo',
-      items: [
-        {
-          to: '/reports',
-          label: 'Báo cáo ghép nhóm',
-          icon: <FileText size={19} />,
-          roles: ['Lecturer', 'Moderator'],
-        },
-        {
-          to: '/admin/accounts',
-          label: 'Quản lý TK & Đồng bộ FAP',
-          icon: <Shield size={19} />,
-          roles: ['Moderator'],
-        },
-      ],
-    },
-  ];
-
-  const sidebarWidth = isCollapsed ? 76 : 255;
-
   // Extract avatar initials (SV: Sinh viên, ĐP: Điều phối viên, GV: Giảng viên)
   const getInitials = (role?: UserRole) => {
     if (role === 'Moderator') return 'ĐP';
     if (role === 'Lecturer') return 'GV';
     return 'SV';
   };
+
+  // Role-specific navigation sections (BR-01, BR-02, BR-03 Role Separation)
+  const getNavSectionsForRole = (role?: UserRole): NavSection[] => {
+    if (role === 'Moderator') {
+      return [
+        {
+          title: 'Quản trị & Điều phối học kỳ',
+          items: [
+            {
+              to: '/spaces',
+              label: 'Không gian học phần (FAP)',
+              icon: <Layers size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/admin/accounts',
+              label: 'Quản lý TK & Đồng bộ FAP',
+              icon: <Shield size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo & Thống kê ghép nhóm',
+              icon: <FileText size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+        {
+          title: 'Giám sát học vụ & Đề tài',
+          items: [
+            {
+              to: '/groups',
+              label: 'Giám sát nhóm & Room',
+              icon: <Compass size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/projects',
+              label: 'Ý tưởng dự án (EXE)',
+              icon: <Lightbulb size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+        {
+          title: 'Cá nhân & Hệ thống',
+          items: [
+            {
+              to: '/profile',
+              label: 'Hồ sơ điều phối viên',
+              icon: <User size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/notifications',
+              label: 'Thông báo hệ thống',
+              icon: <Bell size={19} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+      ];
+    }
+
+    if (role === 'Lecturer') {
+      return [
+        {
+          title: 'Giảng dạy & Cố vấn EXE',
+          items: [
+            {
+              to: '/spaces',
+              label: 'Không gian học phần',
+              icon: <Layers size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo & Danh sách nhóm',
+              icon: <FileText size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/groups',
+              label: 'Các nhóm sinh viên',
+              icon: <Compass size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/projects',
+              label: 'Ý tưởng dự án (EXE)',
+              icon: <Lightbulb size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={19} />,
+              roles: ['Lecturer'],
+            },
+          ],
+        },
+        {
+          title: 'Cá nhân',
+          items: [
+            {
+              to: '/profile',
+              label: 'Hồ sơ giảng viên',
+              icon: <User size={19} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/notifications',
+              label: 'Thông báo',
+              icon: <Bell size={19} />,
+              roles: ['Lecturer'],
+            },
+          ],
+        },
+      ];
+    }
+
+    // Default for Student
+    return [
+      {
+        title: 'Không gian & Ghép đội EXE',
+        items: [
+          {
+            to: '/spaces',
+            label: 'Không gian học phần của tôi',
+            icon: <Layers size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/my-group',
+            label: 'Nhóm của tôi',
+            icon: <Users size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/join-requests',
+            label: 'Yêu cầu tham gia',
+            icon: <UserPlus size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/invitations',
+            label: 'Lời mời vào nhóm',
+            icon: <Mail size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+      {
+        title: 'Khám phá & Đề tài',
+        items: [
+          {
+            to: '/projects',
+            label: 'Ý tưởng dự án (EXE)',
+            icon: <Lightbulb size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/groups',
+            label: 'Khám phá nhóm',
+            icon: <Compass size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/candidates',
+            label: 'Tìm bạn ghép đội (Ứng viên)',
+            icon: <Sparkles size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+      {
+        title: 'Cá nhân',
+        items: [
+          {
+            to: '/profile',
+            label: 'Hồ sơ 5 kỹ năng',
+            icon: <User size={19} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/notifications',
+            label: 'Thông báo',
+            icon: <Bell size={19} />,
+            roles: ['Student'],
+          },
+        ],
+      },
+    ];
+  };
+
+  const navSections: NavSection[] = getNavSectionsForRole(user?.role);
+  const sidebarWidth = isCollapsed ? 76 : 255;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main, #f4f6fa)' }}>
@@ -591,9 +710,9 @@ export const MainLayout: React.FC = () => {
                     borderRadius: 8,
                     background:
                       user?.role === 'Moderator'
-                        ? '#008837'
-                        : user?.role === 'Lecturer'
                         ? '#0054a6'
+                        : user?.role === 'Lecturer'
+                        ? '#008837'
                         : '#f26f21',
                     color: '#ffffff',
                     display: 'flex',
@@ -632,7 +751,11 @@ export const MainLayout: React.FC = () => {
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {user?.studentCode || user?.role}
+                    {user?.role === 'Moderator'
+                      ? 'Điều phối viên'
+                      : user?.role === 'Lecturer'
+                      ? 'Giảng viên'
+                      : user?.studentCode || 'Sinh viên'}
                   </div>
                 </div>
 

@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddDbContext<GroupDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("Default")));
 
+        services.AddScoped<ICourseSpaceRepository, CourseSpaceRepository>();
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IJoinRequestRepository, JoinRequestRepository>();
         services.AddScoped<IInvitationRepository, InvitationRepository>();

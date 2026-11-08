@@ -1,4 +1,7 @@
-﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -235,6 +238,200 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20261026055232_StatusConcurrencyTokens', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    DROP INDEX [IX_Groups_ProjectId] ON [Groups];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Groups]') AND [c].[name] = N'ProjectId');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [Groups] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [Groups] ALTER COLUMN [ProjectId] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Groups]') AND [c].[name] = N'ProjectDomain');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [Groups] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [Groups] ALTER COLUMN [ProjectDomain] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    DECLARE @var2 nvarchar(max);
+    SELECT @var2 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Groups]') AND [c].[name] = N'LeaderId');
+    IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [Groups] DROP CONSTRAINT ' + @var2 + ';');
+    ALTER TABLE [Groups] ALTER COLUMN [LeaderId] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    ALTER TABLE [Groups] ADD [IsClosedByLeader] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    ALTER TABLE [Groups] ADD [RoomCode] nvarchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    ALTER TABLE [Groups] ADD [SpaceId] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE TABLE [CourseSpaces] (
+        [Id] uniqueidentifier NOT NULL,
+        [SemesterCode] nvarchar(20) NOT NULL,
+        [SubjectCode] nvarchar(20) NOT NULL,
+        [Name] nvarchar(100) NOT NULL,
+        [MaxMembersPerGroup] int NOT NULL,
+        [GroupThreshold] int NOT NULL,
+        [BufferRatio] decimal(5,2) NOT NULL,
+        [MaxConcurrentApplies] int NOT NULL,
+        [RegistrationDeadline] datetime2 NOT NULL,
+        [Status] nvarchar(30) NOT NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        [UpdatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_CourseSpaces] PRIMARY KEY ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE TABLE [SpaceEnrollments] (
+        [Id] uniqueidentifier NOT NULL,
+        [SpaceId] uniqueidentifier NOT NULL,
+        [StudentId] uniqueidentifier NOT NULL,
+        [StudentCode] nvarchar(20) NOT NULL,
+        [Email] nvarchar(256) NOT NULL,
+        [FullName] nvarchar(200) NOT NULL,
+        [Major] nvarchar(20) NOT NULL,
+        [Cohort] nvarchar(10) NOT NULL,
+        [ClassCode] nvarchar(50) NULL,
+        [EnrolledAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_SpaceEnrollments] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_SpaceEnrollments_CourseSpaces_SpaceId] FOREIGN KEY ([SpaceId]) REFERENCES [CourseSpaces] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_Groups_ProjectId] ON [Groups] ([ProjectId]) WHERE [ProjectId] IS NOT NULL AND [Status] <> ''Disbanded''');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE INDEX [IX_Groups_SpaceId] ON [Groups] ([SpaceId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [IX_Groups_SpaceId_RoomCode] ON [Groups] ([SpaceId], [RoomCode]) WHERE [SpaceId] IS NOT NULL AND [RoomCode] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_CourseSpaces_SemesterCode_SubjectCode] ON [CourseSpaces] ([SemesterCode], [SubjectCode]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE INDEX [IX_CourseSpaces_Status] ON [CourseSpaces] ([Status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_SpaceEnrollments_SpaceId_StudentCode] ON [SpaceEnrollments] ([SpaceId], [StudentCode]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    CREATE UNIQUE INDEX [IX_SpaceEnrollments_SpaceId_StudentId] ON [SpaceEnrollments] ([SpaceId], [StudentId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    ALTER TABLE [Groups] ADD CONSTRAINT [FK_Groups_CourseSpaces_SpaceId] FOREIGN KEY ([SpaceId]) REFERENCES [CourseSpaces] ([Id]) ON DELETE SET NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108052108_Phase3CourseSpaceAndRooms'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261108052108_Phase3CourseSpaceAndRooms', N'10.0.12');
 END;
 
 COMMIT;

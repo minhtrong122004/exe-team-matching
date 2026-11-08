@@ -32,6 +32,8 @@ import {
   X,
   Mail,
   User as UserIcon,
+  Download,
+  FolderUp,
 } from 'lucide-react';
 
 export const AdminAccountsPage: React.FC = () => {
@@ -102,6 +104,43 @@ export const AdminAccountsPage: React.FC = () => {
   const [fapLoading, setFapLoading] = useState<boolean>(false);
   const [fapError, setFapError] = useState<string | null>(null);
   const [fapResult, setFapResult] = useState<ProvisionFapStudentsResponse | null>(null);
+  const fapFileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  // Tải file mẫu CSV danh sách sinh viên FAP
+  const handleDownloadAdminSampleCsv = () => {
+    const csvHeader = 'MSSV, Họ và tên, Email, Chuyên ngành\n';
+    const csvRows = [
+      'SE180101, Nguyễn Hoàng Phương Huyền Trân, trannhphse180101@fpt.edu.vn, SE',
+      'AI180205, Trần Minh Khôi, khoitmai180205@fpt.edu.vn, AI',
+      'GD180312, Lê Ngọc Bảo Châu, chaulnbgd180312@fpt.edu.vn, GD',
+      'MKT180408, Phạm Quốc Đạt, datpqmkt180408@fpt.edu.vn, MKT',
+      'IB180519, Võ Thị Thanh Thảo, thaovttib180519@fpt.edu.vn, IB',
+      'IA180622, Đặng Gia Huy, huydgia180622@fpt.edu.vn, IA',
+      'SA180123, Nguyễn Văn Chuyển Ngành, chuyennganh.sa180123@fpt.edu.vn, SE',
+    ].join('\n');
+    const blob = new Blob(['\uFEFF' + csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `danh_sach_sinh_vien_fap_${fapSemesterCode}_${fapSubjectCode}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Tải file CSV từ máy tính lên
+  const handleFapFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = (event.target?.result as string) || '';
+      setFapRawText(text);
+      setFapError(null);
+    };
+    reader.readAsText(file);
+  };
 
   // Modal xác nhận khóa tài khoản
   const [accountToLock, setAccountToLock] = useState<AccountResponse | null>(null);
@@ -460,7 +499,7 @@ export const AdminAccountsPage: React.FC = () => {
             }}
           >
             <FileSpreadsheet size={18} />
-            <span>Đồng bộ Sinh viên từ FAP (BR-01)</span>
+            <span>Cấp tài khoản Sinh viên từ FAP (BR-01)</span>
           </button>
 
           <button
@@ -1638,6 +1677,54 @@ export const AdminAccountsPage: React.FC = () => {
                     <option value="EXE201">EXE201 — Experiential Entrepreneurship 2</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Action Toolbar for CSV Import & Download */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.65rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 10,
+                  background: 'var(--bg-main, #f8fafc)',
+                  border: '1px solid var(--border-light, #e2e8f0)',
+                  marginBottom: '1rem',
+                }}
+              >
+                <input
+                  ref={fapFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFapFileUpload}
+                  style={{ display: 'none' }}
+                />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={fapLoading}
+                    onClick={() => fapFileInputRef.current?.click()}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
+                  >
+                    <FolderUp size={14} />
+                    <span>📁 Tải lên File CSV từ máy</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={fapLoading}
+                    onClick={handleDownloadAdminSampleCsv}
+                    style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem', color: 'var(--fpt-blue, #0054a6)' }}
+                  >
+                    <Download size={14} />
+                    <span>📥 Tải file mẫu CSV</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
@@ -1657,14 +1744,15 @@ export const AdminAccountsPage: React.FC = () => {
                     );
                     setFapError(null);
                   }}
+                  style={{ fontSize: '0.8rem', padding: '0.4rem 0.85rem' }}
                 >
-                  Nạp danh sách FAP mẫu (7 SV)
+                  ⚡ Nạp danh sách mẫu (7 SV)
                 </button>
               </div>
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" style={{ fontSize: '0.82rem', fontWeight: 600 }}>
-                  Danh sách Sinh viên từ FAP (Mỗi dòng: <code>MSSV, Họ và tên, Email, Chuyên ngành (tùy chọn)</code>) *
+                  Nội dung Danh sách Sinh viên FAP (Mỗi dòng: <code>MSSV, Họ và tên, Email, Chuyên ngành (tùy chọn)</code>) *
                 </label>
                 <textarea
                   className="form-control"

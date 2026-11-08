@@ -32,8 +32,12 @@ public class GroupMatchingService(
         var profile = await GetCurrentProfileAsync(ct);
 
         // Lấy lĩnh vực mới nhất từ Project; Project lỗi/không còn thì dùng bản sao lưu lúc tạo nhóm.
-        var project = await projectClient.GetProjectAsync(group.ProjectId, ct);
-        var need = ToNeed(group, project?.Domain ?? group.ProjectDomain);
+        ProjectDto? project = null;
+        if (group.ProjectId.HasValue)
+        {
+            project = await projectClient.GetProjectAsync(group.ProjectId.Value, ct);
+        }
+        var need = ToNeed(group, project?.Domain ?? group.ProjectDomain ?? "General");
 
         var result = await matchingClient.CalculateMatchAsync(ToStudent(profile), need, ct);
         return new MatchScoreResponse(profile.UserId, group.Id, result.Score, result.MatchedSkills, result.MissingSkills);
@@ -49,7 +53,7 @@ public class GroupMatchingService(
         if (candidates.Count == 0) return [];
 
         var results = await matchingClient.RankGroupsAsync(
-            ToStudent(profile), candidates.Values.Select(g => ToNeed(g, g.ProjectDomain)), ClampTop(top), ct);
+            ToStudent(profile), candidates.Values.Select(g => ToNeed(g, g.ProjectDomain ?? "General")), ClampTop(top), ct);
 
         return results
             .Where(r => candidates.ContainsKey(r.GroupId))
@@ -74,7 +78,7 @@ public class GroupMatchingService(
         if (byId.Count == 0) return [];
 
         var results = await matchingClient.RankCandidatesAsync(
-            ToNeed(group, group.ProjectDomain), byId.Values.Select(ToStudent), ClampTop(top), ct);
+            ToNeed(group, group.ProjectDomain ?? "General"), byId.Values.Select(ToStudent), ClampTop(top), ct);
 
         return results
             .Where(r => byId.ContainsKey(r.UserId))
