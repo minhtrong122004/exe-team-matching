@@ -1,28 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  LogIn,
-  Sparkles,
-  AlertCircle,
-  Mail,
-  Lock,
-  Lightbulb,
-  Zap,
-  Users,
-} from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
+import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const navigate = useNavigate();
 
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const handleDemoLogin = (role: 'Student' | 'Lecturer' | 'Admin') => {
+    loginDemo(role);
+    if (role === 'Admin') {
+      navigate('/admin/accounts');
+    } else if (role === 'Lecturer') {
+      navigate('/reports');
+    } else {
+      navigate('/projects');
+    }
+  };
 
   const executeLogin = async (loginEmail: string, loginPass: string) => {
     setError(null);
@@ -74,383 +76,412 @@ export const LoginPage: React.FC = () => {
     <div
       style={{
         minHeight: '100vh',
+        width: '100%',
+        backgroundColor: '#F8FAFC',
         display: 'flex',
-        flexDirection: 'row',
-        background: '#f8fafc',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '36px 16px',
+        boxSizing: 'border-box',
       }}
     >
-      {/* ══════════════════════════════════════════════════════════════
-          LEFT COLUMN: FPT EDUCATION SHOWCASE (55%)
-         ══════════════════════════════════════════════════════════════ */}
+      {/* ── 2-COLUMN SPLIT SHOWCASE CONTAINER ── */}
       <div
+        className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
         style={{
-          flex: '1.2',
-          background: 'radial-gradient(circle at 10% 20%, rgba(0, 84, 166, 0.4) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(242, 111, 33, 0.3) 0%, transparent 50%), #061325',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '3.5rem',
-          color: '#ffffff',
-          overflow: 'hidden',
+          maxWidth: '1150px',
+          margin: '0 auto',
         }}
       >
-        {/* Subtle Decorative Grid Pattern */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Top Header Logo */}
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <FptEducationLogo />
-        </div>
-
-        {/* Center Hero Information */}
-        <div style={{ position: 'relative', zIndex: 1, margin: '3rem 0' }}>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.4rem 0.95rem',
-              borderRadius: 9999,
-              background: 'rgba(242, 111, 33, 0.15)',
-              border: '1px solid rgba(242, 111, 33, 0.35)',
-              color: '#fba46e',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              letterSpacing: '0.04em',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <Sparkles size={15} color="#f26f21" />
-            CỔNG THÔNG TIN KHỞI NGHIỆP MÔN EXE
-          </div>
-
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              lineHeight: 1.25,
-              color: '#ffffff',
-              letterSpacing: '-0.02em',
-              marginBottom: '1rem',
-            }}
-          >
-            Tìm đồng đội đa ngành,<br />
-            bứt phá{' '}
-            <span
-              style={{
-                background: 'linear-gradient(90deg, #f26f21 0%, #ff9e58 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              dự án khởi nghiệp
-            </span>
-          </h1>
-
-          <p
-            style={{
-              fontSize: '0.975rem',
-              color: '#94a3b8',
-              lineHeight: 1.6,
-              maxWidth: 540,
-              marginBottom: '2.5rem',
-            }}
-          >
-            Hệ thống kết nối sinh viên Đại học FPT thuộc các chuyên ngành Kỹ thuật phần mềm (SE), Trí tuệ nhân tạo (AI), Thiết kế đồ họa (GD), Marketing (MKT) và Kinh doanh quốc tế (IB).
-          </p>
-
-          {/* 3 Value Pillars */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: 540 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '1rem',
-                padding: '1rem 1.25rem',
-                borderRadius: 14,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(242, 111, 33, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#f26f21',
-                  flexShrink: 0,
-                }}
-              >
-                <Lightbulb size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.2rem' }}>
-                  Kho Ý tưởng Dự án EXE phong phú
-                </div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Công bố đề tài, tìm giải pháp thực tế và tuyển chọn các vị trí còn thiếu cho đội ngũ.
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '1rem',
-                padding: '1rem 1.25rem',
-                borderRadius: 14,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(0, 84, 166, 0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#60a5fa',
-                  flexShrink: 0,
-                }}
-              >
-                <Zap size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.2rem' }}>
-                  Thuật toán So khớp Matching Score
-                </div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Tự động tính toán độ tương thích về kỹ năng, chuyên ngành và sở thích đề tài.
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '1rem',
-                padding: '1rem 1.25rem',
-                borderRadius: 14,
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(16, 185, 129, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#34d399',
-                  flexShrink: 0,
-                }}
-              >
-                <Users size={20} />
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff', marginBottom: '0.2rem' }}>
-                  Hợp tác liên ngành chuẩn thực tế
-                </div>
-                <div style={{ fontSize: '0.825rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                  Trải nghiệm mô hình vận hành nhóm khởi nghiệp thực chiến theo yêu cầu môn EXE.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Campuses List */}
-        <div style={{ position: 'relative', zIndex: 1, borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
-            Hệ thống áp dụng tại 5 cơ sở FPT University:
-          </div>
-          <div style={{ fontSize: '0.825rem', color: '#94a3b8', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <span>Hà Nội</span> • <span>TP. Hồ Chí Minh</span> • <span>Đà Nẵng</span> • <span>Cần Thơ</span> • <span>Quy Nhơn</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ══════════════════════════════════════════════════════════════
-          RIGHT COLUMN: LOGIN FORM & QUICK DEMO (45%)
-         ══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          flex: '0.9',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '3rem 2.5rem',
-          background: '#ffffff',
-          position: 'relative',
-        }}
-      >
-        <div style={{ maxWidth: 440, width: '100%' }}>
+        {/* ── LEFT COLUMN (lg:col-span-7): EXE Network Showcase + 3D Globe ── */}
+        <div className="lg:col-span-7 flex flex-col justify-between py-2">
           {/* Header */}
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
-              <span className="fpt-portal-badge">FPT SSO PORTAL</span>
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <FptEducationLogo />
+              <div
+                style={{
+                  height: '24px',
+                  width: '1px',
+                  backgroundColor: '#CBD5E1',
+                }}
+              />
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#64748B',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Cổng Ghép nhóm Đa ngành Khởi nghiệp EXE
+              </span>
             </div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.4rem', letterSpacing: '-0.02em' }}>
-              Đăng nhập hệ thống
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              Vui lòng nhập địa chỉ email của bạn (Gmail, Outlook, FPT Education...)
+
+            <h1
+              style={{
+                fontSize: '28px',
+                fontWeight: 700,
+                color: '#0F172A',
+                letterSpacing: '-0.02em',
+                marginTop: '16px',
+                lineHeight: 1.25,
+              }}
+            >
+              Mạng lưới Ghép nhóm Khởi nghiệp Đa ngành
+            </h1>
+
+            <p
+              style={{
+                fontSize: '14px',
+                color: '#64748B',
+                marginTop: '8px',
+                maxWidth: '520px',
+                lineHeight: 1.55,
+              }}
+            >
+              Kết nối sinh viên các chuyên ngành SE, AI, IA, GD, MKT, IB để hình thành đội ngũ dự án thực chiến môn Experiential Entrepreneurship (EXE).
             </p>
           </div>
 
-          {error && (
-            <div
+          {/* 3D Dotted Interactive Globe */}
+          <div style={{ margin: '8px 0' }}>
+            <ExeNetworkGlobe />
+          </div>
+        </div>
+
+        {/* ── RIGHT COLUMN (lg:col-span-5): Login Card + Quick Demo ── */}
+        <div className="lg:col-span-5 flex flex-col items-center w-full">
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              border: '1px solid #E2E8F0',
+              padding: '36px 32px',
+              boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05)',
+              boxSizing: 'border-box',
+            }}
+          >
+            <h2
               style={{
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#dc2626',
-                padding: '0.85rem 1rem',
-                borderRadius: 10,
-                fontSize: '0.85rem',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-                marginBottom: '1.5rem',
+                fontSize: '22px',
+                fontWeight: 700,
+                color: '#0F172A',
+                letterSpacing: '-0.02em',
+                margin: '0 0 4px 0',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                <span>{error}</span>
-              </div>
-              {pendingVerificationEmail && (
-                <div style={{ paddingLeft: '1.75rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/verify-email?email=${encodeURIComponent(pendingVerificationEmail)}`)}
-                    style={{
-                      background: '#ea580c',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: 6,
-                      fontSize: '0.8rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Nhập mã xác thực OTP ngay &rarr;
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+              Đăng nhập hệ thống
+            </h2>
+            <p style={{ fontSize: '14px', color: '#64748B', margin: '0 0 24px 0' }}>
+              Vui lòng nhập thông tin tài khoản của bạn để tiếp tục
+            </p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155' }}>
-                Địa chỉ Email *
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+            {error && (
+              <div
+                style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#DC2626',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  marginBottom: '18px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span>{error}</span>
+                </div>
+                {pendingVerificationEmail && (
+                  <div style={{ paddingLeft: '24px' }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/verify-email?email=${encodeURIComponent(pendingVerificationEmail)}`)}
+                      style={{
+                        backgroundColor: '#EA580C',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Nhập mã xác thực OTP ngay &rarr;
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Địa chỉ Email *
+                </label>
                 <input
                   type="email"
-                  className="form-control"
                   placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-            </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <label className="form-label" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#334155', margin: 0 }}>
-                  Mật khẩu *
-                </label>
-                <Link
-                  to="/forgot-password"
-                  style={{
-                    fontSize: '0.825rem',
-                    color: '#f26f21',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                  }}
-                >
-                  Quên mật khẩu?
-                </Link>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, top: 13, color: '#94a3b8' }} />
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#334155',
+                      margin: 0,
+                    }}
+                  >
+                    Mật khẩu *
+                  </label>
+                  <Link
+                    to="/forgot-password"
+                    style={{
+                      fontSize: '12px',
+                      color: '#F27024',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Quên mật khẩu?
+                  </Link>
+                </div>
                 <input
                   type="password"
-                  className="form-control"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  style={{ paddingLeft: '2.6rem', height: 44 }}
                   required
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '10px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    padding: '0 14px',
+                    fontSize: '14px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0F172A';
+                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#CBD5E1';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={loading}
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  backgroundColor: '#F27024',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: loading ? 'default' : 'pointer',
+                  marginTop: '8px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#EA580C';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.backgroundColor = '#F27024';
+                  }
+                }}
+              >
+                {loading ? 'Đang xác thực...' : 'Đăng nhập'}
+              </button>
+            </form>
+
+            <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '13px', color: '#64748B' }}>
+              Chưa có tài khoản?{' '}
+              <Link to="/register" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
+                Đăng ký ngay
+              </Link>
+            </div>
+          </div>
+
+          {/* ── QUICK DEMO BAR (Bỏ qua Backend) ── */}
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '420px',
+              backgroundColor: '#F1F5F9',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              border: '1px solid #E2E8F0',
+              marginTop: '16px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span
               style={{
-                width: '100%',
-                padding: '0.8rem',
-                fontSize: '0.95rem',
-                borderRadius: 10,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#64748B',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+                display: 'block',
+                textAlign: 'center',
+                letterSpacing: '0.04em',
               }}
             >
-              <LogIn size={18} />
-              {loading ? 'Đang xác thực...' : 'Đăng nhập'}
-            </button>
-          </form>
+              Chế độ kiểm tra UI nhanh (Bỏ qua Backend):
+            </span>
 
-          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.875rem', color: '#64748b' }}>
-            Chưa có tài khoản?{' '}
-            <Link to="/register" style={{ color: '#f26f21', fontWeight: 700 }}>
-              Đăng ký ngay
-            </Link>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('Student')}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.color = '#F27024';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#0F172A';
+                }}
+              >
+                Sinh viên (Tú)
+              </button>
 
-          {/* Footer Copyright */}
-          <div style={{ textAlign: 'center', marginTop: '3rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-            © 2026 Trường Đại học FPT • Hệ sinh thái FPT Education
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('Lecturer')}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.color = '#F27024';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#0F172A';
+                }}
+              >
+                Giảng viên
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('Admin')}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '6px 8px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.color = '#F27024';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#0F172A';
+                }}
+              >
+                Quản trị viên
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* ── FOOTER COPYRIGHT ── */}
+      <div style={{ textAlign: 'center', marginTop: '36px', fontSize: '12px', color: '#94A3B8' }}>
+        © 2026 Trường Đại học FPT • Hà Nội • TP.HCM • Đà Nẵng • Cần Thơ • Quy Nhơn
       </div>
     </div>
   );

@@ -66,6 +66,7 @@ export const MainLayout: React.FC = () => {
   useEffect(() => {
     const theme = isDarkMode ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.classList.toggle('dark', isDarkMode);
     localStorage.setItem('theme', theme);
   }, [isDarkMode]);
 
