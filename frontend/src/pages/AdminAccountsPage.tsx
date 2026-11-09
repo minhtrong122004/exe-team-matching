@@ -86,7 +86,7 @@ export const AdminAccountsPage: React.FC = () => {
   const [createLoading, setCreateLoading] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Modal đồng bộ danh sách Sinh viên từ FAP (BR-01)
+  // Modal đồng bộ danh sách Sinh viên từ FAP
   const [isFapModalOpen, setIsFapModalOpen] = useState<boolean>(false);
   const [fapSemesterCode, setFapSemesterCode] = useState<string>('FA26');
   const [fapSubjectCode, setFapSubjectCode] = useState<string>('EXE101');
@@ -301,7 +301,7 @@ export const AdminAccountsPage: React.FC = () => {
     }
   };
 
-  // Xử lý đồng bộ danh sách sinh viên từ FAP (BR-01)
+  // Xử lý đồng bộ danh sách sinh viên từ FAP
   const handleProvisionFapSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFapError(null);
@@ -478,7 +478,7 @@ export const AdminAccountsPage: React.FC = () => {
             </h1>
           </div>
           <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.925rem' }}>
-            Đồng bộ danh sách sinh viên đủ điều kiện học EXE từ FAP (BR-01), cấp tài khoản Giảng viên / Moderator và kiểm soát quyền truy cập.
+            Đồng bộ danh sách sinh viên đủ điều kiện học EXE từ FAP, cấp tài khoản Giảng viên / Moderator và kiểm soát quyền truy cập.
           </p>
         </div>
 
@@ -499,7 +499,7 @@ export const AdminAccountsPage: React.FC = () => {
             }}
           >
             <FileSpreadsheet size={18} />
-            <span>Cấp tài khoản Sinh viên từ FAP (BR-01)</span>
+            <span>Cấp tài khoản Sinh viên từ FAP</span>
           </button>
 
           <button
@@ -1033,7 +1033,7 @@ export const AdminAccountsPage: React.FC = () => {
                                   border: acc.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fde68a',
                                 }}
                               >
-                                {acc.hasAcceptedTerms ? 'Đã đồng ý BR-34' : 'Chờ đồng ý BR-34'}
+                                {acc.hasAcceptedTerms ? 'Đã đồng ý ' : 'Chờ đồng ý '}
                               </span>
                               {acc.mustChangePassword && (
                                 <span
@@ -1289,7 +1289,7 @@ export const AdminAccountsPage: React.FC = () => {
             >
               <ShieldCheck size={16} color="#0054a6" style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0 }}>
-                <strong>Lưu ý phân quyền (BR-02):</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
+                <strong>Lưu ý phân quyền:</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
               </p>
             </div>
 
@@ -1545,7 +1545,7 @@ export const AdminAccountsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: ĐỒNG BỘ DANH SÁCH SINH VIÊN TỪ FAP (BR-01, BR-04) ──── */}
+      {/* ── MODAL: ĐỒNG BỘ DANH SÁCH SINH VIÊN TỪ FAP ──── */}
       {isFapModalOpen && (
         <div
           role="dialog"
@@ -1604,7 +1604,7 @@ export const AdminAccountsPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 id="fap-provision-modal-title" style={{ fontSize: '1.18rem', fontWeight: 800, color: 'var(--text-main)', margin: 0 }}>
-                    Đồng bộ Danh sách Sinh viên từ FAP (BR-01 & BR-04)
+                    Đồng bộ Danh sách Sinh viên từ FAP
                   </h3>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     Tự động khởi tạo tài khoản Student, tách ngành từ MSSV và gửi email mật khẩu khởi tạo qua MailHog

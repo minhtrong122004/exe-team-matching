@@ -38,6 +38,9 @@ export type ProjectStatus =
 export interface ProjectItem {
   id: string;
   ownerId: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  teamId?: string;
   title: string;
   problem: string;
   solution: string;

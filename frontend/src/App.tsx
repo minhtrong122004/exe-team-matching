@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -12,25 +11,27 @@ import { CandidateDiscoveryPage } from './pages/CandidateDiscoveryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
-import { CourseSpacesPage } from './pages/CourseSpacesPage';
+import { ModeratorSpacesPage } from './pages/moderator/ModeratorSpacesPage';
+import { ModeratorDistributionPage } from './pages/moderator/ModeratorDistributionPage';
+import { ModeratorTransfersPage } from './pages/moderator/ModeratorTransfersPage';
+import { LecturerDashboardPage } from './pages/lecturer/LecturerDashboardPage';
 import {
   GroupsPage,
   MyGroupPage,
   JoinRequestsPage,
   InvitationsPage,
   NotificationsPage,
-  ReportsPage,
 } from './pages/PlaceholderPages';
 
 const RootRedirect: React.FC = () => {
   const { user } = useAuth();
   if (user?.role === 'Moderator') {
-    return <Navigate to="/spaces" replace />;
+    return <Navigate to="/moderator/spaces" replace />;
   }
   if (user?.role === 'Lecturer') {
-    return <Navigate to="/spaces" replace />;
+    return <Navigate to="/lecturer/dashboard" replace />;
   }
-  return <Navigate to="/spaces" replace />;
+  return <Navigate to="/groups" replace />;
 };
 
 export const App: React.FC = () => {
@@ -40,7 +41,7 @@ export const App: React.FC = () => {
         <Routes>
           {/* Public Authentication routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -50,7 +51,7 @@ export const App: React.FC = () => {
             <Route element={<MainLayout />}>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/spaces" element={<CourseSpacesPage />} />
+              <Route path="/spaces" element={<Navigate to="/moderator/spaces" replace />} />
               <Route path="/candidates" element={<CandidateDiscoveryPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
@@ -63,14 +64,18 @@ export const App: React.FC = () => {
                 <Route path="/invitations" element={<InvitationsPage />} />
               </Route>
 
-              {/* Lecturer and Moderator reports */}
+              {/* Lecturer and Moderator reports & dashboard */}
               <Route element={<ProtectedRoute allowedRoles={['Lecturer', 'Moderator']} />}>
-                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/reports" element={<LecturerDashboardPage />} />
+                <Route path="/lecturer/dashboard" element={<LecturerDashboardPage />} />
               </Route>
 
-              {/* Moderator accounts and FAP student provisioning */}
+              {/* Moderator accounts, spaces and distribution */}
               <Route element={<ProtectedRoute allowedRoles={['Moderator']} />}>
                 <Route path="/admin/accounts" element={<AdminAccountsPage />} />
+                <Route path="/moderator/spaces" element={<ModeratorSpacesPage />} />
+                <Route path="/moderator/distribution" element={<ModeratorDistributionPage />} />
+                <Route path="/moderator/transfers" element={<ModeratorTransfersPage />} />
               </Route>
             </Route>
           </Route>

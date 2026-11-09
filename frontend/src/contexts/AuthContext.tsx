@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   User,
-  UserRole,
   AuthResponse,
   AuthUserDto,
   AccountResponse,
@@ -23,7 +22,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<AuthUserDto>;
-  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator' | 'Admin') => AuthUserDto;
+  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
   register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
   verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
   resendVerification: (email: string) => Promise<ResendVerificationResponse>;
@@ -62,17 +61,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' | 'Admin' = 'Student'): AuthUserDto => {
-    const finalRole: UserRole = role === 'Admin' ? 'Moderator' : (role as UserRole);
-    const demoUser: User = {
-      id: '11111111-1111-1111-1111-111111111101',
-      email: role === 'Student' ? 'tulpnse185102@fpt.edu.vn' : `${finalRole.toLowerCase()}@exe.local`,
-      fullName: role === 'Student' ? 'Lữ Phước Nhật Tú' : role === 'Lecturer' ? 'TS. Nguyễn Văn Giảng Viên' : 'Điều Phối Viên EXE',
-      role: finalRole,
-      studentCode: role === 'Student' ? 'SE185102' : undefined,
-      campus: 'TP. Hồ Chí Minh',
-      major: role === 'Student' ? 'SE' : undefined,
-    };
+  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' = 'Student'): AuthUserDto => {
+    let demoUser: User;
+    if (role === 'Moderator') {
+      demoUser = {
+        id: '22222222-2222-2222-2222-222222222202',
+        email: 'moderator@fpt.edu.vn',
+        fullName: 'ThS. Lê Minh Điều Phối',
+        role: 'Moderator',
+        campus: 'Hà Nội',
+        mustChangePassword: false,
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else if (role === 'Lecturer') {
+      demoUser = {
+        id: '33333333-3333-3333-3333-333333333303',
+        email: 'lecturer@fpt.edu.vn',
+        fullName: 'TS. Nguyễn Văn Giảng Viên',
+        role: 'Lecturer',
+        campus: 'Đà Nẵng',
+        mustChangePassword: false,
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else {
+      // Default: Student (Tú - SE185102)
+      demoUser = {
+        id: '11111111-1111-1111-1111-111111111101',
+        email: 'tulpnse185102@fpt.edu.vn',
+        fullName: 'Lữ Phước Nhật Tú',
+        role: 'Student',
+        studentCode: 'SE185102',
+        campus: 'TP. Hồ Chí Minh',
+        major: 'Kỹ thuật phần mềm',
+        mustChangePassword: true,
+        hasAcceptedTerms: false,
+        isProfileCompleted: true,
+      };
+    }
     localStorage.setItem('access_token', 'demo-access-token');
     localStorage.setItem('refresh_token', 'demo-refresh-token');
     localStorage.setItem('user', JSON.stringify(demoUser));

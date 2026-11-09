@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   AlertCircle,
   ShieldCheck,
   GraduationCap,
-  UserCheck,
   Users,
+  X,
+  Mail,
+  KeyRound,
+  CheckCircle2,
 } from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
@@ -18,25 +21,19 @@ export const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
-  const { login, loginDemo } = useAuth();
-  const navigate = useNavigate();
+  // Forgot password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState('');
+  const [forgotConfirmPass, setForgotConfirmPass] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
 
-  const handleQuickLogin = async (loginEmail: string, loginPass: string, fallbackRole: 'Student' | 'Lecturer' | 'Admin') => {
-    setEmail(loginEmail);
-    setPassword(loginPass);
-    try {
-      await executeLogin(loginEmail, loginPass);
-    } catch {
-      loginDemo(fallbackRole);
-      if (fallbackRole === 'Admin') {
-        navigate('/admin/accounts');
-      } else if (fallbackRole === 'Lecturer') {
-        navigate('/spaces');
-      } else {
-        navigate('/projects');
-      }
-    }
-  };
+  const { login, loginDemo, forgotPassword, resetPassword } = useAuth();
+  const navigate = useNavigate();
 
   const executeLogin = async (loginEmail: string, loginPass: string) => {
     setError(null);
@@ -47,11 +44,11 @@ export const LoginPage: React.FC = () => {
       const authUser = await login(loginEmail, loginPass);
       // Điều hướng theo vai trò thực tế trả về từ Backend JWT
       if ((authUser.role as string) === 'Admin' || authUser.role === 'Moderator') {
-        navigate('/admin/accounts');
-      } else if (authUser.role === 'Lecturer') {
         navigate('/spaces');
+      } else if (authUser.role === 'Lecturer') {
+        navigate('/reports');
       } else {
-        navigate('/projects');
+        navigate('/groups');
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -291,17 +288,27 @@ export const LoginPage: React.FC = () => {
                   >
                     Mật khẩu *
                   </label>
-                  <Link
-                    to="/forgot-password"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotError(null);
+                      setForgotSuccess(null);
+                      setForgotStep(1);
+                      setShowForgotModal(true);
+                    }}
                     style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
                       fontSize: '12px',
                       color: '#F27024',
                       fontWeight: 600,
+                      cursor: 'pointer',
                       textDecoration: 'none',
                     }}
                   >
                     Quên mật khẩu?
-                  </Link>
+                  </button>
                 </div>
                 <input
                   type="password"
@@ -366,42 +373,35 @@ export const LoginPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Thông báo chính sách cấp tài khoản từ danh sách FAP (BR-01) */}
+            {/* Hướng dẫn tài khoản FAP */}
             <div
               style={{
                 marginTop: '16px',
-                padding: '10px 12px',
-                borderRadius: 10,
-                background: '#F8FAFC',
+                padding: '12px 14px',
+                borderRadius: '10px',
+                backgroundColor: '#F8FAFC',
                 border: '1px solid #E2E8F0',
                 fontSize: '12px',
-                color: '#475569',
-                lineHeight: 1.45,
+                color: '#64748B',
+                lineHeight: 1.5,
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '8px',
               }}
             >
-              <ShieldCheck size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>
-                <strong style={{ color: '#0F172A' }}>Chính sách FAP (BR-01):</strong> Sinh viên được Điều phối viên (Moderator) đồng bộ trực tiếp từ FAP và nhận mật khẩu qua email trường.
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#64748B' }}>
-              Chưa có tài khoản?{' '}
-              <Link to="/register" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
-                Đăng ký ngay
-              </Link>
+              <ShieldCheck size={16} color="#F27024" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>
+                Dành cho sinh viên có tên trong danh sách học kỳ từ hệ thống FAP. Vui lòng đăng nhập bằng email trường (@fpt.edu.vn) và mật khẩu khởi tạo đã gửi qua email.
+              </span>
             </div>
           </div>
 
-          {/* ── QUICK DEMO BAR (Bỏ qua Backend hoặc Test 1-Click) ── */}
+          {/* ── CHẾ ĐỘ KIỂM TRA UI NHANH (BỎ QUA BACKEND) ── */}
           <div
             style={{
               width: '100%',
               maxWidth: '420px',
-              backgroundColor: '#F1F5F9',
+              backgroundColor: '#FFFFFF',
               borderRadius: '12px',
               padding: '12px 14px',
               border: '1px solid #E2E8F0',
@@ -412,7 +412,7 @@ export const LoginPage: React.FC = () => {
             <span
               style={{
                 fontSize: '11px',
-                fontWeight: 600,
+                fontWeight: 700,
                 color: '#64748B',
                 textTransform: 'uppercase',
                 marginBottom: '8px',
@@ -421,27 +421,70 @@ export const LoginPage: React.FC = () => {
                 letterSpacing: '0.04em',
               }}
             >
-              Đăng nhập nhanh tài khoản kiểm thử (1-Click Demo):
+              Chế độ kiểm tra UI nhanh (Bỏ qua Backend):
             </span>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+              {/* Nút 1: Student (Tú - SE185102) */}
               <button
                 type="button"
-                onClick={() => handleQuickLogin('moderator@fpt.edu.vn', 'Moderator@123', 'Admin')}
+                onClick={() => {
+                  loginDemo('Student');
+                  navigate('/groups');
+                }}
                 style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
+                  justifyContent: 'center',
+                  gap: '4px',
                   backgroundColor: '#FFFFFF',
                   color: '#0F172A',
                   border: '1px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
+                  padding: '8px 6px',
+                  fontSize: '11px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.color = '#F27024';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.color = '#0F172A';
+                }}
+              >
+                <Users size={16} color="#F27024" />
+                <span>Student (Tú)</span>
+              </button>
+
+              {/* Nút 2: Moderator (Điều phối) */}
+              <button
+                type="button"
+                onClick={() => {
+                  loginDemo('Moderator');
+                  navigate('/spaces');
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#0F172A',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '8px',
+                  padding: '8px 6px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#0054A6';
@@ -452,27 +495,33 @@ export const LoginPage: React.FC = () => {
                   e.currentTarget.style.color = '#0F172A';
                 }}
               >
-                <ShieldCheck size={14} color="#0054A6" />
+                <ShieldCheck size={16} color="#0054A6" />
                 <span>Moderator</span>
               </button>
 
+              {/* Nút 3: Lecturer (Giảng viên) */}
               <button
                 type="button"
-                onClick={() => handleQuickLogin('lecturer@fpt.edu.vn', 'Lecturer@123', 'Lecturer')}
+                onClick={() => {
+                  loginDemo('Lecturer');
+                  navigate('/reports');
+                }}
                 style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
+                  justifyContent: 'center',
+                  gap: '4px',
                   backgroundColor: '#FFFFFF',
                   color: '#0F172A',
                   border: '1px solid #CBD5E1',
                   borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
+                  padding: '8px 6px',
+                  fontSize: '11px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
+                  textAlign: 'center',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = '#008837';
@@ -483,75 +532,410 @@ export const LoginPage: React.FC = () => {
                   e.currentTarget.style.color = '#0F172A';
                 }}
               >
-                <GraduationCap size={14} color="#008837" />
-                <span>Giảng viên</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('tunp@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <Users size={14} color="#F27024" />
-                <span>SV Tú (SE185102)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('sinhvien.moi@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <UserCheck size={14} color="#EA580C" />
-                <span>Tân SV (BR-34)</span>
+                <GraduationCap size={16} color="#008837" />
+                <span>Lecturer</span>
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── MODAL QUÊN MẬT KHẨU ── */}
+      {showForgotModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '16px',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '16px',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxSizing: 'border-box',
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '16px',
+                paddingBottom: '12px',
+                borderBottom: '1px solid #E2E8F0',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <KeyRound size={20} color="#F27024" />
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>
+                  {forgotStep === 1 ? 'Khôi phục mật khẩu' : 'Đặt lại mật khẩu mới'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  color: '#64748B',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Error & Success Messages */}
+            {forgotError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  color: '#DC2626',
+                  fontSize: '12px',
+                  marginBottom: '14px',
+                }}
+              >
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  color: '#16A34A',
+                  fontSize: '12px',
+                  marginBottom: '14px',
+                }}
+              >
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            {/* Bước 1: Nhập email nhận OTP */}
+            {forgotStep === 1 ? (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!forgotEmail.trim()) {
+                    setForgotError('Vui lòng nhập địa chỉ email trường (@fpt.edu.vn).');
+                    return;
+                  }
+                  setForgotError(null);
+                  setForgotLoading(true);
+                  try {
+                    await forgotPassword(forgotEmail);
+                    setForgotSuccess('Đã gửi mã OTP khôi phục! Vui lòng kiểm tra email trường hoặc MailHog.');
+                    setForgotStep(2);
+                  } catch (err: any) {
+                    setForgotError(err.response?.data?.detail || err.response?.data?.title || 'Không tìm thấy tài khoản với email này.');
+                  } finally {
+                    setForgotLoading(false);
+                  }
+                }}
+              >
+                <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#475569', lineHeight: 1.5 }}>
+                  Nhập địa chỉ email trường (<strong>@fpt.edu.vn</strong>) để nhận mã xác thực OTP đặt lại mật khẩu.
+                </p>
+
+                {/* Ghi chú MailHog */}
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '8px',
+                    padding: '10px 12px',
+                    fontSize: '12px',
+                    color: '#475569',
+                    marginBottom: '16px',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  💡 <strong>Kiểm tra hộp thư local:</strong> Mã OTP được gửi đến MailHog tại{' '}
+                  <a
+                    href="http://localhost:8025"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: '#F27024', fontWeight: 600, textDecoration: 'underline' }}
+                  >
+                    http://localhost:8025
+                  </a>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Địa chỉ Email FPT *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={16} style={{ position: 'absolute', left: 12, top: 13, color: '#94A3B8' }} />
+                    <input
+                      type="email"
+                      placeholder="vidu@fpt.edu.vn"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      disabled={forgotLoading}
+                      required
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '10px',
+                        border: '1px solid #CBD5E1',
+                        padding: '0 12px 0 38px',
+                        fontSize: '13px',
+                        color: '#0F172A',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#FFFFFF',
+                      color: '#475569',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#F27024',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {forgotLoading ? 'Đang gửi OTP...' : 'Gửi mã OTP'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Bước 2: Nhập OTP + Đặt lại mật khẩu */
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!forgotOtp.trim() || !forgotNewPass || !forgotConfirmPass) {
+                    setForgotError('Vui lòng điền đầy đủ mã OTP và mật khẩu mới.');
+                    return;
+                  }
+                  if (forgotNewPass !== forgotConfirmPass) {
+                    setForgotError('Mật khẩu xác nhận không trùng khớp.');
+                    return;
+                  }
+                  setForgotError(null);
+                  setForgotLoading(true);
+                  try {
+                    await resetPassword({
+                      email: forgotEmail,
+                      otp: forgotOtp,
+                      newPassword: forgotNewPass,
+                      confirmNewPassword: forgotConfirmPass,
+                    });
+                    setForgotSuccess('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.');
+                    setTimeout(() => {
+                      setShowForgotModal(false);
+                      setPassword(forgotNewPass);
+                      setEmail(forgotEmail);
+                    }, 1500);
+                  } catch (err: any) {
+                    setForgotError(err.response?.data?.detail || err.response?.data?.title || 'Mã OTP không đúng hoặc đã hết hạn.');
+                  } finally {
+                    setForgotLoading(false);
+                  }
+                }}
+              >
+                <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#475569', lineHeight: 1.5 }}>
+                  Nhập mã OTP 6 số đã gửi đến <strong>{forgotEmail}</strong> và mật khẩu mới của bạn.
+                </p>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Mã xác thực OTP (6 chữ số) *
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={forgotOtp}
+                    onChange={(e) => setForgotOtp(e.target.value)}
+                    disabled={forgotLoading}
+                    required
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      padding: '0 12px',
+                      fontSize: '15px',
+                      letterSpacing: '4px',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Mật khẩu mới *
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Tối thiểu 8 ký tự, có số, chữ hoa"
+                    value={forgotNewPass}
+                    onChange={(e) => setForgotNewPass(e.target.value)}
+                    disabled={forgotLoading}
+                    required
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      padding: '0 12px',
+                      fontSize: '13px',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+                    Xác nhận mật khẩu mới *
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Nhập lại mật khẩu mới"
+                    value={forgotConfirmPass}
+                    onChange={(e) => setForgotConfirmPass(e.target.value)}
+                    disabled={forgotLoading}
+                    required
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      padding: '0 12px',
+                      fontSize: '13px',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep(1)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      color: '#64748B',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Quay lại bước 1
+                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotModal(false)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                        backgroundColor: '#FFFFFF',
+                        color: '#475569',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Đóng
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        backgroundColor: '#F27024',
+                        color: '#FFFFFF',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {forgotLoading ? 'Đang cập nhật...' : 'Đặt lại mật khẩu'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── FOOTER COPYRIGHT ── */}
       <div style={{ textAlign: 'center', marginTop: '36px', fontSize: '12px', color: '#94A3B8' }}>

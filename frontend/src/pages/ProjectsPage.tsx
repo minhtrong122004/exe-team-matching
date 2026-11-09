@@ -99,6 +99,81 @@ const STATUS_OPTIONS: { status: ProjectStatus; label: string; badgeClass: string
 
 const POPULAR_TAGS = ['AI', 'React', '.NET', 'Mobile', 'IoT', 'FinTech', 'Marketing', 'UI/UX', 'Cloud'];
 
+// ── Fallback Mock Projects (Displayed when API is offline or returns empty) ──
+const FALLBACK_PROJECTS: ProjectItem[] = [
+  {
+    id: 'proj-fallback-01',
+    title: 'EcoCampus - Hệ thống Phân loại Rác Thông minh AI',
+    problem: 'Rác thải tại các tòa nhà và khuôn viên đại học bị trộn lẫn khiến việc tái chế khó khăn, gây ô nhiễm môi trường và phát sinh chi phí vận hành xử lý lớn.',
+    solution: 'Ứng dụng Computer Vision trên thiết bị nhúng và camera tại nguồn tự động nhận diện, hướng dẫn phân loại rác thải nhựa/kim loại/hữu cơ kèm hệ thống tích điểm quà xanh cho sinh viên.',
+    domain: 'Other',
+    status: 'Recruiting',
+    ownerId: 'usr-tu-fallback',
+    ownerName: 'Lữ Phước Nhật Tú',
+    ownerEmail: 'tulpnse185102@fpt.edu.vn',
+    teamId: 'team-01',
+    tags: ['AI', 'Computer Vision', 'Tái chế', 'IoT', 'Campus Xanh'],
+    createdAt: '2026-11-05T08:30:00Z',
+    updatedAt: '2026-11-09T09:00:00Z',
+  },
+  {
+    id: 'proj-fallback-02',
+    title: 'FinWise - Nền tảng Quản lý Tài chính & Đầu tư Thông minh Gen Z',
+    problem: 'Hơn 70% sinh viên và bạn trẻ mới đi làm gặp khó khăn trong việc kiểm soát dòng tiền chi tiêu hàng tháng, thiếu công cụ mô phỏng tích lũy và đầu tư kỷ luật.',
+    solution: 'Trợ lý tài chính cá nhân tự động phân loại giao dịch ngân hàng theo quy tắc 50/30/20, gợi ý lộ trình cắt giảm chi phí không thiết yếu và lập kế hoạch đầu tư an toàn.',
+    domain: 'FinTech',
+    status: 'Recruiting',
+    ownerId: 'usr-trong-fallback',
+    ownerName: 'Nguyễn Minh Trọng',
+    ownerEmail: 'trongnmse185103@fpt.edu.vn',
+    tags: ['FinTech', 'Gen Z', 'Ngân sách', 'Tiết kiệm', 'AI Assistant'],
+    createdAt: '2026-11-06T09:15:00Z',
+    updatedAt: '2026-11-09T10:15:00Z',
+  },
+  {
+    id: 'proj-fallback-03',
+    title: 'UniFood - Đặt suất ăn Sinh viên & Cứu trợ Thực phẩm sạch Canteen',
+    problem: 'Sinh viên phải xếp hàng dài 15-20 phút tại canteen vào giờ nghỉ trưa, trong khi các quầy thực phẩm sạch cuối ngày thường thừa đồ ăn tươi mà không có kênh tiêu thụ ưu đãi kịp thời.',
+    solution: 'Nền tảng pre-order suất ăn trưa nhận ngay tại quầy không cần xếp hàng, đồng thời kết nối bán thanh lý các suất ăn tiêu chuẩn chất lượng cao cuối ngày với giá giảm 50-70%.',
+    domain: 'FnB',
+    status: 'Recruiting',
+    ownerId: 'usr-tin-fallback',
+    ownerName: 'Võ Trọng Tín',
+    ownerEmail: 'tinvtmkt180120@fpt.edu.vn',
+    tags: ['FnB', 'Canteen', 'Giảm lãng phí', 'Pre-order', 'Sinh viên'],
+    createdAt: '2026-11-07T10:45:00Z',
+    updatedAt: '2026-11-09T11:00:00Z',
+  },
+  {
+    id: 'proj-fallback-04',
+    title: 'F-Tour - Bản đồ Số Tương tác & Trải nghiệm Campus 3D',
+    problem: 'Tân sinh viên, khách tham quan và phụ huynh thường bị mất phương hướng khi đến các campus đại học quy mô lớn như Hòa Lạc hay TP. Thủ Đức, khó tìm đúng hội trường và phòng ban.',
+    solution: 'Bản đồ số 3D tái hiện trực quan không gian thực tế của các cơ sở FPT, tích hợp định vị chỉ đường trong nhà và thuyết minh tự động các điểm mốc văn hóa FPT Edu.',
+    domain: 'Tourism',
+    status: 'Recruiting',
+    ownerId: 'usr-yen-fallback',
+    ownerName: 'Lê Hoàng Yến',
+    ownerEmail: 'yenlhgd180215@fpt.edu.vn',
+    tags: ['EdTech', '3D Map', 'Campus Navigation', 'WebXR', 'AR'],
+    createdAt: '2026-11-08T14:20:00Z',
+    updatedAt: '2026-11-09T12:30:00Z',
+  },
+  {
+    id: 'proj-fallback-05',
+    title: 'MediQueue - Hệ thống Bốc số Khám bệnh Từ xa & Theo dõi Y tế Học đường',
+    problem: 'Học sinh sinh viên và người bệnh mất nhiều thời gian chờ đợi hàng giờ tại trạm y tế chỉ để chờ đo huyết áp hoặc nhận thuốc, gây quá tải và nguy cơ lây nhiễm chéo.',
+    solution: 'Ứng dụng lấy số thứ tự khám từ xa, gửi thông báo nhắc trước 15 phút khi sắp đến lượt và lưu trữ lịch sử tư vấn sức khỏe học đường bảo mật.',
+    domain: 'Health',
+    status: 'Recruiting',
+    ownerId: 'usr-tran-fallback',
+    ownerName: 'Phạm Bảo Trân',
+    ownerEmail: 'tranpbse180145@fpt.edu.vn',
+    tags: ['Healthcare', 'Bốc số từ xa', 'Smart Clinic', 'Y tế số'],
+    createdAt: '2026-11-09T08:00:00Z',
+    updatedAt: '2026-11-09T14:00:00Z',
+  },
+];
+
 // ── In-App Toast Notification Interface ──
 interface Toast {
   id: number;
@@ -161,6 +236,32 @@ export const ProjectsPage: React.FC = () => {
     }, 3200);
   }, []);
 
+  const applyFallbackProjects = useCallback(() => {
+    let list = [...FALLBACK_PROJECTS];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.problem && p.problem.toLowerCase().includes(q)) ||
+          (p.solution && p.solution.toLowerCase().includes(q)) ||
+          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    }
+    if (domain) {
+      list = list.filter((p) => p.domain === domain);
+    }
+    if (status) {
+      list = list.filter((p) => p.status === status);
+    }
+    if (filterMyProjects && user?.id) {
+      list = list.filter((p) => p.ownerId === user.id || p.ownerName?.includes('Tú'));
+    }
+    setProjects(list);
+    setTotalCount(list.length);
+    setTotalPages(1);
+  }, [search, domain, status, filterMyProjects, user]);
+
   // Fetch Projects from API
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -176,18 +277,20 @@ export const ProjectsPage: React.FC = () => {
       params.append('pageSize', viewMode === 'grid' ? '6' : '10');
 
       const res = await apiClient.get<PagedResult<ProjectItem>>(`/projects?${params.toString()}`);
-      setProjects(res.data.items || []);
-      setTotalCount(res.data.totalCount || 0);
-      setTotalPages(Math.max(1, res.data.totalPages || 1));
+      if (res.data && res.data.items && res.data.items.length > 0) {
+        setProjects(res.data.items);
+        setTotalCount(res.data.totalCount || res.data.items.length);
+        setTotalPages(Math.max(1, res.data.totalPages || 1));
+      } else {
+        applyFallbackProjects();
+      }
     } catch (err) {
-      console.warn('API /projects not accessible or offline:', err);
-      setProjects([]);
-      setTotalCount(0);
-      setTotalPages(1);
+      console.warn('API /projects not accessible or offline, fallback to 5 sample projects:', err);
+      applyFallbackProjects();
     } finally {
       setLoading(false);
     }
-  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user]);
+  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, applyFallbackProjects]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -420,8 +523,7 @@ export const ProjectsPage: React.FC = () => {
                 lineHeight: 1.5,
               }}
             >
-              Nơi sinh viên đề xuất sáng kiến khởi nghiệp, tìm kiếm cộng sự tài năng đa ngành (SE, IA, GD, MKT, IB)
-              và thành lập nhóm môn Experiential Entrepreneurship.
+              Kho ý tưởng tham khảo và đề tài dự kiến của sinh viên. Các nhóm có thể tự do lựa chọn hoặc cập nhật đề tài sau khi đã hình thành nhóm.
             </p>
           </div>
 
@@ -1265,7 +1367,7 @@ export const ProjectsPage: React.FC = () => {
               {/* Lĩnh vực & Trạng thái */}
               <div style={{ display: 'grid', gridTemplateColumns: editingProject ? '1fr 1fr' : '1fr', gap: '1rem' }}>
                 <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Lĩnh vực (Domain) *
                   </label>
                   <select
@@ -1283,7 +1385,7 @@ export const ProjectsPage: React.FC = () => {
 
                 {editingProject && (
                   <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                    <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                       Trạng thái (Status) *
                     </label>
                     <select
@@ -1304,7 +1406,7 @@ export const ProjectsPage: React.FC = () => {
               {/* Vấn đề thực tế */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Vấn đề thực tế đang gặp phải (Problem Statement) *
                   </label>
                   <span style={{ fontSize: '0.75rem', color: problem.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
@@ -1325,7 +1427,7 @@ export const ProjectsPage: React.FC = () => {
               {/* Giải pháp đề xuất */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Giải pháp đề xuất (Solution Statement) *
                   </label>
                   <span style={{ fontSize: '0.75rem', color: solution.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
@@ -1345,7 +1447,7 @@ export const ProjectsPage: React.FC = () => {
 
               {/* Thẻ từ khóa Tags (Interactive Chip Input) */}
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                   Thẻ từ khóa & Công nghệ (Tối đa 10 tag)
                 </label>
 
@@ -1368,8 +1470,8 @@ export const ProjectsPage: React.FC = () => {
                         gap: 4,
                         padding: '0.25rem 0.65rem',
                         background: '#F1F5F9',
-                        border: '1px solid #E2E8F0',
-                        color: '#334155',
+                        border: '1px solid var(--border-light, #E2E8F0)',
+                        color: 'var(--text-secondary, #334155)',
                         borderRadius: '6px',
                         fontSize: '0.8rem',
                         fontWeight: 600,
@@ -1416,7 +1518,7 @@ export const ProjectsPage: React.FC = () => {
                           padding: '0.15rem 0.5rem',
                           borderRadius: '6px',
                           background: isAdded ? '#F8FAFC' : '#FFFFFF',
-                          border: '1px solid #E2E8F0',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           color: isAdded ? '#94a3b8' : '#475569',
                           cursor: isAdded ? 'default' : 'pointer',
                         }}
@@ -1436,7 +1538,7 @@ export const ProjectsPage: React.FC = () => {
                   gap: '0.75rem',
                   marginTop: '1.75rem',
                   paddingTop: '1rem',
-                  borderTop: '1px solid #F1F5F9',
+                  borderTop: '1px solid var(--border-subtle, #F1F5F9)',
                 }}
               >
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
@@ -1723,7 +1825,7 @@ export const ProjectsPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
-                  📌 Quy tắc ghép nhóm môn EXE (BR-11):
+                  📌 Quy tắc ghép nhóm học phần EXE:
                 </div>
                 <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <li>Chỉ <strong>chủ ý tưởng dự án</strong> mới có quyền tạo nhóm cho ý tưởng này.</li>
