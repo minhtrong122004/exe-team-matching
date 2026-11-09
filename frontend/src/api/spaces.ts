@@ -1,4 +1,5 @@
 import apiClient from './client';
+import type { PagedResult } from '../types';
 import type {
   CourseSpaceResponse,
   CreateCourseSpaceRequest,
@@ -40,13 +41,12 @@ export const spacesApi = {
     return res.data;
   },
 
-  importFapStudents: async (id: string, data: ImportFapStudentsRequest): Promise<number> => {
-    const res = await apiClient.post<number>(`/spaces/${id}/import-fap`, data);
-    return res.data;
+  deleteSpace: async (id: string): Promise<void> => {
+    await apiClient.delete(`/spaces/${id}`);
   },
 
-  syncMockFapStudents: async (id: string): Promise<number> => {
-    const res = await apiClient.post<number>(`/spaces/${id}/sync-mock-fap`);
+  importFapStudents: async (id: string, data: ImportFapStudentsRequest): Promise<number> => {
+    const res = await apiClient.post<number>(`/spaces/${id}/import-fap`, data);
     return res.data;
   },
 
@@ -60,9 +60,20 @@ export const spacesApi = {
     return res.data;
   },
 
+  /** API phân trang tối đa 50 phòng mỗi lần, nên đọc lần lượt để lấy đủ danh sách cho màn hình. */
   getSpaceRooms: async (id: string, status?: string): Promise<RoomSummaryResponse[]> => {
-    const res = await apiClient.get<RoomSummaryResponse[]>(`/spaces/${id}/rooms`, { params: { status } });
-    return res.data;
+    const rooms: RoomSummaryResponse[] = [];
+    let page = 1;
+    let hasNext = true;
+    while (hasNext) {
+      const res = await apiClient.get<PagedResult<RoomSummaryResponse>>(`/spaces/${id}/rooms`, {
+        params: { status, page, pageSize: 50 },
+      });
+      rooms.push(...res.data.items);
+      hasNext = page < res.data.totalPages;
+      page += 1;
+    }
+    return rooms;
   },
 
   // Giai đoạn 6: Hậu chốt sổ & Điều chuyển

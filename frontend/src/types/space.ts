@@ -1,6 +1,6 @@
 export type CourseSpaceStatus = 'Draft' | 'Open' | 'ClosedRegistration' | 'Locked';
 
-export type RoomStatus = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked' | 'Full' | 'Disbanded';
+export type RoomStatus = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked' | 'Disbanded';
 
 export interface CourseSpaceResponse {
   id: string;

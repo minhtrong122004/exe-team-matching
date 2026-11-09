@@ -27,23 +27,11 @@ public static class GroupErrorCodes
     /// <summary>Nhóm đã giải tán, không thể thay đổi.</summary>
     public const string GroupDisbanded = "GROUP_DISBANDED";
 
-    /// <summary>BR-09: trưởng nhóm không được rời nhóm.</summary>
+    /// <summary>Không thể xóa trưởng nhóm khỏi nhóm.</summary>
     public const string LeaderCannotLeave = "LEADER_CANNOT_LEAVE";
 
-    /// <summary>BR-10: lời mời đã hết hạn.</summary>
-    public const string InvitationExpired = "INVITATION_EXPIRED";
-
-    /// <summary>Đã có lời mời Pending cho sinh viên này.</summary>
-    public const string DuplicateInvitation = "DUPLICATE_INVITATION";
-
-    /// <summary>BR-11: dự án đã có nhóm.</summary>
-    public const string ProjectAlreadyHasGroup = "PROJECT_ALREADY_HAS_GROUP";
-
-    /// <summary>Yêu cầu/lời mời không còn ở trạng thái Pending.</summary>
+    /// <summary>Yêu cầu không còn ở trạng thái Pending.</summary>
     public const string InvalidStatus = "INVALID_STATUS";
-
-    /// <summary>BR-02: MaxMembers nhỏ hơn số thành viên hiện tại.</summary>
-    public const string MaxMembersBelowMemberCount = "MAX_MEMBERS_BELOW_MEMBER_COUNT";
 
     /// <summary>Vị trí tuyển đã đủ người.</summary>
     public const string SlotFull = "SLOT_FULL";
@@ -56,9 +44,6 @@ public static class GroupErrorCodes
 
     /// <summary>Người được chỉ định không phải thành viên nhóm.</summary>
     public const string NotGroupMember = "NOT_GROUP_MEMBER";
-
-    /// <summary>Chỉ sinh viên mới được mời / vào nhóm.</summary>
-    public const string NotAStudent = "NOT_A_STUDENT";
 
     /// <summary>Nhóm vừa bị thao tác khác thay đổi, thử lại.</summary>
     public const string ConcurrentUpdate = "CONCURRENT_UPDATE";

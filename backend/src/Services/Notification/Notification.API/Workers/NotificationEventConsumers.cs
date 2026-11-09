@@ -43,19 +43,6 @@ public sealed class JoinRequestDecidedConsumer(IServiceProvider services) : Even
             .HandleJoinRequestDecidedAsync(@event, envelope.EventId, cancellationToken);
 }
 
-public sealed class InvitationCreatedConsumer(IServiceProvider services) : EventConsumerBase<InvitationCreated>(services)
-{
-    protected override string ConsumerGroup => "notification-service";
-
-    protected override Task HandleAsync(
-        InvitationCreated @event,
-        EventEnvelope envelope,
-        IServiceProvider services,
-        CancellationToken cancellationToken) =>
-        services.GetRequiredService<INotificationEventHandler>()
-            .HandleInvitationCreatedAsync(@event, envelope.EventId, cancellationToken);
-}
-
 public sealed class MemberJoinedConsumer(IServiceProvider services) : EventConsumerBase<MemberJoined>(services)
 {
     protected override string ConsumerGroup => "notification-service";

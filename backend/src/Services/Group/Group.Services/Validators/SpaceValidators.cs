@@ -51,5 +51,16 @@ public class ImportFapStudentsRequestValidator : AbstractValidator<ImportFapStud
     {
         RuleFor(x => x.Students)
             .NotEmpty().WithMessage("Danh sách sinh viên import từ FAP không được để trống.");
+
+        // Chặn ngay tại đây để báo đúng trường sai, thay vì để Auth từ chối rồi chỉ báo lỗi cấp tài khoản chung chung.
+        RuleForEach(x => x.Students).ChildRules(student =>
+        {
+            student.RuleFor(s => s.StudentCode).NotEmpty().WithMessage("Mã số sinh viên (MSSV) không được để trống.");
+            student.RuleFor(s => s.FullName).NotEmpty().WithMessage("Họ và tên sinh viên không được để trống.");
+            student.RuleFor(s => s.Major).NotEmpty().WithMessage("Ngành của sinh viên không được để trống.");
+            student.RuleFor(s => s.Email)
+                .NotEmpty().WithMessage("Email sinh viên không được để trống.")
+                .EmailAddress().WithMessage("Định dạng email sinh viên không hợp lệ.");
+        });
     }
 }

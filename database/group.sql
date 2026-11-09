@@ -1,7 +1,4 @@
-SET QUOTED_IDENTIFIER ON;
-SET ANSI_NULLS ON;
-GO
-IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -532,10 +529,29 @@ BEGIN
         CONSTRAINT [PK_MemberRemovalLogs] PRIMARY KEY ([Id]),
         CONSTRAINT [FK_MemberRemovalLogs_Groups_GroupId] FOREIGN KEY ([GroupId]) REFERENCES [Groups] ([Id]) ON DELETE CASCADE
     );
+END;
 
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108104453_Phase4MemberRemovalAuditLog'
+)
+BEGIN
     CREATE INDEX [IX_MemberRemovalLogs_GroupId] ON [MemberRemovalLogs] ([GroupId]);
-    CREATE INDEX [IX_MemberRemovalLogs_RemovedUserId] ON [MemberRemovalLogs] ([RemovedUserId]);
+END;
 
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108104453_Phase4MemberRemovalAuditLog'
+)
+BEGIN
+    CREATE INDEX [IX_MemberRemovalLogs_RemovedUserId] ON [MemberRemovalLogs] ([RemovedUserId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261108104453_Phase4MemberRemovalAuditLog'
+)
+BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20261108104453_Phase4MemberRemovalAuditLog', N'10.0.12');
 END;
@@ -543,25 +559,6 @@ END;
 COMMIT;
 GO
 
--- ── Giai đoạn 5: Đồng bộ dữ liệu phòng dự phòng dư & trạng thái Chốt sổ ─────────
-BEGIN TRANSACTION;
-GO
-
-SET QUOTED_IDENTIFIER ON;
-GO
-
-UPDATE [Groups]
-SET [Status] = 'Closed', [UpdatedAt] = GETUTCDATE()
-WHERE [Status] = 'Empty' AND (SELECT COUNT(*) FROM [GroupMembers] gm WHERE gm.[GroupId] = [Groups].[Id]) = 0;
-GO
-
-COMMIT;
-GO
-
-
-
-
--- ── Giai đoạn 6: Bảng GroupTransferRequests (BR-35, BR-36, BR-37) ─────────
 BEGIN TRANSACTION;
 IF NOT EXISTS (
     SELECT * FROM [__EFMigrationsHistory]
@@ -653,3 +650,33 @@ END;
 
 COMMIT;
 GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109125711_RemoveInvitationsAndFullStatus'
+)
+BEGIN
+    DROP TABLE [Invitations];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109125711_RemoveInvitationsAndFullStatus'
+)
+BEGIN
+    UPDATE [Groups] SET [Status] = N'Closed' WHERE [Status] = N'Full';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109125711_RemoveInvitationsAndFullStatus'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261109125711_RemoveInvitationsAndFullStatus', N'10.0.12');
+END;
+
+COMMIT;
+GO
+

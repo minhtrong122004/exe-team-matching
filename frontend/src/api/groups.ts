@@ -3,7 +3,6 @@ import type {
   PagedResult,
   GroupResponse,
   GroupSummaryResponse,
-  CreateGroupRequest,
   UpdateGroupRequest,
   CreateSlotRequest,
   UpdateSlotRequest,
@@ -13,8 +12,6 @@ import type {
   GroupQueryParams,
   JoinRequestResponse,
   CreateJoinRequestPayload,
-  InvitationResponse,
-  CreateInvitationPayload,
   MatchScoreResponse,
   SuggestedGroupResponse,
   RankedCandidateResponse,
@@ -34,10 +31,11 @@ export const groupsApi = {
     return res.data;
   },
 
-  async getMyGroup(): Promise<GroupResponse | null> {
+  /** Nhóm của sinh viên trong môn spaceId; không truyền thì lấy nhóm mới nhất. API trả 204 khi chưa có nhóm. */
+  async getMyGroup(spaceId?: string): Promise<GroupResponse | null> {
     try {
-      const res = await apiClient.get<GroupResponse>('/groups/my');
-      return res.data;
+      const res = await apiClient.get<GroupResponse>('/groups/my', { params: { spaceId } });
+      return res.data || null;
     } catch (err: any) {
       if (err?.response?.status === 404) {
         return null;
@@ -51,18 +49,9 @@ export const groupsApi = {
     return res.data;
   },
 
-  async createGroup(payload: CreateGroupRequest): Promise<GroupResponse> {
-    const res = await apiClient.post<GroupResponse>('/groups', payload);
-    return res.data;
-  },
-
   async updateGroup(id: string, payload: UpdateGroupRequest): Promise<GroupResponse> {
     const res = await apiClient.put<GroupResponse>(`/groups/${id}`, payload);
     return res.data;
-  },
-
-  async disbandGroup(id: string): Promise<void> {
-    await apiClient.delete(`/groups/${id}`);
   },
 
   // ── 2. Recruitment Slots ───────────────────────────────────────────────────
@@ -171,39 +160,6 @@ export const groupsApi = {
 
   async cancelJoinRequest(requestId: string): Promise<JoinRequestResponse> {
     const res = await apiClient.put<JoinRequestResponse>(`/join-requests/${requestId}/cancel`);
-    return res.data;
-  },
-
-  // ── 6. Invitations ─────────────────────────────────────────────────────────
-  async createInvitation(
-    groupId: string,
-    payload: CreateInvitationPayload
-  ): Promise<InvitationResponse> {
-    const res = await apiClient.post<InvitationResponse>(
-      `/groups/${groupId}/invitations`,
-      payload
-    );
-    return res.data;
-  },
-
-  async getMyInvitations(params?: {
-    status?: string;
-    page?: number;
-    pageSize?: number;
-  }): Promise<PagedResult<InvitationResponse>> {
-    const res = await apiClient.get<PagedResult<InvitationResponse>>('/invitations/my', {
-      params,
-    });
-    return res.data;
-  },
-
-  async acceptInvitation(invitationId: string): Promise<InvitationResponse> {
-    const res = await apiClient.put<InvitationResponse>(`/invitations/${invitationId}/accept`);
-    return res.data;
-  },
-
-  async rejectInvitation(invitationId: string): Promise<InvitationResponse> {
-    const res = await apiClient.put<InvitationResponse>(`/invitations/${invitationId}/reject`);
     return res.data;
   },
 

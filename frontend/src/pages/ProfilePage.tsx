@@ -28,10 +28,6 @@ import {
   Layers,
   Search,
   ShieldCheck,
-  KeyRound,
-  Lock,
-  Eye,
-  EyeOff,
   ChevronRight,
   Award,
   Shield,
@@ -296,7 +292,7 @@ const RadarChart5: React.FC<{
 };
 
 export const ProfilePage: React.FC = () => {
-  const { user: authUser, updateUserData, changePassword, acceptTerms } = useAuth();
+  const { user: authUser, updateUserData, acceptTerms } = useAuth();
 
   // State hồ sơ cơ bản
   const [profile, setProfile] = useState<UserProfileResponse | null>(null);
@@ -348,8 +344,8 @@ export const ProfilePage: React.FC = () => {
 
   // Active Tab based on Role (BR-01, BR-02, BR-03 Role Separation)
   // - Student: 'info' | 'skills' | 'security'
-  // - Moderator: 'mod_info' | 'mod_security' | 'mod_roles'
-  // - Lecturer: 'lec_info' | 'lec_security' | 'lec_roles'
+  // - Moderator: 'mod_info' | 'mod_roles'
+  // - Lecturer: 'lec_info' | 'lec_roles'
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (isModerator) return 'mod_info';
     if (isLecturer) return 'lec_info';
@@ -363,59 +359,6 @@ export const ProfilePage: React.FC = () => {
       setActiveTab('lec_info');
     }
   }, [isModerator, isLecturer]);
-
-  // State đổi mật khẩu & BR-34
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-
-  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccessMsg(null);
-
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      setError('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
-      return;
-    }
-    if (
-      newPassword.length < 8 ||
-      !/[A-Z]/.test(newPassword) ||
-      !/[0-9]/.test(newPassword) ||
-      !/[^a-zA-Z0-9]/.test(newPassword)
-    ) {
-      setError('Mật khẩu mới phải có ít nhất 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setError('Mật khẩu xác nhận không trùng khớp.');
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      const res = await changePassword({
-        currentPassword,
-        newPassword,
-        confirmNewPassword,
-      });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setSuccessMsg(res.message || 'Đổi mật khẩu thành công!');
-    } catch (err: any) {
-      setError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          err.response?.data?.message ||
-          'Mật khẩu hiện tại không chính xác hoặc dữ liệu không hợp lệ.'
-      );
-    } finally {
-      setChangingPassword(false);
-    }
-  };
 
   // Tải dữ liệu hồ sơ từ Backend (với fallback Mock Data cho Dev/Offline)
   const fetchProfile = useCallback(async () => {
@@ -502,16 +445,6 @@ export const ProfilePage: React.FC = () => {
       setError('Họ và tên không được vượt quá 100 ký tự.');
       return false;
     }
-    if (studentCode.trim()) {
-      if (studentCode.trim().length > 20) {
-        setError('Mã số sinh viên không được vượt quá 20 ký tự.');
-        return false;
-      }
-      if (!/^[a-zA-Z0-9]+$/.test(studentCode.trim())) {
-        setError('Mã số sinh viên chỉ được chứa các ký tự chữ và số (ví dụ: SE185102).');
-        return false;
-      }
-    }
     if (campus && campus.length > 50) {
       setError('Tên cơ sở không được vượt quá 50 ký tự.');
       return false;
@@ -545,9 +478,7 @@ export const ProfilePage: React.FC = () => {
 
     const payload: UpdateUserProfileRequest = {
       fullName: fullName.trim(),
-      studentCode: isStudent ? (studentCode.trim() || null) : null,
       campus: campus.trim() || null,
-      major: isStudent ? ((major as Major) || null) : null,
       bio: bio.trim() || null,
       desiredRole: isStudent ? (desiredRole.trim() || null) : null,
       availability: isStudent ? availability : 'LookingForTeam',
@@ -1307,28 +1238,6 @@ export const ProfilePage: React.FC = () => {
 
             <button
               type="button"
-              onClick={() => setActiveTab('mod_security')}
-              style={{
-                padding: '0.75rem 1.25rem',
-                border: 'none',
-                background: 'transparent',
-                borderBottom: activeTab === 'mod_security' ? '2.5px solid #0054a6' : '2.5px solid transparent',
-                color: activeTab === 'mod_security' ? '#0054a6' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
-                fontSize: '0.925rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'color 150ms ease, border-color 150ms ease',
-              }}
-            >
-              <KeyRound size={18} />
-              <span>Bảo mật & Tài khoản Quản trị</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => setActiveTab('mod_roles')}
               style={{
                 padding: '0.75rem 1.25rem',
@@ -1374,28 +1283,6 @@ export const ProfilePage: React.FC = () => {
             >
               <User size={18} />
               <span>Thông tin Giảng viên</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('lec_security')}
-              style={{
-                padding: '0.75rem 1.25rem',
-                border: 'none',
-                background: 'transparent',
-                borderBottom: activeTab === 'lec_security' ? '2.5px solid #008837' : '2.5px solid transparent',
-                color: activeTab === 'lec_security' ? '#008837' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
-                fontSize: '0.925rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                transition: 'color 150ms ease, border-color 150ms ease',
-              }}
-            >
-              <KeyRound size={18} />
-              <span>Bảo mật & Đổi mật khẩu</span>
             </button>
 
             <button
@@ -1489,8 +1376,8 @@ export const ProfilePage: React.FC = () => {
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
-              <KeyRound size={18} />
-              <span>Bảo mật & Quy định (BR-34)</span>
+              <ShieldCheck size={18} />
+              <span>Quy định (BR-34)</span>
             </button>
           </>
         )}
@@ -1635,104 +1522,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          MODERATOR TAB 2: BẢO MẬT & TÀI KHOẢN QUẢN TRỊ
-         ══════════════════════════════════════════════════════════════ */}
-      {isModerator && activeTab === 'mod_security' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          <div className="card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.35rem 0' }}>
-              Đổi mật khẩu Quản trị viên
-            </h2>
-            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Bảo vệ tài khoản Điều phối viên học kỳ với quyền hạn cao nhất trong hệ thống
-            </p>
-
-            <form onSubmit={handleChangePasswordSubmit}>
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu hiện tại *</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    className="form-control"
-                    placeholder="Nhập mật khẩu hiện tại"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={changingPassword}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(!showPasswords)}
-                    style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-                  >
-                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu mới *</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Xác nhận mật khẩu mới *</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={changingPassword}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-              >
-                <KeyRound size={16} />
-                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
-              </button>
-            </form>
-          </div>
-
-          <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'inline-flex', padding: '0.35rem 0.65rem', borderRadius: 8, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.75rem', marginBottom: '1rem', gap: '0.4rem', alignItems: 'center' }}>
-                <ShieldCheck size={14} />
-                <span>TIÊU CHUẨN AN NINH TÀI KHOẢN QUẢN TRỊ</span>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.5rem 0' }}>
-                Quy định an toàn tài khoản Quản trị viên
-              </h3>
-              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                Tài khoản Điều phối viên nắm giữ quyền hạn quản trị không gian học phần, cấp phát tài khoản FAP và điều phối sinh viên toàn trường:
-              </p>
-              <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.7, marginTop: '0.75rem' }}>
-                <li>Tuyệt đối không chia sẻ mật khẩu đăng nhập cho bất kỳ ai.</li>
-                <li>Đổi mật khẩu định kỳ tối thiểu 90 ngày một lần.</li>
-                <li>Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ số và ký tự đặc biệt.</li>
-                <li>Luôn đăng xuất sau khi hoàn thành phiên làm việc trên các máy tính công cộng.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          MODERATOR TAB 3: THẨM QUYỀN & TRÁCH NHIỆM ĐIỀU PHỐI
+          MODERATOR TAB 2: THẨM QUYỀN & TRÁCH NHIỆM ĐIỀU PHỐI
          ══════════════════════════════════════════════════════════════ */}
       {isModerator && activeTab === 'mod_roles' && (
         <div>
@@ -2055,103 +1845,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          LECTURER TAB 2: BẢO MẬT & ĐỔI MẬT KHẨU
-         ══════════════════════════════════════════════════════════════ */}
-      {isLecturer && activeTab === 'lec_security' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          <div className="card" style={{ padding: '2rem' }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.35rem 0' }}>
-              Đổi mật khẩu Giảng viên
-            </h2>
-            <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Cập nhật mật khẩu bảo mật tài khoản Giảng viên hướng dẫn
-            </p>
-
-            <form onSubmit={handleChangePasswordSubmit}>
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu hiện tại *</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    className="form-control"
-                    placeholder="Nhập mật khẩu hiện tại"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={changingPassword}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(!showPasswords)}
-                    style={{ position: 'absolute', right: 12, top: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
-                  >
-                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Mật khẩu mới *</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>Xác nhận mật khẩu mới *</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={changingPassword}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-              >
-                <KeyRound size={16} />
-                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
-              </button>
-            </form>
-          </div>
-
-          <div className="card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'inline-flex', padding: '0.35rem 0.65rem', borderRadius: 8, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.75rem', marginBottom: '1rem', gap: '0.4rem', alignItems: 'center' }}>
-                <ShieldCheck size={14} />
-                <span>BẢO MẬT TÀI KHOẢN GIẢNG VIÊN</span>
-              </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.5rem 0' }}>
-                Hướng dẫn an toàn thông tin
-              </h3>
-              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.6 }}>
-                Tài khoản Giảng viên có quyền xem danh sách sinh viên, danh sách nhóm và báo cáo học phần:
-              </p>
-              <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', lineHeight: 1.7, marginTop: '0.75rem' }}>
-                <li>Không chia sẻ tài khoản cho sinh viên hoặc người khác sử dụng.</li>
-                <li>Đổi mật khẩu ngay sau lần đầu đăng nhập.</li>
-                <li>Mật khẩu mới yêu cầu từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          LECTURER TAB 3: TRÁCH NHIỆM GIẢNG DẠY & CỐ VẤN
+          LECTURER TAB 2: TRÁCH NHIỆM GIẢNG DẠY & CỐ VẤN
          ══════════════════════════════════════════════════════════════ */}
       {isLecturer && activeTab === 'lec_roles' && (
         <div>
@@ -2366,8 +2060,7 @@ export const ProfilePage: React.FC = () => {
                   className="form-control"
                   placeholder="Ví dụ: SE180101"
                   value={studentCode}
-                  onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-                  disabled={!isEditing || savingProfile || isStudent}
+                  disabled
                   style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}
                 />
               </div>
@@ -2399,18 +2092,6 @@ export const ProfilePage: React.FC = () => {
                     </span>
                   )}
                 </label>
-                {isEditing && !isStudent ? (
-                  <select
-                    className="form-control"
-                    value={major}
-                    onChange={(e) => setMajor(e.target.value as Major)}
-                    disabled={savingProfile}
-                  >
-                    {MAJORS.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                ) : (
                   <input
                     type="text"
                     className="form-control"
@@ -2418,7 +2099,6 @@ export const ProfilePage: React.FC = () => {
                     disabled
                     style={{ background: '#f8fafc', fontWeight: 600 }}
                   />
-                )}
               </div>
 
               {/* Cơ sở học tập */}
@@ -3344,7 +3024,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          TAB 3: BẢO MẬT, ĐỔI MẬT KHẨU & QUY ĐỊNH ĐIỀU PHỐI (BR-34)
+          TAB 3: QUY ĐỊNH ĐIỀU PHỐI (BR-34)
          ══════════════════════════════════════════════════════════════ */}
       {isStudent && activeTab === 'security' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -3373,7 +3053,7 @@ export const ProfilePage: React.FC = () => {
                     Cam kết Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)
                   </h2>
                   <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.86rem', margin: '0.35rem 0 0', lineHeight: 1.55, maxWidth: 680 }}>
-                    Sinh viên tham gia học phần EXE cam kết tuân thủ quy tắc nhóm liên ngành (tối đa 6 thành viên, tối đa 3 SV khối Công nghệ SE/AI/IA) và đồng ý với sự phân bổ điều phối của Moderator / Giảng viên khi hết hạn ghép nhóm tự do.
+                    Moderator có toàn quyền chủ động điều phối sinh viên vào các nhóm khi nhóm chưa đủ số lượng tối đa hoặc sau thời hạn quy định.
                   </p>
                 </div>
               </div>
@@ -3414,96 +3094,6 @@ export const ProfilePage: React.FC = () => {
                 </button>
               )}
             </div>
-          </div>
-
-          {/* Card 2: Đổi mật khẩu tài khoản */}
-          <div className="card" style={{ padding: '1.75rem' }}>
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
-                Đổi mật khẩu đăng nhập
-              </h2>
-              <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                Nếu bạn vừa nhận mật khẩu khởi tạo từ danh sách FAP qua email trường, hãy đổi sang mật khẩu cá nhân để bảo mật tài khoản.
-              </p>
-            </div>
-
-            <form onSubmit={handleChangePasswordSubmit} style={{ maxWidth: 520 }}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>
-                  Mật khẩu hiện tại *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    className="form-control"
-                    placeholder="Nhập mật khẩu đang sử dụng..."
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={changingPassword}
-                    style={{ paddingLeft: '2.35rem', paddingRight: '2.5rem' }}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords((v) => !v)}
-                    aria-label={showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                    style={{
-                      position: 'absolute',
-                      right: 10,
-                      top: 10,
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                    }}
-
-                  >
-                    {showPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>
-                  Mật khẩu mới *
-                </label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Tối thiểu 8 ký tự, gồm chữ hoa, chữ số và ký tự đặc biệt"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.35rem' }}>
-                <label className="form-label" style={{ fontWeight: 600 }}>
-                  Xác nhận mật khẩu mới *
-                </label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
-                  className="form-control"
-                  placeholder="Nhập lại mật khẩu mới"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  disabled={changingPassword}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={changingPassword}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-              >
-                <KeyRound size={16} />
-                <span>{changingPassword ? 'Đang cập nhật mật khẩu...' : 'Lưu mật khẩu mới'}</span>
-              </button>
-            </form>
           </div>
         </div>
       )}

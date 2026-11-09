@@ -115,12 +115,28 @@ public class CourseSpaceTests
         var validator = new ImportFapStudentsRequestValidator();
         var request = new ImportFapStudentsRequest(new List<FapStudentItem>
         {
-            new("SE180001", "student1@fpt.edu.vn", "Nguyễn Văn A", "Kỹ thuật phần mềm", "K18", "SE1801"),
-            new("SE180002", "student2@fpt.edu.vn", "Trần Thị B", "Trí tuệ nhân tạo", "K18", "AI1801")
+            new("SE180001", "Nguyễn Văn A", "student1@fpt.edu.vn", "Kỹ thuật phần mềm", "K18", "SE1801"),
+            new("SE180002", "Trần Thị B", "student2@gmail.com", "Trí tuệ nhân tạo", "K18", "AI1801")
         });
 
         var result = validator.Validate(request);
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ImportFapStudentsValidator_InvalidEmail_ReportsThatStudent()
+    {
+        var validator = new ImportFapStudentsRequestValidator();
+        var request = new ImportFapStudentsRequest(new List<FapStudentItem>
+        {
+            new("SE180001", "Nguyễn Văn A", "student1@fpt.edu.vn", "SE", "K18", "SE1801"),
+            new("SE180002", "Trần Thị B", "khong-phai-email", "SE", "K18", "SE1801")
+        });
+
+        var result = validator.Validate(request);
+
+        var error = Assert.Single(result.Errors);
+        Assert.Equal("Students[1].Email", error.PropertyName);
     }
 }
 

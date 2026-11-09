@@ -73,16 +73,7 @@ export interface CandidateProfileResponse {
 
 export interface UpdateUserProfileRequest {
   fullName: string;
-  studentCode?: string | null;
   campus?: string | null;
-  major?: Major | null;
-  cohort?: string | null;
-  techScore?: number;
-  managementScore?: number;
-  graphicDesignScore?: number;
-  marketingScore?: number;
-  saleScore?: number;
-  isCommitted?: boolean;
   bio?: string | null;
   desiredRole?: string | null;
   availability?: UserAvailability;

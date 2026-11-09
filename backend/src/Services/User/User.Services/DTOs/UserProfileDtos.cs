@@ -64,16 +64,7 @@ public record CandidateProfileResponse(
 /// </summary>
 public record UpdateUserProfileRequest(
     string FullName,
-    string? StudentCode = null,
     string? Campus = null,
-    Major? Major = null,
-    string? Cohort = null,
-    int? TechScore = null,
-    int? ManagementScore = null,
-    int? GraphicDesignScore = null,
-    int? MarketingScore = null,
-    int? SaleScore = null,
-    bool? IsCommitted = null,
     string? Bio = null,
     string? DesiredRole = null,
     UserAvailability Availability = UserAvailability.LookingForTeam,
@@ -84,11 +75,11 @@ public record UpdateUserProfileRequest(
 /// DTO yêu cầu cập nhật chuyên sâu 5 kỹ năng cốt lõi và cam kết (PUT /api/users/me/profile-skills) (BR-05, BR-06).
 /// </summary>
 public record UpdateProfileSkillsRequest(
-    int TechScore,
-    int ManagementScore,
-    int GraphicDesignScore,
-    int MarketingScore,
-    int SaleScore,
+    int? TechScore,
+    int? ManagementScore,
+    int? GraphicDesignScore,
+    int? MarketingScore,
+    int? SaleScore,
     bool IsCommitted,
     string? DesiredRole = null,
     string? Bio = null,

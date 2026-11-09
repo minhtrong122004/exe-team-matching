@@ -73,7 +73,7 @@ public class GroupMatchingService(
             .ToList();
 
         // Hồ sơ User có thể chưa kịp cập nhật InTeam (event bất đồng bộ) → loại theo dữ liệu của chính Group.
-        var inGroups = await groups.GetUsersInActiveGroupsAsync(profiles.Select(p => p.UserId), ct);
+        var inGroups = await groups.GetUsersInActiveGroupsAsync(profiles.Select(p => p.UserId), group.SpaceId, ct);
         var byId = profiles.Where(p => !inGroups.Contains(p.UserId)).ToDictionary(p => p.UserId.ToString());
         if (byId.Count == 0) return [];
 

@@ -2,7 +2,6 @@ using Auth.Repository.Entities;
 using Auth.Repository.Enums;
 using Auth.Services.DTOs;
 using Auth.Services.Implementations;
-using Auth.Services.Security;
 using Auth.Services.Tests.TestDoubles;
 using Auth.Services.Validators;
 using Exe.BuildingBlocks.Exceptions;
@@ -15,7 +14,6 @@ public class AdminAccountTests
     private readonly FakeRefreshTokenRepository _refreshTokenRepo = new();
     private readonly FakeOutboxRepository _outboxRepo = new();
     private readonly FakeUnitOfWork _unitOfWork = new();
-    private readonly IPasswordHasher _passwordHasher = new BCryptPasswordHasher();
     private readonly CreateLecturerRequestValidator _validator = new();
     private readonly ProvisionFapStudentsRequestValidator _provisionValidator = new();
 
@@ -26,7 +24,6 @@ public class AdminAccountTests
             _refreshTokenRepo,
             _outboxRepo,
             _unitOfWork,
-            _passwordHasher,
             _validator,
             _provisionValidator,
             new NullLogger<AdminAccountService>()
@@ -160,7 +157,7 @@ public class AdminAccountTests
     public async Task CreateLecturer_ValidRequest_CreatesAccountAndOutboxMessage()
     {
         var service = CreateService();
-        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "LecturerPass@123", "Thầy Nguyễn Văn A");
+        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "Thầy Nguyễn Văn A");
 
         var response = await service.CreateLecturerAsync(request);
 
@@ -174,8 +171,6 @@ public class AdminAccountTests
         var account = Assert.Single(_accountRepo.Accounts);
         Assert.Equal(response.Id, account.Id);
         Assert.Equal(AccountRole.Lecturer, account.Role);
-        Assert.NotEqual("LecturerPass@123", account.PasswordHash);
-        Assert.True(_passwordHasher.VerifyPassword("LecturerPass@123", account.PasswordHash));
 
         // Verify OutboxMessage persisted with UserRegisteredEvent
         var outboxMsg = Assert.Single(_outboxRepo.Messages);
@@ -192,27 +187,45 @@ public class AdminAccountTests
         {
             Id = Guid.NewGuid(),
             Email = "lecturer@fpt.edu.vn",
-            PasswordHash = "hash",
             RegistrationFullName = "Existing",
             Role = AccountRole.Lecturer,
             IsActive = true
         });
 
-        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "LecturerPass@123", "Thầy Mới");
+        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "Thầy Mới");
         var ex = await Assert.ThrowsAsync<ConflictException>(() => service.CreateLecturerAsync(request));
 
         Assert.Equal("EMAIL_ALREADY_EXISTS", ex.ErrorCode);
     }
 
     [Theory]
-    [InlineData("not-an-email", "LecturerPass@123", "Name")]
-    [InlineData("lecturer@fpt.edu.vn", "weak", "Name")]
-    [InlineData("lecturer@fpt.edu.vn", "LecturerPass@123", "")]
-    public async Task CreateLecturer_InvalidData_ThrowsValidationException(string email, string password, string fullName)
+    [InlineData("not-an-email", "Name")]
+    [InlineData("lecturer@fpt.edu.vn", "")]
+    public async Task CreateLecturer_InvalidData_ThrowsValidationException(string email, string fullName)
     {
         var service = CreateService();
-        var request = new CreateLecturerRequest(email, password, fullName);
+        var request = new CreateLecturerRequest(email, fullName);
 
         await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => service.CreateLecturerAsync(request));
+    }
+
+    [Fact]
+    public async Task ProvisionFapStudents_NewStudent_CreatesAccountWithoutAnyPasswordInEvent()
+    {
+        var service = CreateService();
+        var request = new ProvisionFapStudentsRequest(
+            [new FapStudentImportItem("SE190001", "Sinh Viên A", "SinhVienA@gmail.com", "SE")]);
+
+        var response = await service.ProvisionFapStudentsAsync(request);
+
+        Assert.Equal(1, response.NewlyCreatedCount);
+        var account = Assert.Single(_accountRepo.Accounts);
+        Assert.Equal("sinhviena@gmail.com", account.Email);
+        Assert.Equal(AccountRole.Student, account.Role);
+        Assert.Equal("SE190001", account.StudentCode);
+
+        var outboxMessage = Assert.Single(_outboxRepo.Messages);
+        Assert.DoesNotContain("password", outboxMessage.Payload, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("password", Assert.Single(response.Results).StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 }

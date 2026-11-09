@@ -107,6 +107,8 @@ public class UserProfileServiceTests
             FullName = "Old Name",
             Role = "Student",
             StudentCode = "SE123456",
+            Major = Major.SE,
+            Cohort = "K18",
             CreatedAt = originalCreatedAt,
             UpdatedAt = originalCreatedAt
         };
@@ -117,9 +119,7 @@ public class UserProfileServiceTests
 
         var updateRequest = new UpdateUserProfileRequest(
             FullName: "New Updated Name",
-            StudentCode: "SE123456",
             Campus: "Đà Nẵng",
-            Major: Major.AI,
             Bio: "Updated Bio",
             DesiredRole: "AI Engineer",
             Availability: UserAvailability.InTeam,
@@ -132,10 +132,14 @@ public class UserProfileServiceTests
         // Assert
         Assert.Equal("New Updated Name", result.FullName);
         Assert.Equal("Đà Nẵng", result.Campus);
-        Assert.Equal(Major.AI, result.Major);
         Assert.Equal("Updated Bio", result.Bio);
         Assert.Equal(UserAvailability.InTeam, result.Availability);
         Assert.Equal(2, result.Interests.Count);
+
+        // BR-04: MSSV, ngành và khóa không đổi qua PUT /users/me.
+        Assert.Equal("SE123456", result.StudentCode);
+        Assert.Equal(Major.SE, result.Major);
+        Assert.Equal("K18", result.Cohort);
 
         // Verify server-owned fields remain unchanged
         Assert.Equal(userId, result.UserId);
@@ -148,69 +152,10 @@ public class UserProfileServiceTests
     }
 
     [Fact]
-    public async Task UpdateProfile_WhenStudentCodeAlreadyUsedByAnotherUser_ShouldThrowConflictException()
-    {
-        // Arrange
-        var user1Id = Guid.NewGuid();
-        var user2Id = Guid.NewGuid();
-
-        await _profileRepo.AddAsync(new UserProfile
-        {
-            UserId = user1Id,
-            Email = "user1@fpt.edu.vn",
-            FullName = "User One",
-            StudentCode = "SE179999"
-        });
-
-        await _profileRepo.AddAsync(new UserProfile
-        {
-            UserId = user2Id,
-            Email = "user2@fpt.edu.vn",
-            FullName = "User Two",
-            StudentCode = "SE178888"
-        });
-
-        var request = new UpdateUserProfileRequest(
-            FullName: "User Two",
-            StudentCode: "SE179999" // Same as user1
-        );
-
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<ConflictException>(() => _service.UpdateUserProfileAsync(user2Id, request));
-        Assert.Equal("STUDENT_CODE_ALREADY_EXISTS", ex.ErrorCode);
-    }
-
-    [Fact]
-    public async Task UpdateProfile_WhenStudentCodeAlreadyLockedFromFap_ShouldThrowBadRequestException()
-    {
-        // Arrange (BR-04: Sinh viên đã có StudentCode từ FAP không được đổi sang mã khác)
-        var userId = Guid.NewGuid();
-        await _profileRepo.AddAsync(new UserProfile
-        {
-            UserId = userId,
-            Email = "student.fap@fpt.edu.vn",
-            FullName = "Student FAP",
-            StudentCode = "SE180001"
-        });
-
-        var request = new UpdateUserProfileRequest(
-            FullName: "Student FAP",
-            StudentCode: "SE189999"
-        );
-
-        // Act & Assert
-        var ex = await Assert.ThrowsAsync<BadRequestException>(() => _service.UpdateUserProfileAsync(userId, request));
-        Assert.Equal("STUDENT_CODE_LOCKED", ex.ErrorCode);
-    }
-
-    [Fact]
     public async Task UpdateProfile_WhenInvalidFields_ShouldThrowValidationException()
     {
-        // Arrange: Empty FullName and invalid StudentCode with special characters
-        var request = new UpdateUserProfileRequest(
-            FullName: "", // invalid empty
-            StudentCode: "SE-123#@!" // invalid characters
-        );
+        // Arrange: Empty FullName
+        var request = new UpdateUserProfileRequest(FullName: "");
 
         // Act & Assert
         await Assert.ThrowsAsync<FluentValidation.ValidationException>(() =>
@@ -348,7 +293,8 @@ public class UserProfileServiceTests
         {
             UserId = userId,
             Email = "update.event@fpt.edu.vn",
-            FullName = "Old Name"
+            FullName = "Old Name",
+            Major = Major.SE
         });
 
         var fakePublisher = new FakeEventPublisher();
@@ -363,9 +309,7 @@ public class UserProfileServiceTests
 
         var request = new UpdateUserProfileRequest(
             FullName: "New Name",
-            StudentCode: null,
             Campus: "TP. Hồ Chí Minh",
-            Major: Major.SE,
             Bio: "Bio",
             DesiredRole: "Frontend",
             Availability: UserAvailability.LookingForTeam,
@@ -424,6 +368,64 @@ public class UserProfileServiceTests
         Assert.Equal("Fullstack Lead", result.DesiredRole);
         Assert.Equal("Experienced in .NET and React", result.Bio);
         Assert.Equal("K18", result.Cohort);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_DoesNotCompleteProfileOrChangeSkills()
+    {
+        // BR-05, BR-06, BR-07: PUT /users/me không thể đi vòng qua bước khai báo kỹ năng và tick cam kết.
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "no.bypass@fpt.edu.vn",
+            FullName = "No Bypass"
+        });
+
+        var result = await _service.UpdateUserProfileAsync(userId, new UpdateUserProfileRequest(FullName: "No Bypass 2", Bio: "Bio"));
+
+        Assert.False(result.IsCommitted);
+        Assert.False(result.IsProfileCompleted);
+        Assert.Equal(0, result.TechScore);
+    }
+
+    [Fact]
+    public async Task UpdateProfileSkills_WhenAnySkillMissing_ShouldThrowValidationException()
+    {
+        // BR-07: phải khai đủ 5 kỹ năng, chỉ có 1 kỹ năng thì không tính là hoàn thành.
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "missing.skill@fpt.edu.vn",
+            FullName = "Missing Skill"
+        });
+
+        var request = new UpdateProfileSkillsRequest(
+            TechScore: 90,
+            ManagementScore: null,
+            GraphicDesignScore: null,
+            MarketingScore: null,
+            SaleScore: null,
+            IsCommitted: true);
+
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => _service.UpdateProfileSkillsAsync(userId, request));
+    }
+
+    [Fact]
+    public async Task UpdateProfileSkills_AllowsScoreOfZero_WhenAllFiveProvided()
+    {
+        var userId = Guid.NewGuid();
+        await _profileRepo.AddAsync(new UserProfile
+        {
+            UserId = userId,
+            Email = "zero.score@fpt.edu.vn",
+            FullName = "Zero Score"
+        });
+
+        var result = await _service.UpdateProfileSkillsAsync(userId, new UpdateProfileSkillsRequest(0, 0, 0, 0, 0, true));
+
+        Assert.True(result.IsProfileCompleted);
     }
 
     [Fact]

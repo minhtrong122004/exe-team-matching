@@ -9,20 +9,15 @@ import type {
   GroupResponse,
   GroupMemberResponse,
   GroupSummaryResponse,
-  CreateGroupRequest,
   UpdateGroupRequest,
-  CreateSlotRequest,
   RecruitmentSlotResponse,
   JoinRequestResponse,
-  InvitationResponse,
   MatchScoreResponse,
   SuggestedGroupResponse,
   RankedCandidateResponse,
   CandidateProfileResponse,
   LeaderElectionResponse,
   ProjectItem,
-  PagedResult,
-  SkillResponse,
   Major,
   ProjectDomain,
 } from '../types';
@@ -30,7 +25,6 @@ import {
   Compass,
   Users,
   Sparkles,
-  Plus,
   Search,
   RefreshCw,
   Check,
@@ -163,19 +157,6 @@ export const GroupsPage: React.FC = () => {
   const [joinMessage, setJoinMessage] = useState<string>('');
   const [joinSubmitting, setJoinSubmitting] = useState(false);
 
-  // Create Group modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
-  const [systemSkills, setSystemSkills] = useState<SkillResponse[]>([]);
-  const [createName, setCreateName] = useState('');
-  const [createDesc, setCreateDesc] = useState('');
-  const [createProjectId, setCreateProjectId] = useState('');
-  const [createMaxMembers, setCreateMaxMembers] = useState(5);
-  const [createSlots, setCreateSlots] = useState<CreateSlotRequest[]>([
-    { roleName: 'Backend Developer', major: 'SE', requiredSkills: ['C# / .NET'], quantity: 1 },
-  ]);
-  const [creatingGroup, setCreatingGroup] = useState(false);
-
   const loadBrowseGroups = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -305,56 +286,6 @@ export const GroupsPage: React.FC = () => {
     }
   };
 
-  const handleOpenCreateModal = async () => {
-    if (user?.role === 'Student' && !user?.isProfileCompleted) {
-      setError(
-        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tạo nhóm.'
-      );
-      navigate('/profile');
-      return;
-    }
-    setShowCreateModal(true);
-    try {
-      const [projRes, skillRes] = await Promise.all([
-        apiClient.get<PagedResult<ProjectItem>>('/projects', {
-          params: { ownerId: user?.id, pageSize: 50 },
-        }),
-        apiClient.get<SkillResponse[]>('/skills'),
-      ]);
-      setMyProjects(projRes.data?.items || []);
-      setSystemSkills(skillRes.data || []);
-    } catch {
-      // ignore optional preload failure
-    }
-  };
-
-  const handleCreateGroupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createName.trim()) return;
-    setCreatingGroup(true);
-    setError(null);
-    try {
-      const payload: CreateGroupRequest = {
-        name: createName.trim(),
-        description: createDesc.trim() || undefined,
-        projectId: createProjectId || null,
-        maxMembers: createMaxMembers,
-        slots: createSlots.filter((s) => s.roleName.trim().length > 0),
-      };
-      await groupsApi.createGroup(payload);
-      setShowCreateModal(false);
-      navigate('/my-group');
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          err?.response?.data?.title ||
-          'Không thể tạo nhóm mới (Bạn có thể đã thuộc một nhóm khác).'
-      );
-    } finally {
-      setCreatingGroup(false);
-    }
-  };
-
   return (
     <div>
       {/* Header */}
@@ -387,12 +318,6 @@ export const GroupsPage: React.FC = () => {
             <RefreshCw size={16} />
             Làm mới
           </button>
-          {user?.role === 'Student' && (
-            <button className="btn btn-primary" onClick={() => void handleOpenCreateModal()}>
-              <Plus size={18} />
-              Thành lập Nhóm mới
-            </button>
-          )}
         </div>
       </div>
 
@@ -575,7 +500,7 @@ export const GroupsPage: React.FC = () => {
             >
               <option value="">Tất cả trạng thái</option>
               <option value="Recruiting">Đang tuyển (Recruiting)</option>
-              <option value="Full">Đã đủ quân số (Full)</option>
+              <option value="Closed">Đã đóng tuyển (Closed)</option>
               <option value="Locked">Đã khóa (Locked)</option>
             </select>
 
@@ -1147,207 +1072,6 @@ export const GroupsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL THÀNH LẬP NHÓM MỚI (POST /api/groups) ────────────────────── */}
-      {showCreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-          }}
-          onClick={() => setShowCreateModal(false)}
-        >
-          <div
-            className="card"
-            style={{ maxWidth: 640, width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.75rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>Thành lập Nhóm Đề tài Mới</h2>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowCreateModal(false)}>
-                <X size={16} />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => void handleCreateGroupSubmit(e)}>
-              <div style={{ marginBottom: '0.9rem' }}>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: 4 }}>
-                  Tên nhóm khởi nghiệp *
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  required
-                  placeholder="VD: EduSpark Team - Nền tảng học tập AI"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.85rem', marginBottom: '0.9rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: 4 }}>
-                    Liên kết Ý tưởng Dự án của bạn (Tùy chọn)
-                  </label>
-                  <select
-                    className="form-control"
-                    value={createProjectId}
-                    onChange={(e) => setCreateProjectId(e.target.value)}
-                  >
-                    <option value="">-- Chưa chọn đề tài --</option>
-                    {myProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title} ({p.domain})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: 4 }}>
-                    Số thành viên tối đa (4–6)
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    min={4}
-                    max={6}
-                    value={createMaxMembers}
-                    onChange={(e) => setCreateMaxMembers(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: 4 }}>
-                  Mô tả mục tiêu & định hướng của nhóm
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  placeholder="Mô tả ngắn gọn mục tiêu nhóm, văn hóa làm việc và kỳ vọng môn EXE..."
-                  value={createDesc}
-                  onChange={(e) => setCreateDesc(e.target.value)}
-                />
-              </div>
-
-              {/* Recruitment Slots */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                    Vị trí cần tuyển (Recruitment Slots — Phục vụ đa ngành BR-04)
-                  </label>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() =>
-                      setCreateSlots((prev) => [
-                        ...prev,
-                        { roleName: '', major: 'GD', requiredSkills: [], quantity: 1 },
-                      ])
-                    }
-                  >
-                    <Plus size={14} /> Thêm vị trí
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {createSlots.map((slot, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: '0.75rem',
-                        borderRadius: 10,
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        display: 'grid',
-                        gridTemplateColumns: '2fr 1.2fr 1.8fr auto',
-                        gap: '0.5rem',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Tên vị trí (VD: UI/UX Designer)"
-                        value={slot.roleName}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCreateSlots((prev) =>
-                            prev.map((s, i) => (i === idx ? { ...s, roleName: val } : s))
-                          );
-                        }}
-                      />
-                      <select
-                        className="form-control"
-                        value={slot.major}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCreateSlots((prev) =>
-                            prev.map((s, i) => (i === idx ? { ...s, major: val } : s))
-                          );
-                        }}
-                      >
-                        {MAJOR_LIST.map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.value}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        className="form-control"
-                        list="system-skills-datalist"
-                        placeholder="Kỹ năng (phân cách dấu phẩy)"
-                        value={(slot.requiredSkills || []).join(', ')}
-                        onChange={(e) => {
-                          const skills = e.target.value
-                            .split(',')
-                            .map((x) => x.trim())
-                            .filter(Boolean);
-                          setCreateSlots((prev) =>
-                            prev.map((s, i) => (i === idx ? { ...s, requiredSkills: skills } : s))
-                          );
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => setCreateSlots((prev) => prev.filter((_, i) => i !== idx))}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
-                  <datalist id="system-skills-datalist">
-                    {systemSkills.map((sk) => (
-                      <option key={sk.id} value={sk.name} />
-                    ))}
-                  </datalist>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={creatingGroup}>
-                  {creatingGroup ? 'Đang khởi tạo...' : 'Xác nhận Tạo Nhóm'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1364,7 +1088,6 @@ export const MyGroupPage: React.FC = () => {
   const [joinRequests, setJoinRequests] = useState<JoinRequestResponse[]>([]);
   const [applicantProfiles, setApplicantProfiles] = useState<Record<string, CandidateProfileResponse>>({});
   const [candidates, setCandidates] = useState<RankedCandidateResponse[]>([]);
-  const [myProjects, setMyProjects] = useState<ProjectItem[]>([]);
 
   const [activeTab, setActiveTab] = useState<'members' | 'slots' | 'requests' | 'candidates' | 'transfers'>('members');
   const [loading, setLoading] = useState(true);
@@ -1436,9 +1159,6 @@ export const MyGroupPage: React.FC = () => {
   const [editForm, setEditForm] = useState<UpdateGroupRequest>({
     name: '',
     description: '',
-    projectId: null,
-    maxMembers: 5,
-    status: 'Recruiting',
   });
 
   // Add/Edit Slot state
@@ -1447,10 +1167,6 @@ export const MyGroupPage: React.FC = () => {
   const [slotMajor, setSlotMajor] = useState<string>('SE');
   const [slotSkills, setSlotSkills] = useState('');
   const [slotQty, setSlotQty] = useState(1);
-
-  // Invite message modal
-  const [invitingCandidate, setInvitingCandidate] = useState<RankedCandidateResponse | null>(null);
-  const [inviteMessage, setInviteMessage] = useState('');
 
   const isLeader = Boolean(group && user && group.leaderId === user.id);
 
@@ -1580,9 +1296,6 @@ export const MyGroupPage: React.FC = () => {
       setEditForm({
         name: myGrp.name,
         description: myGrp.description || '',
-        projectId: myGrp.projectId || null,
-        maxMembers: myGrp.maxMembers,
-        status: myGrp.status,
       });
 
       // Enrich member profiles
@@ -1601,26 +1314,17 @@ export const MyGroupPage: React.FC = () => {
       }
 
       // Load join requests for ALL members (BR-25 application voting)
-      // Load ranked candidates & projects for leader
+      // Load ranked candidates for leader
       // Load active election for all members (BR-18, BR-19)
-      const [reqRes, candRes, projRes, electionRes] = await Promise.all([
+      const [reqRes, candRes, electionRes] = await Promise.all([
         groupsApi.getGroupJoinRequests(myGrp.id, { page: 1, pageSize: 30 }).catch(() => null),
         user && myGrp.leaderId === user.id ? groupsApi.getRankedCandidates(myGrp.id, 10).catch(() => []) : Promise.resolve([]),
-        user && myGrp.leaderId === user.id
-          ? apiClient
-              .get<PagedResult<ProjectItem>>('/projects', {
-                params: { ownerId: user.id, pageSize: 50 },
-              })
-              .then((r) => r.data?.items || [])
-              .catch(() => [])
-          : Promise.resolve([]),
         groupsApi.getCurrentElection(myGrp.id).catch(() => null),
       ]);
 
       const reqItems = reqRes?.items || [];
       setJoinRequests(reqItems);
       setCandidates(candRes || []);
-      setMyProjects(projRes || []);
       setCurrentElection(electionRes);
       if (electionRes && electionRes.status === 'Active') {
         setCountdownSeconds(Math.max(0, Math.floor(electionRes.secondsRemaining || 0)));
@@ -1799,23 +1503,6 @@ export const MyGroupPage: React.FC = () => {
     }
   };
 
-  const handleDisbandGroup = async () => {
-    if (!group) return;
-    if (group.status === 'Locked') {
-      setError('Nhóm đã Chốt sổ học kỳ (Locked / BR-33). Không thể giải tán nhóm.');
-      return;
-    }
-    if (!window.confirm(`Giải tán nhóm "${group.name}"? Hành động này không thể hoàn tác.`))
-      return;
-    try {
-      await groupsApi.disbandGroup(group.id);
-      setGroup(null);
-      setFeedback('Đã giải tán nhóm thành công.');
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể giải tán nhóm.');
-    }
-  };
-
   const handleTransferLeader = async (newLeaderId: string) => {
     if (!group || !window.confirm('Chuyển quyền Trưởng nhóm cho thành viên này?')) return;
     try {
@@ -1909,22 +1596,6 @@ export const MyGroupPage: React.FC = () => {
       await loadMyGroupData();
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Không thể xử lý đơn xin gia nhập.');
-    }
-  };
-
-  const handleSendInvitation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group || !invitingCandidate) return;
-    try {
-      await groupsApi.createInvitation(group.id, {
-        invitedUserId: invitingCandidate.userId,
-        message: inviteMessage.trim() || undefined,
-      });
-      setFeedback(`Đã gửi lời mời tham gia nhóm tới "${invitingCandidate.fullName}"!`);
-      setInvitingCandidate(null);
-      setInviteMessage('');
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể gửi lời mời cho ứng viên này.');
     }
   };
 
@@ -2030,13 +1701,6 @@ export const MyGroupPage: React.FC = () => {
                 >
                   <Edit3 size={15} /> Sửa thông tin
                 </button>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ color: '#dc2626' }}
-                  onClick={() => void handleDisbandGroup()}
-                >
-                  <Trash2 size={15} /> Giải tán nhóm
-                </button>
               </>
             )}
             {!isLeader && (
@@ -2106,46 +1770,6 @@ export const MyGroupPage: React.FC = () => {
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
               />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Trạng thái</label>
-              <select
-                className="form-control"
-                value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-              >
-                <option value="Recruiting">Recruiting (Đang tuyển)</option>
-                <option value="Full">Full (Đã đủ)</option>
-                <option value="Locked">Locked (Đã khóa)</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Sĩ số tối đa (4-6)</label>
-              <input
-                type="number"
-                className="form-control"
-                min={4}
-                max={6}
-                value={editForm.maxMembers}
-                onChange={(e) => setEditForm({ ...editForm, maxMembers: Number(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Đề tài liên kết</label>
-              <select
-                className="form-control"
-                value={editForm.projectId || ''}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, projectId: e.target.value || null })
-                }
-              >
-                <option value="">-- Không liên kết --</option>
-                {myProjects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Mô tả nhóm</label>
@@ -2948,18 +2572,6 @@ export const MyGroupPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => {
-                      setInvitingCandidate(c);
-                      setInviteMessage(
-                        `Chào ${c.fullName}, nhóm ${group.name} thấy hồ sơ của bạn rất phù hợp (${c.score.toFixed(0)}%) nên trân trọng mời bạn tham gia nhóm!`
-                      );
-                    }}
-                  >
-                    <Send size={14} /> Mời vào nhóm
-                  </button>
                 </div>
               ))}
             </div>
@@ -3077,54 +2689,6 @@ export const MyGroupPage: React.FC = () => {
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Modal gửi lời mời */}
-      {invitingCandidate && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-          }}
-          onClick={() => setInvitingCandidate(null)}
-        >
-          <div
-            className="card"
-            style={{ maxWidth: 480, width: '100%', padding: '1.5rem' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-              Mời {invitingCandidate.fullName} vào nhóm
-            </h3>
-            <form onSubmit={(e) => void handleSendInvitation(e)}>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={inviteMessage}
-                onChange={(e) => setInviteMessage(e.target.value)}
-                style={{ marginBottom: '1rem' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setInvitingCandidate(null)}
-                >
-                  Hủy
-                </button>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  <Send size={14} /> Gửi lời mời
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 
@@ -3841,209 +3405,3 @@ export const JoinRequestsPage: React.FC = () => {
     </div>
   );
 };
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 4. INVITATIONS PAGE (/invitations) — Quản lý Lời mời Tham gia Nhóm của Sinh viên
-// ══════════════════════════════════════════════════════════════════════════════
-export const InvitationsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [invitations, setInvitations] = useState<InvitationResponse[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  const loadMyInvitations = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await groupsApi.getMyInvitations({
-        status: statusFilter || undefined,
-        page: 1,
-        pageSize: 30,
-      });
-      setInvitations(res.items || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể tải danh sách lời mời tham gia nhóm.');
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter]);
-
-  useEffect(() => {
-    void loadMyInvitations();
-  }, [loadMyInvitations]);
-
-  const handleDecision = async (invId: string, accept: boolean) => {
-    try {
-      if (accept) {
-        if (user?.role === 'Student' && !user?.isProfileCompleted) {
-          setError(
-            'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi chấp nhận lời mời.'
-          );
-          navigate('/profile');
-          return;
-        }
-        await groupsApi.acceptInvitation(invId);
-        setFeedback('Bạn đã chấp nhận lời mời vào nhóm! Đang chuyển tới Nhóm của tôi...');
-        setTimeout(() => navigate('/my-group'), 900);
-      } else {
-        await groupsApi.rejectInvitation(invId);
-        setFeedback('Đã từ chối lời mời tham gia nhóm.');
-        await loadMyInvitations();
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể xử lý lời mời này.');
-    }
-  };
-
-  const pendingCount = invitations.filter((i) => i.status === 'Pending').length;
-
-  return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Lời mời Tham gia Nhóm ({pendingCount} đang chờ)
-          </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Các lời mời từ trưởng nhóm gửi đến bạn (Tự động hết hạn sau 48h — Background Job BR-10)
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <select
-            className="form-control"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ width: 180 }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Pending">Đang chờ (Pending)</option>
-            <option value="Accepted">Đã đồng ý (Accepted)</option>
-            <option value="Rejected">Đã từ chối (Rejected)</option>
-            <option value="Expired">Đã hết hạn (Expired)</option>
-          </select>
-          <button className="btn btn-secondary btn-sm" onClick={() => void loadMyInvitations()}>
-            <RefreshCw size={15} /> Làm mới
-          </button>
-        </div>
-      </div>
-
-      {feedback && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #10b981',
-            background: '#ecfdf5',
-            color: '#065f46',
-          }}
-        >
-          {feedback}
-        </div>
-      )}
-      {error && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #ef4444',
-            background: '#fef2f2',
-            color: '#991b1b',
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Đang tải danh sách lời mời...
-        </div>
-      ) : invitations.length === 0 ? (
-        <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-          <Mail size={44} style={{ margin: '0 auto 1rem auto', color: '#94a3b8' }} />
-          <h3 style={{ color: 'var(--text-main)' }}>Bạn không có lời mời nào đang chờ</h3>
-          <p style={{ marginTop: '0.35rem' }}>
-            Khi các trưởng nhóm tìm kiếm ứng viên và gửi lời mời đến bạn, chúng sẽ xuất hiện tại đây.
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: 900 }}>
-          {invitations.map((inv) => (
-            <div
-              key={inv.id}
-              className="card"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <strong style={{ fontSize: '1.05rem', color: 'var(--text-main)' }}>
-                    Lời mời từ nhóm: {inv.groupName}
-                  </strong>
-                  <span className="badge badge-domain">{inv.status}</span>
-                </div>
-                {inv.message && (
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                    &quot;{inv.message}&quot;
-                  </p>
-                )}
-                <div
-                  style={{
-                    fontSize: '0.78rem',
-                    color: 'var(--text-muted)',
-                    marginTop: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                  }}
-                >
-                  <Clock size={13} />
-                  Gửi lúc: {formatDateTime(inv.createdAt)} • Hết hạn: {formatDateTime(inv.expiresAt)}
-                </div>
-              </div>
-
-              {inv.status === 'Pending' && (
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => void handleDecision(inv.id, true)}
-                  >
-                    <Check size={15} /> Chấp nhận
-                  </button>
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#dc2626' }}
-                    onClick={() => void handleDecision(inv.id, false)}
-                  >
-                    <X size={15} /> Từ chối
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-

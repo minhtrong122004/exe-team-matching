@@ -1,58 +1,53 @@
-# Kiến trúc Hệ thống EXE Team Matching (C0 & C1)
+# Kiến trúc EXE Team Matching
 
-Tài liệu sơ đồ kiến trúc C4 Model (Mức C0 — System Context và Mức C1 — Container Diagram) cho hệ thống **EXE Team Matching**.
+Sơ đồ kiến trúc theo C4 Model. Thiết kế dữ liệu của từng service nằm ở [ERD.md](ERD.md).
 
----
-
-## 1. Mức C0 — System Context Diagram
+## C0: System Context
 
 ```mermaid
 flowchart TB
-    Student["👨‍🎓 Sinh viên (Student)\nTìm kiếm đề tài, ghép nhóm đa ngành,\nứng tuyển & nhận lời mời"]
-    Lecturer["👨‍🏫 Giảng viên (Lecturer)\nTheo dõi tiến độ ghép nhóm,\nnhận diện sinh viên chưa có nhóm, xuất CSV"]
-    Admin["🛡️ Quản trị viên (Admin)\nQuản lý tài khoản, giảng viên,\ndanh mục kỹ năng & snapshot báo cáo"]
+    Student["Sinh viên (Student)<br/>Khai hồ sơ, vào Room, Apply,<br/>vote, bầu Leader, xin chuyển nhóm"]
+    Moderator["Điều phối viên (Moderator)<br/>Import danh sách, cấu hình môn,<br/>phân phối sinh viên lẻ, chốt sổ, chuyển nhóm"]
+    Lecturer["Giảng viên (Lecturer)<br/>Xem nhóm, tiến độ và xuất CSV"]
 
-    System["🚀 EXE Team Matching Platform\n(Microservices Ecosystem)\nHỗ trợ kết nối đề tài & thành lập nhóm khởi nghiệp môn EXE"]
+    System["EXE Team Matching<br/>Ghép nhóm cho các môn EXE theo học kỳ"]
 
-    SMTP["📧 Hệ thống Email SMTP / MailHog / Brevo\nGửi mã xác thực OTP & email thông báo"]
+    Google["Google Sign-In<br/>Xác thực tài khoản Google"]
+    Mail["SMTP / MailHog<br/>Gửi email thông báo"]
+    Fap["Danh sách lớp từ FAP<br/>File .xls hoặc .csv do Moderator import"]
 
-    Student -->|"HTTPS (SPA / REST JSON)"| System
-    Lecturer -->|"HTTPS (SPA / REST JSON)"| System
-    Admin -->|"HTTPS (SPA / REST JSON)"| System
-    System -->|"SMTP (Port 1025 / 587)"| SMTP
+    Student -->|"HTTPS"| System
+    Moderator -->|"HTTPS"| System
+    Lecturer -->|"HTTPS"| System
+    Fap -.->|"Moderator tải lên"| Moderator
+    System -->|"Kiểm tra ID token"| Google
+    System -->|"SMTP"| Mail
 ```
 
----
-
-## 2. Mức C1 — Container & Communication Diagram
+## C1: Container
 
 ```mermaid
 flowchart TB
-    subgraph Client["Tầng Giao diện (Frontend)"]
-        SPA["🌐 React 19 + TypeScript SPA\n(Vite + Nginx :3000)"]
+    SPA["Web App<br/>React + Vite, Nginx :3000"]
+    GW["API Gateway<br/>YARP + kiểm tra JWT :5000"]
+
+    subgraph Services["Dịch vụ .NET 10"]
+        Auth["Auth Service :5001<br/>Đăng nhập Google, JWT, tài khoản, Outbox"]
+        User["User Service :5002<br/>Hồ sơ, 5 kỹ năng, cam kết"]
+        Project["Project Service :5003<br/>Đề tài của nhóm"]
+        Group["Group Service :5004<br/>Học kỳ, Space, Room, Apply, bầu Leader,<br/>phân phối, chốt sổ, chuyển nhóm"]
+        Matching["Matching Service :5005<br/>gRPC, không có database"]
+        Notification["Notification Service :5006<br/>Thông báo trong app, hàng đợi email"]
+        Report["Report Service :5007<br/>Thống kê, báo cáo định kỳ, CSV"]
     end
 
-    subgraph Edge["Tầng Cổng Giao tiếp (API Gateway)"]
-        GW["🔀 Exe.ApiGateway\n(YARP Reverse Proxy :5000)"]
-    end
+    SQL[("SQL Server :1433<br/>Mỗi service một database")]
+    Redis[("Redis Streams :6379<br/>exe:events:*")]
+    Mail["MailHog :1025 / :8025"]
+    Google["Google Sign-In"]
 
-    subgraph Services["Tầng Microservices (.NET 10)"]
-        Auth["🔐 Auth Service (:5001)\nJWT, Refresh Token, OTP, Outbox"]
-        User["👤 User Service (:5002)\nUserProfile, Skills, Availability"]
-        Project["💡 Project Service (:5003)\nProject Ideas, Domains, Tags"]
-        Group["👥 Group Service (:5004)\nGroups, Slots, JoinRequests, Invitations"]
-        Matching["🧠 Matching Service (:5005)\ngRPC Stateless Scoring Engine"]
-        Notification["🔔 Notification Service (:5006)\nIn-App Alerts & Email Queue"]
-        Report["📊 Report Service (:5007)\nRead-Model Projections & CSV Export"]
-    end
-
-    subgraph Data["Tầng Lưu trữ & Sự kiện (Data & Event Bus)"]
-        SQL[("🗄️ SQL Server 2022 (:1433)\n6 Isolated Databases:\nExeAuthDb | ExeUserDb | ExeProjectDb\nExeGroupDb | ExeNotificationDb | ExeReportDb")]
-        Redis[("⚡ Redis 7 (:6379)\nRedis Streams Event Bus\nexe:events:*")]
-        Mail["📬 MailHog / SMTP (:1025 / :8025)"]
-    end
-
-    SPA -->|"REST JSON (/api/*)"| GW
+    SPA -->|"Lấy ID token"| Google
+    SPA -->|"REST /api/*"| GW
     GW --> Auth
     GW --> User
     GW --> Project
@@ -60,17 +55,19 @@ flowchart TB
     GW --> Notification
     GW --> Report
 
-    Group -->|"Sync REST (UserClient / ProjectClient)"| User
-    Group -->|"Sync REST"| Project
-    Group -->|"Sync gRPC (HTTP/2 :5005)"| Matching
+    Auth -->|"Kiểm tra ID token"| Google
+    Group -->|"REST: cấp tài khoản khi import"| Auth
+    Group -->|"REST: hồ sơ"| User
+    Group -->|"REST: đề tài"| Project
+    Group -->|"gRPC: điểm, phân phối"| Matching
 
-    Auth -->|"XADD UserRegistered"| Redis
-    User -->|"XADD UserProfileUpdated"| Redis
-    Group -->|"XADD GroupCreated, JoinRequest*,\nInvitationCreated, MemberJoined/Left"| Redis
+    Auth -->|"UserRegistered"| Redis
+    User -->|"UserProfileUpdated"| Redis
+    Group -->|"JoinRequest*, MemberJoined, MemberLeft,<br/>MemberRemoved, MemberTransferredPostLock,<br/>SpaceFinalized"| Redis
 
-    Redis -->|"XREADGROUP user-service"| User
-    Redis -->|"XREADGROUP notification-service"| Notification
-    Redis -->|"XREADGROUP report-service"| Report
+    Redis -->|"consumer group user-service"| User
+    Redis -->|"consumer group notification-service"| Notification
+    Redis -->|"consumer group report-service"| Report
 
     Auth --> SQL
     User --> SQL
@@ -81,3 +78,10 @@ flowchart TB
     Notification -->|"SMTP"| Mail
 ```
 
+## Luồng đăng nhập
+
+1. Web App lấy ID token từ Google Sign-In.
+2. Web App gọi `POST /api/auth/google`.
+3. Auth Service kiểm tra chữ ký, hạn và audience của token với Google.
+4. Auth Service tìm email trong các tài khoản đã tạo khi import danh sách, so sánh không phân biệt hoa thường.
+5. Có tài khoản thì cấp JWT và refresh token. Không có thì trả `403 NOT_IN_FAP_LIST`.

@@ -14,7 +14,6 @@ import {
   Shield,
   LogOut,
   Compass,
-  Mail,
   UserPlus,
   Menu,
   ChevronDown,
@@ -23,11 +22,7 @@ import {
   Moon,
   Sun,
   CheckCircle2,
-  KeyRound,
-  Lock,
   AlertCircle,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 
 interface NavSection {
@@ -41,7 +36,7 @@ interface NavSection {
 }
 
 export const MainLayout: React.FC = () => {
-  const { user, logout, acceptTerms, changePassword } = useAuth();
+  const { user, logout, acceptTerms } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -49,22 +44,12 @@ export const MainLayout: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // First-Login Onboarding State (BR-34 Terms + Optional/Recommended Initial Password Change)
+  // First-Login Onboarding State (BR-34 Terms)
   const [termsChecked, setTermsChecked] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
-  const [onboardingSuccess, setOnboardingSuccess] = useState<string | null>(null);
-  const [dismissedPasswordStep, setDismissedPasswordStep] = useState(false);
-
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showOnboardingPasswords, setShowOnboardingPasswords] = useState(false);
-
   const needsTermsAcceptance = user?.role === 'Student' && user.hasAcceptedTerms === false;
-  const needsPasswordChange =
-    user?.role === 'Student' && Boolean(user.mustChangePassword) && !dismissedPasswordStep;
-  const showOnboardingModal = needsTermsAcceptance || needsPasswordChange;
+  const showOnboardingModal = needsTermsAcceptance;
 
   const handleAcceptTermsSubmit = async () => {
     if (!termsChecked) {
@@ -75,48 +60,11 @@ export const MainLayout: React.FC = () => {
     setOnboardingLoading(true);
     try {
       await acceptTerms();
-      setOnboardingSuccess('Đã ghi nhận xác nhận đồng ý Quy định ghép nhóm (BR-34).');
     } catch (err: any) {
       setOnboardingError(
         err.response?.data?.detail ||
           err.response?.data?.title ||
           'Không thể lưu xác nhận điều khoản. Vui lòng thử lại.'
-      );
-    } finally {
-      setOnboardingLoading(false);
-    }
-  };
-
-  const handleOnboardingChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setOnboardingError(null);
-
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      setOnboardingError('Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới.');
-      return;
-    }
-    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^a-zA-Z0-9]/.test(newPassword)) {
-      setOnboardingError('Mật khẩu mới phải từ 8 ký tự, gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.');
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setOnboardingError('Mật khẩu xác nhận không trùng khớp.');
-      return;
-    }
-
-    setOnboardingLoading(true);
-    try {
-      await changePassword({ currentPassword, newPassword, confirmNewPassword });
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setDismissedPasswordStep(true);
-    } catch (err: any) {
-      setOnboardingError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          err.response?.data?.message ||
-          'Mật khẩu hiện tại không chính xác hoặc dữ liệu không hợp lệ.'
       );
     } finally {
       setOnboardingLoading(false);
@@ -326,12 +274,6 @@ export const MainLayout: React.FC = () => {
             to: '/join-requests',
             label: 'Yêu cầu tham gia',
             icon: <UserPlus size={19} />,
-            roles: ['Student'],
-          },
-          {
-            to: '/invitations',
-            label: 'Lời mời vào nhóm',
-            icon: <Mail size={19} />,
             roles: ['Student'],
           },
         ],
@@ -936,7 +878,7 @@ export const MainLayout: React.FC = () => {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          FIRST-LOGIN ONBOARDING MODAL (BR-34 TERMS & INITIAL PASSWORD)
+          FIRST-LOGIN ONBOARDING MODAL (BR-34 TERMS)
          ══════════════════════════════════════════════════════════════ */}
       {showOnboardingModal && (
         <div
@@ -996,16 +938,14 @@ export const MainLayout: React.FC = () => {
                     flexShrink: 0,
                   }}
                 >
-                  {needsTermsAcceptance ? <Shield size={20} /> : <KeyRound size={20} />}
+                  <Shield size={20} />
                 </div>
                 <div>
                   <h2
                     id="onboarding-modal-title"
                     style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}
                   >
-                    {needsTermsAcceptance
-                      ? 'Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)'
-                      : 'Thiết lập Mật khẩu Bảo mật Lần đầu'}
+                    Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)
                   </h2>
                   <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#cbd5e1' }}>
                     Sinh viên: <strong>{user?.fullName}</strong>
@@ -1013,22 +953,6 @@ export const MainLayout: React.FC = () => {
                   </p>
                 </div>
               </div>
-
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono, monospace)',
-                  fontVariantNumeric: 'tabular-nums',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  padding: '0.25rem 0.65rem',
-                  borderRadius: 999,
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  color: '#f8fafc',
-                  flexShrink: 0,
-                }}
-              >
-                {needsTermsAcceptance ? 'Bước 1 / 2' : 'Bước 2 / 2'}
-              </span>
             </div>
 
             <div style={{ padding: '1.5rem 1.75rem' }}>
@@ -1052,28 +976,7 @@ export const MainLayout: React.FC = () => {
                 </div>
               )}
 
-              {onboardingSuccess && !needsTermsAcceptance && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    padding: '0.75rem 1rem',
-                    borderRadius: 10,
-                    background: '#f0fdf4',
-                    border: '1px solid #bbf7d0',
-                    color: '#166534',
-                    fontSize: '0.85rem',
-                    marginBottom: '1.25rem',
-                  }}
-                >
-                  <CheckCircle2 size={17} style={{ flexShrink: 0, color: '#16a34a' }} />
-                  <span>{onboardingSuccess}</span>
-                </div>
-              )}
-
-              {needsTermsAcceptance ? (
-                <div>
+              <div>
                   <p style={{ fontSize: '0.9rem', color: 'var(--text-main, #1e293b)', lineHeight: 1.55, marginTop: 0 }}>
                     Chào mừng bạn đến với hệ thống ghép nhóm học phần <strong>Experiential Entrepreneurship (EXE)</strong>. Trước khi tham gia Room ghép nhóm, vui lòng đọc và xác nhận các nguyên tắc vận hành bắt buộc:
                   </p>
@@ -1094,13 +997,13 @@ export const MainLayout: React.FC = () => {
                     }}
                   >
                     <div>
-                      <strong>1. Quy mô & Tỷ lệ Liên ngành (BR-07, BR-08):</strong> Mỗi nhóm chuẩn gồm <strong>6 thành viên</strong> (tối thiểu 4 thành viên hợp lệ), trong đó <strong>tối đa 3 sinh viên khối Công nghệ (SE / AI / IA)</strong> và khuyến khích tối thiểu 2 chuyên ngành khác nhau.
+                      <strong>1. Vào phòng và lập nhóm:</strong> Phòng dưới ngưỡng thì sinh viên vào thẳng, người đầu tiên làm Leader. Khi đạt ngưỡng (hơn 50% sĩ số tối đa), phòng thành Group và chỉ nhận thêm qua đơn Apply.
                     </div>
                     <div>
-                      <strong>2. Cơ chế Biểu quyết Dân chủ & Bầu Leader (BR-17, BR-22):</strong> Khi phòng có từ 3 thành viên trở lên, ứng viên mới cần đạt <strong>tối thiểu 2/3 phiếu đồng ý</strong>. Khi đủ 6/6 thành viên hoặc đóng tuyển, nhóm có 24 giờ để bầu chọn Leader chính thức.
+                      <strong>2. Duyệt đơn:</strong> Thành viên vote trên từng đơn để tham khảo, Leader quyết định nhận hoặc từ chối.
                     </div>
                     <div>
-                      <strong>3. Quyền Điều phối khi Chốt sổ Học kỳ (BR-26, BR-28, BR-34):</strong> Sau thời hạn chốt sổ (Deadline), những sinh viên chưa có nhóm hoặc phòng dưới 4 thành viên sẽ được <strong>Điều phối viên (Moderator) và Giảng viên</strong> ghép tự động để đảm bảo 100% sinh viên đủ điều kiện làm đồ án.
+                      <strong>3. Quyền điều phối (BR-34):</strong> Moderator có toàn quyền chủ động điều phối sinh viên vào các nhóm khi nhóm chưa đủ số lượng tối đa hoặc sau thời hạn quy định.
                     </div>
                   </div>
 
@@ -1130,7 +1033,7 @@ export const MainLayout: React.FC = () => {
                       style={{ marginTop: 3, width: 17, height: 17, accentColor: '#f26f21', flexShrink: 0 }}
                     />
                     <span>
-                      Tôi đã đọc hiểu và đồng ý tuân thủ quy định ghép nhóm liên ngành cũng như sự điều phối của Moderator / Giảng viên (BR-34).
+                      Tôi đã đọc hiểu và đồng ý với quy định ghép nhóm cũng như quyền điều phối của Moderator (BR-34).
                     </span>
                   </label>
 
@@ -1155,99 +1058,6 @@ export const MainLayout: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              ) : (
-                <form onSubmit={handleOnboardingChangePassword}>
-                  <p style={{ fontSize: '0.88rem', color: 'var(--text-muted, #475569)', lineHeight: 1.55, marginTop: 0 }}>
-                    Tài khoản của bạn đang sử dụng <strong>mật khẩu khởi tạo từ danh sách FAP</strong>. Vui lòng thiết lập mật khẩu cá nhân mới để bảo vệ tài khoản trong suốt kỳ học EXE.
-                  </p>
-
-                  <div className="form-group" style={{ marginBottom: '1rem' }}>
-                    <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
-                      Mật khẩu khởi tạo hiện tại *
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <Lock size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
-                      <input
-                        type={showOnboardingPasswords ? 'text' : 'password'}
-                        className="form-control"
-                        placeholder="Nhập mật khẩu khởi tạo trong email..."
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={onboardingLoading}
-                        style={{ paddingLeft: '2.35rem', paddingRight: '2.5rem' }}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowOnboardingPasswords((v) => !v)}
-                        aria-label={showOnboardingPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                        style={{
-                          position: 'absolute',
-                          right: 10,
-                          top: 10,
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#64748b',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {showOnboardingPasswords ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.25rem' }}>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
-                        Mật khẩu mới *
-                      </label>
-                      <input
-                        type={showOnboardingPasswords ? 'text' : 'password'}
-                        className="form-control"
-                        placeholder="Ít nhất 8 ký tự, chữ hoa, số, ký tự ĐB"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        disabled={onboardingLoading}
-                        required
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
-                        Xác nhận mật khẩu mới *
-                      </label>
-                      <input
-                        type={showOnboardingPasswords ? 'text' : 'password'}
-                        className="form-control"
-                        placeholder="Nhập lại mật khẩu mới"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        disabled={onboardingLoading}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => setDismissedPasswordStep(true)}
-                      className="btn btn-secondary"
-                      disabled={onboardingLoading}
-                    >
-                      Để sau (Đổi tại Hồ sơ cá nhân)
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={onboardingLoading}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-                    >
-                      <KeyRound size={16} />
-                      <span>{onboardingLoading ? 'Đang lưu mật khẩu...' : 'Cập nhật mật khẩu mới'}</span>
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
           </div>
           <style>{`

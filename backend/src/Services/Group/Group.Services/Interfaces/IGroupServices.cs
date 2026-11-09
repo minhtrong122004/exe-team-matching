@@ -9,14 +9,10 @@ public interface IGroupService
     Task<PagedResult<GroupSummaryResponse>> GetGroupsAsync(GroupQuery query, CancellationToken ct = default);
     Task<GroupDetailResponse> GetGroupAsync(Guid id, CancellationToken ct = default);
 
-    /// <summary>Nhóm đang hoạt động của người dùng hiện tại; null nếu chưa có nhóm.</summary>
-    Task<GroupDetailResponse?> GetMyGroupAsync(CancellationToken ct = default);
+    /// <summary>Nhóm của người dùng hiện tại trong một môn (hoặc nhóm mới nhất nếu không chỉ định); null nếu chưa có nhóm.</summary>
+    Task<GroupDetailResponse?> GetMyGroupAsync(Guid? spaceId = null, CancellationToken ct = default);
 
-    Task<GroupDetailResponse> CreateGroupAsync(CreateGroupRequest request, CancellationToken ct = default);
     Task<GroupDetailResponse> UpdateGroupAsync(Guid id, UpdateGroupRequest request, CancellationToken ct = default);
-
-    /// <summary>Giải tán nhóm: trạng thái Disbanded, hủy yêu cầu/lời mời đang chờ, phát MemberLeft cho từng thành viên.</summary>
-    Task DisbandGroupAsync(Guid id, CancellationToken ct = default);
 
     Task<SlotResponse> AddSlotAsync(Guid groupId, SlotRequest request, CancellationToken ct = default);
     Task<SlotResponse> UpdateSlotAsync(Guid groupId, Guid slotId, SlotRequest request, CancellationToken ct = default);
@@ -49,18 +45,6 @@ public interface IJoinRequestService
 
     /// <summary>Thành viên vote tham khảo cho ứng viên (BR-25).</summary>
     Task<JoinRequestResponse> VoteApplicationAsync(Guid requestId, VoteApplicationRequest request, CancellationToken ct = default);
-}
-
-/// <summary>Lời mời vào nhóm.</summary>
-public interface IInvitationService
-{
-    Task<InvitationResponse> CreateAsync(Guid groupId, CreateInvitationRequest request, CancellationToken ct = default);
-    Task<PagedResult<InvitationResponse>> GetMineAsync(InvitationQuery query, CancellationToken ct = default);
-    Task<InvitationResponse> AcceptAsync(Guid id, CancellationToken ct = default);
-    Task<InvitationResponse> RejectAsync(Guid id, CancellationToken ct = default);
-
-    /// <summary>BR-10: chuyển lời mời Pending quá hạn sang Expired. Gọi từ InvitationExpiryJob. Trả số lời mời đã hết hạn.</summary>
-    Task<int> ExpireOverdueAsync(CancellationToken ct = default);
 }
 
 /// <summary>Điểm phù hợp và gợi ý — gom dữ liệu từ User/Project rồi gọi Matching qua gRPC (CLAUDE.md mục 8).</summary>

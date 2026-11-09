@@ -99,65 +99,14 @@ public class UserProfileService : IUserProfileService
             throw new NotFoundException("Hồ sơ người dùng không tồn tại.", "USER_PROFILE_NOT_FOUND");
         }
 
-        // BR-04: Kiểm tra trùng lặp MSSV và khóa cố định StudentCode nếu đã đồng bộ từ FAP
-        if (!string.IsNullOrWhiteSpace(request.StudentCode))
-        {
-            var trimmedCode = request.StudentCode.Trim().ToUpperInvariant();
-            var existingWithCode = await _profileRepo.GetByStudentCodeAsync(trimmedCode, ct);
-            if (existingWithCode != null && existingWithCode.UserId != userId)
-            {
-                throw new ConflictException($"Mã số sinh viên '{trimmedCode}' đã được sử dụng bởi một tài khoản khác.", "STUDENT_CODE_ALREADY_EXISTS");
-            }
-
-            if (!string.IsNullOrWhiteSpace(profile.StudentCode) &&
-                !string.Equals(profile.StudentCode, trimmedCode, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BadRequestException(
-                    $"Mã số sinh viên ({profile.StudentCode}) được đồng bộ cố định từ hệ thống FAP và không thể thay đổi (BR-04).",
-                    "STUDENT_CODE_LOCKED");
-            }
-
-            profile.StudentCode = trimmedCode;
-        }
-
-        // Cập nhật các trường được phép chỉnh sửa
+        // BR-04: MSSV, ngành và khóa lấy từ danh sách FAP, sinh viên không sửa được.
+        // BR-05, BR-06: điểm kỹ năng và cam kết chỉ cập nhật qua PUT /users/me/profile-skills.
         profile.FullName = request.FullName.Trim();
         profile.Campus = request.Campus?.Trim();
-        if (request.Major.HasValue || profile.Major == null)
-        {
-            profile.Major = request.Major ?? profile.Major;
-        }
-        if (!string.IsNullOrWhiteSpace(request.Cohort) && string.IsNullOrWhiteSpace(profile.Cohort))
-        {
-            profile.Cohort = request.Cohort.Trim();
-        }
         profile.Bio = request.Bio?.Trim();
         profile.DesiredRole = request.DesiredRole?.Trim();
         profile.Availability = request.Availability;
         profile.Interests = SerializeInterests(request.Interests);
-
-        if (request.TechScore.HasValue) profile.TechScore = request.TechScore.Value;
-        if (request.ManagementScore.HasValue) profile.ManagementScore = request.ManagementScore.Value;
-        if (request.GraphicDesignScore.HasValue) profile.GraphicDesignScore = request.GraphicDesignScore.Value;
-        if (request.MarketingScore.HasValue) profile.MarketingScore = request.MarketingScore.Value;
-        if (request.SaleScore.HasValue) profile.SaleScore = request.SaleScore.Value;
-
-        if (request.IsCommitted.HasValue)
-        {
-            if (request.IsCommitted.Value && !profile.IsCommitted)
-            {
-                profile.CommittedAt = DateTime.UtcNow;
-            }
-            profile.IsCommitted = request.IsCommitted.Value;
-            if (!profile.IsCommitted)
-            {
-                profile.CommittedAt = null;
-                profile.IsProfileCompleted = false;
-            }
-        }
-
-        profile.IsProfileCompleted = profile.IsCommitted &&
-            (profile.TechScore > 0 || profile.ManagementScore > 0 || profile.GraphicDesignScore > 0 || profile.MarketingScore > 0 || profile.SaleScore > 0);
 
         profile.UpdatedAt = DateTime.UtcNow;
 
@@ -216,15 +165,15 @@ public class UserProfileService : IUserProfileService
             throw new NotFoundException("Hồ sơ người dùng không tồn tại.", "USER_PROFILE_NOT_FOUND");
         }
 
-        profile.TechScore = request.TechScore;
-        profile.ManagementScore = request.ManagementScore;
-        profile.GraphicDesignScore = request.GraphicDesignScore;
-        profile.MarketingScore = request.MarketingScore;
-        profile.SaleScore = request.SaleScore;
-        profile.IsCommitted = request.IsCommitted;
+        // Validator đã bắt buộc đủ 5 kỹ năng và tick cam kết nên lưu được là hồ sơ hoàn thành (BR-05, BR-06, BR-07).
+        profile.TechScore = request.TechScore!.Value;
+        profile.ManagementScore = request.ManagementScore!.Value;
+        profile.GraphicDesignScore = request.GraphicDesignScore!.Value;
+        profile.MarketingScore = request.MarketingScore!.Value;
+        profile.SaleScore = request.SaleScore!.Value;
+        profile.IsCommitted = true;
         profile.CommittedAt ??= DateTime.UtcNow;
-        profile.IsProfileCompleted = request.IsCommitted &&
-            (request.TechScore > 0 || request.ManagementScore > 0 || request.GraphicDesignScore > 0 || request.MarketingScore > 0 || request.SaleScore > 0);
+        profile.IsProfileCompleted = true;
 
         if (!string.IsNullOrWhiteSpace(request.Bio)) profile.Bio = request.Bio.Trim();
         if (!string.IsNullOrWhiteSpace(request.DesiredRole)) profile.DesiredRole = request.DesiredRole.Trim();

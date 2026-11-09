@@ -7,16 +7,8 @@ namespace Group.Services.DTOs;
 // REQUEST
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// <summary>POST /api/groups — sinh viên tạo nhóm cho dự án mình sở hữu (BR-11), có thể kèm vị trí cần tuyển.</summary>
-public record CreateGroupRequest(
-    string Name,
-    string? Description,
-    Guid ProjectId,
-    int MaxMembers,
-    List<SlotRequest>? Slots);
-
 /// <summary>PUT /api/groups/{id} — trưởng nhóm sửa thông tin nhóm.</summary>
-public record UpdateGroupRequest(string Name, string? Description, int MaxMembers);
+public record UpdateGroupRequest(string Name, string? Description);
 
 /// <summary>POST/PUT /api/groups/{id}/slots — vị trí cần tuyển.</summary>
 /// <param name="RequiredMajor">SE | AI | IA | GD | MKT | IB | Other, bỏ trống nếu không yêu cầu.</param>

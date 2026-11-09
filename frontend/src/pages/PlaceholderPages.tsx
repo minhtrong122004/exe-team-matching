@@ -30,7 +30,6 @@ export {
   GroupsPage,
   MyGroupPage,
   JoinRequestsPage,
-  InvitationsPage,
 } from './GroupsModulePages';
 
 // ── 6. NOTIFICATIONS PAGE ───────────────────────────────────────────────────
