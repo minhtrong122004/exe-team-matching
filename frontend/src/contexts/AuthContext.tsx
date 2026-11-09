@@ -14,6 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   loginWithGoogle: (idToken: string) => Promise<AuthUserDto>;
+  loginDemo?: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
   acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -46,6 +47,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' = 'Student'): AuthUserDto => {
+    let demoUser: User;
+    if (role === 'Moderator') {
+      demoUser = {
+        id: '22222222-2222-2222-2222-222222222202',
+        email: 'moderator@fpt.edu.vn',
+        fullName: 'ThS. Lê Minh Điều Phối',
+        role: 'Moderator',
+        campus: 'Hà Nội',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else if (role === 'Lecturer') {
+      demoUser = {
+        id: '33333333-3333-3333-3333-333333333303',
+        email: 'lecturer@fpt.edu.vn',
+        fullName: 'TS. Nguyễn Văn Giảng Viên',
+        role: 'Lecturer',
+        campus: 'Đà Nẵng',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else {
+      demoUser = {
+        id: '11111111-1111-1111-1111-111111111101',
+        email: 'tulpnse185102@fpt.edu.vn',
+        fullName: 'Lữ Phước Nhật Tú',
+        role: 'Student',
+        studentCode: 'SE185102',
+        campus: 'TP. Hồ Chí Minh',
+        major: 'Kỹ thuật phần mềm',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    }
+    localStorage.setItem('access_token', 'demo-access-token');
+    localStorage.setItem('refresh_token', 'demo-refresh-token');
+    localStorage.setItem('user', JSON.stringify(demoUser));
+    localStorage.setItem('is_demo_mode', 'true');
+    setUser(demoUser);
+    setIsLoading(false);
+    return demoUser;
+  }, []);
+
   const refreshCurrentUser = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -67,7 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         acceptedTermsAt: account.acceptedTermsAt ?? null,
       };
 
-      // Đối với Sinh viên, đồng bộ fullName và thông tin học thuật từ User Service (nguồn chuẩn)
       if (account.role === 'Student') {
         try {
           const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -79,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             verifiedUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
           }
         } catch {
-          // Bỏ qua nếu UserProfile chưa được tạo hoặc User.API tạm thời bận
+          // Bỏ qua nếu UserProfile chưa được tạo
         }
       }
 
@@ -122,7 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           acceptedTermsAt: account.acceptedTermsAt ?? null,
         };
 
-        // Đối với Sinh viên, đồng bộ fullName từ User Service (nguồn chuẩn cập nhật hồ sơ)
         if (account.role === 'Student') {
           try {
             const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -156,7 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     verifySession();
 
-    // Lắng nghe sự kiện đăng xuất từ Axios Interceptor (khi refresh token thất bại)
     const handleLogoutEvent = () => {
       if (isMounted) {
         setUser(null);
@@ -198,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
         }
       } catch {
-        // Hồ sơ chưa kịp tạo (event bất đồng bộ) thì dùng thông tin từ Auth.
+        // Hồ sơ chưa kịp tạo thì dùng thông tin từ Auth.
       }
     }
 
@@ -224,7 +266,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await apiClient.post('/auth/logout', { refreshToken });
       } catch (err) {
-        // Tiếp tục dọn dẹp local storage ngay cả khi mạng hoặc server gặp sự cố
         console.warn('Lỗi khi thu hồi refresh token từ server:', err);
       }
     }
@@ -240,6 +281,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,
+        loginDemo,
         acceptTerms,
         logout,
         refreshCurrentUser,

@@ -130,7 +130,7 @@ export const CourseSpacesPage: React.FC = () => {
   const [isConfirmDistributeModalOpen, setIsConfirmDistributeModalOpen] = useState<boolean>(false);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState<boolean>(false);
 
-  // Phase 6: Post-lock Transfers & Space Roster State (BR-35, BR-36, BR-37, BR-38)
+  // Phase 6: Post-lock Transfers & Space Roster State
   const [transfers, setTransfers] = useState<TransferRequestResponse[]>([]);
   const [loadingTransfers, setLoadingTransfers] = useState<boolean>(false);
   const [transferStatusFilter, setTransferStatusFilter] = useState<string>('ALL');
@@ -357,7 +357,7 @@ export const CourseSpacesPage: React.FC = () => {
     }
   }, [selectedSpaceId, spaces, loadSpaceDetails]);
 
-  // Phase 5: Distribution & Finalize Handlers (BR-30, BR-31, BR-32, BR-33)
+  // Phase 5: Distribution & Finalize Handlers
   const loadUnmatchedSummary = useCallback(async (spaceId: string) => {
     try {
       setLoadingSummary(true);
@@ -376,7 +376,7 @@ export const CourseSpacesPage: React.FC = () => {
       setActionLoading(true);
       setActionError(null);
       await groupsApi.closeSpaceRegistration(selectedSpace.id);
-      setActionSuccess('Đã đóng cổng đăng ký tự do học phần (BR-30) thành công.');
+      setActionSuccess('Đã đóng cổng đăng ký tự do học phần thành công.');
       await loadSpaces();
       await loadUnmatchedSummary(selectedSpace.id);
     } catch (err: any) {
@@ -407,7 +407,7 @@ export const CourseSpacesPage: React.FC = () => {
       setActionLoading(true);
       setActionError(null);
       const res = await groupsApi.confirmDistribution(selectedSpace.id);
-      setActionSuccess(`Xác nhận phân phối thành công! Đã gán ${res.totalDistributed} sinh viên vào ${res.updatedRoomsCount} phòng theo chuẩn BR-31 & BR-32.`);
+      setActionSuccess(`Xác nhận phân phối thành công! Đã gán ${res.totalDistributed} sinh viên vào ${res.updatedRoomsCount} phòng theo chuẩn .`);
       setIsConfirmDistributeModalOpen(false);
       setDistributePreview(null);
       await loadSpaceDetails(selectedSpace.id);
@@ -429,7 +429,7 @@ export const CourseSpacesPage: React.FC = () => {
       const unmatchedNote = res.unmatchedStudentsCount
         ? ` Còn ${res.unmatchedStudentsCount} sinh viên chưa có nhóm, Moderator cần chuyển họ vào nhóm.`
         : '';
-      setActionSuccess(`Chốt sổ học kỳ thành công (BR-33)! Đã khóa cứng ${res.lockedRoomsCount} phòng và từ chối ${res.rejectedRequestsCount} đơn chờ.${unmatchedNote}`);
+      setActionSuccess(`Chốt sổ học kỳ thành công! Đã khóa cứng ${res.lockedRoomsCount} phòng và từ chối ${res.rejectedRequestsCount} đơn chờ.${unmatchedNote}`);
       setIsFinalizeModalOpen(false);
       await loadSpaces();
       await loadSpaceDetails(selectedSpace.id);
@@ -441,7 +441,7 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
-  // ── PHASE 6: POST-LOCK TRANSFERS & ROSTER HANDLERS (BR-35, BR-36, BR-37, BR-38) ──
+  // ── PHASE 6: POST-LOCK TRANSFERS & ROSTER HANDLERS ──
   const loadTransfers = useCallback(async (spaceId: string, status?: string) => {
     try {
       setLoadingTransfers(true);
@@ -509,7 +509,7 @@ export const CourseSpacesPage: React.FC = () => {
     [assignedStudentsList, directStudentId]
   );
 
-  // BR-37 constraint check: If fromGroup will drop below threshold (3), swap is mandatory!
+  // constraint check: If fromGroup will drop below threshold (3), swap is mandatory!
   const isSwapMandatory = useMemo(() => {
     if (!selectedStudentItem) return false;
     const threshold = selectedSpace?.groupThreshold || 3;
@@ -548,7 +548,7 @@ export const CourseSpacesPage: React.FC = () => {
       return;
     }
     if (!directReason.trim()) {
-      setActionError('Vui lòng nhập lý do điều chuyển (bắt buộc theo BR-35).');
+      setActionError('Vui lòng nhập lý do điều chuyển (bắt buộc theo ).');
       return;
     }
 
@@ -562,7 +562,7 @@ export const CourseSpacesPage: React.FC = () => {
         reason: directReason.trim(),
       };
       await spacesApi.directTransfer(selectedSpace.id, req);
-      setActionSuccess('Thực hiện điều chuyển thành công (BR-35/BR-37)! Email thông báo đã được gửi đến sinh viên liên quan.');
+      setActionSuccess('Thực hiện điều chuyển thành công! Email thông báo đã được gửi đến sinh viên liên quan.');
       setDirectStudentId('');
       setDirectTargetGroupId('');
       setDirectSwapStudentId('');
@@ -587,7 +587,7 @@ export const CourseSpacesPage: React.FC = () => {
         status: decisionStatus,
         decisionReason: decisionReason.trim() || undefined,
       });
-      setActionSuccess(`Đã ${decisionStatus === 'Approved' ? 'chấp thuận' : 'từ chối'} đơn xin chuyển nhóm (BR-36).`);
+      setActionSuccess(`Đã ${decisionStatus === 'Approved' ? 'chấp thuận' : 'từ chối'} đơn xin chuyển nhóm.`);
       setDecidingRequest(null);
       setDecisionReason('');
       await loadTransfers(selectedSpace.id, transferStatusFilter);
@@ -632,7 +632,7 @@ export const CourseSpacesPage: React.FC = () => {
     });
   }, [roster, rosterSearch]);
 
-  // Formula calculation preview (BR-09, BR-11)
+  // Formula calculation preview
   const previewRoomsCount = useMemo(() => {
     if (!selectedSpace) return 0;
     const students = getTotalStudents(selectedSpace);
@@ -997,7 +997,7 @@ export const CourseSpacesPage: React.FC = () => {
     const spStatus = (spaceStatus || selectedSpace?.status || '').toUpperCase();
     const count = typeof memberCount === 'number' ? memberCount : 0;
 
-    // Trường hợp phòng có 0 thành viên khi học kỳ đã chốt sổ (Locked) hoặc phòng đã đóng (Closed) (Phòng dự phòng dư BR-09)
+    // Trường hợp phòng có 0 thành viên khi học kỳ đã chốt sổ (Locked) hoặc phòng đã đóng (Closed) (Phòng dự phòng dư )
     if (count === 0 && (spStatus === 'LOCKED' || s === 'CLOSED' || s === 'LOCKED')) {
       return (
         <span
@@ -1253,14 +1253,14 @@ export const CourseSpacesPage: React.FC = () => {
   const handleDirectJoin = async (room: RoomSummaryResponse) => {
     if (selectedSpace?.status !== 'Open') {
       setActionError(
-        'Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể tự do chọn phòng vào lúc này.'
+        'Không gian học phần đã đóng cổng đăng ký tự do hoặc đã chốt sổ. Bạn không thể tự do chọn phòng vào lúc này.'
       );
       return;
     }
 
     if (isStudent && !user?.isProfileCompleted) {
       setActionError(
-        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
       );
       navigate('/profile');
       return;
@@ -1276,7 +1276,7 @@ export const CourseSpacesPage: React.FC = () => {
       const res = await groupsApi.directJoinRoom(room.id);
       setActionSuccess(
         `Chúc mừng bạn đã vào phòng ${res.roomCode || res.name} thành công! (${
-          res.role === 'Leader' ? 'Bạn là Trưởng nhóm (Leader) - BR-15' : 'Thành viên mới'
+          res.role === 'Leader' ? 'Bạn là Trưởng nhóm (Leader) - ' : 'Thành viên mới'
         })`
       );
       await Promise.all([
@@ -1293,14 +1293,14 @@ export const CourseSpacesPage: React.FC = () => {
   const handleOpenApplyModal = (room: RoomSummaryResponse) => {
     if (selectedSpace?.status !== 'Open') {
       setActionError(
-        'Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.'
+        'Không gian học phần đã đóng cổng đăng ký tự do hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.'
       );
       return;
     }
 
     if (isStudent && !user?.isProfileCompleted) {
       setActionError(
-        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn ứng tuyển.'
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn ứng tuyển.'
       );
       navigate('/profile');
       return;
@@ -1314,7 +1314,7 @@ export const CourseSpacesPage: React.FC = () => {
     if (!applyingRoom) return;
     if (isStudent && !user?.isProfileCompleted) {
       setActionError(
-        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi (BR-07). Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn ứng tuyển.'
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng khai báo điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn ứng tuyển.'
       );
       setApplyingRoom(null);
       navigate('/profile');
@@ -1411,7 +1411,7 @@ export const CourseSpacesPage: React.FC = () => {
             {isModerator && (
               <>
                 Quản lý học kỳ, danh sách sinh viên hợp lệ từ FAP và thuật toán tính toán phân bổ Room tự động
-                theo chỉ tiêu <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fpt-orange, #f26f21)' }}>BR-08, BR-09, BR-11</span>.
+                theo chỉ tiêu <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--fpt-orange, #f26f21)' }}>, , </span>.
               </>
             )}
             {isLecturer && (
@@ -1536,7 +1536,7 @@ export const CourseSpacesPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── BR-07 SKILL PROFILE COMPLETION BANNER (STUDENT) ────────── */}
+      {/* ── SKILL PROFILE COMPLETION BANNER (STUDENT) ────────── */}
       {isStudent && !user?.isProfileCompleted && (
         <div
           className="card"
@@ -1582,8 +1582,7 @@ export const CourseSpacesPage: React.FC = () => {
                     letterSpacing: '0.04em',
                   }}
                 >
-                  YÊU CẦU BẮT BUỘC • BR-07
-                </span>
+                  YÊU CẦU BẮT BUỘC • </span>
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
                   Hồ sơ 5 kỹ năng cốt lõi chưa hoàn tất
                 </h4>
@@ -1612,7 +1611,7 @@ export const CourseSpacesPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── STUDENT ELIGIBILITY BANNER (BR-01, BR-03) ────────────────── */}
+      {/* ── STUDENT ELIGIBILITY BANNER ────────────────── */}
       {isStudent && (
         <div style={{ marginBottom: '1.5rem' }}>
           {spaces.length > 0 ? (
@@ -1652,7 +1651,7 @@ export const CourseSpacesPage: React.FC = () => {
               <AlertCircle size={22} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
               <div>
                 <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#b45309' }}>
-                  Chưa tìm thấy thông tin ghi danh FAP kỳ học này (BR-01, BR-03)
+                  Chưa tìm thấy thông tin ghi danh FAP kỳ học này
                 </h4>
                 <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.875rem', color: '#92400e', lineHeight: 1.5 }}>
                   Tài khoản của bạn chưa có tên trong danh sách lớp FAP hợp lệ cho môn Khởi nghiệp. Vui lòng liên hệ Giảng viên
@@ -1666,7 +1665,7 @@ export const CourseSpacesPage: React.FC = () => {
 
       {/* ── SPACE CARDS SELECTOR & DROPDOWN TOOLBAR ───────────────────── */}
       <div style={{ marginBottom: '1.75rem' }}>
-        {/* Fast Dropdown Space Selector (BR-38 quick picker for Lecturer & Moderator) */}
+        {/* Fast Dropdown Space Selector */}
         {spaces.length > 0 && (
           <div
             className="card"
@@ -1899,7 +1898,7 @@ export const CourseSpacesPage: React.FC = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {/* Tab: Roster & Grade Sheet (Lecturer's primary tab, BR-38) */}
+              {/* Tab: Roster & Grade Sheet (Lecturer's primary tab, ) */}
               {isLecturer && (
                 <button
                   type="button"
@@ -1925,7 +1924,7 @@ export const CourseSpacesPage: React.FC = () => {
                   }}
                 >
                   <FileSpreadsheet size={16} />
-                  <span>Bảng Roster & Điểm (BR-38)</span>
+                  <span>Bảng Roster & Điểm</span>
                 </button>
               )}
 
@@ -2003,7 +2002,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
-              {/* Tab: Config Space (Moderator ONLY, BR-08) */}
+              {/* Tab: Config Space (Moderator ONLY, ) */}
               {isModerator && (
                 <button
                   type="button"
@@ -2028,7 +2027,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
-              {/* Tab: gRPC Distribution & Finalize (Moderator ONLY, BR-30/31/32/33) */}
+              {/* Tab: gRPC Distribution & Finalize (Moderator ONLY, /31/32/33) */}
               {isModerator && (
                 <button
                   type="button"
@@ -2074,7 +2073,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
-              {/* Tab: Transfers (Moderator ONLY, BR-35/36/37) */}
+              {/* Tab: Transfers (Moderator ONLY, /36/37) */}
               {isModerator && (
                 <button
                   type="button"
@@ -2101,7 +2100,7 @@ export const CourseSpacesPage: React.FC = () => {
                   }}
                 >
                   <ArrowLeftRight size={16} />
-                  <span>Điều chuyển Hậu Chốt sổ (BR-35/36)</span>
+                  <span>Điều chuyển Hậu Chốt sổ</span>
                   {transfers.filter((t) => t.status === 'Pending').length > 0 && (
                     <span
                       style={{
@@ -2121,7 +2120,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </button>
               )}
 
-              {/* Tab: Roster & Grade Sheet (Moderator view, BR-38) */}
+              {/* Tab: Roster & Grade Sheet (Moderator view, ) */}
               {isModerator && (
                 <button
                   type="button"
@@ -2147,7 +2146,7 @@ export const CourseSpacesPage: React.FC = () => {
                   }}
                 >
                   <FileSpreadsheet size={16} />
-                  <span>Bảng Roster & Điểm (BR-38)</span>
+                  <span>Bảng Roster & Điểm</span>
                 </button>
               )}
             </div>
@@ -2187,7 +2186,7 @@ export const CourseSpacesPage: React.FC = () => {
              ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'rooms' && (
             <div>
-              {/* Status Banner when space is ClosedRegistration or Locked (BR-30, BR-33) */}
+              {/* Status Banner when space is ClosedRegistration or Locked */}
               {isStudent && selectedSpace?.status === 'ClosedRegistration' && (
                 <div
                   className="card"
@@ -2204,7 +2203,7 @@ export const CourseSpacesPage: React.FC = () => {
                 >
                   <Lock size={20} style={{ color: '#d97706', flexShrink: 0 }} />
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                    <strong>Thông báo đóng cổng đăng ký tự do (BR-30):</strong> Không gian học phần này đã hết hạn tự do ghép nhóm hoặc Điều phối viên đã đóng cổng đăng ký. Hệ thống đang tiến hành điều phối các sinh viên lẻ qua thuật toán gRPC Matching. Bạn hiện không thể tự chọn phòng hoặc nộp đơn ứng tuyển mới.
+                    <strong>Thông báo đóng cổng đăng ký tự do:</strong> Không gian học phần này đã hết hạn tự do ghép nhóm hoặc Điều phối viên đã đóng cổng đăng ký. Hệ thống đang tiến hành điều phối các sinh viên lẻ qua thuật toán gRPC Matching. Bạn hiện không thể tự chọn phòng hoặc nộp đơn ứng tuyển mới.
                   </div>
                 </div>
               )}
@@ -2225,7 +2224,7 @@ export const CourseSpacesPage: React.FC = () => {
                 >
                   <ShieldCheck size={20} style={{ color: '#ef4444', flexShrink: 0 }} />
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                    <strong>Học kỳ đã chốt sổ toàn bộ (BR-33):</strong> Danh sách thành viên toàn bộ các nhóm đã được khóa cứng. Mọi biến động nhân sự sau bước này sẽ do Giảng viên / Điều phối viên thực hiện chuyển nhóm (Giai đoạn 6).
+                    <strong>Học kỳ đã chốt sổ toàn bộ:</strong> Danh sách thành viên toàn bộ các nhóm đã được khóa cứng. Mọi biến động nhân sự sau bước này sẽ do Giảng viên / Điều phối viên thực hiện chuyển nhóm (Giai đoạn 6).
                   </div>
                 </div>
               )}
@@ -2281,7 +2280,7 @@ export const CourseSpacesPage: React.FC = () => {
                           Bắt đầu bằng việc nạp danh sách sinh viên hợp lệ từ FAP
                         </h4>
                         <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 680, lineHeight: 1.55 }}>
-                          Để thuật toán có thể tính toán số lượng Room theo công thức FPT <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-blue)', fontWeight: 700 }}>CEIL(Tổng SV ÷ Max × Buffer)</code> (BR-09),
+                          Để thuật toán có thể tính toán số lượng Room theo công thức FPT <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-blue)', fontWeight: 700 }}>CEIL(Tổng SV ÷ Max × Buffer)</code>,
                           hãy tải lên danh sách lớp xuất từ FAP:
                         </p>
                       </div>
@@ -2357,7 +2356,7 @@ export const CourseSpacesPage: React.FC = () => {
                           Sẵn sàng khởi tạo {previewRoomsCount} Room tự động theo công thức FPT
                         </h4>
                         <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 680, lineHeight: 1.55 }}>
-                          Công thức BR-09:{' '}
+                          Công thức :{' '}
                           <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-orange)', fontWeight: 700 }}>
                             CEIL({getTotalStudents(selectedSpace)} SV ÷ {selectedSpace.maxMembersPerGroup || 5} Max × {selectedSpace.bufferRatio || 1.2} Buffer) = {previewRoomsCount} Rooms
                           </code>
@@ -2416,7 +2415,7 @@ export const CourseSpacesPage: React.FC = () => {
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.925rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                        Quy tắc sinh Room tự động (BR-09, BR-11):
+                        Quy tắc sinh Room tự động:
                       </h4>
                       <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                         CEIL({getTotalStudents(selectedSpace)} SV ÷ {selectedSpace.maxMembersPerGroup || 5} Max × {selectedSpace.bufferRatio || 1.2} Buffer) ={' '}
@@ -2487,7 +2486,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Student Team Status Banner (Phase 4 BR-21) */}
+              {/* Student Team Status Banner (Phase 4 ) */}
               {isStudent && (
                 <div
                   className="card"
@@ -2530,7 +2529,7 @@ export const CourseSpacesPage: React.FC = () => {
                             </span>
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                            Trạng thái: <strong>{myGroup.status}</strong> • Sĩ số: <strong style={{ fontFamily: 'var(--font-mono)' }}>{myGroup.members.length}/{myGroup.maxMembers}</strong>. Mỗi sinh viên chỉ thuộc tối đa 1 nhóm hoạt động (BR-21).
+                            Trạng thái: <strong>{myGroup.status}</strong> • Sĩ số: <strong style={{ fontFamily: 'var(--font-mono)' }}>{myGroup.members.length}/{myGroup.maxMembers}</strong>. Mỗi sinh viên chỉ thuộc tối đa 1 nhóm hoạt động.
                           </div>
                         </>
                       ) : (
@@ -2539,7 +2538,7 @@ export const CourseSpacesPage: React.FC = () => {
                             ⚡ Bạn chưa có nhóm đề tài trong học kỳ này
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                            Phòng dưới ngưỡng (<strong style={{ fontFamily: 'var(--font-mono)' }}>&lt; {selectedSpace?.groupThreshold || Math.floor((selectedSpace?.maxMembersPerGroup || 5) / 2) + 1} SV</strong>): Được vào thẳng trực tiếp, người đầu tiên là Leader (BR-14, BR-15).
+                            Phòng dưới ngưỡng (<strong style={{ fontFamily: 'var(--font-mono)' }}>&lt; {selectedSpace?.groupThreshold || Math.floor((selectedSpace?.maxMembersPerGroup || 5) / 2) + 1} SV</strong>): Được vào thẳng trực tiếp, người đầu tiên là Leader.
                           </div>
                         </>
                       )}
@@ -2749,12 +2748,12 @@ export const CourseSpacesPage: React.FC = () => {
                             <span>
                               {selectedSpace?.status === 'Locked' ? (
                                 room.memberCount === 0 ? (
-                                  <>Học kỳ đã chốt sổ (BR-33): Phòng dự phòng không sử dụng</>
+                                  <>Học kỳ đã chốt sổ: Phòng dự phòng không sử dụng</>
                                 ) : (
-                                  <>Học kỳ đã chốt sổ (BR-33): Danh sách nhóm đã khóa cố định</>
+                                  <>Học kỳ đã chốt sổ: Danh sách nhóm đã khóa cố định</>
                                 )
                               ) : selectedSpace?.status === 'ClosedRegistration' ? (
-                                <>Đã đóng cổng đăng ký (BR-30): Đang điều phối phân bổ</>
+                                <>Đã đóng cổng đăng ký: Đang điều phối phân bổ</>
                               ) : isUnderThreshold ? (
                                 <>
                                   Ngưỡng Group: <strong>{threshold} SV</strong> (còn {threshold - room.memberCount} chỗ vào thẳng)
@@ -2833,7 +2832,7 @@ export const CourseSpacesPage: React.FC = () => {
                                     fontWeight: 700,
                                     gap: '0.3rem',
                                   }}
-                                  title={room.memberCount === 0 ? 'Phòng trống: Bạn sẽ là Trưởng nhóm (Leader) - BR-15' : 'Vào nhóm ngay không cần duyệt - BR-14'}
+                                  title={room.memberCount === 0 ? 'Phòng trống: Bạn sẽ là Trưởng nhóm (Leader) - ' : 'Vào nhóm ngay không cần duyệt - '}
                                 >
                                   <Zap size={13} />
                                   <span>{isJoiningThis ? 'Đang vào...' : 'Vào thẳng'}</span>
@@ -2863,7 +2862,7 @@ export const CourseSpacesPage: React.FC = () => {
                                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', opacity: 0.5, cursor: 'not-allowed' }}
                                 >
                                   {selectedSpace?.status === 'ClosedRegistration'
-                                    ? 'Đã đóng ĐK (BR-30)'
+                                    ? 'Đã đóng ĐK'
                                     : selectedSpace?.status === 'Locked' || room.status === 'Locked'
                                     ? 'Đã khóa'
                                     : room.status === 'Closed'
@@ -3091,7 +3090,7 @@ export const CourseSpacesPage: React.FC = () => {
                 <form onSubmit={handleUpdateConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Sĩ số tối đa một nhóm (BR-02: 4 - 6 thành viên)
+                      Sĩ số tối đa một nhóm
                     </label>
                     <input
                       type="number"
@@ -3104,7 +3103,7 @@ export const CourseSpacesPage: React.FC = () => {
                       required
                     />
                     <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Ngưỡng tối thiểu thành lập nhóm: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-main)' }}>{Math.floor(editMaxMembers / 2) + 1}</span> thành viên (BR-10).
+                      Ngưỡng tối thiểu thành lập nhóm: <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-main)' }}>{Math.floor(editMaxMembers / 2) + 1}</span> thành viên.
                     </p>
                   </div>
 
@@ -3124,13 +3123,13 @@ export const CourseSpacesPage: React.FC = () => {
                       required
                     />
                     <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      BR-09: Nhân thêm 20% (1.2) số Room để đảm bảo sinh viên có dư không gian ghép nhóm trước khi chốt sổ.
+                      : Nhân thêm 20% (1.2) số Room để đảm bảo sinh viên có dư không gian ghép nhóm trước khi chốt sổ.
                     </p>
                   </div>
 
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Số đơn ứng tuyển tối đa cùng lúc (BR-12: 1 - 5 đơn)
+                      Số đơn ứng tuyển tối đa cùng lúc
                     </label>
                     <input
                       type="number"
@@ -3190,7 +3189,7 @@ export const CourseSpacesPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
                     <Calculator size={18} style={{ color: 'var(--fpt-blue, #0054a6)' }} />
                     <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Mô phỏng Công thức sinh Room (BR-09, BR-11)
+                      Mô phỏng Công thức sinh Room
                     </h3>
                   </div>
 
@@ -3257,7 +3256,7 @@ export const CourseSpacesPage: React.FC = () => {
           )}
 
           {/* ══════════════════════════════════════════════════════════════
-              TAB 4: gRPC DISTRIBUTION & FINALIZE (MODERATOR ONLY: BR-30, BR-31, BR-32, BR-33)
+              TAB 4: gRPC DISTRIBUTION & FINALIZE (MODERATOR ONLY: , , , )
              ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'distribution' && isModerator && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -3310,14 +3309,14 @@ export const CourseSpacesPage: React.FC = () => {
                         {selectedSpace.status === 'Open'
                           ? 'Đang mở đăng ký'
                           : selectedSpace.status === 'ClosedRegistration'
-                          ? 'Đã đóng đăng ký (BR-30)'
+                          ? 'Đã đóng đăng ký'
                           : selectedSpace.status === 'Locked'
                           ? 'Đã chốt sổ toàn bộ (Locked)'
                           : 'Bản nháp (Draft)'}
                       </span>
                     </div>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                      Thuật toán gRPC Matching tối ưu độ bù trừ 5 kỹ năng (Tech, Mgmt, Design, Mkt, Sale) và đa dạng chuyên ngành theo chuẩn BR-30, BR-31, BR-32, BR-33.
+                      Thuật toán gRPC Matching tối ưu độ bù trừ 5 kỹ năng (Tech, Mgmt, Design, Mkt, Sale) và đa dạng chuyên ngành theo chuẩn , , , .
                     </p>
                   </div>
                 </div>
@@ -3341,7 +3340,7 @@ export const CourseSpacesPage: React.FC = () => {
                         title="Đóng đăng ký tự do, ngăn SV tự join/apply để bắt đầu phân phối"
                       >
                         <Lock size={15} />
-                        <span>Đóng cổng đăng ký (BR-30)</span>
+                        <span>Đóng cổng đăng ký</span>
                       </button>
                     )}
 
@@ -3396,7 +3395,7 @@ export const CourseSpacesPage: React.FC = () => {
                         title={selectedSpace.status === 'ClosedRegistration' ? 'Khóa cứng các phòng và chốt sổ học kỳ' : 'Phải đóng đăng ký trước khi chốt sổ'}
                       >
                         <ShieldCheck size={15} />
-                        <span>Chốt sổ Học kỳ (BR-33)</span>
+                        <span>Chốt sổ Học kỳ</span>
                       </button>
                     )}
                   </div>
@@ -3578,7 +3577,7 @@ export const CourseSpacesPage: React.FC = () => {
                               <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{st.techScore ?? 0}</div>
                             </div>
                             <div
-                              title="Management Score (Tiêu chí chỉ định Leader theo BR-32)"
+                              title="Management Score (Tiêu chí chỉ định Leader theo )"
                               style={{
                                 background: 'rgba(242, 111, 33, 0.1)',
                                 borderRadius: '3px',
@@ -3722,7 +3721,7 @@ export const CourseSpacesPage: React.FC = () => {
                                       fontWeight: 700,
                                     }}
                                   >
-                                    BR-32: Nhóm mới từ phòng trống
+                                    : Nhóm mới từ phòng trống
                                   </span>
                                 ) : (
                                   <span
@@ -3735,7 +3734,7 @@ export const CourseSpacesPage: React.FC = () => {
                                       fontWeight: 700,
                                     }}
                                   >
-                                    BR-31: Lấp đầy phòng đang tuyển
+                                    : Lấp đầy phòng đang tuyển
                                   </span>
                                 )}
                               </div>
@@ -3782,19 +3781,19 @@ export const CourseSpacesPage: React.FC = () => {
                               <div>
                                 {plan.isNewlyFormed ? (
                                   <span>
-                                    <strong style={{ color: '#059669' }}>Trưởng nhóm chỉ định mới (BR-32):</strong>{' '}
+                                    <strong style={{ color: '#059669' }}>Trưởng nhóm chỉ định mới:</strong>{' '}
                                     <strong style={{ color: 'var(--text-main)' }}>{plan.leaderName}</strong> (Điểm Quản lý cao nhất nhóm: {plan.finalMembers.find(m => m.isLeader)?.managementScore ?? 0}/100)
                                   </span>
                                 ) : (
                                   <span>
-                                    <strong style={{ color: 'var(--fpt-blue)' }}>Bảo lưu Trưởng nhóm hiện tại (BR-31):</strong>{' '}
+                                    <strong style={{ color: 'var(--fpt-blue)' }}>Bảo lưu Trưởng nhóm hiện tại:</strong>{' '}
                                     <strong style={{ color: 'var(--text-main)' }}>{plan.leaderName}</strong>
                                   </span>
                                 )}
                               </div>
                             </div>
 
-                            {/* Full Members Table (BR-31 & BR-32) */}
+                            {/* Full Members Table */}
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
@@ -3824,7 +3823,7 @@ export const CourseSpacesPage: React.FC = () => {
                                       <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>MSSV</th>
                                       <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Họ và tên</th>
                                       <th style={{ textAlign: 'left', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Ngành</th>
-                                      <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Điểm Quản lý (BR-32)</th>
+                                      <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Điểm Quản lý</th>
                                       <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Phân loại</th>
                                       <th style={{ textAlign: 'center', padding: '0.45rem 0.65rem', fontWeight: 700, color: 'var(--text-muted)' }}>Vai trò</th>
                                     </tr>
@@ -3962,7 +3961,7 @@ export const CourseSpacesPage: React.FC = () => {
                           Sẵn sàng chạy Phân bổ Sinh viên Lẻ qua gRPC
                         </h4>
                         <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 460 }}>
-                          Hệ thống sẽ kết nối trực tiếp đến Matching Service qua giao thức HTTP/2 gRPC để tính toán thuật toán phân bổ tối ưu theo BR-31 (bù trừ phòng cũ) và BR-32 (lập nhóm mới từ phòng trống).
+                          Hệ thống sẽ kết nối trực tiếp đến Matching Service qua giao thức HTTP/2 gRPC để tính toán thuật toán phân bổ tối ưu theo (bù trừ phòng cũ) và (lập nhóm mới từ phòng trống).
                         </p>
                       </div>
                       {isModerator && selectedSpace.status !== 'Locked' && (
@@ -3985,7 +3984,7 @@ export const CourseSpacesPage: React.FC = () => {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════ */}
-          {/* TAB: TRANSFERS — ĐIỀU CHUYỂN HẬU CHỐT SỔ (BR-35, BR-36, BR-37)    */}
+          {/* TAB: TRANSFERS — ĐIỀU CHUYỂN HẬU CHỐT SỔ    */}
           {/* ══════════════════════════════════════════════════════════════════ */}
           {activeTab === 'transfers' && isModerator && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
@@ -4020,10 +4019,10 @@ export const CourseSpacesPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                      Điều chuyển Sinh viên & Đổi chéo Hậu Chốt sổ (BR-35, BR-36, BR-37)
+                      Điều chuyển Sinh viên & Đổi chéo Hậu Chốt sổ
                     </h3>
                     <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 850, lineHeight: 1.5 }}>
-                      Sau khi chốt sổ học kỳ (Locked), các nhóm được cố định. Trưởng phòng (Moderator) có thẩm quyền thực hiện điều chuyển trực tiếp hoặc duyệt đơn từ sinh viên. Hệ thống tự động kiểm soát ngưỡng tối thiểu (≥ 3 SV) và sĩ số tối đa (5 SV), kích hoạt đổi chéo 2 chiều (Swap) khi cần và tự động chuyển giao quyền Leader (BR-20).
+                      Sau khi chốt sổ học kỳ (Locked), các nhóm được cố định. Trưởng phòng (Moderator) có thẩm quyền thực hiện điều chuyển trực tiếp hoặc duyệt đơn từ sinh viên. Hệ thống tự động kiểm soát ngưỡng tối thiểu (≥ 3 SV) và sĩ số tối đa (5 SV), kích hoạt đổi chéo 2 chiều (Swap) khi cần và tự động chuyển giao quyền Leader.
                     </p>
                   </div>
                 </div>
@@ -4049,12 +4048,12 @@ export const CourseSpacesPage: React.FC = () => {
 
               {/* Grid 2 Columns: Form Direct Transfer & Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(340px, 420px) 1fr', gap: '1.5rem', alignItems: 'start' }}>
-                {/* Form Direct Transfer (BR-35 / BR-37) */}
+                {/* Form Direct Transfer */}
                 <div className="card" style={{ padding: '1.5rem', border: '1px solid var(--border-medium)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
                     <UserCheck size={18} style={{ color: 'var(--fpt-orange)' }} />
                     <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Điều chuyển Trực tiếp (BR-35)
+                      Điều chuyển Trực tiếp
                     </h4>
                   </div>
 
@@ -4111,7 +4110,7 @@ export const CourseSpacesPage: React.FC = () => {
                         {selectedStudentItem.isLeader && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#f59e0b', fontWeight: 700, fontSize: '0.78rem', marginTop: '0.2rem' }}>
                             <Crown size={14} />
-                            <span>Sinh viên là Leader: sẽ tự động bàn giao chức vụ (BR-20)</span>
+                            <span>Sinh viên là Leader: sẽ tự động bàn giao chức vụ</span>
                           </div>
                         )}
                         {isSwapMandatory && (
@@ -4127,7 +4126,7 @@ export const CourseSpacesPage: React.FC = () => {
                               lineHeight: 1.4,
                             }}
                           >
-                            <strong>Cảnh báo BR-37:</strong> Nhóm {selectedStudentItem.group.groupCode} hiện có đúng 3 thành viên. Không thể chuyển 1 chiều vì sẽ dưới ngưỡng tối thiểu. Bắt buộc <strong>Đổi chéo 2 chiều (Swap)</strong>!
+                            <strong>Cảnh báo :</strong> Nhóm {selectedStudentItem.group.groupCode} hiện có đúng 3 thành viên. Không thể chuyển 1 chiều vì sẽ dưới ngưỡng tối thiểu. Bắt buộc <strong>Đổi chéo 2 chiều (Swap)</strong>!
                           </div>
                         )}
                       </div>
@@ -4220,7 +4219,7 @@ export const CourseSpacesPage: React.FC = () => {
                     {/* Step 4: Reason */}
                     <div>
                       <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                        3. Lý do điều chuyển (Bắt buộc theo BR-35) <span style={{ color: '#ef4444' }}>*</span>
+                        3. Lý do điều chuyển (Bắt buộc theo ) <span style={{ color: '#ef4444' }}>*</span>
                       </label>
                       <textarea
                         className="form-control"
@@ -4245,13 +4244,13 @@ export const CourseSpacesPage: React.FC = () => {
                   </form>
                 </div>
 
-                {/* Table of Transfer Requests (BR-36) */}
+                {/* Table of Transfer Requests */}
                 <div className="card" style={{ padding: '1.5rem', border: '1px solid var(--border-medium)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                       <FileText size={18} style={{ color: 'var(--fpt-blue)' }} />
                       <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                        Đơn xin chuyển nhóm từ Sinh viên (BR-36)
+                        Đơn xin chuyển nhóm từ Sinh viên
                       </h4>
                     </div>
 
@@ -4396,7 +4395,7 @@ export const CourseSpacesPage: React.FC = () => {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════ */}
-          {/* TAB: ROSTER — BẢNG ROSTER & BẢNG ĐIỂM HẬU CHỐT SỔ (BR-38)          */}
+          {/* TAB: ROSTER — BẢNG ROSTER & BẢNG ĐIỂM HẬU CHỐT SỔ          */}
           {/* ══════════════════════════════════════════════════════════════════ */}
           {activeTab === 'roster' && !isStudent && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
@@ -4431,7 +4430,7 @@ export const CourseSpacesPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                      Bảng Roster Nhóm & Điểm Sinh viên (BR-38)
+                      Bảng Roster Nhóm & Điểm Sinh viên
                     </h3>
                     <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 850 }}>
                       Dành cho Giảng viên (Lecturer) và Trưởng phòng (Moderator) tra cứu danh sách các nhóm chính thức, vai trò Trưởng nhóm (Leader) và bảng điểm 5 kỹ năng sau khi Chốt sổ. Hỗ trợ xuất file Excel (CSV UTF-8 BOM chuẩn tiếng Việt).
@@ -4915,7 +4914,7 @@ export const CourseSpacesPage: React.FC = () => {
                   Khởi tạo Room tự động
                 </h3>
                 <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Thuật toán phân bổ Room chuẩn hóa FPT (BR-09, BR-11)
+                  Thuật toán phân bổ Room chuẩn hóa FPT
                 </p>
               </div>
             </div>
@@ -5355,11 +5354,11 @@ export const CourseSpacesPage: React.FC = () => {
                   {selectedRoomDetail.members.length === 0 ? (
                     <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-light)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                       {selectedSpace?.status === 'Locked' ? (
-                        <>Phòng này là <strong>phòng dự phòng dư thừa</strong> (BR-09) không sử dụng và đã được đóng sau khi chốt sổ học kỳ (BR-33). Toàn bộ sinh viên đã được phân bổ vào các nhóm chính thức khác.</>
+                        <>Phòng này là <strong>phòng dự phòng dư thừa</strong> không sử dụng và đã được đóng sau khi chốt sổ học kỳ. Toàn bộ sinh viên đã được phân bổ vào các nhóm chính thức khác.</>
                       ) : selectedSpace?.status === 'ClosedRegistration' ? (
-                        <>Phòng hiện chưa có thành viên. Cổng đăng ký tự do đã đóng (BR-30), phòng sẽ được hệ thống điều phối phân bổ tự động.</>
+                        <>Phòng hiện chưa có thành viên. Cổng đăng ký tự do đã đóng, phòng sẽ được hệ thống điều phối phân bổ tự động.</>
                       ) : (
-                        <>Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong> (BR-15).</>
+                        <>Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong>.</>
                       )}
                     </div>
                   ) : (
@@ -5442,7 +5441,7 @@ export const CourseSpacesPage: React.FC = () => {
                       style={{ gap: '0.35rem' }}
                     >
                       <Zap size={15} />
-                      <span>Vào phòng trực tiếp (BR-14)</span>
+                      <span>Vào phòng trực tiếp</span>
                     </button>
                   ) : !myGroup && selectedSpace?.status === 'Open' && selectedRoomDetail.status === 'Recruiting' ? (
                     <button
@@ -5456,7 +5455,7 @@ export const CourseSpacesPage: React.FC = () => {
                       style={{ gap: '0.35rem' }}
                     >
                       <Send size={15} />
-                      <span>Nộp đơn ứng tuyển (BR-22)</span>
+                      <span>Nộp đơn ứng tuyển</span>
                     </button>
                   ) : !myGroup && selectedSpace?.status === 'ClosedRegistration' ? (
                     <button
@@ -5465,7 +5464,7 @@ export const CourseSpacesPage: React.FC = () => {
                       className="btn btn-secondary"
                       style={{ opacity: 0.6, cursor: 'not-allowed' }}
                     >
-                      <span>Đã đóng cổng đăng ký (BR-30)</span>
+                      <span>Đã đóng cổng đăng ký</span>
                     </button>
                   ) : !myGroup && selectedSpace?.status === 'Locked' ? (
                     <button
@@ -5474,7 +5473,7 @@ export const CourseSpacesPage: React.FC = () => {
                       className="btn btn-secondary"
                       style={{ opacity: 0.6, cursor: 'not-allowed' }}
                     >
-                      <span>Học kỳ đã khóa (BR-33)</span>
+                      <span>Học kỳ đã khóa</span>
                     </button>
                   ) : null}
                 </>
@@ -5485,7 +5484,7 @@ export const CourseSpacesPage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          MODAL 5: PHASE 4 — APPLY TO RECRUITING GROUP (BR-22)
+          MODAL 5: PHASE 4 — APPLY TO RECRUITING GROUP
          ══════════════════════════════════════════════════════════════ */}
       {applyingRoom && (
         <div className="modal-overlay" onClick={() => setApplyingRoom(null)}>
@@ -5513,7 +5512,7 @@ export const CourseSpacesPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmitApply} style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Quota alert (BR-22) */}
+              {/* Quota alert */}
               <div
                 style={{
                   padding: '0.85rem 1rem',
@@ -5529,7 +5528,7 @@ export const CourseSpacesPage: React.FC = () => {
                 <strong style={{ color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>
                   {selectedSpace?.maxConcurrentApplies || 3} đơn
                 </strong>{' '}
-                cùng lúc (BR-22). Khi bạn được chấp thuận vào một nhóm, các đơn còn lại sẽ tự động hủy (BR-26).
+                cùng lúc. Khi bạn được chấp thuận vào một nhóm, các đơn còn lại sẽ tự động hủy.
               </div>
 
               <div>
@@ -5563,7 +5562,7 @@ export const CourseSpacesPage: React.FC = () => {
                   style={{ gap: '0.35rem', fontWeight: 700 }}
                 >
                   <Send size={15} />
-                  <span>{submittingApply ? 'Đang gửi đơn...' : 'Xác nhận nộp đơn (BR-22)'}</span>
+                  <span>{submittingApply ? 'Đang gửi đơn...' : 'Xác nhận nộp đơn'}</span>
                 </button>
               </div>
             </form>
@@ -5572,7 +5571,7 @@ export const CourseSpacesPage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          MODAL 6: CONFIRM FORCED DISTRIBUTION (BR-31 & BR-32)
+          MODAL 6: CONFIRM FORCED DISTRIBUTION
          ══════════════════════════════════════════════════════════════ */}
       {isConfirmDistributeModalOpen && distributePreview && (
         <div className="modal-overlay" onClick={() => setIsConfirmDistributeModalOpen(false)}>
@@ -5591,8 +5590,7 @@ export const CourseSpacesPage: React.FC = () => {
                     Xác nhận Phân phối Sinh viên Lẻ
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Áp dụng quy tắc phân bổ cưỡng chế BR-31 & BR-32
-                  </span>
+                    Áp dụng quy tắc phân bổ cưỡng chế</span>
                 </div>
               </div>
               <button
@@ -5620,8 +5618,8 @@ export const CourseSpacesPage: React.FC = () => {
                 </p>
                 <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-muted)' }}>
                   <li>Gán <strong style={{ color: 'var(--text-main)' }}>{distributePreview.totalDistributed} sinh viên</strong> vào <strong style={{ color: 'var(--text-main)' }}>{distributePreview.roomPlans.length} phòng</strong>.</li>
-                  <li>Bảo lưu nguyên vẹn Leader của các phòng đã có người (BR-31).</li>
-                  <li>Chỉ định Leader cho các nhóm mới lập dựa trên điểm Kỹ năng Quản lý cao nhất (BR-32).</li>
+                  <li>Bảo lưu nguyên vẹn Leader của các phòng đã có người.</li>
+                  <li>Chỉ định Leader cho các nhóm mới lập dựa trên điểm Kỹ năng Quản lý cao nhất.</li>
                   <li>Phát sự kiện <code style={{ fontFamily: 'var(--font-mono)' }}>MemberJoined</code> tới Notification Service để gửi email thông báo qua MailHog.</li>
                 </ul>
               </div>
@@ -5652,7 +5650,7 @@ export const CourseSpacesPage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          MODAL 7: CONFIRM FINALIZE & LOCK (BR-33)
+          MODAL 7: CONFIRM FINALIZE & LOCK
          ══════════════════════════════════════════════════════════════ */}
       {isFinalizeModalOpen && selectedSpace && (
         <div className="modal-overlay" onClick={() => setIsFinalizeModalOpen(false)}>
@@ -5668,7 +5666,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    Chốt sổ Học kỳ (Finalize & Lock — BR-33)
+                    Chốt sổ Học kỳ (Finalize & Lock — )
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     Khóa cứng danh sách nhóm toàn học kỳ
@@ -5696,7 +5694,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c' }}>
-                  Hành động này mang tính chất chốt chặn học kỳ (BR-33):
+                  Hành động này mang tính chất chốt chặn học kỳ:
                 </p>
                 <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-main)' }}>
                   <li>Khóa cứng (<code style={{ fontFamily: 'var(--font-mono)' }}>Locked</code>) toàn bộ các phòng đã có thành viên.</li>
@@ -5724,14 +5722,14 @@ export const CourseSpacesPage: React.FC = () => {
                 style={{ gap: '0.35rem', fontWeight: 700 }}
               >
                 <Lock size={16} />
-                <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ (BR-33)'}</span>
+                <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MODAL: QUYẾT ĐỊNH ĐƠN CHUYỂN NHÓM (BR-36) ────────────────── */}
+      {/* ── MODAL: QUYẾT ĐỊNH ĐƠN CHUYỂN NHÓM ────────────────── */}
       {decidingRequest && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 480 }}>

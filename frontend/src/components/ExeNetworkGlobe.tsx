@@ -247,36 +247,49 @@ export const ExeNetworkGlobe: React.FC = () => {
             overflow: 'visible',
           }}
         >
-          {/* Inclined Orbit 1 */}
+          {/* Orbit 1: Dashed orange curve */}
           <g transform="translate(190, 190) rotate(-22) translate(-190, -190)">
             <ellipse
               cx="190"
               cy="190"
-              rx="168"
-              ry="58"
+              rx="170"
+              ry="60"
               fill="none"
               stroke="#F27024"
-              strokeWidth="1.2"
-              strokeDasharray="4 5"
-              opacity="0.4"
+              strokeWidth="1.5"
+              strokeDasharray="6 5"
             />
             <circle cx="345" cy="195" r="3.5" fill="#F27024" />
           </g>
 
-          {/* Inclined Orbit 2 */}
+          {/* Orbit 2: Dashed orange curve */}
           <g transform="translate(190, 190) rotate(25) translate(-190, -190)">
             <ellipse
               cx="190"
               cy="190"
-              rx="172"
-              ry="64"
+              rx="174"
+              ry="66"
               fill="none"
-              stroke="#CBD5E1"
-              strokeWidth="1"
-              strokeDasharray="5 5"
-              opacity="0.5"
+              stroke="#F27024"
+              strokeWidth="1.5"
+              strokeDasharray="6 5"
             />
-            <circle cx="35" cy="190" r="3" fill="#0EA5E9" />
+            <circle cx="35" cy="190" r="3" fill="#F27024" />
+          </g>
+
+          {/* Orbit 3: Dashed orange curve */}
+          <g transform="translate(190, 190) rotate(-65) translate(-190, -190)">
+            <ellipse
+              cx="190"
+              cy="190"
+              rx="168"
+              ry="54"
+              fill="none"
+              stroke="#F27024"
+              strokeWidth="1.5"
+              strokeDasharray="5 5"
+            />
+            <circle cx="280" cy="155" r="3" fill="#F27024" />
           </g>
         </svg>
 
@@ -358,13 +371,12 @@ export const ExeNetworkGlobe: React.FC = () => {
             position: 'absolute',
             top: activeCampus.cardPos.top,
             left: activeCampus.cardPos.left,
-            width: '228px',
-            backgroundColor: 'rgba(255, 255, 255, 0.96)',
-            backdropFilter: 'blur(12px)',
+            width: '210px',
+            backgroundColor: '#FFFFFF',
             borderRadius: '14px',
-            padding: '10px',
+            padding: '8px',
             border: '1px solid #E2E8F0',
-            boxShadow: '0 16px 36px -6px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(255, 255, 255, 0.9)',
+            boxShadow: '0 16px 36px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.9)',
             zIndex: 30,
             transition: 'top 0.4s cubic-bezier(0.16, 1, 0.3, 1), left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: 'auto',
@@ -374,11 +386,11 @@ export const ExeNetworkGlobe: React.FC = () => {
           <div
             style={{
               position: 'relative',
-              height: '80px',
+              height: '84px',
               width: '100%',
               borderRadius: '8px',
               overflow: 'hidden',
-              marginBottom: '8px',
+              marginBottom: '6px',
               backgroundColor: '#F1F5F9',
             }}
           >
@@ -392,90 +404,40 @@ export const ExeNetworkGlobe: React.FC = () => {
                 display: 'block',
               }}
               onError={(e) => {
-                // If local path fails, show subtle fallback
                 (e.currentTarget as HTMLElement).style.display = 'none';
               }}
             />
-
-            {/* Overlay Campus Badge */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '6px',
-                left: '6px',
-                backgroundColor: 'rgba(15, 23, 42, 0.72)',
-                backdropFilter: 'blur(4px)',
-                color: '#FFFFFF',
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '2px 7px',
-                borderRadius: '9999px',
-                letterSpacing: '0.04em',
-              }}
-            >
-              FPTU {activeCampus.id}
-            </div>
-
-            {/* Live Indicator */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '6px',
-                right: '6px',
-                backgroundColor: '#FFFFFF',
-                color: '#0F172A',
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '2px 7px',
-                borderRadius: '9999px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10B981',
-                  display: 'inline-block',
-                }}
-              />
-              Live
-            </div>
           </div>
 
-          {/* Campus Name & Live Stats */}
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+          {/* Campus Dot + Name */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '2px 4px 4px',
+            }}
+          >
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#F27024',
+                flexShrink: 0,
+                boxShadow: '0 0 6px rgba(242, 112, 36, 0.7)',
+              }}
+            />
+            <span
+              style={{
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#0F172A',
+                lineHeight: 1.3,
+              }}
+            >
               {activeCampus.name}
-            </div>
-
-            <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', marginBottom: '8px' }}>
-              <strong style={{ color: '#F27024', fontWeight: 700 }}>{activeCampus.recruitingCount}</strong> nhóm đang tuyển thành viên
-            </div>
-
-            {/* Recruiting Roles Badges */}
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-              {activeCampus.tags.map((t, i) => (
-                <span
-                  key={i}
-                  style={{
-                    backgroundColor: '#F1F5F9',
-                    border: '1px solid #E2E8F0',
-                    color: '#334155',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    padding: '2px 6px',
-                    borderRadius: '5px',
-                  }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            </span>
           </div>
         </div>
       </div>

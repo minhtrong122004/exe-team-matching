@@ -11,7 +11,6 @@ import {
   FileText,
   Bell,
   User,
-  Shield,
   LogOut,
   Compass,
   UserPlus,
@@ -23,6 +22,7 @@ import {
   Sun,
   CheckCircle2,
   AlertCircle,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 interface NavSection {
@@ -44,32 +44,47 @@ export const MainLayout: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // First-Login Onboarding State (BR-34 Terms)
+  // Topbar Course Space Selector
+  const [selectedSpace, setSelectedSpace] = useState<string>(() => {
+    return localStorage.getItem('selectedCourseSpace') || 'exe101';
+  });
+
+  const handleSpaceChange = (newSpace: string) => {
+    setSelectedSpace(newSpace);
+    localStorage.setItem('selectedCourseSpace', newSpace);
+    window.dispatchEvent(new CustomEvent('coursespace:changed', { detail: newSpace }));
+  };
+
+  // First-Login Onboarding State (Terms)
   const [termsChecked, setTermsChecked] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
-  const needsTermsAcceptance = user?.role === 'Student' && user.hasAcceptedTerms === false;
-  const showOnboardingModal = needsTermsAcceptance;
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  const handleAcceptTermsSubmit = async () => {
+  const showOnboardingModal =
+    !onboardingDismissed &&
+    user?.role === 'Student' &&
+    user.hasAcceptedTerms === false;
+
+  const handleCompleteOnboarding = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!termsChecked) {
-      setOnboardingError('Vui lòng tích chọn xác nhận đồng ý với Quy định ghép nhóm và điều phối (BR-34).');
+      setOnboardingError('Vui lòng tích chọn đồng ý với quy định điều phối nhóm của nhà trường.');
       return;
     }
     setOnboardingError(null);
     setOnboardingLoading(true);
+
     try {
       await acceptTerms();
+      setOnboardingDismissed(true);
     } catch (err: any) {
-      setOnboardingError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          'Không thể lưu xác nhận điều khoản. Vui lòng thử lại.'
-      );
+      setOnboardingError(err?.message || 'Có lỗi xảy ra khi xác nhận. Vui lòng thử lại.');
     } finally {
       setOnboardingLoading(false);
     }
   };
+
 
   useEffect(() => {
     if (!user) return;
@@ -126,68 +141,57 @@ export const MainLayout: React.FC = () => {
     return 'SV';
   };
 
-  // Role-specific navigation sections (BR-01, BR-02, BR-03 Role Separation)
+  // Role-specific navigation sections
   const getNavSectionsForRole = (role?: UserRole): NavSection[] => {
     if (role === 'Moderator') {
       return [
         {
-          title: 'Quản trị & Điều phối học kỳ',
+          title: 'Điều phối & Học kỳ',
           items: [
             {
-              to: '/spaces',
-              label: 'Không gian học phần (FAP)',
+              to: '/moderator/spaces',
+              label: 'Quản lý Học kỳ & Phòng',
               icon: <Layers size={19} />,
               roles: ['Moderator'],
             },
             {
-              to: '/admin/accounts',
-              label: 'Quản lý TK & Đồng bộ FAP',
-              icon: <Shield size={19} />,
+              to: '/moderator/distribution',
+              label: 'Điều phối Sinh viên lẻ',
+              icon: <Users size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/moderator/transfers',
+              label: 'Quản lý Chuyển nhóm',
+              icon: <ArrowLeftRight size={19} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/groups',
+              label: 'Danh sách Phòng & Nhóm',
+              icon: <Compass size={19} />,
               roles: ['Moderator'],
             },
             {
               to: '/reports',
-              label: 'Báo cáo & Thống kê ghép nhóm',
+              label: 'Tổng quan & Xuất báo cáo',
               icon: <FileText size={19} />,
               roles: ['Moderator'],
             },
           ],
         },
         {
-          title: 'Giám sát học vụ & Đề tài',
-          items: [
-            {
-              to: '/groups',
-              label: 'Giám sát nhóm & Room',
-              icon: <Compass size={19} />,
-              roles: ['Moderator'],
-            },
-            {
-              to: '/candidates',
-              label: 'Danh bạ sinh viên',
-              icon: <Users size={19} />,
-              roles: ['Moderator'],
-            },
-            {
-              to: '/projects',
-              label: 'Ý tưởng dự án (EXE)',
-              icon: <Lightbulb size={19} />,
-              roles: ['Moderator'],
-            },
-          ],
-        },
-        {
-          title: 'Cá nhân & Hệ thống',
+          title: 'Hệ thống',
           items: [
             {
               to: '/profile',
-              label: 'Hồ sơ điều phối viên',
+              label: 'Hồ sơ cá nhân',
               icon: <User size={19} />,
               roles: ['Moderator'],
             },
             {
               to: '/notifications',
-              label: 'Thông báo hệ thống',
+              label: 'Thông báo',
               icon: <Bell size={19} />,
               roles: ['Moderator'],
             },
@@ -202,43 +206,31 @@ export const MainLayout: React.FC = () => {
           title: 'Giảng dạy & Cố vấn EXE',
           items: [
             {
-              to: '/spaces',
-              label: 'Không gian học phần',
-              icon: <Layers size={19} />,
-              roles: ['Lecturer'],
-            },
-            {
-              to: '/reports',
-              label: 'Báo cáo & Danh sách nhóm',
+              to: '/lecturer/dashboard',
+              label: 'Tổng quan & Xuất báo cáo',
               icon: <FileText size={19} />,
               roles: ['Lecturer'],
             },
             {
               to: '/groups',
-              label: 'Các nhóm sinh viên',
+              label: 'Danh sách Phòng & Nhóm',
               icon: <Compass size={19} />,
               roles: ['Lecturer'],
             },
             {
               to: '/projects',
-              label: 'Ý tưởng dự án (EXE)',
+              label: 'Kho Đề tài dự kiến',
               icon: <Lightbulb size={19} />,
-              roles: ['Lecturer'],
-            },
-            {
-              to: '/candidates',
-              label: 'Danh bạ sinh viên',
-              icon: <Users size={19} />,
               roles: ['Lecturer'],
             },
           ],
         },
         {
-          title: 'Cá nhân',
+          title: 'Hệ thống',
           items: [
             {
               to: '/profile',
-              label: 'Hồ sơ giảng viên',
+              label: 'Hồ sơ cá nhân',
               icon: <User size={19} />,
               roles: ['Lecturer'],
             },
@@ -256,12 +248,12 @@ export const MainLayout: React.FC = () => {
     // Default for Student
     return [
       {
-        title: 'Không gian & Ghép đội EXE',
+        title: 'Ghép đội & Học phần EXE',
         items: [
           {
-            to: '/spaces',
-            label: 'Không gian học phần của tôi',
-            icon: <Layers size={19} />,
+            to: '/groups',
+            label: 'Khám phá Phòng & Nhóm',
+            icon: <Compass size={19} />,
             roles: ['Student'],
           },
           {
@@ -272,7 +264,7 @@ export const MainLayout: React.FC = () => {
           },
           {
             to: '/join-requests',
-            label: 'Yêu cầu tham gia',
+            label: 'Đơn ứng tuyển của tôi',
             icon: <UserPlus size={19} />,
             roles: ['Student'],
           },
@@ -283,20 +275,8 @@ export const MainLayout: React.FC = () => {
         items: [
           {
             to: '/projects',
-            label: 'Ý tưởng dự án (EXE)',
+            label: 'Kho Đề tài dự kiến',
             icon: <Lightbulb size={19} />,
-            roles: ['Student'],
-          },
-          {
-            to: '/groups',
-            label: 'Khám phá nhóm',
-            icon: <Compass size={19} />,
-            roles: ['Student'],
-          },
-          {
-            to: '/candidates',
-            label: 'Tìm bạn ghép đội (Ứng viên)',
-            icon: <Sparkles size={19} />,
             roles: ['Student'],
           },
         ],
@@ -306,7 +286,7 @@ export const MainLayout: React.FC = () => {
         items: [
           {
             to: '/profile',
-            label: 'Hồ sơ 5 kỹ năng',
+            label: 'Hồ sơ 5 Kỹ năng',
             icon: <User size={19} />,
             roles: ['Student'],
           },
@@ -540,7 +520,7 @@ export const MainLayout: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                padding: '0.4rem 0.75rem',
+                padding: '0.4rem 0.65rem',
                 borderRadius: 8,
                 background: 'var(--bg-sidebar-hover, #f8fafc)',
                 border: '1px solid var(--border-light, #e2e8f0)',
@@ -550,14 +530,43 @@ export const MainLayout: React.FC = () => {
               }}
             >
               <MapPin size={15} color="#f26f21" />
-              <span>Cơ sở TP. Hồ Chí Minh (HCM)</span>
+              <span>TP. HCM</span>
             </div>
 
-            <span style={{ color: 'var(--border-medium, #cbd5e1)' }}>|</span>
-
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748b)', fontWeight: 500 }}>
-              Cổng Ghép nhóm Đa ngành Khởi nghiệp EXE
-            </span>
+            {/* Course Space Selector */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.35rem 0.65rem',
+                borderRadius: 8,
+                backgroundColor: 'var(--bg-card, #FFFFFF)',
+                border: '1px solid var(--border-medium, #CBD5E1)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}
+            >
+              <Layers size={15} color="#F27024" />
+              <select
+                value={selectedSpace}
+                onChange={(e) => handleSpaceChange(e.target.value)}
+                aria-label="Course Space Selector"
+                style={{
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  color: 'var(--text-main, #0F172A)',
+                  outline: 'none',
+                  cursor: 'pointer',
+                  maxWidth: '380px',
+                }}
+              >
+                <option value="exe101">Học kỳ Fall 2026 • Môn EXE101 (Đang mở đăng ký)</option>
+                <option value="exe201">Học kỳ Fall 2026 • Môn EXE201 (Đang mở đăng ký)</option>
+                <option value="exe201-unauthorized">Học kỳ Fall 2026 • Môn EXE201 (Mô phỏng: Chưa có trong danh sách FAP)</option>
+              </select>
+            </div>
           </div>
 
           {/* Right section: Light/Dark Mode + Notification Bell + User Profile */}
@@ -870,15 +879,69 @@ export const MainLayout: React.FC = () => {
         </header>
 
         {/* ══════════════════════════════════════════════════════════════
-            PAGE CONTENT
+            PAGE CONTENT (Handles FAP Eligibility Check)
            ══════════════════════════════════════════════════════════════ */}
         <main style={{ flex: 1, padding: '2rem' }}>
-          <Outlet />
+          {selectedSpace === 'exe201-unauthorized' ? (
+            <div
+              style={{
+                maxWidth: 580,
+                margin: '48px auto',
+                padding: '36px 32px',
+                borderRadius: 16,
+                border: '1px solid var(--border-light, #E2E8F0)',
+                backgroundColor: 'var(--bg-card, #FFFFFF)',
+                textAlign: 'center',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+              }}
+            >
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FEE2E2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}
+              >
+                <AlertCircle size={30} color="#DC2626" />
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
+                Chưa đủ điều kiện tham gia học phần
+              </h3>
+              <p style={{ fontSize: '14px', color: '#64748B', lineHeight: 1.6, marginBottom: '24px' }}>
+                Tài khoản của bạn hiện chưa có trong danh sách đủ điều kiện học môn này từ hệ thống FAP. Vui lòng liên hệ bộ phận Điều phối (Moderator) để được kiểm tra.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSpaceChange('exe101')}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 10,
+                  backgroundColor: '#F27024',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
+                }}
+              >
+                Quay lại Không gian Hợp lệ
+              </button>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          FIRST-LOGIN ONBOARDING MODAL (BR-34 TERMS)
+          FIRST-LOGIN ONBOARDING MODAL (TERMS)
          ══════════════════════════════════════════════════════════════ */}
       {showOnboardingModal && (
         <div
@@ -888,7 +951,7 @@ export const MainLayout: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(10, 25, 47, 0.72)',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
             backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
@@ -898,60 +961,41 @@ export const MainLayout: React.FC = () => {
           }}
         >
           <div
-            className="card"
             style={{
               width: '100%',
               maxWidth: 580,
               padding: 0,
               overflow: 'hidden',
-              border: '1px solid var(--border-light, #e2e8f0)',
-              borderRadius: 14,
-              background: 'var(--bg-card, #ffffff)',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              borderRadius: '20px',
+              backgroundColor: 'var(--bg-card, #FFFFFF)',
+              boxShadow: '0 20px 45px rgba(0, 0, 0, 0.15)',
               animation: 'onboardingPopIn 220ms cubic-bezier(0.23, 1, 0.32, 1)',
             }}
           >
-            {/* Modal Banner Header */}
+            {/* Modal Header: Clean White Header with 1px border */}
             <div
               style={{
-                background: '#0a192f',
-                color: '#ffffff',
-                padding: '1.35rem 1.75rem',
-                borderBottom: '3px solid #f26f21',
+                backgroundColor: 'var(--bg-card, #FFFFFF)',
+                color: 'var(--text-main, #0F172A)',
+                padding: '1.25rem 1.75rem',
+                borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '1rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 10,
-                    background: 'rgba(242, 111, 33, 0.2)',
-                    border: '1px solid rgba(242, 111, 33, 0.45)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#f26f21',
-                    flexShrink: 0,
-                  }}
+              <div>
+                <h2
+                  id="onboarding-modal-title"
+                  style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}
                 >
-                  <Shield size={20} />
-                </div>
-                <div>
-                  <h2
-                    id="onboarding-modal-title"
-                    style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#ffffff' }}
-                  >
-                    Quy định Ghép nhóm & Điều phối Môn EXE (BR-34)
-                  </h2>
-                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#cbd5e1' }}>
-                    Sinh viên: <strong>{user?.fullName}</strong>
-                    {user?.studentCode ? ` • MSSV: ${user.studentCode}` : ''}
-                  </p>
-                </div>
+                  Xác nhận Quy định Ghép nhóm & Điều phối
+                </h2>
+                <p style={{ margin: '0.35rem 0 0', fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
+                  Sinh viên: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{user?.fullName}</strong>
+                  {user?.studentCode ? ` • MSSV: ${user.studentCode}` : ''}
+                </p>
               </div>
             </div>
 
@@ -964,46 +1008,41 @@ export const MainLayout: React.FC = () => {
                     gap: '0.6rem',
                     padding: '0.75rem 1rem',
                     borderRadius: 10,
-                    background: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    color: '#991b1b',
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    color: '#991B1B',
                     fontSize: '0.85rem',
                     marginBottom: '1.25rem',
                   }}
                 >
-                  <AlertCircle size={17} style={{ flexShrink: 0, color: '#dc2626' }} />
+                  <AlertCircle size={17} style={{ flexShrink: 0, color: '#DC2626' }} />
                   <span>{onboardingError}</span>
                 </div>
               )}
 
-              <div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-main, #1e293b)', lineHeight: 1.55, marginTop: 0 }}>
-                    Chào mừng bạn đến với hệ thống ghép nhóm học phần <strong>Experiential Entrepreneurship (EXE)</strong>. Trước khi tham gia Room ghép nhóm, vui lòng đọc và xác nhận các nguyên tắc vận hành bắt buộc:
+              <form onSubmit={handleCompleteOnboarding}>
+                <div
+                  style={{
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
+                    borderRadius: 12,
+                    padding: '16px',
+                    marginBottom: '18px',
+                  }}
+                >
+                  <p style={{ fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.55, marginTop: 0 }}>
+                    Chào mừng bạn đến với hệ thống ghép nhóm học phần <strong>Experiential Entrepreneurship (EXE)</strong>. Trước khi tham gia phòng ghép nhóm, vui lòng đọc và xác nhận các nguyên tắc vận hành:
                   </p>
 
-                  <div
-                    style={{
-                      background: 'var(--bg-main, #f8fafc)',
-                      border: '1px solid var(--border-light, #e2e8f0)',
-                      borderRadius: 10,
-                      padding: '1rem 1.15rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.65rem',
-                      fontSize: '0.84rem',
-                      color: 'var(--text-main, #334155)',
-                      lineHeight: 1.5,
-                      marginBottom: '1.25rem',
-                    }}
-                  >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary, #334155)', marginBottom: '14px' }}>
                     <div>
-                      <strong>1. Vào phòng và lập nhóm:</strong> Phòng dưới ngưỡng thì sinh viên vào thẳng, người đầu tiên làm Leader. Khi đạt ngưỡng (hơn 50% sĩ số tối đa), phòng thành Group và chỉ nhận thêm qua đơn Apply.
+                      <strong>1. Vào phòng và lập nhóm:</strong> Phòng dưới ngưỡng thì sinh viên vào thẳng, người đầu tiên làm Nhóm trưởng. Khi đạt ngưỡng (hơn 50% sĩ số), phòng chuyển sang chế độ tuyển và chỉ nhận thêm qua đơn ứng tuyển.
                     </div>
                     <div>
-                      <strong>2. Duyệt đơn:</strong> Thành viên vote trên từng đơn để tham khảo, Leader quyết định nhận hoặc từ chối.
+                      <strong>2. Duyệt đơn:</strong> Thành viên bỏ phiếu trên từng đơn để tham khảo ý kiến, Nhóm trưởng quyết định nhận hoặc từ chối.
                     </div>
                     <div>
-                      <strong>3. Quyền điều phối (BR-34):</strong> Moderator có toàn quyền chủ động điều phối sinh viên vào các nhóm khi nhóm chưa đủ số lượng tối đa hoặc sau thời hạn quy định.
+                      <strong>3. Quyền điều phối:</strong> Điều phối viên (Moderator) có quyền điều phối sinh viên vào các nhóm khi nhóm chưa đủ số lượng tối đa hoặc sau khi hết thời hạn đăng ký tự nguyện.
                     </div>
                   </div>
 
@@ -1011,16 +1050,11 @@ export const MainLayout: React.FC = () => {
                     style={{
                       display: 'flex',
                       alignItems: 'flex-start',
-                      gap: '0.75rem',
-                      padding: '0.85rem 1rem',
-                      borderRadius: 10,
-                      border: termsChecked ? '1px solid #f26f21' : '1px solid var(--border-light, #cbd5e1)',
-                      background: termsChecked ? '#fff7ed' : 'transparent',
+                      gap: '8px',
                       cursor: 'pointer',
-                      fontSize: '0.86rem',
+                      fontSize: '13px',
                       fontWeight: 600,
-                      color: 'var(--text-main, #0f172a)',
-                      marginBottom: '1.35rem',
+                      color: 'var(--text-main, #0F172A)',
                     }}
                   >
                     <input
@@ -1030,34 +1064,39 @@ export const MainLayout: React.FC = () => {
                         setTermsChecked(e.target.checked);
                         if (e.target.checked) setOnboardingError(null);
                       }}
-                      style={{ marginTop: 3, width: 17, height: 17, accentColor: '#f26f21', flexShrink: 0 }}
+                      style={{ marginTop: 2, width: 16, height: 16, accentColor: '#F27024' }}
                     />
                     <span>
-                      Tôi đã đọc hiểu và đồng ý với quy định ghép nhóm cũng như quyền điều phối của Moderator (BR-34).
+                      Tôi đã đọc hiểu và đồng ý với quy định ghép nhóm cũng như quyền điều phối của nhà trường.
                     </span>
                   </label>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="btn btn-secondary"
-                      disabled={onboardingLoading}
-                    >
-                      Đăng xuất
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAcceptTermsSubmit}
-                      className="btn btn-primary"
-                      disabled={onboardingLoading || !termsChecked}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
-                    >
-                      <CheckCircle2 size={17} />
-                      <span>{onboardingLoading ? 'Đang xác nhận...' : 'Xác nhận & Tiếp tục'}</span>
-                    </button>
-                  </div>
                 </div>
+
+                {/* Footer Modal: Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
+                  <button
+                    type="submit"
+                    disabled={onboardingLoading || !termsChecked}
+                    style={{
+                      padding: '9px 20px',
+                      borderRadius: 10,
+                      backgroundColor: termsChecked ? '#F27024' : '#CBD5E1',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: termsChecked ? 'pointer' : 'not-allowed',
+                      boxShadow: termsChecked ? '0 2px 8px rgba(242, 112, 36, 0.25)' : 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>{onboardingLoading ? 'Đang hoàn tất...' : 'Hoàn tất & Vào không gian học tập'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
           <style>{`

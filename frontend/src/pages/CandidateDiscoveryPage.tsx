@@ -1076,22 +1076,22 @@ export const CandidateDiscoveryPage: React.FC = () => {
               <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Hồ sơ 5 kỹ năng:</span>
                 {selectedCandidate.isProfileCompleted ? (
-                  <span style={{ color: '#15803d', fontWeight: 700 }}>Đã hoàn tất (BR-07)</span>
+                  <span style={{ color: '#15803d', fontWeight: 700 }}>Đã hoàn tất</span>
                 ) : (
-                  <span style={{ color: '#b91c1c', fontWeight: 700 }}>Chưa hoàn tất (BR-07)</span>
+                  <span style={{ color: '#b91c1c', fontWeight: 700 }}>Chưa hoàn tất</span>
                 )}
               </div>
             </div>
 
-            {/* 5 Core Skills Bars (BR-05) */}
+            {/* 5 Core Skills Bars */}
             <div style={{ marginBottom: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.15rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                  Điểm 5 Kỹ năng Cốt lõi (BR-05)
+                  Điểm 5 Kỹ năng Cốt lõi
                 </h4>
                 {selectedCandidate.isProfileCompleted && (
                   <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ShieldCheck size={14} /> Đã cam kết trung thực (BR-06)
+                    <ShieldCheck size={14} /> Đã cam kết trung thực
                   </span>
                 )}
               </div>
