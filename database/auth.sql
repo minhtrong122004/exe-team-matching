@@ -1,4 +1,4 @@
-IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
+﻿IF OBJECT_ID(N'[__EFMigrationsHistory]') IS NULL
 BEGIN
     CREATE TABLE [__EFMigrationsHistory] (
         [MigrationId] nvarchar(150) NOT NULL,
@@ -251,8 +251,14 @@ IF NOT EXISTS (
 )
 BEGIN
     ALTER TABLE [Accounts] ADD [StudentCode] nvarchar(32) NULL;
-    DELETE FROM [Accounts] WHERE [Email] = N'admin@exe.local';
-    UPDATE [Accounts] SET [Role] = N'Moderator' WHERE [Role] = N'Admin';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107043928_Phase1RolesTermsAndProvisioning'
+)
+BEGIN
+    DELETE FROM [Accounts] WHERE [Email] = N'admin@exe.local'; UPDATE [Accounts] SET [Role] = N'Moderator' WHERE [Role] = N'Admin';
 END;
 
 IF NOT EXISTS (
@@ -262,6 +268,83 @@ IF NOT EXISTS (
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20261107043928_Phase1RolesTermsAndProvisioning', N'10.0.12');
+END;
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    DROP TABLE [EmailVerificationChallenges];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    DECLARE @var nvarchar(max);
+    SELECT @var = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Accounts]') AND [c].[name] = N'EmailConfirmed');
+    IF @var IS NOT NULL EXEC(N'ALTER TABLE [Accounts] DROP CONSTRAINT ' + @var + ';');
+    ALTER TABLE [Accounts] DROP COLUMN [EmailConfirmed];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    DECLARE @var1 nvarchar(max);
+    SELECT @var1 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Accounts]') AND [c].[name] = N'EmailConfirmedAt');
+    IF @var1 IS NOT NULL EXEC(N'ALTER TABLE [Accounts] DROP CONSTRAINT ' + @var1 + ';');
+    ALTER TABLE [Accounts] DROP COLUMN [EmailConfirmedAt];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    DECLARE @var2 nvarchar(max);
+    SELECT @var2 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Accounts]') AND [c].[name] = N'MustChangePassword');
+    IF @var2 IS NOT NULL EXEC(N'ALTER TABLE [Accounts] DROP CONSTRAINT ' + @var2 + ';');
+    ALTER TABLE [Accounts] DROP COLUMN [MustChangePassword];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    DECLARE @var3 nvarchar(max);
+    SELECT @var3 = QUOTENAME([d].[name])
+    FROM [sys].[default_constraints] [d]
+    INNER JOIN [sys].[columns] [c] ON [d].[parent_column_id] = [c].[column_id] AND [d].[parent_object_id] = [c].[object_id]
+    WHERE ([d].[parent_object_id] = OBJECT_ID(N'[Accounts]') AND [c].[name] = N'PasswordHash');
+    IF @var3 IS NOT NULL EXEC(N'ALTER TABLE [Accounts] DROP CONSTRAINT ' + @var3 + ';');
+    ALTER TABLE [Accounts] DROP COLUMN [PasswordHash];
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109115344_RemovePasswordAndOtp'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261109115344_RemovePasswordAndOtp', N'10.0.12');
 END;
 
 COMMIT;

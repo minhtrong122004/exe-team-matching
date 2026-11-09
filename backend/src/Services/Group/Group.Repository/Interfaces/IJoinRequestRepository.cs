@@ -17,14 +17,15 @@ public interface IJoinRequestRepository
     Task<PagedResult<JoinRequest>> GetPagedByStudentAsync(
         Guid studentId, JoinRequestStatus? status, int page, int pageSize, CancellationToken ct = default);
 
-    Task<int> CountPendingByStudentAsync(Guid studentId, CancellationToken ct = default);
+    /// <summary>BR-22: số đơn đang chờ của sinh viên trong một môn (Space).</summary>
+    Task<int> CountPendingByStudentAsync(Guid studentId, Guid? spaceId, CancellationToken ct = default);
 
     Task<bool> HasPendingAsync(Guid studentId, Guid groupId, CancellationToken ct = default);
 
-    /// <summary>Yêu cầu Pending của sinh viên (track), dùng cho BR-07.</summary>
-    Task<List<JoinRequest>> GetPendingByStudentAsync(Guid studentId, CancellationToken ct = default);
+    /// <summary>BR-26: yêu cầu Pending của sinh viên trong cùng môn (track).</summary>
+    Task<List<JoinRequest>> GetPendingByStudentAsync(Guid studentId, Guid? spaceId, CancellationToken ct = default);
 
-    /// <summary>Yêu cầu Pending tới nhóm (track), dùng cho BR-08 và khi giải tán nhóm.</summary>
+    /// <summary>Yêu cầu Pending tới nhóm (track), dùng cho BR-28.</summary>
     Task<List<JoinRequest>> GetPendingByGroupAsync(Guid groupId, CancellationToken ct = default);
 
     void Add(JoinRequest request);

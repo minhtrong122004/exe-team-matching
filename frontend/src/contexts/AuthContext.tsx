@@ -1,19 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   User,
-  UserRole,
   AuthResponse,
   AuthUserDto,
   AccountResponse,
   UserProfileResponse,
-  RegisterResponse,
-  VerifyEmailResponse,
-  ResendVerificationResponse,
-  ForgotPasswordResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
-  ChangePasswordRequest,
-  ChangePasswordResponse,
   AcceptTermsResponse,
 } from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
@@ -22,14 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthUserDto>;
-  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator' | 'Admin') => AuthUserDto;
-  register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
-  verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
-  resendVerification: (email: string) => Promise<ResendVerificationResponse>;
-  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
-  resetPassword: (data: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
-  changePassword: (data: ChangePasswordRequest) => Promise<ChangePasswordResponse>;
+  loginWithGoogle: (idToken: string) => Promise<AuthUserDto>;
   acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -62,39 +46,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' | 'Admin' = 'Student'): AuthUserDto => {
-    const finalRole: UserRole = role === 'Admin' ? 'Moderator' : (role as UserRole);
-    const demoUser: User = {
-      id: '11111111-1111-1111-1111-111111111101',
-      email: role === 'Student' ? 'tulpnse185102@fpt.edu.vn' : `${finalRole.toLowerCase()}@exe.local`,
-      fullName: role === 'Student' ? 'Lữ Phước Nhật Tú' : role === 'Lecturer' ? 'TS. Nguyễn Văn Giảng Viên' : 'Điều Phối Viên EXE',
-      role: finalRole,
-      studentCode: role === 'Student' ? 'SE185102' : undefined,
-      campus: 'TP. Hồ Chí Minh',
-      major: role === 'Student' ? 'SE' : undefined,
-    };
-    localStorage.setItem('access_token', 'demo-access-token');
-    localStorage.setItem('refresh_token', 'demo-refresh-token');
-    localStorage.setItem('user', JSON.stringify(demoUser));
-    localStorage.setItem('is_demo_mode', 'true');
-    setUser(demoUser);
-    setIsLoading(false);
-    return demoUser;
-  }, []);
-
   const refreshCurrentUser = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
       setUser(null);
-      setIsLoading(false);
-      return;
-    }
-
-    if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-      const saved = localStorage.getItem('user');
-      if (saved) {
-        setUser(JSON.parse(saved));
-      }
       setIsLoading(false);
       return;
     }
@@ -108,7 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: account.fullName,
         role: account.role,
         studentCode: account.studentCode || undefined,
-        mustChangePassword: account.mustChangePassword ?? false,
         hasAcceptedTerms: account.hasAcceptedTerms ?? false,
         acceptedTermsAt: account.acceptedTermsAt ?? null,
       };
@@ -153,17 +107,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-        if (isMounted) {
-          const saved = localStorage.getItem('user');
-          if (saved) {
-            setUser(JSON.parse(saved));
-          }
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
         const response = await apiClient.get<AccountResponse>('/auth/me');
         if (!isMounted) return;
@@ -175,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fullName: account.fullName,
           role: account.role,
           studentCode: account.studentCode || undefined,
-          mustChangePassword: account.mustChangePassword ?? false,
           hasAcceptedTerms: account.hasAcceptedTerms ?? false,
           acceptedTermsAt: account.acceptedTermsAt ?? null,
         };
@@ -229,12 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<AuthUserDto> => {
-    const response = await apiClient.post<AuthResponse>('/auth/login', {
-      email: email.trim(),
-      password,
-    });
-
+  const loginWithGoogle = async (idToken: string): Promise<AuthUserDto> => {
+    const response = await apiClient.post<AuthResponse>('/auth/google', { idToken });
     const { accessToken, refreshToken, user: authUser } = response.data;
 
     localStorage.setItem('access_token', accessToken);
@@ -243,10 +181,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentUser: User = {
       ...authUser,
       studentCode: authUser.studentCode || undefined,
-      mustChangePassword: authUser.mustChangePassword ?? false,
       hasAcceptedTerms: authUser.hasAcceptedTerms ?? false,
       acceptedTermsAt: authUser.acceptedTermsAt ?? null,
     };
+
     if (authUser.role === 'Student') {
       try {
         const profileRes = await apiClient.get<UserProfileResponse>('/users/me', {
@@ -260,72 +198,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
         }
       } catch {
-        // Fallback to authUser
+        // Hồ sơ chưa kịp tạo (event bất đồng bộ) thì dùng thông tin từ Auth.
       }
     }
 
     localStorage.setItem('user', JSON.stringify(currentUser));
     setUser(currentUser);
     return authUser;
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    fullName: string
-  ): Promise<RegisterResponse> => {
-    // Đăng ký tài khoản sinh viên mới (Gate C, D, H).
-    // Phản hồi trả về thông tin chờ xác thực OTP, tuyệt đối không lưu token vào localStorage trước khi xác thực.
-    const response = await apiClient.post<RegisterResponse>('/auth/register', {
-      email: email.trim(),
-      password,
-      fullName: fullName.trim(),
-      role: 'Student',
-    });
-
-    return response.data;
-  };
-
-  const verifyEmail = async (email: string, otp: string): Promise<VerifyEmailResponse> => {
-    const response = await apiClient.post<VerifyEmailResponse>('/auth/verify-email', {
-      email: email.trim(),
-      otp: otp.trim(),
-    });
-    return response.data;
-  };
-
-  const resendVerification = async (email: string): Promise<ResendVerificationResponse> => {
-    const response = await apiClient.post<ResendVerificationResponse>('/auth/resend-verification', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
-    const response = await apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', {
-      email: data.email.trim(),
-      otp: data.otp.trim(),
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    return response.data;
-  };
-
-  const changePassword = async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
-    const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', {
-      currentPassword: data.currentPassword,
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    updateUserData({ mustChangePassword: false });
-    return response.data;
   };
 
   const acceptTerms = async (): Promise<AcceptTermsResponse> => {
@@ -360,14 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
-        login,
-        loginDemo,
-        register,
-        verifyEmail,
-        resendVerification,
-        forgotPassword,
-        resetPassword,
-        changePassword,
+        loginWithGoogle,
         acceptTerms,
         logout,
         refreshCurrentUser,

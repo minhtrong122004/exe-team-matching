@@ -1,3 +1,5 @@
+using Exe.BuildingBlocks.Paging;
+using Exe.BuildingBlocks.Persistence;
 using Group.Repository.Data;
 using Group.Repository.Entities;
 using Group.Repository.Enums;
@@ -102,6 +104,37 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
         return await query.OrderBy(g => g.RoomCode ?? g.Name).ToListAsync(ct);
     }
 
+    public Task<PagedResult<GroupEntity>> GetPagedRoomsBySpaceAsync(
+        Guid spaceId, GroupStatus? status, int? minAvailableSlots, string? search, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = db.Groups
+            .Include(g => g.Members)
+            .Include(g => g.Slots)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Where(g => g.SpaceId == spaceId && g.Status != GroupStatus.Disbanded);
+
+        if (status.HasValue)
+        {
+            query = query.Where(g => g.Status == status.Value);
+        }
+
+        if (minAvailableSlots.HasValue)
+        {
+            var slots = minAvailableSlots.Value;
+            query = query.Where(g => g.MaxMembers - g.Members.Count >= slots);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToLower();
+            query = query.Where(g =>
+                g.Name.ToLower().Contains(keyword) || (g.RoomCode != null && g.RoomCode.ToLower().Contains(keyword)));
+        }
+
+        return query.OrderBy(g => g.RoomCode ?? g.Name).ToPagedResultAsync(page, pageSize, ct);
+    }
+
     public async Task<IReadOnlyList<GroupEntity>> GetTrackedRoomsBySpaceAsync(Guid spaceId, CancellationToken ct = default)
     {
         return await db.Groups
@@ -159,6 +192,8 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
     }
 
     public void Add(CourseSpace space) => db.CourseSpaces.Add(space);
+
+    public void Remove(CourseSpace space) => db.CourseSpaces.Remove(space);
 
     public void AddEnrollment(SpaceEnrollment enrollment) => db.SpaceEnrollments.Add(enrollment);
 

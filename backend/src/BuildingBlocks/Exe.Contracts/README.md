@@ -12,7 +12,6 @@ chỉ được **thêm** (field nullable/có mặc định, message/rpc mới), 
 | `GroupCreated` | Group | Report |
 | `JoinRequestCreated` | Group | Notification |
 | `JoinRequestDecided` | Group | Notification |
-| `InvitationCreated` | Group | Notification |
 | `MemberJoined` | Group | User, Notification, Report |
 | `MemberLeft` | Group | User, Notification, Report |
 

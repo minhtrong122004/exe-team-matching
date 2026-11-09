@@ -1,10 +1,9 @@
 import type { Major } from './user';
 import type { ProjectDomain } from './index';
 
-export type GroupStatusType = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Full' | 'Locked' | 'Archived' | 'Disbanded';
+export type GroupStatusType = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked' | 'Archived' | 'Disbanded';
 export type MemberRole = 'Leader' | 'Member';
 export type JoinRequestStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Cancelled';
-export type InvitationStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Expired';
 export type ElectionStatus = 'Active' | 'Passed' | 'Rejected' | 'Expired';
 
 export interface GroupMemberResponse {
@@ -74,20 +73,9 @@ export interface UpdateSlotRequest {
   quantity: number;
 }
 
-export interface CreateGroupRequest {
-  name: string;
-  description?: string;
-  projectId?: string | null;
-  maxMembers: number;
-  slots?: CreateSlotRequest[];
-}
-
 export interface UpdateGroupRequest {
   name: string;
   description?: string;
-  projectId?: string | null;
-  maxMembers: number;
-  status: GroupStatusType | string;
 }
 
 export interface TransferLeaderRequest {
@@ -176,24 +164,6 @@ export interface DirectJoinRoomResponse {
 
 export interface CreateJoinRequestPayload {
   slotId?: string | null;
-  message?: string;
-}
-
-export interface InvitationResponse {
-  id: string;
-  groupId: string;
-  groupName: string;
-  invitedUserId: string;
-  invitedByUserId: string;
-  message?: string | null;
-  status: InvitationStatus;
-  expiresAt: string;
-  createdAt: string;
-  decidedAt?: string | null;
-}
-
-export interface CreateInvitationPayload {
-  invitedUserId: string;
   message?: string;
 }
 
@@ -300,6 +270,7 @@ export interface DistributePreviewResponse {
   totalDistributed: number;
   totalRemaining: number;
   roomPlans: DistributedRoomPlanDto[];
+  undersizedRoomCodes?: string[];
 }
 
 export interface DistributeConfirmResponse {
@@ -318,6 +289,7 @@ export interface FinalizeSpaceResponse {
   lockedRoomsCount: number;
   rejectedRequestsCount: number;
   finalizedAt: string;
+  unmatchedStudentsCount?: number;
 }
 
 

@@ -69,7 +69,8 @@ public record DistributePreviewResponse(
     int TotalUnmatched,
     int TotalDistributed,
     int TotalRemaining,
-    IReadOnlyList<DistributedRoomPlanDto> RoomPlans);
+    IReadOnlyList<DistributedRoomPlanDto> RoomPlans,
+    IReadOnlyList<string>? UndersizedRoomCodes = null);
 
 public record DistributeConfirmResponse(
     Guid SpaceId,
@@ -85,5 +86,6 @@ public record FinalizeSpaceResponse(
     string Status,
     int LockedRoomsCount,
     int RejectedRequestsCount,
-    DateTime FinalizedAt);
+    DateTime FinalizedAt,
+    int UnmatchedStudentsCount = 0);
 

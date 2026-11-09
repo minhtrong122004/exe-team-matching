@@ -48,10 +48,6 @@ public class AuthModelConstraintTests
         Assert.NotNull(emailIndex);
         Assert.True(emailIndex.IsUnique);
 
-        var passwordProp = entityType.FindProperty("PasswordHash")!;
-        Assert.False(passwordProp.IsNullable);
-        Assert.Equal(255, passwordProp.GetMaxLength());
-
         var fullNameProp = entityType.FindProperty("RegistrationFullName")!;
         Assert.False(fullNameProp.IsNullable);
         Assert.Equal(100, fullNameProp.GetMaxLength());

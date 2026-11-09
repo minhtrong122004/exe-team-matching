@@ -1,12 +1,18 @@
+using Exe.BuildingBlocks.Auth;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddExeJwtAuthentication(builder.Configuration);
+builder.Services.AddAuthorization();
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddHealthChecks();
 
-// TODO(Vy): kiểm tra JWT (AddExeJwtAuthentication) và gắn AuthorizationPolicy cho từng route.
-
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapHealthChecks("/health").AllowAnonymous();
 app.MapReverseProxy();

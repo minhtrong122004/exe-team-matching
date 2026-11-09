@@ -1,87 +1,32 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  AlertCircle,
-  ShieldCheck,
-  GraduationCap,
-  UserCheck,
-  Users,
-} from 'lucide-react';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
-
-  const { login, loginDemo } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
-  const handleQuickLogin = async (loginEmail: string, loginPass: string, fallbackRole: 'Student' | 'Lecturer' | 'Admin') => {
-    setEmail(loginEmail);
-    setPassword(loginPass);
-    try {
-      await executeLogin(loginEmail, loginPass);
-    } catch {
-      loginDemo(fallbackRole);
-      if (fallbackRole === 'Admin') {
-        navigate('/admin/accounts');
-      } else if (fallbackRole === 'Lecturer') {
-        navigate('/spaces');
-      } else {
-        navigate('/projects');
-      }
-    }
-  };
-
-  const executeLogin = async (loginEmail: string, loginPass: string) => {
+  const handleCredential = async (idToken: string) => {
     setError(null);
-    setPendingVerificationEmail(null);
     setLoading(true);
-
     try {
-      const authUser = await login(loginEmail, loginPass);
-      // Điều hướng theo vai trò thực tế trả về từ Backend JWT
-      if ((authUser.role as string) === 'Admin' || authUser.role === 'Moderator') {
-        navigate('/admin/accounts');
-      } else if (authUser.role === 'Lecturer') {
-        navigate('/spaces');
-      } else {
-        navigate('/projects');
-      }
+      const authUser = await loginWithGoogle(idToken);
+      navigate(authUser.role === 'Moderator' ? '/admin/accounts' : authUser.role === 'Lecturer' ? '/spaces' : '/projects');
     } catch (err: any) {
-      if (err.response?.status === 401) {
-        setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
-      } else if (err.response?.status === 403) {
-        const errorCode = err.response?.data?.code;
-        const detail = err.response?.data?.detail;
-        if (errorCode === 'EMAIL_NOT_CONFIRMED' || (detail && detail.includes('xác thực email'))) {
-          setPendingVerificationEmail(loginEmail.trim());
-          setError(detail || 'Tài khoản chưa được xác thực email. Vui lòng nhập mã OTP để kích hoạt.');
-        } else {
-          setError(detail || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
-        }
-      } else if (err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message) {
-        setError(err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message);
-      } else {
-        setError('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra API Gateway.');
-      }
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          (err.response ? 'Không thể đăng nhập. Vui lòng thử lại.' : 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra API Gateway.')
+      );
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu.');
-      return;
-    }
-    await executeLogin(email, password);
   };
 
   return (
@@ -164,7 +109,7 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN (lg:col-span-5): Login Card + Quick Demo ── */}
+        {/* ── RIGHT COLUMN (lg:col-span-5): Login Card ── */}
         <div className="lg:col-span-5 flex flex-col items-center w-full">
           <div
             style={{
@@ -190,11 +135,12 @@ export const LoginPage: React.FC = () => {
               Đăng nhập hệ thống
             </h2>
             <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px 0' }}>
-              Vui lòng nhập thông tin tài khoản của bạn để tiếp tục
+              Đăng nhập bằng tài khoản Google trùng với email của bạn trên FAP
             </p>
 
             {error && (
               <div
+                role="alert"
                 style={{
                   backgroundColor: '#FEF2F2',
                   border: '1px solid #FECACA',
@@ -203,168 +149,24 @@ export const LoginPage: React.FC = () => {
                   borderRadius: '10px',
                   fontSize: '13px',
                   display: 'flex',
-                  flexDirection: 'column',
+                  alignItems: 'flex-start',
                   gap: '8px',
                   marginBottom: '18px',
+                  overflowWrap: 'anywhere',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
-                </div>
-                {pendingVerificationEmail && (
-                  <div style={{ paddingLeft: '24px' }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/verify-email?email=${encodeURIComponent(pendingVerificationEmail)}`)}
-                      style={{
-                        backgroundColor: '#EA580C',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Nhập mã xác thực OTP ngay &rarr;
-                    </button>
-                  </div>
-                )}
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#334155',
-                    marginBottom: '6px',
-                  }}
-                >
-                  Địa chỉ Email *
-                </label>
-                <input
-                  type="email"
-                  placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    padding: '0 14px',
-                    fontSize: '14px',
-                    color: '#0F172A',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#0F172A';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
+            <GoogleSignInButton onCredential={handleCredential} onError={setError} />
 
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#334155',
-                      margin: 0,
-                    }}
-                  >
-                    Mật khẩu *
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    style={{
-                      fontSize: '12px',
-                      color: '#F27024',
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    padding: '0 14px',
-                    fontSize: '14px',
-                    color: '#0F172A',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#0F172A';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '42px',
-                  borderRadius: '10px',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  backgroundColor: '#F27024',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  cursor: loading ? 'default' : 'pointer',
-                  marginTop: '4px',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#EA580C';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#F27024';
-                  }
-                }}
-              >
-                {loading ? 'Đang xác thực...' : 'Đăng nhập'}
-              </button>
-            </form>
+            {loading && (
+              <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', margin: '12px 0 0' }}>
+                Đang đăng nhập...
+              </p>
+            )}
 
             {/* Thông báo chính sách cấp tài khoản từ danh sách FAP (BR-01) */}
             <div
@@ -384,170 +186,8 @@ export const LoginPage: React.FC = () => {
             >
               <ShieldCheck size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
-                <strong style={{ color: '#0F172A' }}>Chính sách FAP (BR-01):</strong> Sinh viên được Điều phối viên (Moderator) đồng bộ trực tiếp từ FAP và nhận mật khẩu qua email trường.
+                <strong style={{ color: '#0F172A' }}>Chính sách FAP (BR-01):</strong> Chỉ email có trong danh sách sinh viên do Điều phối viên (Moderator) đồng bộ từ FAP mới đăng nhập được.
               </div>
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#64748B' }}>
-              Chưa có tài khoản?{' '}
-              <Link to="/register" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
-                Đăng ký ngay
-              </Link>
-            </div>
-          </div>
-
-          {/* ── QUICK DEMO BAR (Bỏ qua Backend hoặc Test 1-Click) ── */}
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '420px',
-              backgroundColor: '#F1F5F9',
-              borderRadius: '12px',
-              padding: '12px 14px',
-              border: '1px solid #E2E8F0',
-              marginTop: '14px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#64748B',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-                display: 'block',
-                textAlign: 'center',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Đăng nhập nhanh tài khoản kiểm thử (1-Click Demo):
-            </span>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('moderator@fpt.edu.vn', 'Moderator@123', 'Admin')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#0054A6';
-                  e.currentTarget.style.color = '#0054A6';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <ShieldCheck size={14} color="#0054A6" />
-                <span>Moderator</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('lecturer@fpt.edu.vn', 'Lecturer@123', 'Lecturer')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#008837';
-                  e.currentTarget.style.color = '#008837';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <GraduationCap size={14} color="#008837" />
-                <span>Giảng viên</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('tunp@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <Users size={14} color="#F27024" />
-                <span>SV Tú (SE185102)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('sinhvien.moi@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <UserCheck size={14} color="#EA580C" />
-                <span>Tân SV (BR-34)</span>
-              </button>
             </div>
           </div>
         </div>

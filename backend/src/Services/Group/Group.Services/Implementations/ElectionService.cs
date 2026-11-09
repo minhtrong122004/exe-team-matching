@@ -104,6 +104,15 @@ public class ElectionService(
             throw new BusinessRuleException("ELECTION_EXPIRED", "Cuộc bầu cử đã hết thời hạn 24 giờ (BR-19).");
         }
 
+        // BR-19: ứng viên đã rời nhóm thì cuộc bầu không còn hiệu lực.
+        if (group.Members.All(m => m.UserId != election.CandidateId))
+        {
+            election.Status = ElectionStatus.Failed;
+            election.CompletedAt = now;
+            await uow.SaveChangesAsync(ct);
+            throw new BusinessRuleException("ELECTION_CANDIDATE_LEFT", $"{election.CandidateName} đã rời nhóm nên cuộc bầu này đã kết thúc (BR-19).");
+        }
+
         if (election.Votes.Any(v => v.VoterId == currentUserId))
         {
             throw new BusinessRuleException("ALREADY_VOTED", "Bạn đã bỏ phiếu cho cuộc bầu cử này rồi (mỗi thành viên 1 phiếu).");

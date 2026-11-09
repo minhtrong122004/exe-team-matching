@@ -13,7 +13,6 @@ export interface User {
   studentCode?: string;
   campus?: string;
   major?: string;
-  mustChangePassword?: boolean;
   hasAcceptedTerms?: boolean;
   acceptedTermsAt?: string | null;
   isProfileCompleted?: boolean;
@@ -75,7 +74,7 @@ export interface PagedResult<T> {
   hasNext?: boolean;
 }
 
-export type GroupStatus = 'Recruiting' | 'Full' | 'Locked' | 'Disbanded';
+export type GroupStatus = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked' | 'Disbanded';
 
 export interface GroupItem {
   id: string;

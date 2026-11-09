@@ -28,16 +28,17 @@ public class JoinRequestRepository(GroupDbContext db) : IJoinRequestRepository
         Filter(db.JoinRequests.Where(r => r.StudentId == studentId), status)
             .ToPagedResultAsync(page, pageSize, ct);
 
-    public Task<int> CountPendingByStudentAsync(Guid studentId, CancellationToken ct = default) =>
-        db.JoinRequests.CountAsync(r => r.StudentId == studentId && r.Status == JoinRequestStatus.Pending, ct);
+    public Task<int> CountPendingByStudentAsync(Guid studentId, Guid? spaceId, CancellationToken ct = default) =>
+        db.JoinRequests.CountAsync(r =>
+            r.StudentId == studentId && r.Status == JoinRequestStatus.Pending && r.Group.SpaceId == spaceId, ct);
 
     public Task<bool> HasPendingAsync(Guid studentId, Guid groupId, CancellationToken ct = default) =>
         db.JoinRequests.AnyAsync(r =>
             r.StudentId == studentId && r.GroupId == groupId && r.Status == JoinRequestStatus.Pending, ct);
 
-    public Task<List<JoinRequest>> GetPendingByStudentAsync(Guid studentId, CancellationToken ct = default) =>
+    public Task<List<JoinRequest>> GetPendingByStudentAsync(Guid studentId, Guid? spaceId, CancellationToken ct = default) =>
         db.JoinRequests
-            .Where(r => r.StudentId == studentId && r.Status == JoinRequestStatus.Pending)
+            .Where(r => r.StudentId == studentId && r.Status == JoinRequestStatus.Pending && r.Group.SpaceId == spaceId)
             .ToListAsync(ct);
 
     public Task<List<JoinRequest>> GetPendingByGroupAsync(Guid groupId, CancellationToken ct = default) =>
