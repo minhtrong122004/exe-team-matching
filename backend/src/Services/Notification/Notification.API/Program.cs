@@ -16,7 +16,6 @@ builder.Services.AddNotificationServices(builder.Configuration);
 builder.Services.AddHostedService<UserRegisteredConsumer>();
 builder.Services.AddHostedService<JoinRequestCreatedConsumer>();
 builder.Services.AddHostedService<JoinRequestDecidedConsumer>();
-builder.Services.AddHostedService<InvitationCreatedConsumer>();
 builder.Services.AddHostedService<MemberJoinedConsumer>();
 builder.Services.AddHostedService<MemberLeftConsumer>();
 builder.Services.AddHostedService<MemberRemovedConsumer>();

@@ -31,7 +31,6 @@ export {
   GroupsPage,
   MyGroupPage,
   JoinRequestsPage,
-  InvitationsPage,
 } from './GroupsModulePages';
 
 export { ModeratorSpacesPage } from './moderator/ModeratorSpacesPage';

@@ -21,10 +21,7 @@ import {
   Moon,
   Sun,
   CheckCircle2,
-  KeyRound,
   AlertCircle,
-  Eye,
-  EyeOff,
   ArrowLeftRight,
 } from 'lucide-react';
 
@@ -39,7 +36,7 @@ interface NavSection {
 }
 
 export const MainLayout: React.FC = () => {
-  const { user, logout, acceptTerms, changePassword, updateUserData } = useAuth();
+  const { user, logout, acceptTerms } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -58,21 +55,16 @@ export const MainLayout: React.FC = () => {
     window.dispatchEvent(new CustomEvent('coursespace:changed', { detail: newSpace }));
   };
 
-  // First-Login Onboarding State (Initial Password Change + Terms)
+  // First-Login Onboarding State (Terms)
   const [termsChecked, setTermsChecked] = useState(false);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [onboardingError, setOnboardingError] = useState<string | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showOnboardingPasswords, setShowOnboardingPasswords] = useState(false);
-
   const showOnboardingModal =
     !onboardingDismissed &&
     user?.role === 'Student' &&
-    (Boolean(user.mustChangePassword) || user.hasAcceptedTerms === false);
+    user.hasAcceptedTerms === false;
 
   const handleCompleteOnboarding = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,36 +76,7 @@ export const MainLayout: React.FC = () => {
     setOnboardingLoading(true);
 
     try {
-      if (newPassword || currentPassword || confirmNewPassword) {
-        if (!currentPassword) {
-          setOnboardingError('Vui lòng nhập mật khẩu khởi tạo từ email.');
-          setOnboardingLoading(false);
-          return;
-        }
-        if (newPassword.length < 8) {
-          setOnboardingError('Mật khẩu mới phải có tối thiểu 8 ký tự.');
-          setOnboardingLoading(false);
-          return;
-        }
-        if (newPassword !== confirmNewPassword) {
-          setOnboardingError('Mật khẩu xác nhận không trùng khớp.');
-          setOnboardingLoading(false);
-          return;
-        }
-        try {
-          await changePassword({ currentPassword, newPassword, confirmNewPassword });
-        } catch {
-          // If in demo or offline, proceed
-        }
-      }
-
-      try {
-        await acceptTerms();
-      } catch {
-        // If in demo or offline, proceed
-      }
-
-      updateUserData({ mustChangePassword: false, hasAcceptedTerms: true });
+      await acceptTerms();
       setOnboardingDismissed(true);
     } catch (err: any) {
       setOnboardingError(err?.message || 'Có lỗi xảy ra khi xác nhận. Vui lòng thử lại.');
@@ -122,10 +85,6 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-  const handleSkipOnboardingDemo = () => {
-    updateUserData({ mustChangePassword: false, hasAcceptedTerms: true });
-    setOnboardingDismissed(true);
-  };
 
   useEffect(() => {
     if (!user) return;
@@ -309,6 +268,11 @@ export const MainLayout: React.FC = () => {
             icon: <UserPlus size={19} />,
             roles: ['Student'],
           },
+        ],
+      },
+      {
+        title: 'Khám phá & Đề tài',
+        items: [
           {
             to: '/projects',
             label: 'Kho Đề tài dự kiến',
@@ -977,7 +941,7 @@ export const MainLayout: React.FC = () => {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          FIRST-LOGIN ONBOARDING MODAL
+          FIRST-LOGIN ONBOARDING MODAL (TERMS)
          ══════════════════════════════════════════════════════════════ */}
       {showOnboardingModal && (
         <div
@@ -1026,10 +990,11 @@ export const MainLayout: React.FC = () => {
                   id="onboarding-modal-title"
                   style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}
                 >
-                  Thiết lập tài khoản đầu học kỳ
+                  Xác nhận Quy định Ghép nhóm & Điều phối
                 </h2>
                 <p style={{ margin: '0.35rem 0 0', fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
-                  Sinh viên: <strong style={{ color: '#0F172A' }}>Lữ Phước Nhật Tú</strong> • MSSV: <strong style={{ color: '#0F172A' }}>SE185102</strong> • Chuyên ngành: <strong style={{ color: '#0F172A' }}>Kỹ thuật phần mềm</strong>
+                  Sinh viên: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{user?.fullName}</strong>
+                  {user?.studentCode ? ` • MSSV: ${user.studentCode}` : ''}
                 </p>
               </div>
             </div>
@@ -1056,40 +1021,30 @@ export const MainLayout: React.FC = () => {
               )}
 
               <form onSubmit={handleCompleteOnboarding}>
-                {/* Phần 1 — Quy định điều phối nhóm học phần EXE */}
                 <div
                   style={{
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     borderRadius: 12,
                     padding: '16px',
                     marginBottom: '18px',
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: '#0F172A',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <CheckCircle2 size={16} color="#008837" />
-                    Quy định điều phối nhóm học phần EXE
-                  </div>
-                  <p
-                    style={{
-                      fontSize: '13px',
-                      color: '#475569',
-                      lineHeight: 1.55,
-                      margin: '0 0 14px 0',
-                    }}
-                  >
-                    Sau khi kết thúc thời hạn đăng ký nhóm tự nguyện, Điều phối viên (Moderator) và Giảng viên có toàn quyền điều phối, sắp xếp sinh viên chưa có nhóm vào các nhóm còn thiếu thành viên để đảm bảo tiến độ học kỳ.
+                  <p style={{ fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.55, marginTop: 0 }}>
+                    Chào mừng bạn đến với hệ thống ghép nhóm học phần <strong>Experiential Entrepreneurship (EXE)</strong>. Trước khi tham gia phòng ghép nhóm, vui lòng đọc và xác nhận các nguyên tắc vận hành:
                   </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'var(--text-secondary, #334155)', marginBottom: '14px' }}>
+                    <div>
+                      <strong>1. Vào phòng và lập nhóm:</strong> Phòng dưới ngưỡng thì sinh viên vào thẳng, người đầu tiên làm Nhóm trưởng. Khi đạt ngưỡng (hơn 50% sĩ số), phòng chuyển sang chế độ tuyển và chỉ nhận thêm qua đơn ứng tuyển.
+                    </div>
+                    <div>
+                      <strong>2. Duyệt đơn:</strong> Thành viên bỏ phiếu trên từng đơn để tham khảo ý kiến, Nhóm trưởng quyết định nhận hoặc từ chối.
+                    </div>
+                    <div>
+                      <strong>3. Quyền điều phối:</strong> Điều phối viên (Moderator) có quyền điều phối sinh viên vào các nhóm khi nhóm chưa đủ số lượng tối đa hoặc sau khi hết thời hạn đăng ký tự nguyện.
+                    </div>
+                  </div>
 
                   <label
                     style={{
@@ -1099,7 +1054,7 @@ export const MainLayout: React.FC = () => {
                       cursor: 'pointer',
                       fontSize: '13px',
                       fontWeight: 600,
-                      color: '#0F172A',
+                      color: 'var(--text-main, #0F172A)',
                     }}
                   >
                     <input
@@ -1111,152 +1066,14 @@ export const MainLayout: React.FC = () => {
                       }}
                       style={{ marginTop: 2, width: 16, height: 16, accentColor: '#F27024' }}
                     />
-                    <span>Tôi đã đọc, hiểu rõ và đồng ý với quy định điều phối nhóm của nhà trường</span>
+                    <span>
+                      Tôi đã đọc hiểu và đồng ý với quy định ghép nhóm cũng như quyền điều phối của nhà trường.
+                    </span>
                   </label>
-                </div>
-
-                {/* Phần 2 — Đổi mật khẩu bảo mật lần đầu */}
-                <div
-                  style={{
-                    backgroundColor: 'var(--bg-card, #FFFFFF)',
-                    border: '1px solid var(--border-light, #E2E8F0)',
-                    borderRadius: 12,
-                    padding: '16px',
-                    marginBottom: '20px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--text-main, #0F172A)',
-                      marginBottom: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <KeyRound size={16} color="#F27024" />
-                    Đổi mật khẩu bảo mật lần đầu
-                  </div>
-
-                  <div style={{ marginBottom: '10px' }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                      Mật khẩu khởi tạo (từ email)
-                    </label>
-                    <input
-                      type={showOnboardingPasswords ? 'text' : 'password'}
-                      placeholder="Mật khẩu gửi qua mail FPT..."
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      disabled={onboardingLoading}
-                      style={{
-                        width: '100%',
-                        height: '38px',
-                        padding: '0 12px',
-                        borderRadius: 8,
-                        border: '1px solid var(--border-medium, #CBD5E1)',
-                        backgroundColor: 'var(--bg-input, #FFFFFF)',
-                        fontSize: '13px',
-                        color: 'var(--text-main, #0F172A)',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                        Mật khẩu mới
-                      </label>
-                      <input
-                        type={showOnboardingPasswords ? 'text' : 'password'}
-                        placeholder="Tối thiểu 8 ký tự..."
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        disabled={onboardingLoading}
-                        style={{
-                          width: '100%',
-                          height: '38px',
-                          padding: '0 12px',
-                          borderRadius: 8,
-                          border: '1px solid var(--border-medium, #CBD5E1)',
-                          backgroundColor: 'var(--bg-input, #FFFFFF)',
-                          fontSize: '13px',
-                          color: 'var(--text-main, #0F172A)',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                        Xác nhận mật khẩu mới
-                      </label>
-                      <input
-                        type={showOnboardingPasswords ? 'text' : 'password'}
-                        placeholder="Nhập lại mật khẩu..."
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        disabled={onboardingLoading}
-                        style={{
-                          width: '100%',
-                          height: '38px',
-                          padding: '0 12px',
-                          borderRadius: 8,
-                          border: '1px solid var(--border-medium, #CBD5E1)',
-                          backgroundColor: 'var(--bg-input, #FFFFFF)',
-                          fontSize: '13px',
-                          color: 'var(--text-main, #0F172A)',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '8px', textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      onClick={() => setShowOnboardingPasswords(!showOnboardingPasswords)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#64748B',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      {showOnboardingPasswords ? <EyeOff size={13} /> : <Eye size={13} />}
-                      <span>{showOnboardingPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}</span>
-                    </button>
-                  </div>
                 </div>
 
                 {/* Footer Modal: Actions */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={handleSkipOnboardingDemo}
-                    disabled={onboardingLoading}
-                    style={{
-                      padding: '9px 16px',
-                      borderRadius: 10,
-                      backgroundColor: '#F1F5F9',
-                      border: '1px solid #E2E8F0',
-                      color: '#475569',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Bỏ qua (Xem nhanh UI)
-                  </button>
-
                   <button
                     type="submit"
                     disabled={onboardingLoading || !termsChecked}

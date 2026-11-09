@@ -201,7 +201,7 @@ const RadarChart5: React.FC<{
 // PROFILE PAGE COMPONENT
 // ══════════════════════════════════════════════════════════════
 export const ProfilePage: React.FC = () => {
-  const { user: authUser, updateUserData, changePassword } = useAuth();
+  const { user: authUser, updateUserData } = useAuth();
 
   // State thông báo
   const [error, setError] = useState<string | null>(null);
@@ -360,9 +360,9 @@ export const ProfilePage: React.FC = () => {
     setChangingPassword(true);
     try {
       try {
-        await changePassword({ currentPassword, newPassword, confirmNewPassword });
+        await apiClient.post('/auth/change-password', { currentPassword, newPassword, confirmNewPassword });
       } catch {
-        // Demo offline fallback
+        // Fallback for demo mode
       }
       setCurrentPassword('');
       setNewPassword('');

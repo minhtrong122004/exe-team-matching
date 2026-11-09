@@ -72,30 +72,31 @@ public class GroupRepository(GroupDbContext db) : IGroupRepository
             .AsSplitQuery()
             .FirstOrDefaultAsync(g => g.Id == id, ct);
 
-    public Task<GroupEntity?> GetActiveGroupOfUserAsync(Guid userId, CancellationToken ct = default) =>
+    public Task<GroupEntity?> GetActiveGroupOfUserAsync(Guid userId, Guid? spaceId = null, CancellationToken ct = default) =>
         db.Groups
             .Include(g => g.Members)
             .Include(g => g.Slots)
             .AsSplitQuery()
-            .FirstOrDefaultAsync(g => g.Status != GroupStatus.Disbanded && g.Members.Any(m => m.UserId == userId), ct);
+            .Where(g => g.Status != GroupStatus.Disbanded && g.Members.Any(m => m.UserId == userId))
+            .Where(g => spaceId == null || g.SpaceId == spaceId)
+            .OrderByDescending(g => g.CreatedAt)
+            .FirstOrDefaultAsync(ct);
 
-    public Task<bool> IsUserInActiveGroupAsync(Guid userId, CancellationToken ct = default) =>
-        db.GroupMembers.AnyAsync(m => m.UserId == userId && m.Group.Status != GroupStatus.Disbanded, ct);
+    public Task<bool> IsUserInActiveGroupAsync(Guid userId, Guid? spaceId, CancellationToken ct = default) =>
+        db.GroupMembers.AnyAsync(m =>
+            m.UserId == userId && m.Group.Status != GroupStatus.Disbanded && m.Group.SpaceId == spaceId, ct);
 
-    public async Task<HashSet<Guid>> GetUsersInActiveGroupsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
+    public async Task<HashSet<Guid>> GetUsersInActiveGroupsAsync(IEnumerable<Guid> userIds, Guid? spaceId, CancellationToken ct = default)
     {
         var ids = userIds.Distinct().ToList();
         if (ids.Count == 0) return [];
 
         var found = await db.GroupMembers
-            .Where(m => ids.Contains(m.UserId) && m.Group.Status != GroupStatus.Disbanded)
+            .Where(m => ids.Contains(m.UserId) && m.Group.Status != GroupStatus.Disbanded && m.Group.SpaceId == spaceId)
             .Select(m => m.UserId)
             .ToListAsync(ct);
         return found.ToHashSet();
     }
-
-    public Task<bool> ExistsActiveForProjectAsync(Guid projectId, CancellationToken ct = default) =>
-        db.Groups.AnyAsync(g => g.ProjectId == projectId && g.Status != GroupStatus.Disbanded, ct);
 
     public async Task<IReadOnlyList<GroupEntity>> GetRecruitingAsync(int max, CancellationToken ct = default) =>
         await db.Groups
@@ -107,8 +108,6 @@ public class GroupRepository(GroupDbContext db) : IGroupRepository
             .OrderByDescending(g => g.CreatedAt)
             .Take(max)
             .ToListAsync(ct);
-
-    public void Add(GroupEntity group) => db.Groups.Add(group);
 
     public void AddSlot(RecruitmentSlot slot) => db.RecruitmentSlots.Add(slot);
 

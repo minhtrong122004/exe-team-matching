@@ -3,33 +3,12 @@ using Auth.Repository.Enums;
 namespace Auth.Services.DTOs;
 
 /// <summary>
-/// DTO yêu cầu đăng ký tài khoản mới.
-/// Công khai chỉ cho phép vai trò "Student".
-/// </summary>
-public record RegisterRequest(
-    string Email,
-    string Password,
-    string FullName,
-    string? Role = "Student"
-);
-
-/// <summary>
-/// DTO yêu cầu khởi tạo tài khoản Giảng viên (Lecturer) hoặc Điều phối viên (Moderator) do Moderator/Admin thực hiện.
+/// DTO yêu cầu khởi tạo tài khoản Giảng viên (Lecturer) hoặc Điều phối viên (Moderator) do Moderator thực hiện.
 /// </summary>
 public record CreateLecturerRequest(
     string Email,
-    string Password,
     string FullName,
     string? Role = "Lecturer"
-);
-
-/// <summary>
-/// DTO yêu cầu người dùng tự đổi mật khẩu khi đang đăng nhập (bao gồm lần đầu đăng nhập sau khi nhận mật khẩu từ FAP).
-/// </summary>
-public record ChangePasswordRequest(
-    string CurrentPassword,
-    string NewPassword,
-    string ConfirmNewPassword
 );
 
 /// <summary>
@@ -59,11 +38,10 @@ public record ProvisionFapStudentsRequest(
 );
 
 /// <summary>
-/// DTO yêu cầu đăng nhập.
+/// DTO yêu cầu đăng nhập bằng Google ID token nhận từ Google Identity Services.
 /// </summary>
-public record LoginRequest(
-    string Email,
-    string Password
+public record GoogleLoginRequest(
+    string IdToken
 );
 
 /// <summary>
@@ -81,39 +59,7 @@ public record LogoutRequest(
 );
 
 /// <summary>
-/// DTO yêu cầu xác thực email bằng mã OTP (Gate H).
-/// </summary>
-public record VerifyEmailRequest(
-    string Email,
-    string Otp
-);
-
-/// <summary>
-/// DTO yêu cầu gửi lại mã xác thực email (Gate H).
-/// </summary>
-public record ResendVerificationRequest(
-    string Email
-);
-
-/// <summary>
-/// DTO yêu cầu gửi mã OTP để đặt lại mật khẩu.
-/// </summary>
-public record ForgotPasswordRequest(
-    string Email
-);
-
-/// <summary>
-/// DTO yêu cầu đặt lại mật khẩu bằng mã OTP và thiết lập mật khẩu mới.
-/// </summary>
-public record ResetPasswordRequest(
-    string Email,
-    string Otp,
-    string NewPassword,
-    string ConfirmNewPassword
-);
-
-/// <summary>
-/// Tham số truy vấn danh sách tài khoản dành cho Quản trị viên (Admin).
+/// Tham số truy vấn danh sách tài khoản dành cho Moderator.
 /// </summary>
 public record GetAccountsQuery(
     string? Search = null,

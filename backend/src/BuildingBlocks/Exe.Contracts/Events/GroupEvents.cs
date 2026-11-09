@@ -27,18 +27,8 @@ public record JoinRequestDecided(
     string StudentName,
     bool Accepted);
 
-/// <summary>Trưởng nhóm mời sinh viên. Nhận: Notification (báo cho sinh viên).</summary>
-public record InvitationCreated(
-    Guid InvitationId,
-    Guid GroupId,
-    string GroupName,
-    Guid StudentId,
-    string StudentEmail,
-    string StudentName,
-    DateTime ExpiresAt);
-
 /// <summary>
-/// Sinh viên vào nhóm (qua yêu cầu hoặc lời mời).
+/// Sinh viên vào nhóm (vào thẳng, được Accept hoặc được phân phối).
 /// Nhận: User (đặt InTeam), Notification, Report.
 /// </summary>
 public record MemberJoined(

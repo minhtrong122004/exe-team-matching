@@ -233,7 +233,7 @@ public class RoomLifecycleAndElectionTests
         group.Members.Add(earliest);
         group.Members.Add(second);
 
-        var membership = new GroupMembershipManager(null!, null!, null!);
+        var membership = new GroupMembershipManager(null!, null!);
         membership.RemoveMember(group, leader, DateTime.UtcNow, groupThreshold: 3);
 
         // Leader was removed, earliest joined member becomes new leader

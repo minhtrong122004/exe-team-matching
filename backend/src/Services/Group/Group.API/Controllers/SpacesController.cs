@@ -1,4 +1,5 @@
 using Exe.BuildingBlocks.Auth;
+using Exe.BuildingBlocks.Paging;
 using Group.Repository.Enums;
 using Group.Services.DTOs;
 using Group.Services.Interfaces;
@@ -80,6 +81,20 @@ public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
         Guid id, [FromBody] UpdateSpaceConfigRequest request, CancellationToken ct) =>
         Ok(await spaceService.UpdateSpaceConfigAsync(id, request, ct));
 
+    /// <summary>Xóa Không gian học phần tạo nhầm: phải đang Draft, chưa có sinh viên và phòng (Moderator only).</summary>
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = Roles.Moderator)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteSpace(Guid id, CancellationToken ct)
+    {
+        await spaceService.DeleteSpaceAsync(id, ct);
+        return NoContent();
+    }
+
     /// <summary>Import danh sách sinh viên hợp lệ từ FAP (Moderator only, BR-08).</summary>
     [HttpPost("{id:guid}/import-fap")]
     [Authorize(Roles = Roles.Moderator)]
@@ -91,16 +106,6 @@ public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
     public async Task<ActionResult<int>> ImportFapStudents(
         Guid id, [FromBody] ImportFapStudentsRequest request, CancellationToken ct) =>
         Ok(await spaceService.ImportFapStudentsAsync(id, request, ct));
-
-    /// <summary>Đồng bộ dữ liệu Mock FAP 50 sinh viên mẫu đa ngành (Moderator only, BR-08).</summary>
-    [HttpPost("{id:guid}/sync-mock-fap")]
-    [Authorize(Roles = Roles.Moderator)]
-    [ProducesResponseType<int>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<int>> SyncMockFapStudents(Guid id, CancellationToken ct) =>
-        Ok(await spaceService.SyncMockFapStudentsAsync(id, ct));
 
     /// <summary>
     /// Sinh Room tự động theo công thức CEIL(N / MaxMembers * BufferRatio) (Moderator only, BR-09, BR-11).
@@ -126,14 +131,14 @@ public class SpacesController(ICourseSpaceService spaceService) : ControllerBase
         Guid id, CancellationToken ct) =>
         Ok(await spaceService.GetSpaceEnrollmentsAsync(id, ct));
 
-    /// <summary>Danh sách các Room thuộc Space kèm trạng thái sĩ số và mã phòng (BR-09, BR-10).</summary>
+    /// <summary>Danh sách Room của Space, lọc theo trạng thái, chỗ trống, từ khóa và phân trang (BR-13).</summary>
     [HttpGet("{id:guid}/rooms")]
-    [ProducesResponseType<IReadOnlyList<RoomSummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PagedResult<RoomSummaryResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IReadOnlyList<RoomSummaryResponse>>> GetSpaceRooms(
-        Guid id, [FromQuery] GroupStatus? status, CancellationToken ct) =>
-        Ok(await spaceService.GetSpaceRoomsAsync(id, status, ct));
+    public async Task<ActionResult<PagedResult<RoomSummaryResponse>>> GetSpaceRooms(
+        Guid id, [FromQuery] RoomQuery query, CancellationToken ct) =>
+        Ok(await spaceService.GetSpaceRoomsAsync(id, query, ct));
 
     /// <summary>Đóng cổng đăng ký của Space khi hết hạn (Moderator only, BR-30).</summary>
     [HttpPut("{id:guid}/close-registration")]

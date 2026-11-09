@@ -35,14 +35,14 @@ public class GroupsController(
         [FromQuery] GroupQuery query, CancellationToken ct) =>
         Ok(await groupService.GetGroupsAsync(query, ct));
 
-    /// <summary>Nhóm đang hoạt động của người dùng hiện tại; 204 nếu chưa có nhóm.</summary>
+    /// <summary>Nhóm của người dùng hiện tại trong môn <paramref name="spaceId"/> (không truyền: nhóm mới nhất); 204 nếu chưa có.</summary>
     [HttpGet("my")]
     [ProducesResponseType<GroupDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<GroupDetailResponse>> GetMyGroup(CancellationToken ct)
+    public async Task<ActionResult<GroupDetailResponse>> GetMyGroup([FromQuery] Guid? spaceId, CancellationToken ct)
     {
-        var group = await groupService.GetMyGroupAsync(ct);
+        var group = await groupService.GetMyGroupAsync(spaceId, ct);
         return group is null ? NoContent() : Ok(group);
     }
 
@@ -66,26 +66,7 @@ public class GroupsController(
     public async Task<ActionResult<GroupDetailResponse>> GetGroup(Guid id, CancellationToken ct) =>
         Ok(await groupService.GetGroupAsync(id, ct));
 
-    /// <summary>
-    /// Tạo nhóm cho dự án của mình (BR-11), người tạo thành trưởng nhóm. MaxMembers 4–6 (BR-02).
-    /// Phát GroupCreated và MemberJoined (trưởng nhóm).
-    /// </summary>
-    [HttpPost]
-    [Authorize(Roles = Roles.Student)]
-    [ProducesResponseType<GroupDetailResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<GroupDetailResponse>> CreateGroup(
-        [FromBody] CreateGroupRequest request, CancellationToken ct)
-    {
-        var group = await groupService.CreateGroupAsync(request, ct);
-        return CreatedAtAction(nameof(GetGroup), new { id = group.Id }, group);
-    }
-
-    /// <summary>Sửa tên, mô tả, số thành viên tối đa (chỉ trưởng nhóm).</summary>
+    /// <summary>Sửa tên và mô tả nhóm (chỉ trưởng nhóm). Sĩ số do Moderator cấu hình theo Space (BR-08).</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType<GroupDetailResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -95,18 +76,6 @@ public class GroupsController(
     public async Task<ActionResult<GroupDetailResponse>> UpdateGroup(
         Guid id, [FromBody] UpdateGroupRequest request, CancellationToken ct) =>
         Ok(await groupService.UpdateGroupAsync(id, request, ct));
-
-    /// <summary>Giải tán nhóm (chỉ trưởng nhóm). Hủy yêu cầu/lời mời đang chờ, phát MemberLeft cho từng thành viên.</summary>
-    [HttpDelete("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> DisbandGroup(Guid id, CancellationToken ct)
-    {
-        await groupService.DisbandGroupAsync(id, ct);
-        return NoContent();
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Vị trí tuyển
@@ -203,7 +172,7 @@ public class GroupsController(
         return NoContent();
     }
 
-    /// <summary>Rời nhóm. Trưởng nhóm không được rời (BR-09). Phát MemberLeft.</summary>
+    /// <summary>Rời nhóm. Leader rời thì quyền tự chuyển cho người vào sớm nhất (BR-20). Phát MemberLeft.</summary>
     [HttpPost("{id:guid}/leave")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

@@ -1,3 +1,4 @@
+using Exe.BuildingBlocks.Auth;
 using Exe.BuildingBlocks.Paging;
 using Exe.BuildingBlocks.Web;
 using Exe.Contracts.Events;
@@ -9,6 +10,7 @@ using Group.Services.Clients;
 using Group.Services.DTOs;
 using Group.Services.Exceptions;
 using Group.Services.Interfaces;
+using ICurrentUser = Exe.BuildingBlocks.Web.ICurrentUser;
 
 namespace Group.Services.Implementations;
 
@@ -16,12 +18,10 @@ public class GroupService(
     IGroupRepository groups,
     IGroupUnitOfWork uow,
     GroupMembershipManager membership,
-    IProjectClient projectClient,
     IUserClient userClient,
     ICourseSpaceRepository spaceRepo,
     ICurrentUser currentUser,
     GroupEventPublisher events,
-    IValidator<CreateGroupRequest> createValidator,
     IValidator<UpdateGroupRequest> updateValidator,
     IValidator<SlotRequest> slotValidator,
     IValidator<TransferLeaderRequest> transferValidator,
@@ -47,90 +47,24 @@ public class GroupService(
         return page.Map(g => g.ToSummary());
     }
 
-    public async Task<GroupDetailResponse> GetGroupAsync(Guid id, CancellationToken ct = default) =>
-        (await LoadAsync(id, ct)).ToDetail();
+    public async Task<GroupDetailResponse> GetGroupAsync(Guid id, CancellationToken ct = default)
+    {
+        var group = await LoadAsync(id, ct);
 
-    public async Task<GroupDetailResponse?> GetMyGroupAsync(CancellationToken ct = default) =>
-        (await groups.GetActiveGroupOfUserAsync(currentUser.UserId, ct))?.ToDetail();
+        // BR-13: nhóm đã đủ hoặc đã đóng thì ẩn thông tin thành viên với sinh viên ngoài nhóm.
+        var hideMembers = group.Status is GroupStatus.Closed or GroupStatus.Locked
+                          && currentUser.IsInRole(Roles.Student)
+                          && group.Members.All(m => m.UserId != currentUser.UserId);
+
+        return group.ToDetail(hideMembers);
+    }
+
+    public async Task<GroupDetailResponse?> GetMyGroupAsync(Guid? spaceId = null, CancellationToken ct = default) =>
+        (await groups.GetActiveGroupOfUserAsync(currentUser.UserId, spaceId, ct))?.ToDetail();
 
     // ─────────────────────────────────────────────────────────────────────────
     // Nhóm
     // ─────────────────────────────────────────────────────────────────────────
-
-    public async Task<GroupDetailResponse> CreateGroupAsync(CreateGroupRequest request, CancellationToken ct = default)
-    {
-        await createValidator.ValidateAndThrowAsync(request, ct);
-        var userId = currentUser.UserId;
-
-        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
-        var profile = await userClient.GetProfileAsync(userId, ct);
-        if (profile == null || !profile.IsProfileCompleted)
-        {
-            throw new BusinessRuleException("PROFILE_INCOMPLETE",
-                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
-        }
-
-        // BR-01
-        if (await groups.IsUserInActiveGroupAsync(userId, ct))
-            throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "You are already in a group.");
-
-        // BR-11: dự án tồn tại, người tạo là chủ dự án, dự án chưa có nhóm.
-        var project = await projectClient.GetProjectAsync(request.ProjectId, ct)
-            ?? throw new NotFoundException("Project", request.ProjectId);
-        if (project.OwnerId != userId)
-            throw new ForbiddenException("Only the project owner can create a group for this project.");
-        if (await groups.ExistsActiveForProjectAsync(project.Id, ct))
-            throw new BusinessRuleException(GroupErrorCodes.ProjectAlreadyHasGroup, "This project already has a group.");
-
-        var now = DateTime.UtcNow;
-        var group = new GroupEntity
-        {
-            Id            = Guid.NewGuid(),
-            Name          = request.Name.Trim(),
-            Description   = request.Description?.Trim(),
-            LeaderId      = userId,
-            ProjectId     = project.Id,
-            ProjectDomain = project.Domain,
-            MaxMembers    = request.MaxMembers,
-            Status        = GroupStatus.Recruiting,
-            CreatedAt     = now,
-            UpdatedAt     = now
-        };
-        group.Members.Add(new GroupMember
-        {
-            GroupId  = group.Id,
-            UserId   = userId,
-            Role     = MemberRole.Leader,
-            FullName = currentUser.FullName ?? string.Empty,
-            Email    = currentUser.Email ?? string.Empty,
-            JoinedAt = now
-        });
-        foreach (var slotRequest in request.Slots ?? [])
-        {
-            var slot = new RecruitmentSlot { Id = Guid.NewGuid(), GroupId = group.Id };
-            slot.Apply(slotRequest);
-            group.Slots.Add(slot);
-        }
-
-        groups.Add(group);
-        try
-        {
-            await uow.SaveChangesAsync(ct);
-        }
-        catch (UniqueConstraintViolationException ex) when (ex.IndexName == GroupIndexes.ProjectId)
-        {
-            // Hai request cùng qua bước kiểm tra ở trên; unique index chặn request thứ hai (BR-11).
-            throw new BusinessRuleException(GroupErrorCodes.ProjectAlreadyHasGroup, "This project already has a group.");
-        }
-
-        await events.PublishAsync(new GroupCreated(group.Id, group.Name, group.LeaderId ?? Guid.Empty, group.MaxMembers), ct);
-        // Trưởng nhóm cũng là một thành viên: User đặt InTeam, Report tính sinh viên đã có nhóm.
-        await events.PublishAsync(new MemberJoined(
-            group.Id, group.Name, userId, currentUser.Email ?? string.Empty, currentUser.FullName ?? string.Empty,
-            group.Members.Count, group.MaxMembers), ct);
-
-        return group.ToDetail();
-    }
 
     public async Task<GroupDetailResponse> UpdateGroupAsync(Guid id, UpdateGroupRequest request, CancellationToken ct = default)
     {
@@ -139,43 +73,14 @@ public class GroupService(
         var group = await LoadAsync(id, ct);
         group.EnsureLeader(currentUser.UserId, "update the group");
         group.EnsureNotDisbanded();
+        group.EnsureNotLocked();
 
-        if (request.MaxMembers < group.Members.Count)
-            throw new BusinessRuleException(GroupErrorCodes.MaxMembersBelowMemberCount,
-                $"Group already has {group.Members.Count} members.");
-        EnsureSlotCapacity(group, request.MaxMembers);
-
-        var now = DateTime.UtcNow;
         group.Name        = request.Name.Trim();
         group.Description = request.Description?.Trim();
-        group.MaxMembers  = request.MaxMembers;
-        group.UpdatedAt   = now;
-
-        // Đổi MaxMembers có thể làm nhóm đủ hoặc hết đủ người.
-        if (group.Members.Count >= group.MaxMembers && group.Status == GroupStatus.Recruiting)
-            await membership.MarkFullAsync(group, now, ct);
-        else if (group.Members.Count < group.MaxMembers && group.Status == GroupStatus.Full)
-            group.Status = GroupStatus.Recruiting;
+        group.UpdatedAt   = DateTime.UtcNow;
 
         await uow.SaveOrConflictAsync(ct);
         return group.ToDetail();
-    }
-
-    public async Task DisbandGroupAsync(Guid id, CancellationToken ct = default)
-    {
-        var group = await LoadAsync(id, ct);
-        group.EnsureLeader(currentUser.UserId, "disband the group");
-        group.EnsureNotDisbanded();
-
-        var now = DateTime.UtcNow;
-        group.Status = GroupStatus.Disbanded;
-        group.UpdatedAt = now;
-        await membership.CancelPendingOfGroupAsync(group.Id, now, ct);
-        await uow.SaveOrConflictAsync(ct);
-
-        // Giữ bản ghi thành viên làm lịch sử; BR-01 chỉ tính nhóm chưa giải tán.
-        foreach (var member in group.Members)
-            await events.PublishAsync(new MemberLeft(group.Id, group.Name, member.UserId, 0), ct);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -187,6 +92,7 @@ public class GroupService(
         await slotValidator.ValidateAndThrowAsync(request, ct);
 
         var group = await LoadForLeaderAsync(groupId, "manage recruitment slots", ct);
+        group.EnsureNotLocked();
         var slot = new RecruitmentSlot { Id = Guid.NewGuid(), GroupId = group.Id };
         slot.Apply(request);
         groups.AddSlot(slot); // EF tự gắn slot vào group.Slots (navigation fix-up)
@@ -202,6 +108,7 @@ public class GroupService(
         await slotValidator.ValidateAndThrowAsync(request, ct);
 
         var group = await LoadForLeaderAsync(groupId, "manage recruitment slots", ct);
+        group.EnsureNotLocked();
         var slot = FindSlot(group, slotId);
         if (request.Quantity < slot.Filled)
             throw new BusinessRuleException(GroupErrorCodes.SlotHasMembers,
@@ -218,6 +125,7 @@ public class GroupService(
     public async Task DeleteSlotAsync(Guid groupId, Guid slotId, CancellationToken ct = default)
     {
         var group = await LoadForLeaderAsync(groupId, "manage recruitment slots", ct);
+        group.EnsureNotLocked();
         var slot = FindSlot(group, slotId);
         if (slot.Filled > 0)
             throw new BusinessRuleException(GroupErrorCodes.SlotHasMembers, "Cannot delete a slot that already has members.");
@@ -240,10 +148,7 @@ public class GroupService(
         await removeValidator.ValidateAndThrowAsync(request, ct);
 
         var group = await LoadForLeaderAsync(groupId, "remove members", ct);
-        if (group.Status == GroupStatus.Locked)
-        {
-            throw new BusinessRuleException("ROOM_LOCKED", "Học phần đã chốt sổ, không thể mời thành viên ra khỏi nhóm (BR-33).");
-        }
+        group.EnsureNotLocked();
 
         if (userId == group.LeaderId)
             throw new BusinessRuleException(GroupErrorCodes.LeaderCannotLeave,
@@ -281,6 +186,7 @@ public class GroupService(
         }
 
         membership.RemoveMember(group, member, DateTime.UtcNow, threshold);
+        await FailElectionOfRemovedCandidateAsync(group.Id, member.UserId, ct);
         await uow.SaveOrConflictAsync(ct);
 
         // Phát MemberLeft (cho User Service chuyển trạng thái LookingForTeam và Report Service cập nhật thống kê)
@@ -305,11 +211,7 @@ public class GroupService(
     {
         var group = await LoadAsync(groupId, ct);
         group.EnsureNotDisbanded();
-
-        if (group.Status == GroupStatus.Locked)
-        {
-            throw new BusinessRuleException("ROOM_LOCKED", "Học phần đã chốt sổ, các thành viên bị khóa cứng vào nhóm và không thể tự rời (BR-33).");
-        }
+        group.EnsureNotLocked();
 
         var userId = currentUser.UserId;
         var member = group.Members.FirstOrDefault(m => m.UserId == userId)
@@ -409,6 +311,7 @@ public class GroupService(
     public async Task<GroupDetailResponse> CloseRecruitmentAsync(Guid groupId, CancellationToken ct = default)
     {
         var group = await LoadForLeaderAsync(groupId, "đóng tuyển sớm", ct);
+        group.EnsureNotLocked();
 
         int threshold = (group.MaxMembers / 2) + 1;
         if (group.SpaceId.HasValue)
@@ -438,6 +341,7 @@ public class GroupService(
     public async Task<GroupDetailResponse> ReopenRecruitmentAsync(Guid groupId, CancellationToken ct = default)
     {
         var group = await LoadForLeaderAsync(groupId, "mở lại tuyển dụng", ct);
+        group.EnsureNotLocked();
 
         if (group.Members.Count >= group.MaxMembers)
         {
@@ -497,6 +401,17 @@ public class GroupService(
     private static RecruitmentSlot FindSlot(GroupEntity group, Guid slotId) =>
         group.Slots.FirstOrDefault(s => s.Id == slotId) ?? throw new NotFoundException("Slot", slotId);
 
+    /// <summary>BR-19: ứng viên rời nhóm thì cuộc bầu đang diễn ra kết thúc, tránh bầu cho người đã rời.</summary>
+    private async Task FailElectionOfRemovedCandidateAsync(Guid groupId, Guid removedUserId, CancellationToken ct)
+    {
+        var election = await groups.GetActiveElectionAsync(groupId, ct);
+        if (election is not null && election.CandidateId == removedUserId)
+        {
+            election.Status = ElectionStatus.Failed;
+            election.CompletedAt = DateTime.UtcNow;
+        }
+    }
+
     /// <summary>
     /// Trưởng nhóm chiếm 1 chỗ, nên tổng vị trí tuyển không vượt quá MaxMembers - 1
     /// (cùng quy tắc với CreateGroupRequestValidator, kiểm tra lại khi thêm/sửa slot hoặc đổi MaxMembers).
@@ -523,6 +438,7 @@ public class GroupService(
         }
 
         membership.RemoveMember(group, member, DateTime.UtcNow, threshold);
+        await FailElectionOfRemovedCandidateAsync(group.Id, member.UserId, ct);
         await uow.SaveOrConflictAsync(ct);
         await events.PublishAsync(new MemberLeft(group.Id, group.Name, member.UserId, group.Members.Count), ct);
     }

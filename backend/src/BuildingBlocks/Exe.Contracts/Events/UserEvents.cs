@@ -6,7 +6,7 @@ namespace Exe.Contracts.Events;
 
 /// <summary>
 /// Auth phát khi có tài khoản mới (đăng ký, cấp phát từ danh sách FAP hoặc seed).
-/// Nhận: User (tạo hồ sơ trống + gắn StudentCode/Major), Notification (email chào mừng / mật khẩu khởi tạo), Report (thống kê).
+/// Nhận: User (tạo hồ sơ trống + gắn StudentCode/Major), Notification (email chào mừng), Report (thống kê).
 /// </summary>
 /// <param name="Role">Student | Moderator | Lecturer | Admin</param>
 public record UserRegistered(
@@ -15,7 +15,6 @@ public record UserRegistered(
     string FullName,
     string Role,
     string? StudentCode = null,
-    string? InitialPassword = null,
     string? SemesterCode = null,
     string? SubjectCode = null,
     string? Major = null

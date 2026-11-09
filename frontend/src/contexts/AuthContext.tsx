@@ -5,14 +5,6 @@ import type {
   AuthUserDto,
   AccountResponse,
   UserProfileResponse,
-  RegisterResponse,
-  VerifyEmailResponse,
-  ResendVerificationResponse,
-  ForgotPasswordResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
-  ChangePasswordRequest,
-  ChangePasswordResponse,
   AcceptTermsResponse,
 } from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
@@ -21,14 +13,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthUserDto>;
-  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
-  register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
-  verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
-  resendVerification: (email: string) => Promise<ResendVerificationResponse>;
-  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
-  resetPassword: (data: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
-  changePassword: (data: ChangePasswordRequest) => Promise<ChangePasswordResponse>;
+  loginWithGoogle: (idToken: string) => Promise<AuthUserDto>;
+  loginDemo?: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
   acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -70,7 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: 'ThS. Lê Minh Điều Phối',
         role: 'Moderator',
         campus: 'Hà Nội',
-        mustChangePassword: false,
         hasAcceptedTerms: true,
         isProfileCompleted: true,
       };
@@ -81,12 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: 'TS. Nguyễn Văn Giảng Viên',
         role: 'Lecturer',
         campus: 'Đà Nẵng',
-        mustChangePassword: false,
         hasAcceptedTerms: true,
         isProfileCompleted: true,
       };
     } else {
-      // Default: Student (Tú - SE185102)
       demoUser = {
         id: '11111111-1111-1111-1111-111111111101',
         email: 'tulpnse185102@fpt.edu.vn',
@@ -95,8 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         studentCode: 'SE185102',
         campus: 'TP. Hồ Chí Minh',
         major: 'Kỹ thuật phần mềm',
-        mustChangePassword: true,
-        hasAcceptedTerms: false,
+        hasAcceptedTerms: true,
         isProfileCompleted: true,
       };
     }
@@ -117,15 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-      const saved = localStorage.getItem('user');
-      if (saved) {
-        setUser(JSON.parse(saved));
-      }
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await apiClient.get<AccountResponse>('/auth/me');
       const account = response.data;
@@ -135,12 +108,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: account.fullName,
         role: account.role,
         studentCode: account.studentCode || undefined,
-        mustChangePassword: account.mustChangePassword ?? false,
         hasAcceptedTerms: account.hasAcceptedTerms ?? false,
         acceptedTermsAt: account.acceptedTermsAt ?? null,
       };
 
-      // Đối với Sinh viên, đồng bộ fullName và thông tin học thuật từ User Service (nguồn chuẩn)
       if (account.role === 'Student') {
         try {
           const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -152,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             verifiedUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
           }
         } catch {
-          // Bỏ qua nếu UserProfile chưa được tạo hoặc User.API tạm thời bận
+          // Bỏ qua nếu UserProfile chưa được tạo
         }
       }
 
@@ -180,17 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-        if (isMounted) {
-          const saved = localStorage.getItem('user');
-          if (saved) {
-            setUser(JSON.parse(saved));
-          }
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
         const response = await apiClient.get<AccountResponse>('/auth/me');
         if (!isMounted) return;
@@ -202,12 +162,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fullName: account.fullName,
           role: account.role,
           studentCode: account.studentCode || undefined,
-          mustChangePassword: account.mustChangePassword ?? false,
           hasAcceptedTerms: account.hasAcceptedTerms ?? false,
           acceptedTermsAt: account.acceptedTermsAt ?? null,
         };
 
-        // Đối với Sinh viên, đồng bộ fullName từ User Service (nguồn chuẩn cập nhật hồ sơ)
         if (account.role === 'Student') {
           try {
             const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -241,7 +199,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     verifySession();
 
-    // Lắng nghe sự kiện đăng xuất từ Axios Interceptor (khi refresh token thất bại)
     const handleLogoutEvent = () => {
       if (isMounted) {
         setUser(null);
@@ -256,12 +213,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<AuthUserDto> => {
-    const response = await apiClient.post<AuthResponse>('/auth/login', {
-      email: email.trim(),
-      password,
-    });
-
+  const loginWithGoogle = async (idToken: string): Promise<AuthUserDto> => {
+    const response = await apiClient.post<AuthResponse>('/auth/google', { idToken });
     const { accessToken, refreshToken, user: authUser } = response.data;
 
     localStorage.setItem('access_token', accessToken);
@@ -270,10 +223,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentUser: User = {
       ...authUser,
       studentCode: authUser.studentCode || undefined,
-      mustChangePassword: authUser.mustChangePassword ?? false,
       hasAcceptedTerms: authUser.hasAcceptedTerms ?? false,
       acceptedTermsAt: authUser.acceptedTermsAt ?? null,
     };
+
     if (authUser.role === 'Student') {
       try {
         const profileRes = await apiClient.get<UserProfileResponse>('/users/me', {
@@ -287,72 +240,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
         }
       } catch {
-        // Fallback to authUser
+        // Hồ sơ chưa kịp tạo thì dùng thông tin từ Auth.
       }
     }
 
     localStorage.setItem('user', JSON.stringify(currentUser));
     setUser(currentUser);
     return authUser;
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    fullName: string
-  ): Promise<RegisterResponse> => {
-    // Đăng ký tài khoản sinh viên mới (Gate C, D, H).
-    // Phản hồi trả về thông tin chờ xác thực OTP, tuyệt đối không lưu token vào localStorage trước khi xác thực.
-    const response = await apiClient.post<RegisterResponse>('/auth/register', {
-      email: email.trim(),
-      password,
-      fullName: fullName.trim(),
-      role: 'Student',
-    });
-
-    return response.data;
-  };
-
-  const verifyEmail = async (email: string, otp: string): Promise<VerifyEmailResponse> => {
-    const response = await apiClient.post<VerifyEmailResponse>('/auth/verify-email', {
-      email: email.trim(),
-      otp: otp.trim(),
-    });
-    return response.data;
-  };
-
-  const resendVerification = async (email: string): Promise<ResendVerificationResponse> => {
-    const response = await apiClient.post<ResendVerificationResponse>('/auth/resend-verification', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
-    const response = await apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', {
-      email: data.email.trim(),
-      otp: data.otp.trim(),
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    return response.data;
-  };
-
-  const changePassword = async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
-    const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', {
-      currentPassword: data.currentPassword,
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    updateUserData({ mustChangePassword: false });
-    return response.data;
   };
 
   const acceptTerms = async (): Promise<AcceptTermsResponse> => {
@@ -372,7 +266,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await apiClient.post('/auth/logout', { refreshToken });
       } catch (err) {
-        // Tiếp tục dọn dẹp local storage ngay cả khi mạng hoặc server gặp sự cố
         console.warn('Lỗi khi thu hồi refresh token từ server:', err);
       }
     }
@@ -387,14 +280,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
-        login,
+        loginWithGoogle,
         loginDemo,
-        register,
-        verifyEmail,
-        resendVerification,
-        forgotPassword,
-        resetPassword,
-        changePassword,
         acceptTerms,
         logout,
         refreshCurrentUser,

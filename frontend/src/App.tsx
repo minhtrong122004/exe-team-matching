@@ -4,9 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
-import { VerifyEmailPage } from './pages/VerifyEmailPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { CandidateDiscoveryPage } from './pages/CandidateDiscoveryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -19,7 +16,6 @@ import {
   GroupsPage,
   MyGroupPage,
   JoinRequestsPage,
-  InvitationsPage,
   NotificationsPage,
 } from './pages/PlaceholderPages';
 
@@ -42,9 +38,9 @@ export const App: React.FC = () => {
           {/* Public Authentication routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<Navigate to="/login" replace />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<Navigate to="/login" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/login" replace />} />
 
           {/* Protected Application routes wrapped in MainLayout */}
           <Route element={<ProtectedRoute />}>
@@ -61,7 +57,6 @@ export const App: React.FC = () => {
               <Route element={<ProtectedRoute allowedRoles={['Student']} />}>
                 <Route path="/my-group" element={<MyGroupPage />} />
                 <Route path="/join-requests" element={<JoinRequestsPage />} />
-                <Route path="/invitations" element={<InvitationsPage />} />
               </Route>
 
               {/* Lecturer and Moderator reports & dashboard */}

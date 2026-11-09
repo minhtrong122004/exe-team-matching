@@ -15,39 +15,12 @@ public class AuthControllerTests
 {
     private class FakeAuthService : IAuthService
     {
-        public Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new RegisterResponse(
-                "Đăng ký thành công",
-                request.Email,
-                DateTime.UtcNow.AddMinutes(5)
-            ));
-        }
-
-        public Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new VerifyEmailResponse(
-                "Xác thực thành công",
-                request.Email
-            ));
-        }
-
-        public Task<ResendVerificationResponse> ResendVerificationAsync(ResendVerificationRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new ResendVerificationResponse(
-                "Mã mới đã gửi",
-                request.Email,
-                60,
-                DateTime.UtcNow.AddMinutes(5)
-            ));
-        }
-
-        public Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
+        public Task<AuthResponse> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken ct = default)
         {
             return Task.FromResult(new AuthResponse(
                 "fake-jwt-access-token",
                 "fake-refresh-token",
-                new AuthUserDto(Guid.NewGuid(), request.Email, "Họ Tên", "Student")
+                new AuthUserDto(Guid.NewGuid(), "user@gmail.com", "Họ Tên", "Student")
             ));
         }
 
@@ -74,32 +47,6 @@ public class AuthControllerTests
                 "Student",
                 true,
                 DateTime.UtcNow
-            ));
-        }
-
-        public Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new ForgotPasswordResponse(
-                "Mã OTP đã được gửi",
-                request.Email,
-                60,
-                DateTime.UtcNow.AddMinutes(5)
-            ));
-        }
-
-        public Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new ResetPasswordResponse(
-                "Mật khẩu đã được cập nhật thành công.",
-                request.Email
-            ));
-        }
-
-        public Task<ChangePasswordResponse> ChangePasswordAsync(Guid accountId, ChangePasswordRequest request, CancellationToken ct = default)
-        {
-            return Task.FromResult(new ChangePasswordResponse(
-                "Đổi mật khẩu thành công!",
-                false
             ));
         }
 
@@ -155,87 +102,20 @@ public class AuthControllerTests
                 new List<ProvisionStudentResultItem>()
             ));
         }
-
-        public Task<ProvisionFapStudentsResponse> ProvisionMockFapStudentsAsync(string semesterCode = "FA26", string subjectCode = "EXE101", CancellationToken ct = default)
-        {
-            return Task.FromResult(new ProvisionFapStudentsResponse(
-                semesterCode,
-                subjectCode,
-                6,
-                6,
-                0,
-                new List<ProvisionStudentResultItem>()
-            ));
-        }
     }
 
     [Fact]
-    public async Task Register_Returns201Created_WithRegisterResponse()
+    public async Task LoginWithGoogle_Returns200OK_AndAllowsAnonymous()
     {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
+        var controller = new AuthController(new FakeAuthService(), new FakeAdminAccountService(), new FakeCurrentUser());
 
-        var request = new RegisterRequest("sv@gmail.com", "Password@123", "Sinh Vien");
-        var result = await controller.Register(request, CancellationToken.None);
-
-        var objectResult = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(StatusCodes.Status201Created, objectResult.StatusCode);
-        var registerResponse = Assert.IsType<RegisterResponse>(objectResult.Value);
-        Assert.Equal("sv@gmail.com", registerResponse.Email);
-    }
-
-    [Fact]
-    public async Task VerifyEmail_Returns200OK_WithVerifyEmailResponse()
-    {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
-
-        var request = new VerifyEmailRequest("sv@gmail.com", "123456");
-        var result = await controller.VerifyEmail(request, CancellationToken.None);
+        var result = await controller.LoginWithGoogle(new GoogleLoginRequest("id-token"), CancellationToken.None);
 
         var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
-        var verifyResponse = Assert.IsType<VerifyEmailResponse>(okResult.Value);
-        Assert.Equal("sv@gmail.com", verifyResponse.Email);
-    }
+        Assert.NotEmpty(Assert.IsType<AuthResponse>(okResult.Value).AccessToken);
 
-    [Fact]
-    public async Task ResendVerification_Returns200OK_WithResendVerificationResponse()
-    {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
-
-        var request = new ResendVerificationRequest("sv@gmail.com");
-        var result = await controller.ResendVerification(request, CancellationToken.None);
-
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
-        var resendResponse = Assert.IsType<ResendVerificationResponse>(okResult.Value);
-        Assert.Equal("sv@gmail.com", resendResponse.Email);
-        Assert.Equal(60, resendResponse.ResendCooldownSeconds);
-    }
-
-    [Fact]
-    public async Task Login_Returns200OK_WithAuthResponse()
-    {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
-
-        var request = new LoginRequest("sv@fpt.edu.vn", "Password@123");
-        var result = await controller.Login(request, CancellationToken.None);
-
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
-        var authResponse = Assert.IsType<AuthResponse>(okResult.Value);
-        Assert.NotEmpty(authResponse.AccessToken);
+        var method = typeof(AuthController).GetMethod(nameof(AuthController.LoginWithGoogle));
+        Assert.NotNull(method!.GetCustomAttribute<AllowAnonymousAttribute>());
     }
 
     [Fact]
@@ -327,7 +207,7 @@ public class AuthControllerTests
         var fakeCurrentUser = new FakeCurrentUser { UserId = Guid.NewGuid(), Role = "Moderator" };
         var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
 
-        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "Password@123", "Thầy Giáo A");
+        var request = new CreateLecturerRequest("lecturer@fpt.edu.vn", "Thầy Giáo A");
         var result = await controller.CreateLecturer(request, CancellationToken.None);
 
         var objectResult = Assert.IsType<ObjectResult>(result);
@@ -336,50 +216,5 @@ public class AuthControllerTests
         Assert.Equal("lecturer@fpt.edu.vn", account.Email);
         Assert.Equal("Thầy Giáo A", account.FullName);
         Assert.Equal("Lecturer", account.Role);
-    }
-
-    [Fact]
-    public async Task ForgotPassword_Returns200Ok_WithForgotPasswordResponse()
-    {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
-
-        var request = new ForgotPasswordRequest("student@fpt.edu.vn");
-        var result = await controller.ForgotPassword(request, CancellationToken.None);
-
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<ForgotPasswordResponse>(okResult.Value);
-        Assert.Equal("student@fpt.edu.vn", response.Email);
-        Assert.Equal(60, response.ResendCooldownSeconds);
-    }
-
-    [Fact]
-    public async Task ResetPassword_Returns200Ok_WithResetPasswordResponse()
-    {
-        var fakeAuth = new FakeAuthService();
-        var fakeAdmin = new FakeAdminAccountService();
-        var fakeCurrentUser = new FakeCurrentUser();
-        var controller = new AuthController(fakeAuth, fakeAdmin, fakeCurrentUser);
-
-        var request = new ResetPasswordRequest("student@fpt.edu.vn", "123456", "NewPassword@123", "NewPassword@123");
-        var result = await controller.ResetPassword(request, CancellationToken.None);
-
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<ResetPasswordResponse>(okResult.Value);
-        Assert.Equal("student@fpt.edu.vn", response.Email);
-    }
-
-    [Fact]
-    public void PasswordRecoveryEndpoints_ShouldHaveAllowAnonymousAttribute()
-    {
-        var forgotMethod = typeof(AuthController).GetMethod(nameof(AuthController.ForgotPassword));
-        Assert.NotNull(forgotMethod);
-        Assert.NotNull(forgotMethod.GetCustomAttribute<AllowAnonymousAttribute>());
-
-        var resetMethod = typeof(AuthController).GetMethod(nameof(AuthController.ResetPassword));
-        Assert.NotNull(resetMethod);
-        Assert.NotNull(resetMethod.GetCustomAttribute<AllowAnonymousAttribute>());
     }
 }

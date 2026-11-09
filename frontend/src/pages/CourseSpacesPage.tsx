@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { spacesApi } from '../api/spaces';
 import { groupsApi } from '../api/groups';
+import { parseFapCsv, readFapFile } from '../utils/fapImport';
+import type { ParsedFapCsv } from '../utils/fapImport';
 import type {
   GroupResponse,
   UnmatchedSummaryResponse,
@@ -15,7 +17,6 @@ import type {
   RoomSummaryResponse,
   CreateCourseSpaceRequest,
   UpdateSpaceConfigRequest,
-  FapStudentItem,
   TransferRequestResponse,
   DirectTransferRequest,
   SpaceRosterResponse,
@@ -53,7 +54,32 @@ import {
   Cpu,
   ArrowLeftRight,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
+
+/** Danh sách lỗi hiện ngay trong cửa sổ, vì thông báo chung của trang nằm phía sau lớp phủ. */
+const ModalErrors: React.FC<{ messages: string[] }> = ({ messages }) =>
+  messages.length === 0 ? null : (
+    <div
+      role="alert"
+      style={{
+        marginBottom: '1rem',
+        padding: '0.75rem 1rem',
+        borderRadius: 'var(--radius-md, 10px)',
+        background: '#fef2f2',
+        border: '1px solid #fecaca',
+        color: '#b91c1c',
+        fontSize: '0.825rem',
+        lineHeight: 1.5,
+        overflowWrap: 'anywhere',
+      }}
+    >
+      {messages.slice(0, 5).map((message) => (
+        <div key={message}>{message}</div>
+      ))}
+      {messages.length > 5 && <div>... và {messages.length - 5} lỗi khác.</div>}
+    </div>
+  );
 
 export const CourseSpacesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,6 +118,7 @@ export const CourseSpacesPage: React.FC = () => {
   const [rooms, setRooms] = useState<RoomSummaryResponse[]>([]);
   const [loadingRooms, setLoadingRooms] = useState<boolean>(false);
   const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
+  const [roomSeatFilter, setRoomSeatFilter] = useState<string>('ALL');
 
   // Phase 5: Distribution & Finalize State
   const [unmatchedSummary, setUnmatchedSummary] = useState<UnmatchedSummaryResponse | null>(null);
@@ -141,6 +168,9 @@ export const CourseSpacesPage: React.FC = () => {
   const [newBufferRatio, setNewBufferRatio] = useState<number>(1.2);
   const [newMaxApplies, setNewMaxApplies] = useState<number>(3);
   const [newDeadline, setNewDeadline] = useState<string>('');
+  const [newRoster, setNewRoster] = useState<(ParsedFapCsv & { fileName: string }) | null>(null);
+  const [createErrors, setCreateErrors] = useState<string[]>([]);
+  const newRosterInputRef = useRef<HTMLInputElement | null>(null);
 
   // Modal: Generate Rooms Confirmation
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
@@ -154,10 +184,11 @@ export const CourseSpacesPage: React.FC = () => {
 
   // Modal: CSV FAP Import (Multi-Tab)
   const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
-  const [csvModalTab, setCsvModalTab] = useState<'quick' | 'upload' | 'paste'>('quick');
+  const [csvModalTab, setCsvModalTab] = useState<'upload' | 'paste'>('upload');
   const [csvContent, setCsvContent] = useState<string>('');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [parsedStudentsCount, setParsedStudentsCount] = useState<number>(0);
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedSpace = useMemo(
@@ -201,10 +232,12 @@ export const CourseSpacesPage: React.FC = () => {
   // Filtered rooms
   const filteredRooms = useMemo(() => {
     return rooms.filter((r) => {
-      if (roomStatusFilter === 'ALL') return true;
-      return (r.status || '').toUpperCase() === roomStatusFilter.toUpperCase();
+      const matchStatus = roomStatusFilter === 'ALL' || (r.status || '').toUpperCase() === roomStatusFilter.toUpperCase();
+      // BR-13: lọc theo số chỗ còn trống.
+      const matchSeats = roomSeatFilter === 'ALL' || r.maxMembers - r.memberCount >= Number(roomSeatFilter);
+      return matchStatus && matchSeats;
     });
-  }, [rooms, roomStatusFilter]);
+  }, [rooms, roomStatusFilter, roomSeatFilter]);
 
   // Safe Date Formatter (Anti-NaN, Anti-Invalid Date)
   const formatDate = (dateString?: string | null) => {
@@ -264,12 +297,13 @@ export const CourseSpacesPage: React.FC = () => {
   const loadMyGroup = useCallback(async () => {
     if (!isStudent) return;
     try {
-      const grp = await groupsApi.getMyGroup();
+      // BR-21: mỗi môn một nhóm, nên lấy đúng nhóm của môn đang xem.
+      const grp = await groupsApi.getMyGroup(selectedSpaceId ?? undefined);
       setMyGroup(grp);
     } catch {
       setMyGroup(null);
     }
-  }, [isStudent]);
+  }, [isStudent, selectedSpaceId]);
 
   useEffect(() => {
     if (isStudent) {
@@ -392,7 +426,10 @@ export const CourseSpacesPage: React.FC = () => {
       setActionLoading(true);
       setActionError(null);
       const res = await groupsApi.finalizeSpace(selectedSpace.id);
-      setActionSuccess(`Chốt sổ học kỳ thành công! Đã khóa cứng ${res.lockedRoomsCount} phòng và từ chối ${res.rejectedRequestsCount} đơn chờ.`);
+      const unmatchedNote = res.unmatchedStudentsCount
+        ? ` Còn ${res.unmatchedStudentsCount} sinh viên chưa có nhóm, Moderator cần chuyển họ vào nhóm.`
+        : '';
+      setActionSuccess(`Chốt sổ học kỳ thành công! Đã khóa cứng ${res.lockedRoomsCount} phòng và từ chối ${res.rejectedRequestsCount} đơn chờ.${unmatchedNote}`);
       setIsFinalizeModalOpen(false);
       await loadSpaces();
       await loadSpaceDetails(selectedSpace.id);
@@ -630,6 +667,11 @@ export const CourseSpacesPage: React.FC = () => {
     });
   }, [unmatchedSummary, unmatchedSearch, unmatchedMajorFilter]);
 
+  // Lỗi import chỉ thuộc về lần thao tác hiện tại, mở lại cửa sổ hoặc đổi tab thì xóa đi.
+  useEffect(() => {
+    setCsvErrors([]);
+  }, [isCsvModalOpen, csvModalTab]);
+
   // Download Sample CSV template
   const handleDownloadSampleCsv = () => {
     const csvHeader = 'studentCode,email,fullName,major,cohort,classCode\n';
@@ -660,34 +702,82 @@ export const CourseSpacesPage: React.FC = () => {
   };
 
   // File Upload Handler
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Cho phép chọn lại đúng file đó sau khi đã sửa.
+    e.target.value = '';
     setSelectedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = (event.target?.result as string) || '';
-      setCsvContent(text);
-      const lines = text.trim().split('\n');
-      let count = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trim();
-        if (trimmed && !trimmed.startsWith('#')) {
-          if (i === 0 && trimmed.toLowerCase().startsWith('studentcode')) continue;
-          const parts = trimmed.split(',');
-          if (parts.length >= 4) count++;
-        }
-      }
-      setParsedStudentsCount(count);
-    };
-    reader.readAsText(file);
+    try {
+      const { csv, students, errors } = await readFapFile(file);
+      setCsvErrors(errors);
+      setCsvContent(csv);
+      // File còn dòng sai thì không cho import một phần, tránh thiếu sinh viên mà không ai biết.
+      setParsedStudentsCount(errors.length > 0 ? 0 : students.length);
+    } catch (err) {
+      setCsvErrors([err instanceof Error ? err.message : 'Không đọc được file danh sách sinh viên.']);
+      setSelectedFileName(null);
+      setCsvContent('');
+      setParsedStudentsCount(0);
+    }
+  };
+
+  const handleNewRosterFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const { students, errors } = await readFapFile(file);
+      setNewRoster({
+        fileName: file.name,
+        students,
+        errors: errors.length === 0 && students.length === 0 ? ['File không có dòng sinh viên nào.'] : errors,
+      });
+    } catch (err) {
+      setNewRoster({
+        fileName: file.name,
+        students: [],
+        errors: [err instanceof Error ? err.message : 'Không đọc được file danh sách sinh viên.'],
+      });
+    }
+  };
+
+  const closeCreateModal = () => {
+    setIsCreateModalOpen(false);
+    setNewRoster(null);
+    setCreateErrors([]);
+  };
+
+  const handleDeleteSpace = async (space: CourseSpaceResponse) => {
+    if (!window.confirm(`Xóa Không gian học phần "${space.name}"? Thao tác này không hoàn tác được.`)) return;
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      await spacesApi.deleteSpace(space.id);
+      setActionSuccess(`Đã xóa không gian học phần [${space.semesterCode} - ${space.subjectCode}].`);
+      await loadSpaces();
+    } catch (err: any) {
+      setActionError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          'Không thể xóa Không gian học phần. Vui lòng thử lại.'
+      );
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   // Actions
   const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
+    // File có dòng sai thì dừng trước khi tạo, để không sinh ra Space rỗng ngoài ý muốn.
+    if (newRoster && newRoster.errors.length > 0) return;
+
     setActionLoading(true);
     setActionError(null);
+    setActionSuccess(null);
+    setCreateErrors([]);
     try {
       const payload: CreateCourseSpaceRequest = {
         semesterCode: newSemesterCode.trim().toUpperCase(),
@@ -698,17 +788,35 @@ export const CourseSpacesPage: React.FC = () => {
         maxConcurrentApplies: Number(newMaxApplies),
         registrationDeadline: newDeadline ? new Date(newDeadline).toISOString() : null,
       };
-      const created = await spacesApi.createSpace(payload);
-      setActionSuccess(`Đã tạo thành công không gian học phần [${created.semesterCode} - ${created.subjectCode}].`);
-      setIsCreateModalOpen(false);
+
+      let created: CourseSpaceResponse;
+      try {
+        created = await spacesApi.createSpace(payload);
+      } catch (err: any) {
+        setCreateErrors([
+          err.response?.data?.detail ||
+            err.response?.data?.title ||
+            'Không thể tạo Không gian học phần. Vui lòng kiểm tra lại thông tin.',
+        ]);
+        return;
+      }
+
+      const label = `[${created.semesterCode} - ${created.subjectCode}]`;
+      if (newRoster) {
+        try {
+          const count = await spacesApi.importFapStudents(created.id, { students: newRoster.students });
+          setActionSuccess(`Đã tạo không gian học phần ${label} và import ${count} sinh viên.`);
+        } catch (err: any) {
+          const reason = err.response?.data?.detail || err.response?.data?.title || 'Lỗi không xác định.';
+          setActionError(`Đã tạo không gian học phần ${label} nhưng chưa import được danh sách: ${reason} Vui lòng bấm Import FAP để thử lại.`);
+        }
+      } else {
+        setActionSuccess(`Đã tạo thành công không gian học phần ${label}.`);
+      }
+
+      closeCreateModal();
       await loadSpaces();
       setSelectedSpaceId(created.id);
-    } catch (err: any) {
-      setActionError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          'Không thể tạo Không gian học phần. Vui lòng kiểm tra lại thông tin.'
-      );
     } finally {
       setActionLoading(false);
     }
@@ -741,60 +849,22 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
-  const handleSyncMockFap = async () => {
-    if (!selectedSpaceId) return;
-    setActionLoading(true);
-    setActionError(null);
-    setActionSuccess(null);
-    try {
-      const count = await spacesApi.syncMockFapStudents(selectedSpaceId);
-      setActionSuccess(`Đã đồng bộ thành công ${count} sinh viên hợp lệ từ dữ liệu FAP vào không gian.`);
-      setIsCsvModalOpen(false);
-      await loadSpaces();
-      await loadSpaceDetails(selectedSpaceId);
-    } catch (err: any) {
-      setActionError(
-        err.response?.data?.detail ||
-          err.response?.data?.title ||
-          'Đồng bộ Mock FAP thất bại. Vui lòng thử lại.'
-      );
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleImportCsv = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSpaceId || !csvContent.trim()) return;
+    const { students, errors } = parseFapCsv(csvContent);
+    if (errors.length > 0 || students.length === 0) {
+      setCsvErrors(
+        errors.length > 0
+          ? errors
+          : ['Không có dòng sinh viên nào. Định dạng: studentCode,email,fullName,major,cohort,classCode']
+      );
+      return;
+    }
+
     setActionLoading(true);
-    setActionError(null);
+    setCsvErrors([]);
     try {
-      const lines = csvContent.trim().split('\n');
-      const students: FapStudentItem[] = [];
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line || line.startsWith('#')) continue;
-        if (i === 0 && line.toLowerCase().startsWith('studentcode')) continue;
-        const parts = line.split(',').map((p) => p.trim());
-        if (parts.length >= 4) {
-          students.push({
-            studentCode: parts[0],
-            email: parts[1],
-            fullName: parts[2],
-            major: parts[3],
-            cohort: parts[4] || null,
-            classCode: parts[5] || null,
-          });
-        }
-      }
-
-      if (students.length === 0) {
-        setActionError('Dữ liệu CSV không đúng định dạng: studentCode,email,fullName,major,cohort,classCode');
-        setActionLoading(false);
-        return;
-      }
-
       const count = await spacesApi.importFapStudents(selectedSpaceId, { students });
       setActionSuccess(`Đã import thành công ${count} sinh viên hợp lệ từ file CSV vào không gian học phần.`);
       setIsCsvModalOpen(false);
@@ -804,11 +874,11 @@ export const CourseSpacesPage: React.FC = () => {
       await loadSpaces();
       await loadSpaceDetails(selectedSpaceId);
     } catch (err: any) {
-      setActionError(
+      setCsvErrors([
         err.response?.data?.detail ||
           err.response?.data?.title ||
-          'Import danh sách FAP thất bại. Vui lòng kiểm tra lại định dạng file.'
-      );
+          'Import danh sách FAP thất bại. Vui lòng kiểm tra lại định dạng file.',
+      ]);
     } finally {
       setActionLoading(false);
     }
@@ -1740,7 +1810,24 @@ export const CourseSpacesPage: React.FC = () => {
                         {sp.subjectCode}
                       </span>
                     </div>
-                    {getStatusBadge(sp.status)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      {getStatusBadge(sp.status)}
+                      {isModerator && sp.status === 'Draft' && totalStu === 0 && totalRm === 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSpace(sp);
+                          }}
+                          disabled={actionLoading}
+                          title="Xóa Không gian học phần"
+                          aria-label={`Xóa Không gian học phần ${sp.name}`}
+                          style={{ display: 'inline-flex', padding: '0.25rem', color: '#dc2626', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.85rem 0' }}>
@@ -2070,14 +2157,14 @@ export const CourseSpacesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setCsvModalTab('quick');
+                    setCsvModalTab('upload');
                     setIsCsvModalOpen(true);
                   }}
                   className="btn btn-secondary"
                   style={{ padding: '0.55rem 0.95rem', fontSize: '0.825rem' }}
                 >
                   <Upload size={14} />
-                  <span>Đồng bộ FAP / CSV</span>
+                  <span>Import FAP</span>
                 </button>
 
                 <button
@@ -2194,24 +2281,12 @@ export const CourseSpacesPage: React.FC = () => {
                         </h4>
                         <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 680, lineHeight: 1.55 }}>
                           Để thuật toán có thể tính toán số lượng Room theo công thức FPT <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-blue)', fontWeight: 700 }}>CEIL(Tổng SV ÷ Max × Buffer)</code>,
-                          hãy chọn một trong hai cách dưới đây:
+                          hãy tải lên danh sách lớp xuất từ FAP:
                         </p>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={handleSyncMockFap}
-                        disabled={actionLoading}
-                        className="btn btn-primary"
-                        style={{ padding: '0.65rem 1.25rem', fontWeight: 700 }}
-                        title="Đồng bộ nhanh 50 sinh viên mẫu đa ngành SE, AI, IA, GD, MKT, IB"
-                      >
-                        <Sparkles size={16} />
-                        <span>⚡ Đồng bộ nhanh 50 SV FAP mẫu (1-Click)</span>
-                      </button>
-
                       <button
                         type="button"
                         onClick={() => {
@@ -2222,7 +2297,7 @@ export const CourseSpacesPage: React.FC = () => {
                         style={{ padding: '0.65rem 1.15rem' }}
                       >
                         <Upload size={16} />
-                        <span>📁 Tải lên file CSV từ máy</span>
+                        <span>📁 Tải lên file từ máy</span>
                       </button>
                     </div>
                   </div>
@@ -2393,8 +2468,20 @@ export const CourseSpacesPage: React.FC = () => {
                     <option value="EMPTY">Chưa có người (Empty)</option>
                     <option value="FORMING">Đang hình thành</option>
                     <option value="RECRUITING">Đang tuyển (Recruiting)</option>
-                    <option value="FULL">Đã đủ sĩ số (Full)</option>
+                    <option value="CLOSED">Đã đóng tuyển (Closed)</option>
                     <option value="LOCKED">Đã chốt sổ (Locked)</option>
+                  </select>
+                  <select
+                    value={roomSeatFilter}
+                    onChange={(e) => setRoomSeatFilter(e.target.value)}
+                    className="form-control"
+                    style={{ width: 'auto', padding: '0.4rem 0.85rem', fontSize: '0.825rem' }}
+                    aria-label="Lọc theo số chỗ trống"
+                  >
+                    <option value="ALL">Mọi số chỗ trống</option>
+                    <option value="1">Còn từ 1 chỗ</option>
+                    <option value="2">Còn từ 2 chỗ</option>
+                    <option value="3">Còn từ 3 chỗ</option>
                   </select>
                 </div>
               </div>
@@ -2506,14 +2593,6 @@ export const CourseSpacesPage: React.FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
                       <button
                         type="button"
-                        onClick={handleSyncMockFap}
-                        className="btn btn-primary"
-                      >
-                        <Sparkles size={16} />
-                        <span>⚡ Đồng bộ nhanh 50 SV FAP mẫu</span>
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => {
                           setCsvModalTab('upload');
                           setIsCsvModalOpen(true);
@@ -2521,7 +2600,7 @@ export const CourseSpacesPage: React.FC = () => {
                         className="btn btn-secondary"
                       >
                         <Upload size={16} />
-                        <span>📁 Tải lên file CSV</span>
+                        <span>📁 Tải lên file</span>
                       </button>
                     </div>
                   )}
@@ -2535,7 +2614,7 @@ export const CourseSpacesPage: React.FC = () => {
                     const isUnderThreshold = room.memberCount < threshold;
                     const isDirectJoinAllowed = isSpaceOpen && (room.status === 'Empty' || room.status === 'Forming') && isUnderThreshold;
                     const isRecruiting = isSpaceOpen && room.status === 'Recruiting';
-                    const isClosed = !isSpaceOpen || room.status === 'Closed' || room.status === 'Full' || room.status === 'Locked';
+                    const isClosed = !isSpaceOpen || room.status === 'Closed' || room.status === 'Locked';
                     const isInThisRoom = myGroup?.id === room.id;
                     const hasOtherGroup = myGroup !== null && myGroup.id !== room.id;
                     const isJoiningThis = joiningRoomId === room.id;
@@ -2852,18 +2931,6 @@ export const CourseSpacesPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                     <button
                       type="button"
-                      onClick={handleSyncMockFap}
-                      disabled={actionLoading}
-                      className="btn btn-secondary"
-                      style={{ padding: '0.55rem 0.95rem', fontSize: '0.825rem' }}
-                      title="Tự động đồng bộ 50 sinh viên FAP mẫu đủ các ngành SE, AI, IA, GD, MKT, IB"
-                    >
-                      <Sparkles size={14} />
-                      <span>⚡ Đồng bộ Mock FAP (50 SV)</span>
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => {
                         setCsvModalTab('upload');
                         setIsCsvModalOpen(true);
@@ -2872,7 +2939,7 @@ export const CourseSpacesPage: React.FC = () => {
                       style={{ padding: '0.55rem 1rem', fontSize: '0.825rem' }}
                     >
                       <Upload size={14} />
-                      <span>Import FAP CSV</span>
+                      <span>Import FAP</span>
                     </button>
                   </div>
                 )}
@@ -2891,19 +2958,10 @@ export const CourseSpacesPage: React.FC = () => {
                     Chưa có sinh viên nào trong danh sách FAP
                   </h3>
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', maxWidth: 460, margin: '0.35rem auto 1.25rem auto' }}>
-                    Điều phối viên có thể bấm "Đồng bộ Mock FAP (50 SV)" để nạp nhanh danh sách kiểm thử, hoặc Tải lên file CSV từ máy tính.
+                    Điều phối viên tải lên file danh sách lớp xuất từ FAP (.xls hoặc .csv) để nạp sinh viên vào môn học.
                   </p>
                   {isModerator && (
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={handleSyncMockFap}
-                        disabled={actionLoading}
-                        className="btn btn-primary"
-                      >
-                        <Sparkles size={16} />
-                        <span>Nạp danh sách 50 sinh viên FAP mẫu</span>
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -2913,7 +2971,7 @@ export const CourseSpacesPage: React.FC = () => {
                         className="btn btn-secondary"
                       >
                         <Upload size={16} />
-                        <span>Tải file CSV lên</span>
+                        <span>Tải file lên</span>
                       </button>
                     </div>
                   )}
@@ -3327,14 +3385,14 @@ export const CourseSpacesPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsFinalizeModalOpen(true)}
-                        disabled={actionLoading}
+                        disabled={actionLoading || selectedSpace.status !== 'ClosedRegistration'}
                         className="btn btn-danger"
                         style={{
                           fontSize: '0.825rem',
                           fontWeight: 700,
                           gap: '0.45rem',
                         }}
-                        title="Khóa cứng các phòng đủ điều kiện và chốt sổ học kỳ"
+                        title={selectedSpace.status === 'ClosedRegistration' ? 'Khóa cứng các phòng và chốt sổ học kỳ' : 'Phải đóng đăng ký trước khi chốt sổ'}
                       >
                         <ShieldCheck size={15} />
                         <span>Chốt sổ Học kỳ</span>
@@ -3596,6 +3654,11 @@ export const CourseSpacesPage: React.FC = () => {
                               </strong>{' '}
                               (Còn lại: {distributePreview.totalRemaining} SV)
                             </div>
+                            {(distributePreview.undersizedRoomCodes?.length ?? 0) > 0 && (
+                              <div role="alert" style={{ fontSize: '0.775rem', color: '#b45309', marginTop: '0.25rem', fontWeight: 600 }}>
+                                Dưới ngưỡng sau khi phân phối: {distributePreview.undersizedRoomCodes!.join(', ')}. Hãy xử lý các nhóm này trước khi chốt sổ.
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -4636,12 +4699,14 @@ export const CourseSpacesPage: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={closeCreateModal}
                 style={{ color: 'var(--text-muted)', padding: '0.25rem' }}
               >
                 <X size={18} />
               </button>
             </div>
+
+            <ModalErrors messages={[...createErrors, ...(newRoster?.errors ?? [])]} />
 
             <form onSubmit={handleCreateSpace} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.85rem' }}>
@@ -4751,20 +4816,72 @@ export const CourseSpacesPage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>
+                  Danh sách sinh viên FAP (tùy chọn)
+                </label>
+                <input
+                  ref={newRosterInputRef}
+                  type="file"
+                  accept=".csv,.xls,text/csv"
+                  onChange={handleNewRosterFile}
+                  style={{ display: 'none' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => newRosterInputRef.current?.click()}
+                    disabled={actionLoading}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.5rem 0.9rem', fontSize: '0.825rem' }}
+                  >
+                    <FolderUp size={15} />
+                    <span>{newRoster ? 'Chọn file khác' : 'Chọn file .xls hoặc .csv'}</span>
+                  </button>
+                  {newRoster && (
+                    <>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 600, overflowWrap: 'anywhere' }}>
+                        {newRoster.fileName}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setNewRoster(null)}
+                        disabled={actionLoading}
+                        aria-label="Bỏ file đã chọn"
+                        style={{ display: 'inline-flex', padding: '0.15rem', color: 'var(--text-muted)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                      >
+                        <X size={15} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {newRoster && (
+                  <p style={{ margin: '0.45rem 0 0 0', fontSize: '0.8rem', fontWeight: 600, color: newRoster.errors.length > 0 ? '#dc2626' : '#059669' }}>
+                    {newRoster.errors.length > 0
+                      ? 'File có lỗi. Vui lòng sửa rồi chọn lại, hoặc bỏ file để tạo Không gian trước.'
+                      : `✓ Nhận diện được ${newRoster.students.length} sinh viên`}
+                  </p>
+                )}
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
                 <button
                   type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
+                  onClick={closeCreateModal}
                   className="btn btn-secondary"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading}
+                  disabled={actionLoading || (newRoster?.errors.length ?? 0) > 0}
                   className="btn btn-primary"
                 >
-                  {actionLoading ? 'Đang tạo...' : 'Tạo Không gian'}
+                  {actionLoading
+                    ? 'Đang tạo...'
+                    : newRoster && newRoster.errors.length === 0
+                      ? `Tạo và import ${newRoster.students.length} sinh viên`
+                      : 'Tạo Không gian'}
                 </button>
               </div>
             </form>
@@ -4889,7 +5006,7 @@ export const CourseSpacesPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    Đồng bộ & Import danh sách FAP
+                    Import danh sách FAP
                   </h3>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     Không gian: {selectedSpace.semesterCode} • {selectedSpace.subjectCode} ({selectedSpace.name})
@@ -4909,7 +5026,7 @@ export const CourseSpacesPage: React.FC = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(2, 1fr)',
                 gap: '0.45rem',
                 padding: '0.3rem',
                 background: 'var(--bg-main, #f1f5f9)',
@@ -4917,29 +5034,6 @@ export const CourseSpacesPage: React.FC = () => {
                 marginBottom: '1.25rem',
               }}
             >
-              <button
-                type="button"
-                onClick={() => setCsvModalTab('quick')}
-                style={{
-                  padding: '0.55rem 0.5rem',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem',
-                  background: csvModalTab === 'quick' ? '#ffffff' : 'transparent',
-                  color: csvModalTab === 'quick' ? 'var(--fpt-blue, #0054a6)' : 'var(--text-muted, #64748b)',
-                  boxShadow: csvModalTab === 'quick' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                }}
-              >
-                <Sparkles size={14} />
-                <span>⚡ Đồng bộ mẫu (1-Click)</span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setCsvModalTab('upload')}
@@ -4960,7 +5054,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <FolderUp size={14} />
-                <span>📁 Tải lên File CSV</span>
+                <span>📁 Tải lên File</span>
               </button>
 
               <button
@@ -4987,69 +5081,7 @@ export const CourseSpacesPage: React.FC = () => {
               </button>
             </div>
 
-            {/* TAB CONTENT 1: QUICK 1-CLICK MOCK SYNC */}
-            {csvModalTab === 'quick' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div
-                  style={{
-                    padding: '1.15rem',
-                    borderRadius: 'var(--radius-md, 10px)',
-                    background: 'rgba(0, 84, 166, 0.05)',
-                    border: '1px solid rgba(0, 84, 166, 0.2)',
-                  }}
-                >
-                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--fpt-blue, #0054a6)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <Sparkles size={16} />
-                    Khuyên dùng cho buổi Demo & Kiểm thử tính năng
-                  </h4>
-                  <p style={{ margin: '0.45rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
-                    Hệ thống sẽ nạp trực tiếp <strong>50 sinh viên mẫu chuẩn FAP</strong> được phân bổ cân đối vào 3 lớp học
-                    (<code style={{ fontFamily: 'var(--font-mono)' }}>EXE101-01</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>02</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>03</code>)
-                    với đầy đủ 6 chuyên ngành:
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.78rem' }}>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>SE (Kỹ thuật phần mềm)</strong>: 20 SV
-                    </div>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>AI (Trí tuệ nhân tạo)</strong>: 8 SV
-                    </div>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>GD (Thiết kế đồ họa)</strong>: 8 SV
-                    </div>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>MKT (Marketing)</strong>: 6 SV
-                    </div>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>IB (Kinh doanh QT)</strong>: 4 SV
-                    </div>
-                    <div style={{ padding: '0.35rem 0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid var(--border-light)' }}>
-                      <strong>IA (An toàn thông tin)</strong>: 4 SV
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIsCsvModalOpen(false)}
-                    className="btn btn-secondary"
-                  >
-                    Đóng
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSyncMockFap}
-                    disabled={actionLoading}
-                    className="btn btn-primary"
-                    style={{ padding: '0.65rem 1.25rem', fontWeight: 800 }}
-                  >
-                    <Sparkles size={16} />
-                    <span>{actionLoading ? 'Đang nạp dữ liệu...' : '⚡ Nạp ngay 50 SV FAP mẫu (1-Click)'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            <ModalErrors messages={csvErrors} />
 
             {/* TAB CONTENT 2: FILE UPLOAD ZONE & DOWNLOAD TEMPLATE */}
             {csvModalTab === 'upload' && (
@@ -5087,7 +5119,7 @@ export const CourseSpacesPage: React.FC = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,.xls,text/csv"
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
                 />
@@ -5124,9 +5156,15 @@ export const CourseSpacesPage: React.FC = () => {
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
                         {selectedFileName}
                       </h4>
-                      <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.825rem', color: '#059669', fontWeight: 600 }}>
-                        ✓ Đã nhận diện được <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>{parsedStudentsCount}</span> sinh viên hợp lệ từ file
-                      </p>
+                      {parsedStudentsCount > 0 ? (
+                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.825rem', color: '#059669', fontWeight: 600 }}>
+                          ✓ Đã nhận diện được <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>{parsedStudentsCount}</span> sinh viên hợp lệ từ file
+                        </p>
+                      ) : (
+                        <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.825rem', color: '#dc2626', fontWeight: 600 }}>
+                          File chưa import được. Vui lòng sửa các lỗi ở trên rồi chọn lại file.
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -5150,10 +5188,10 @@ export const CourseSpacesPage: React.FC = () => {
                     <div>
                       <FolderUp size={44} style={{ color: 'var(--fpt-orange)', margin: '0 auto 0.75rem auto', opacity: 0.8 }} />
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                        Nhấn để chọn file CSV từ máy tính
+                        Nhấn để chọn file .xls hoặc .csv từ máy tính
                       </h4>
                       <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Định dạng: <code style={{ fontFamily: 'var(--font-mono)' }}>studentCode, email, fullName, major, cohort, classCode</code>
+                        File .xls xuất từ FAP, hoặc CSV gồm: <code style={{ fontFamily: 'var(--font-mono)' }}>studentCode, email, fullName, major, cohort, classCode</code>
                       </p>
                     </div>
                   )}
@@ -5196,7 +5234,10 @@ export const CourseSpacesPage: React.FC = () => {
                 <textarea
                   rows={8}
                   value={csvContent}
-                  onChange={(e) => setCsvContent(e.target.value)}
+                  onChange={(e) => {
+                    setCsvContent(e.target.value);
+                    setCsvErrors([]);
+                  }}
                   placeholder={`SE180001,anvse180001@fpt.edu.vn,Nguyễn Văn An,SE,K18,EXE101-01\nAI180002,binhptai180002@fpt.edu.vn,Phan Thị Bình,AI,K18,EXE101-01\nGD180003,chaulnbgd180003@fpt.edu.vn,Lê Ngọc Bảo Châu,GD,K18,EXE101-02`}
                   className="form-control"
                   style={{ fontFamily: 'var(--font-mono)', fontSize: '0.825rem', resize: 'vertical' }}
@@ -5659,7 +5700,7 @@ export const CourseSpacesPage: React.FC = () => {
                   <li>Khóa cứng (<code style={{ fontFamily: 'var(--font-mono)' }}>Locked</code>) toàn bộ các phòng đã có thành viên.</li>
                   <li>Tự động từ chối (<code style={{ fontFamily: 'var(--font-mono)' }}>Rejected</code>) tất cả các đơn ứng tuyển còn đang chờ duyệt trong học kỳ.</li>
                   <li>Chuyển trạng thái Không gian học phần sang <strong style={{ color: '#b91c1c' }}>Locked</strong>.</li>
-                  <li>Sinh viên không thể tự do vào, rời hay xin gia nhập nhóm nữa. Mọi biến động nhân sự sau bước này sẽ do Giảng viên / Moderator điều chuyển (Giai đoạn 6).</li>
+                  <li>Sinh viên không thể tự do vào, rời hay xin gia nhập nhóm nữa. Mọi thay đổi sau bước này do Moderator chuyển nhóm.</li>
                 </ul>
               </div>
             </div>

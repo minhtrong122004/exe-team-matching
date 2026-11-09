@@ -68,18 +68,18 @@ public class UsersControllerTests
                 "user@fpt.edu.vn",
                 request.FullName,
                 "Student",
-                request.StudentCode,
+                "SE123456",
                 request.Campus,
-                request.Major,
-                request.Cohort ?? "K18",
-                request.TechScore ?? 0,
-                request.ManagementScore ?? 0,
-                request.GraphicDesignScore ?? 0,
-                request.MarketingScore ?? 0,
-                request.SaleScore ?? 0,
-                request.IsCommitted ?? false,
-                request.IsCommitted == true ? DateTime.UtcNow : null,
-                request.IsCommitted == true,
+                Major.SE,
+                "K18",
+                0,
+                0,
+                0,
+                0,
+                0,
+                false,
+                null,
+                false,
                 request.Bio,
                 request.DesiredRole,
                 request.Availability,
@@ -106,11 +106,11 @@ public class UsersControllerTests
                 "Hanoi",
                 Major.SE,
                 "K18",
-                request.TechScore,
-                request.ManagementScore,
-                request.GraphicDesignScore,
-                request.MarketingScore,
-                request.SaleScore,
+                request.TechScore ?? 0,
+                request.ManagementScore ?? 0,
+                request.GraphicDesignScore ?? 0,
+                request.MarketingScore ?? 0,
+                request.SaleScore ?? 0,
                 request.IsCommitted,
                 DateTime.UtcNow,
                 request.IsCommitted,
@@ -231,7 +231,7 @@ public class UsersControllerTests
         var service = new FakeUserProfileService();
         var controller = new UsersController(service);
 
-        var request = new UpdateUserProfileRequest("Nguyen Van Updated", "SE123456", "Hanoi", Major.SE, "Updated bio");
+        var request = new UpdateUserProfileRequest("Nguyen Van Updated", "Hanoi", "Updated bio");
         var result = await controller.UpdateCurrentUserProfile(request, CancellationToken.None);
 
         var okResult = Assert.IsType<OkObjectResult>(result);

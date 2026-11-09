@@ -30,18 +30,19 @@ internal static class GroupMappings
             IsClosedByLeader: g.IsClosedByLeader);
     }
 
-    public static GroupDetailResponse ToDetail(this GroupEntity g) => new(
+    /// <param name="hideMembers">BR-13: nhóm đã đóng thì ẩn thành viên và Leader với sinh viên ngoài nhóm.</param>
+    public static GroupDetailResponse ToDetail(this GroupEntity g, bool hideMembers = false) => new(
         Id:            g.Id,
         Name:          g.Name,
         Description:   g.Description,
-        LeaderId:      g.LeaderId,
-        LeaderName:    g.LeaderName(),
+        LeaderId:      hideMembers ? null : g.LeaderId,
+        LeaderName:    hideMembers ? string.Empty : g.LeaderName(),
         ProjectId:     g.ProjectId,
         ProjectDomain: g.ProjectDomain ?? "General",
         MemberCount:   g.Members.Count,
         MaxMembers:    g.MaxMembers,
         Status:        g.Status.ToString(),
-        Members:       g.Members
+        Members:       hideMembers ? [] : g.Members
                            .OrderBy(m => m.Role == MemberRole.Leader ? 0 : 1)
                            .ThenBy(m => m.JoinedAt)
                            .Select(m => new MemberResponse(m.UserId, m.FullName, m.Role.ToString(), m.SlotId, m.JoinedAt))
@@ -84,18 +85,6 @@ internal static class GroupMappings
             Downvotes:   downvotes,
             Votes:       votes);
     }
-
-    public static InvitationResponse ToResponse(this Invitation i) => new(
-        Id:          i.Id,
-        GroupId:     i.GroupId,
-        GroupName:   i.Group?.Name ?? string.Empty,
-        StudentId:   i.StudentId,
-        StudentName: i.StudentName,
-        InvitedBy:   i.InvitedBy,
-        Status:      i.Status.ToString(),
-        CreatedAt:   i.CreatedAt,
-        ExpiresAt:   i.ExpiresAt,
-        RespondedAt: i.RespondedAt);
 
     public static GroupMember? Leader(this GroupEntity g) => g.Members.FirstOrDefault(m => m.UserId == g.LeaderId);
 

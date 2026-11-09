@@ -334,57 +334,6 @@ namespace Group.Repository.Migrations
                     b.ToTable("GroupTransferRequests", (string)null);
                 });
 
-            modelBuilder.Entity("Group.Repository.Entities.Invitation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("InvitedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<Guid>("StudentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("StudentName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupId", "Status");
-
-                    b.HasIndex("Status", "ExpiresAt");
-
-                    b.HasIndex("StudentId", "GroupId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Invitations_StudentId_GroupId_Pending")
-                        .HasFilter("[Status] = 'Pending'");
-
-                    b.HasIndex("StudentId", "Status");
-
-                    b.ToTable("Invitations", (string)null);
-                });
-
             modelBuilder.Entity("Group.Repository.Entities.JoinRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -697,17 +646,6 @@ namespace Group.Repository.Migrations
                     b.Navigation("Space");
 
                     b.Navigation("TargetGroup");
-                });
-
-            modelBuilder.Entity("Group.Repository.Entities.Invitation", b =>
-                {
-                    b.HasOne("Group.Repository.Entities.GroupEntity", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
                 });
 
             modelBuilder.Entity("Group.Repository.Entities.JoinRequest", b =>
