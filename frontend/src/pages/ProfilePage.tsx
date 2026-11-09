@@ -68,7 +68,7 @@ const RadarChart5: React.FC<{
         flexDirection: 'column',
         alignItems: 'center',
         backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-        borderRadius: 14,
+        borderRadius: 18,
         padding: '1rem',
         border: '1px solid var(--border-light, #E2E8F0)',
         boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
@@ -190,7 +190,7 @@ const RadarChart5: React.FC<{
         })}
       </svg>
 
-      <div style={{ marginTop: '0.65rem', fontSize: '11.5px', color: 'var(--text-muted, #64748B)', textAlign: 'center' }}>
+      <div style={{ marginTop: '0.65rem', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', textAlign: 'center' }}>
         Biểu đồ Ngũ giác Năng lực EXE (Tự động co giãn theo thời gian thực)
       </div>
     </div>
@@ -386,29 +386,29 @@ export const ProfilePage: React.FC = () => {
 
   if (isStaff) {
     return (
-      <div style={{ maxWidth: 1140, margin: '0 auto', paddingBottom: '3.5rem' }}>
+      <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
         {/* Toast Messages */}
         {error && (
-          <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626', fontSize: '13px', fontWeight: 600 }}>
+          <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px', color: '#DC2626', fontSize: '15px', fontWeight: 600 }}>
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
         )}
         {successMsg && (
-          <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px', color: '#16A34A', fontSize: '13px', fontWeight: 600 }}>
+          <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '10px', color: '#16A34A', fontSize: '15px', fontWeight: 600 }}>
             <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
             <span>{successMsg}</span>
           </div>
         )}
 
         {/* 2-Column Layout for Staff */}
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '1.5rem', alignItems: 'start' }}>
           {/* CỘT TRÁI: Hồ sơ Cán bộ / Giảng viên FPTU */}
           <div
             style={{
               backgroundColor: 'var(--bg-card, #FFFFFF)',
               border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '16px',
+              borderRadius: '20px',
               overflow: 'hidden',
               boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
             }}
@@ -438,7 +438,7 @@ export const ProfilePage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '24px',
+                  fontSize: '28px',
                   fontWeight: 800,
                   border: '4px solid var(--bg-card, #FFFFFF)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -447,10 +447,10 @@ export const ProfilePage: React.FC = () => {
                 {staffInitials}
               </div>
 
-              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '12px 0 4px 0' }}>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '12px 0 4px 0' }}>
                 {staffName}
               </h2>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: 999, backgroundColor: isModerator ? 'rgba(0, 84, 166, 0.12)' : 'rgba(0, 136, 55, 0.12)', color: isModerator ? '#0054A6' : '#008837', fontSize: '12px', fontWeight: 700, marginBottom: '1.25rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: 999, backgroundColor: isModerator ? 'rgba(0, 84, 166, 0.12)' : 'rgba(0, 136, 55, 0.12)', color: isModerator ? '#0054A6' : '#008837', fontSize: '14px', fontWeight: 700, marginBottom: '1.25rem' }}>
                 <ShieldCheck size={14} />
                 <span>{staffRoleTitle}</span>
               </div>
@@ -458,45 +458,45 @@ export const ProfilePage: React.FC = () => {
               {/* Administrative info fields (Read-only) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'left' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
                     Mã cán bộ FPTU
                   </label>
-                  <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>{staffCode}</span>
                     <Lock size={13} color="var(--text-light, #94A3B8)" />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
                     Email công vụ
                   </label>
-                  <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span>{staffEmail}</span>
                     <Lock size={13} color="var(--text-light, #94A3B8)" />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
                     Đơn vị công tác
                   </label>
-                  <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     {staffUnit}
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
                     Học kỳ đảm nhiệm
                   </label>
-                  <div style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '13px', fontWeight: 700, color: '#F27024' }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 700, color: '#F27024' }}>
                     Fall 2026 • Môn EXE101 & EXE201
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '1.25rem', padding: '10px 12px', borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed var(--border-medium, #CBD5E1)', fontSize: '11.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.4 }}>
+              <div style={{ marginTop: '1.25rem', padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed var(--border-medium, #CBD5E1)', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.4 }}>
                 🔒 Thông tin cán bộ được quản lý tập trung bởi Phòng Nhân sự & Ban Đào tạo Đại học FPT TP.HCM.
               </div>
             </div>
@@ -509,14 +509,14 @@ export const ProfilePage: React.FC = () => {
               style={{
                 backgroundColor: 'var(--bg-card, #FFFFFF)',
                 border: '1px solid var(--border-light, #E2E8F0)',
-                borderRadius: '16px',
+                borderRadius: '20px',
                 padding: '24px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
                 <ShieldCheck size={18} color={isModerator ? '#0054A6' : '#008837'} />
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Quyền hạn & Nhiệm vụ trong học kỳ Fall 2026
                 </h3>
               </div>
@@ -524,42 +524,42 @@ export const ProfilePage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {isModerator ? (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Quản lý Không gian Môn học:</strong> Thiết lập tham số ghép nhóm, sĩ số tối đa (5), ngưỡng tối thiểu (3), hệ số phòng dự phòng (1.2) cho EXE101 và EXE201.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Đồng bộ Sinh viên từ FAP:</strong> Nạp danh sách đủ điều kiện, tự động khởi tạo tài khoản và gửi email cấp mật khẩu qua hệ thống MailHog.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Điều phối Sinh viên lẻ:</strong> Kích hoạt thuật toán ghép tự động (Matching Distribution) hoặc cưỡng bức bổ sung sinh viên chưa có nhóm vào các phòng trống.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Quản lý Chuyển nhóm sau Chốt sổ:</strong> Tiếp nhận và phê duyệt yêu cầu chuyển 1 chiều hoặc đổi chéo 2 chiều giữa các nhóm.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Xuất Báo cáo & Đồng bộ kết quả:</strong> Xuất file danh sách nhóm chính thức định dạng CSV chuẩn FAP phục vụ lưu trữ học vụ.</span>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#008837" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Giám sát Tiến độ Ghép nhóm:</strong> Theo dõi sĩ số, chỉ số cân bằng kỹ năng và phân bổ thành viên các phòng nhóm trong môn phụ trách.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#008837" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Xem chi tiết 100% Thành viên:</strong> Toàn quyền xem danh sách thành viên chi tiết của mọi phòng nhóm, kể cả phòng đã đóng tuyển hoặc chốt sổ.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#008837" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Cố vấn & Đánh giá Đề tài Khởi nghiệp:</strong> Tra cứu Kho Đề tài dự kiến, duyệt ý tưởng đổi mới sáng tạo và đưa ra định hướng chuyên môn.</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '15px', color: 'var(--text-main, #0F172A)', lineHeight: 1.5 }}>
                       <CheckCircle2 size={16} color="#008837" style={{ flexShrink: 0, marginTop: 2 }} />
                       <span><strong>Xuất Báo cáo Danh sách Nhóm & Bảng điểm:</strong> Tải xuống báo cáo tổng hợp danh sách nhóm học phần để phục vụ đánh giá tiến độ và chấm điểm.</span>
                     </div>
@@ -573,21 +573,21 @@ export const ProfilePage: React.FC = () => {
               style={{
                 backgroundColor: 'var(--bg-card, #FFFFFF)',
                 border: '1px solid var(--border-light, #E2E8F0)',
-                borderRadius: '16px',
+                borderRadius: '20px',
                 padding: '24px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
                 <KeyRound size={18} color="#F27024" />
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Đổi mật khẩu tài khoản công vụ
                 </h3>
               </div>
 
               <form onSubmit={handleChangePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
                     Mật khẩu hiện tại
                   </label>
                   <input
@@ -598,13 +598,13 @@ export const ProfilePage: React.FC = () => {
                     required
                     style={{
                       width: '100%',
-                      height: 38,
+                      height: 44,
                       padding: '0 12px',
-                      borderRadius: 8,
+                      borderRadius: 10,
                       border: '1px solid var(--border-medium, #CBD5E1)',
                       backgroundColor: 'var(--bg-input, #FFFFFF)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -613,7 +613,7 @@ export const ProfilePage: React.FC = () => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
                       Mật khẩu mới
                     </label>
                     <input
@@ -624,20 +624,20 @@ export const ProfilePage: React.FC = () => {
                       required
                       style={{
                         width: '100%',
-                        height: 38,
+                        height: 44,
                         padding: '0 12px',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         border: '1px solid var(--border-medium, #CBD5E1)',
                         backgroundColor: 'var(--bg-input, #FFFFFF)',
                         color: 'var(--text-main, #0F172A)',
-                        fontSize: '13px',
+                        fontSize: '15px',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
                       Xác nhận mật khẩu mới
                     </label>
                     <input
@@ -648,13 +648,13 @@ export const ProfilePage: React.FC = () => {
                       required
                       style={{
                         width: '100%',
-                        height: 38,
+                        height: 44,
                         padding: '0 12px',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         border: '1px solid var(--border-medium, #CBD5E1)',
                         backgroundColor: 'var(--bg-input, #FFFFFF)',
                         color: 'var(--text-main, #0F172A)',
-                        fontSize: '13px',
+                        fontSize: '15px',
                         outline: 'none',
                         boxSizing: 'border-box',
                       }}
@@ -670,7 +670,7 @@ export const ProfilePage: React.FC = () => {
                       background: 'none',
                       border: 'none',
                       color: 'var(--text-muted, #64748B)',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -686,11 +686,11 @@ export const ProfilePage: React.FC = () => {
                     disabled={changingPassword}
                     style={{
                       padding: '9px 20px',
-                      borderRadius: 10,
+                      borderRadius: 12,
                       backgroundColor: '#F27024',
                       color: '#FFFFFF',
                       border: 'none',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       fontWeight: 700,
                       cursor: changingPassword ? 'not-allowed' : 'pointer',
                       boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
@@ -708,7 +708,7 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: 1140, margin: '0 auto', paddingBottom: '3.5rem' }}>
+    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
       {/* ── BANNER NHẮC NHỞ KHI CHƯA HOÀN TẤT HỒ SƠ ── */}
       {!isProfileCompleted && (
         <div
@@ -722,7 +722,7 @@ export const ProfilePage: React.FC = () => {
             alignItems: 'center',
             gap: '12px',
             color: '#C2410C',
-            fontSize: '13.5px',
+            fontSize: '15.5px',
             lineHeight: 1.5,
           }}
         >
@@ -746,7 +746,7 @@ export const ProfilePage: React.FC = () => {
             alignItems: 'center',
             gap: '10px',
             color: '#DC2626',
-            fontSize: '13px',
+            fontSize: '15px',
             fontWeight: 600,
           }}
         >
@@ -767,7 +767,7 @@ export const ProfilePage: React.FC = () => {
             alignItems: 'center',
             gap: '10px',
             color: '#16A34A',
-            fontSize: '13px',
+            fontSize: '15px',
             fontWeight: 600,
           }}
         >
@@ -777,7 +777,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ── 2-COLUMN MAIN LAYOUT ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '1.5rem', alignItems: 'start' }}>
         {/* ══════════════════════════════════════════════════════════════
             CỘT TRÁI: THÔNG TIN HỌC VỤ ĐỒNG BỘ TỪ FAP (READ-ONLY)
            ══════════════════════════════════════════════════════════════ */}
@@ -785,7 +785,7 @@ export const ProfilePage: React.FC = () => {
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '16px',
+            borderRadius: '20px',
             overflow: 'hidden',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
@@ -822,10 +822,10 @@ export const ProfilePage: React.FC = () => {
               LT
             </div>
 
-            <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '10px 0 2px' }}>
+            <h2 style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '10px 0 2px' }}>
               {fullName}
             </h2>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)', marginBottom: '14px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginBottom: '14px' }}>
               {email}
             </div>
 
@@ -844,7 +844,7 @@ export const ProfilePage: React.FC = () => {
                   gap: '6px',
                   padding: '5px 12px',
                   borderRadius: '999px',
-                  fontSize: '11.5px',
+                  fontSize: '13.5px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   border: isProfileCompleted ? '1px solid #BBF7D0' : '1px solid #FED7AA',
@@ -867,14 +867,14 @@ export const ProfilePage: React.FC = () => {
 
             {/* Khung Thông tin Học vụ Khóa cứng */}
             <div style={{ textAlign: 'left', borderTop: '1px solid var(--border-subtle, #F1F5F9)', paddingTop: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShieldCheck size={15} color="#0054A6" />
                 <span>Thông tin học vụ (FAP)</span>
               </div>
 
               {/* Trường 1: MSSV */}
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
                   Mã số sinh viên
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -884,12 +884,12 @@ export const ProfilePage: React.FC = () => {
                     readOnly
                     style={{
                       width: '100%',
-                      height: '36px',
-                      borderRadius: 8,
+                      height: '42px',
+                      borderRadius: 10,
                       border: '1px solid var(--border-light, #E2E8F0)',
                       backgroundColor: 'var(--bg-tag, #F1F5F9)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '12.5px',
+                      fontSize: '14.5px',
                       fontWeight: 700,
                       padding: '0 32px 0 10px',
                       boxSizing: 'border-box',
@@ -904,7 +904,7 @@ export const ProfilePage: React.FC = () => {
 
               {/* Trường 2: Chuyên ngành */}
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
                   Chuyên ngành đào tạo
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -914,12 +914,12 @@ export const ProfilePage: React.FC = () => {
                     readOnly
                     style={{
                       width: '100%',
-                      height: '36px',
-                      borderRadius: 8,
+                      height: '42px',
+                      borderRadius: 10,
                       border: '1px solid var(--border-light, #E2E8F0)',
                       backgroundColor: 'var(--bg-tag, #F1F5F9)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       fontWeight: 600,
                       padding: '0 32px 0 10px',
                       boxSizing: 'border-box',
@@ -933,7 +933,7 @@ export const ProfilePage: React.FC = () => {
 
               {/* Trường 3: Khóa học */}
               <div style={{ marginBottom: '10px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
                   Khóa sinh viên
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -943,12 +943,12 @@ export const ProfilePage: React.FC = () => {
                     readOnly
                     style={{
                       width: '100%',
-                      height: '36px',
-                      borderRadius: 8,
+                      height: '42px',
+                      borderRadius: 10,
                       border: '1px solid var(--border-light, #E2E8F0)',
                       backgroundColor: 'var(--bg-tag, #F1F5F9)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '12.5px',
+                      fontSize: '14.5px',
                       fontWeight: 700,
                       padding: '0 32px 0 10px',
                       boxSizing: 'border-box',
@@ -962,7 +962,7 @@ export const ProfilePage: React.FC = () => {
 
               {/* Trường 4: Lớp danh nghĩa */}
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
                   Lớp danh nghĩa
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -972,12 +972,12 @@ export const ProfilePage: React.FC = () => {
                     readOnly
                     style={{
                       width: '100%',
-                      height: '36px',
-                      borderRadius: 8,
+                      height: '42px',
+                      borderRadius: 10,
                       border: '1px solid var(--border-light, #E2E8F0)',
                       backgroundColor: 'var(--bg-tag, #F1F5F9)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '12.5px',
+                      fontSize: '14.5px',
                       fontWeight: 700,
                       padding: '0 32px 0 10px',
                       boxSizing: 'border-box',
@@ -993,12 +993,12 @@ export const ProfilePage: React.FC = () => {
               {/* Ghi chú đồng bộ FAP */}
               <div
                 style={{
-                  fontSize: '11.5px',
+                  fontSize: '13.5px',
                   color: 'var(--text-muted, #64748B)',
                   lineHeight: 1.45,
                   backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                   border: '1px solid var(--border-subtle, #F1F5F9)',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   padding: '8px 10px',
                 }}
               >
@@ -1015,7 +1015,7 @@ export const ProfilePage: React.FC = () => {
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '16px',
+            borderRadius: '20px',
             padding: '24px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
@@ -1039,7 +1039,7 @@ export const ProfilePage: React.FC = () => {
                 gap: '8px',
                 padding: '8px 16px',
                 borderRadius: '10px',
-                fontSize: '13px',
+                fontSize: '15px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 border: activeTab === 'skills' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
@@ -1061,7 +1061,7 @@ export const ProfilePage: React.FC = () => {
                 gap: '8px',
                 padding: '8px 16px',
                 borderRadius: '10px',
-                fontSize: '13px',
+                fontSize: '15px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 border: activeTab === 'security' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
@@ -1079,10 +1079,10 @@ export const ProfilePage: React.FC = () => {
           {activeTab === 'skills' && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
                   Đánh giá 5 Kỹ năng Cốt lõi
                 </h3>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
                   Kéo thanh trượt từ 0 đến 100 để phản ánh đúng năng lực bản thân. Hệ thống sẽ căn cứ vào biểu đồ ngũ giác này để gợi ý phòng nhóm và hỗ trợ các trưởng nhóm ghép đội đa ngành cân bằng nhất.
                 </p>
               </div>
@@ -1100,12 +1100,12 @@ export const ProfilePage: React.FC = () => {
                 {/* ── BÊN TRÁI: 5 THANH TRƯỢT (0-100) ── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {/* Slider 1: Tech */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         1. Tech (Kỹ thuật & Phát triển sản phẩm)
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
                         {techScore} / 100
                       </span>
                     </div>
@@ -1120,12 +1120,12 @@ export const ProfilePage: React.FC = () => {
                   </div>
 
                   {/* Slider 2: Management */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         2. Management (Quản lý & Tổ chức nhóm)
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
                         {managementScore} / 100
                       </span>
                     </div>
@@ -1137,18 +1137,18 @@ export const ProfilePage: React.FC = () => {
                       onChange={(e) => setManagementScore(Number(e.target.value))}
                       style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
                     />
-                    <div style={{ fontSize: '11px', color: '#0369A1', marginTop: '4px', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '13px', color: '#0369A1', marginTop: '4px', fontStyle: 'italic' }}>
                       ⭐ <em>Chỉ số dùng để xét chọn Trưởng nhóm khi ghép nhóm tự động cuối kỳ</em>
                     </div>
                   </div>
 
                   {/* Slider 3: Graphic Design */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         3. Graphic Design (Thiết kế & Thẩm mỹ UI/UX)
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
                         {graphicDesignScore} / 100
                       </span>
                     </div>
@@ -1163,12 +1163,12 @@ export const ProfilePage: React.FC = () => {
                   </div>
 
                   {/* Slider 4: Marketing */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         4. Marketing (Truyền thông & Nghiên cứu thị trường)
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
                         {marketingScore} / 100
                       </span>
                     </div>
@@ -1183,12 +1183,12 @@ export const ProfilePage: React.FC = () => {
                   </div>
 
                   {/* Slider 5: Sale */}
-                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <div style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         5. Sale (Phát triển kinh doanh & Thuyết trình)
                       </span>
-                      <span style={{ fontSize: '13px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
                         {saleScore} / 100
                       </span>
                     </div>
@@ -1215,7 +1215,7 @@ export const ProfilePage: React.FC = () => {
 
               {/* Ô nhập Giới thiệu bản thân & Định hướng đề tài mong muốn (Bio) */}
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '6px' }}>
                   Giới thiệu bản thân & Định hướng đề tài mong muốn (Bio)
                 </label>
                 <textarea
@@ -1226,11 +1226,11 @@ export const ProfilePage: React.FC = () => {
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     border: '1px solid var(--border-medium, #CBD5E1)',
                     backgroundColor: 'var(--bg-input, #FFFFFF)',
                     color: 'var(--text-main, #0F172A)',
-                    fontSize: '13px',
+                    fontSize: '15px',
                     lineHeight: 1.5,
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -1259,7 +1259,7 @@ export const ProfilePage: React.FC = () => {
                   <label
                     htmlFor="commitment-checkbox"
                     style={{
-                      fontSize: '13px',
+                      fontSize: '15px',
                       fontWeight: 600,
                       color: 'var(--text-main, #0F172A)',
                       cursor: 'pointer',
@@ -1271,7 +1271,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <div style={{ fontSize: '12px', color: isCommitted ? '#15803D' : '#DC2626' }}>
+                  <div style={{ fontSize: '14px', color: isCommitted ? '#15803D' : '#DC2626' }}>
                     {isCommitted
                       ? '✓ Đã xác nhận cam kết trách nhiệm'
                       : '⚠️ Bạn phải tích chọn cam kết trước khi có thể lưu hồ sơ'}
@@ -1283,11 +1283,11 @@ export const ProfilePage: React.FC = () => {
                     disabled={saving5Skills || !isCommitted}
                     style={{
                       padding: '10px 22px',
-                      borderRadius: 10,
+                      borderRadius: 12,
                       backgroundColor: isCommitted ? '#F27024' : '#CBD5E1',
                       border: 'none',
                       color: '#FFFFFF',
-                      fontSize: '13.5px',
+                      fontSize: '15.5px',
                       fontWeight: 700,
                       cursor: isCommitted ? 'pointer' : 'not-allowed',
                       display: 'inline-flex',
@@ -1309,17 +1309,17 @@ export const ProfilePage: React.FC = () => {
           {activeTab === 'security' && (
             <div style={{ maxWidth: 480 }}>
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
                   Đổi mật khẩu bảo mật
                 </h3>
-                <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
                   Mật khẩu mới phải có tối thiểu 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.
                 </p>
               </div>
 
               <form onSubmit={handleChangePasswordSubmit}>
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
                     Mật khẩu hiện tại *
                   </label>
                   <input
@@ -1332,11 +1332,11 @@ export const ProfilePage: React.FC = () => {
                       width: '100%',
                       height: 40,
                       padding: '0 12px',
-                      borderRadius: 8,
+                      borderRadius: 10,
                       border: '1px solid var(--border-medium, #CBD5E1)',
                       backgroundColor: 'var(--bg-input, #FFFFFF)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -1344,7 +1344,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
                     Mật khẩu mới *
                   </label>
                   <input
@@ -1357,11 +1357,11 @@ export const ProfilePage: React.FC = () => {
                       width: '100%',
                       height: 40,
                       padding: '0 12px',
-                      borderRadius: 8,
+                      borderRadius: 10,
                       border: '1px solid var(--border-medium, #CBD5E1)',
                       backgroundColor: 'var(--bg-input, #FFFFFF)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -1369,7 +1369,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
+                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
                     Xác nhận mật khẩu mới *
                   </label>
                   <input
@@ -1382,11 +1382,11 @@ export const ProfilePage: React.FC = () => {
                       width: '100%',
                       height: 40,
                       padding: '0 12px',
-                      borderRadius: 8,
+                      borderRadius: 10,
                       border: '1px solid var(--border-medium, #CBD5E1)',
                       backgroundColor: 'var(--bg-input, #FFFFFF)',
                       color: 'var(--text-main, #0F172A)',
-                      fontSize: '13px',
+                      fontSize: '15px',
                       outline: 'none',
                       boxSizing: 'border-box',
                     }}
@@ -1401,7 +1401,7 @@ export const ProfilePage: React.FC = () => {
                       background: 'none',
                       border: 'none',
                       color: 'var(--text-muted, #64748B)',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1418,11 +1418,11 @@ export const ProfilePage: React.FC = () => {
                   disabled={changingPassword}
                   style={{
                     padding: '10px 22px',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     backgroundColor: '#F27024',
                     border: 'none',
                     color: '#FFFFFF',
-                    fontSize: '13.5px',
+                    fontSize: '15.5px',
                     fontWeight: 700,
                     cursor: changingPassword ? 'default' : 'pointer',
                     boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',

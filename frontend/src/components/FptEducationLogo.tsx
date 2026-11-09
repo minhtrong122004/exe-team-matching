@@ -191,18 +191,18 @@ export const FptEducationLogo: React.FC<FptEducationLogoProps> = ({ compact = fa
         </div>
       </div>
 
-      {/* Bottom row: TRƯỜNG ĐẠI HỌC FPT (Slab-Serif authentic FPT font) */}
+      {/* Bottom row: TRƯỜNG ĐẠI HỌC FPT (Chunky Slab-Serif with full Vietnamese subset) */}
       <div
         style={{
           color: '#f26f21',
-          fontWeight: 900,
-          fontSize: '0.975rem',
-          letterSpacing: '0.04em',
+          fontWeight: 400,
+          fontSize: '0.96rem',
+          letterSpacing: '0.035em',
           textTransform: 'uppercase',
           marginTop: '7px',
           lineHeight: 1.2,
-          fontFamily: '"Rockwell", "Clarendon", "Georgia", "Merriweather", "Cambria", serif',
-          textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          fontFamily: '"Alfa Slab One", "Roboto Slab", serif',
+          WebkitFontSmoothing: 'antialiased',
         }}
       >
         TRƯỜNG ĐẠI HỌC FPT
