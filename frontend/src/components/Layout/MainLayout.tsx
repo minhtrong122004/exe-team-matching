@@ -151,31 +151,31 @@ export const MainLayout: React.FC = () => {
             {
               to: '/moderator/spaces',
               label: 'Quản lý Học kỳ & Phòng',
-              icon: <Layers size={19} />,
+              icon: <Layers size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/moderator/distribution',
               label: 'Điều phối Sinh viên lẻ',
-              icon: <Users size={19} />,
+              icon: <Users size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/moderator/transfers',
               label: 'Quản lý Chuyển nhóm',
-              icon: <ArrowLeftRight size={19} />,
+              icon: <ArrowLeftRight size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/groups',
               label: 'Danh sách Phòng & Nhóm',
-              icon: <Compass size={19} />,
+              icon: <Compass size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/reports',
               label: 'Tổng quan & Xuất báo cáo',
-              icon: <FileText size={19} />,
+              icon: <FileText size={20} />,
               roles: ['Moderator'],
             },
           ],
@@ -186,13 +186,13 @@ export const MainLayout: React.FC = () => {
             {
               to: '/profile',
               label: 'Hồ sơ cá nhân',
-              icon: <User size={19} />,
+              icon: <User size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/notifications',
               label: 'Thông báo',
-              icon: <Bell size={19} />,
+              icon: <Bell size={20} />,
               roles: ['Moderator'],
             },
           ],
@@ -208,19 +208,19 @@ export const MainLayout: React.FC = () => {
             {
               to: '/lecturer/dashboard',
               label: 'Tổng quan & Xuất báo cáo',
-              icon: <FileText size={19} />,
+              icon: <FileText size={20} />,
               roles: ['Lecturer'],
             },
             {
               to: '/groups',
               label: 'Danh sách Phòng & Nhóm',
-              icon: <Compass size={19} />,
+              icon: <Compass size={20} />,
               roles: ['Lecturer'],
             },
             {
               to: '/projects',
               label: 'Kho Đề tài dự kiến',
-              icon: <Lightbulb size={19} />,
+              icon: <Lightbulb size={20} />,
               roles: ['Lecturer'],
             },
           ],
@@ -231,13 +231,13 @@ export const MainLayout: React.FC = () => {
             {
               to: '/profile',
               label: 'Hồ sơ cá nhân',
-              icon: <User size={19} />,
+              icon: <User size={20} />,
               roles: ['Lecturer'],
             },
             {
               to: '/notifications',
               label: 'Thông báo',
-              icon: <Bell size={19} />,
+              icon: <Bell size={20} />,
               roles: ['Lecturer'],
             },
           ],
@@ -253,19 +253,19 @@ export const MainLayout: React.FC = () => {
           {
             to: '/groups',
             label: 'Khám phá Phòng & Nhóm',
-            icon: <Compass size={19} />,
+            icon: <Compass size={20} />,
             roles: ['Student'],
           },
           {
             to: '/my-group',
             label: 'Nhóm của tôi',
-            icon: <Users size={19} />,
+            icon: <Users size={20} />,
             roles: ['Student'],
           },
           {
             to: '/join-requests',
             label: 'Đơn ứng tuyển của tôi',
-            icon: <UserPlus size={19} />,
+            icon: <UserPlus size={20} />,
             roles: ['Student'],
           },
         ],
@@ -276,7 +276,7 @@ export const MainLayout: React.FC = () => {
           {
             to: '/projects',
             label: 'Kho Đề tài dự kiến',
-            icon: <Lightbulb size={19} />,
+            icon: <Lightbulb size={20} />,
             roles: ['Student'],
           },
         ],
@@ -287,13 +287,13 @@ export const MainLayout: React.FC = () => {
           {
             to: '/profile',
             label: 'Hồ sơ 5 Kỹ năng',
-            icon: <User size={19} />,
+            icon: <User size={20} />,
             roles: ['Student'],
           },
           {
             to: '/notifications',
             label: 'Thông báo',
-            icon: <Bell size={19} />,
+            icon: <Bell size={20} />,
             roles: ['Student'],
           },
         ],
@@ -302,7 +302,7 @@ export const MainLayout: React.FC = () => {
   };
 
   const navSections: NavSection[] = getNavSectionsForRole(user?.role);
-  const sidebarWidth = isCollapsed ? 76 : 255;
+  const sidebarWidth = isCollapsed ? 80 : 284;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main, #f4f6fa)' }}>
@@ -375,7 +375,7 @@ export const MainLayout: React.FC = () => {
                 {!isCollapsed && (
                   <div
                     style={{
-                      fontSize: '0.675rem',
+                      fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       color: 'var(--text-light, #94a3b8)',
                       fontWeight: 700,
@@ -398,9 +398,9 @@ export const MainLayout: React.FC = () => {
                         alignItems: 'center',
                         justifyContent: isCollapsed ? 'center' : 'flex-start',
                         gap: isCollapsed ? 0 : '0.75rem',
-                        padding: isCollapsed ? '0.7rem 0' : '0.6rem 0.85rem',
-                        borderRadius: 8,
-                        fontSize: '0.865rem',
+                        padding: isCollapsed ? '0.8rem 0' : '0.72rem 1rem',
+                        borderRadius: 12,
+                        fontSize: '0.95rem',
                         fontWeight: isActive ? 700 : 500,
                         color: isActive ? '#f26f21' : 'var(--text-muted, #475569)',
                         background: isActive ? 'var(--bg-sidebar-active, #fff7ed)' : 'transparent',
@@ -447,7 +447,7 @@ export const MainLayout: React.FC = () => {
             style={{
               padding: '0.85rem 1.15rem',
               borderTop: '1px solid var(--border-light, #f1f5f9)',
-              fontSize: '0.725rem',
+              fontSize: '0.925rem',
               color: 'var(--text-light, #94a3b8)',
               display: 'flex',
               alignItems: 'center',
@@ -477,13 +477,13 @@ export const MainLayout: React.FC = () => {
            ══════════════════════════════════════════════════════════════ */}
         <header
           style={{
-            height: 64,
+            height: 72,
             background: 'var(--bg-header, #ffffff)',
             borderBottom: '1px solid var(--border-light, #eaedf2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 1.75rem',
+            padding: '0 2.25rem',
             position: 'sticky',
             top: 0,
             zIndex: 30,
@@ -498,9 +498,9 @@ export const MainLayout: React.FC = () => {
               onClick={() => setIsCollapsed(!isCollapsed)}
               title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 8,
+                width: 42,
+                height: 42,
+                borderRadius: 12,
                 background: 'var(--bg-sidebar-hover, #f8fafc)',
                 border: '1px solid var(--border-light, #e2e8f0)',
                 color: 'var(--text-muted, #475569)',
@@ -520,11 +520,11 @@ export const MainLayout: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.4rem',
-                padding: '0.4rem 0.65rem',
-                borderRadius: 8,
+                padding: '0.5rem 0.9rem',
+                borderRadius: 12,
                 background: 'var(--bg-sidebar-hover, #f8fafc)',
                 border: '1px solid var(--border-light, #e2e8f0)',
-                fontSize: '0.825rem',
+                fontSize: '0.925rem',
                 color: 'var(--text-main, #334155)',
                 fontWeight: 600,
               }}
@@ -539,8 +539,8 @@ export const MainLayout: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                padding: '0.35rem 0.65rem',
-                borderRadius: 8,
+                padding: '0.45rem 0.9rem',
+                borderRadius: 12,
                 backgroundColor: 'var(--bg-card, #FFFFFF)',
                 border: '1px solid var(--border-medium, #CBD5E1)',
                 boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
@@ -554,12 +554,12 @@ export const MainLayout: React.FC = () => {
                 style={{
                   border: 'none',
                   backgroundColor: 'transparent',
-                  fontSize: '0.825rem',
+                  fontSize: '0.925rem',
                   fontWeight: 600,
                   color: 'var(--text-main, #0F172A)',
                   outline: 'none',
                   cursor: 'pointer',
-                  maxWidth: '380px',
+                  maxWidth: '440px',
                 }}
               >
                 <option value="exe101">Học kỳ Fall 2026 • Môn EXE101 (Đang mở đăng ký)</option>
@@ -576,9 +576,9 @@ export const MainLayout: React.FC = () => {
               onClick={toggleTheme}
               title={isDarkMode ? 'Chuyển sang chế độ Sáng (Light Mode)' : 'Chuyển sang chế độ Tối (Dark Mode)'}
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 8,
+                width: 42,
+                height: 42,
+                borderRadius: 12,
                 background: isDarkMode ? '#1e293b' : '#f8fafc',
                 border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
                 color: isDarkMode ? '#fbbf24' : '#475569',
@@ -598,9 +598,9 @@ export const MainLayout: React.FC = () => {
               title={`Thông báo hệ thống (${unreadCount} chưa đọc)`}
               style={{
                 position: 'relative',
-                width: 38,
-                height: 38,
-                borderRadius: 8,
+                width: 42,
+                height: 42,
+                borderRadius: 12,
                 background: isDarkMode ? '#1e293b' : '#f8fafc',
                 border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
                 color: isDarkMode ? '#cbd5e1' : '#475569',
@@ -657,9 +657,9 @@ export const MainLayout: React.FC = () => {
                 {/* Avatar with Initials */}
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 8,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
                     background:
                       user?.role === 'Moderator'
                         ? '#0054a6'
@@ -683,10 +683,10 @@ export const MainLayout: React.FC = () => {
                   <div
                     title={user?.fullName || 'Người dùng'}
                     style={{
-                      fontSize: '0.85rem',
+                      fontSize: '0.95rem',
                       fontWeight: 700,
                       color: 'var(--text-main, #0f172a)',
-                      maxWidth: 160,
+                      maxWidth: 190,
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -881,7 +881,7 @@ export const MainLayout: React.FC = () => {
         {/* ══════════════════════════════════════════════════════════════
             PAGE CONTENT (Handles FAP Eligibility Check)
            ══════════════════════════════════════════════════════════════ */}
-        <main style={{ flex: 1, padding: '2rem' }}>
+        <main style={{ flex: 1, padding: '2.25rem 2.75rem' }}>
           {selectedSpace === 'exe201-unauthorized' ? (
             <div
               style={{

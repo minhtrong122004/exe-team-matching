@@ -122,7 +122,7 @@ export const ModeratorTransfersPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '0 0 3rem 0', maxWidth: 1240, margin: '0 auto' }}>
+    <div style={{ padding: '0 0 3rem 0', maxWidth: 1560, margin: '0 auto' }}>
       {/* Toast */}
       {toastMsg && (
         <div
@@ -139,7 +139,7 @@ export const ModeratorTransfersPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            fontSize: '14px',
+            fontSize: '16px',
             fontWeight: 600,
           }}
         >
@@ -155,7 +155,7 @@ export const ModeratorTransfersPage: React.FC = () => {
             style={{
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: 12,
               backgroundColor: 'rgba(242, 112, 36, 0.12)',
               display: 'flex',
               alignItems: 'center',
@@ -169,7 +169,7 @@ export const ModeratorTransfersPage: React.FC = () => {
             Quản lý Chuyển nhóm & Đổi chéo sau Chốt sổ
           </h1>
         </div>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '0.9rem', margin: 0, lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0, lineHeight: 1.5 }}>
           Xử lý các đề xuất xin chuyển nhóm của sinh viên và công cụ điều chuyển cưỡng bức của Điều phối viên sau khi học kỳ đã chốt sổ.
         </p>
       </div>
@@ -179,22 +179,22 @@ export const ModeratorTransfersPage: React.FC = () => {
         style={{
           backgroundColor: 'var(--bg-card, #FFFFFF)',
           border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '16px',
-          padding: '20px',
+          borderRadius: '20px',
+          padding: '26px',
           marginBottom: '1.75rem',
           boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(0, 84, 166, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054A6' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(0, 84, 166, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054A6' }}>
               <Users size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                 Khu vực 1: Danh sách Đơn xin Chuyển nhóm từ Sinh viên ({requests.filter(r => r.status === 'Pending').length} đơn chờ duyệt)
               </h3>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>
+              <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
                 Các đơn do sinh viên nộp sau thời điểm chốt sổ học kỳ kèm lý do chính đáng
               </span>
             </div>
@@ -224,7 +224,7 @@ export const ModeratorTransfersPage: React.FC = () => {
                     style={{
                       padding: '3px 8px',
                       borderRadius: 6,
-                      fontSize: '11px',
+                      fontSize: '13px',
                       fontWeight: 800,
                       backgroundColor: req.type === 'SWAP' ? 'rgba(0, 84, 166, 0.12)' : 'rgba(242, 112, 36, 0.12)',
                       color: req.type === 'SWAP' ? '#0054A6' : '#F27024',
@@ -232,17 +232,17 @@ export const ModeratorTransfersPage: React.FC = () => {
                   >
                     {req.type === 'SWAP' ? 'ĐỔI CHÉO 1-1 (SWAP)' : 'CHUYỂN 1 CHIỀU'}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>
+                  <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
                     Gửi lúc: {req.submittedAt}
                   </span>
                 </div>
 
-                <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+                <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
                   {req.studentName} ({req.studentCode} • {req.major})
                 </div>
 
                 {/* Transfer route */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', margin: '6px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', margin: '6px 0' }}>
                   <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, color: '#0054A6', backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>
                     {req.currentRoom} ({req.currentCount}/5)
                   </span>
@@ -251,13 +251,13 @@ export const ModeratorTransfersPage: React.FC = () => {
                     {req.targetRoom} ({req.targetCount}/5)
                   </span>
                   {req.swapWithStudent && (
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #475569)' }}>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary, #475569)' }}>
                       • Đổi với: <strong>{req.swapWithStudent.name}</strong> ({req.swapWithStudent.studentCode})
                     </span>
                   )}
                 </div>
 
-                <div style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-card, #FFFFFF)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle, #F1F5F9)' }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-card, #FFFFFF)', padding: '10px 14px', borderRadius: 6, border: '1px solid var(--border-subtle, #F1F5F9)' }}>
                   Lý do: <em>"{req.reason}"</em>
                 </div>
               </div>
@@ -272,11 +272,11 @@ export const ModeratorTransfersPage: React.FC = () => {
                       style={{
                         height: 36,
                         padding: '0 16px',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         backgroundColor: '#059669',
                         color: '#FFFFFF',
                         border: 'none',
-                        fontSize: '13px',
+                        fontSize: '15px',
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
@@ -293,11 +293,11 @@ export const ModeratorTransfersPage: React.FC = () => {
                       style={{
                         height: 36,
                         padding: '0 14px',
-                        borderRadius: 8,
+                        borderRadius: 10,
                         backgroundColor: 'var(--bg-card, #FFFFFF)',
                         color: '#DC2626',
                         border: '1px solid #FCA5A5',
-                        fontSize: '13px',
+                        fontSize: '15px',
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
@@ -310,11 +310,11 @@ export const ModeratorTransfersPage: React.FC = () => {
                     </button>
                   </>
                 ) : req.status === 'Approved' ? (
-                  <span style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669', fontWeight: 700, fontSize: '12px' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: 10, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669', fontWeight: 700, fontSize: '14px' }}>
                     ✓ Đã chấp thuận
                   </span>
                 ) : (
-                  <span style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#DC2626', fontWeight: 700, fontSize: '12px' }}>
+                  <span style={{ padding: '6px 12px', borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#DC2626', fontWeight: 700, fontSize: '14px' }}>
                     ✕ Đã từ chối
                   </span>
                 )}
@@ -329,20 +329,20 @@ export const ModeratorTransfersPage: React.FC = () => {
         style={{
           backgroundColor: 'var(--bg-card, #FFFFFF)',
           border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '16px',
-          padding: '20px',
+          borderRadius: '20px',
+          padding: '26px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(242, 112, 36, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F27024' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(242, 112, 36, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F27024' }}>
             <UserCheck size={18} />
           </div>
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
               Khu vực 2: Công cụ Điều chuyển Cưỡng bức Trực tiếp (Direct Transfer Tool)
             </h3>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
               Điều phối viên can thiệp trực tiếp để chuyển hoặc hoán đổi vị trí thành viên giữa 2 nhóm bất kỳ
             </span>
           </div>
@@ -352,11 +352,11 @@ export const ModeratorTransfersPage: React.FC = () => {
         <div
           style={{
             padding: '12px 16px',
-            borderRadius: 10,
+            borderRadius: 12,
             backgroundColor: 'rgba(0, 84, 166, 0.05)',
             border: '1px solid rgba(0, 84, 166, 0.2)',
             marginBottom: '1.25rem',
-            fontSize: '12px',
+            fontSize: '14px',
             color: 'var(--text-secondary, #475569)',
             lineHeight: 1.5,
           }}
@@ -372,7 +372,7 @@ export const ModeratorTransfersPage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginBottom: '1.25rem' }}>
           {/* 1. Chọn Nhóm nguồn */}
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
               1. Nhóm nguồn (Source Group):
             </label>
             <select
@@ -380,12 +380,12 @@ export const ModeratorTransfersPage: React.FC = () => {
               onChange={(e) => setSourceRoom(e.target.value)}
               style={{
                 width: '100%',
-                height: 38,
+                height: 44,
                 padding: '0 10px',
-                borderRadius: 8,
+                borderRadius: 10,
                 border: '1px solid var(--border-medium, #CBD5E1)',
                 backgroundColor: 'var(--bg-input, #FFFFFF)',
-                fontSize: '13px',
+                fontSize: '15px',
                 color: 'var(--text-main, #0F172A)',
                 outline: 'none',
               }}
@@ -398,7 +398,7 @@ export const ModeratorTransfersPage: React.FC = () => {
 
           {/* 2. Chọn Sinh viên cần chuyển */}
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
               2. Sinh viên cần chuyển đi:
             </label>
             <select
@@ -406,12 +406,12 @@ export const ModeratorTransfersPage: React.FC = () => {
               onChange={(e) => setSelectedStudent(e.target.value)}
               style={{
                 width: '100%',
-                height: 38,
+                height: 44,
                 padding: '0 10px',
-                borderRadius: 8,
+                borderRadius: 10,
                 border: '1px solid var(--border-medium, #CBD5E1)',
                 backgroundColor: 'var(--bg-input, #FFFFFF)',
-                fontSize: '13px',
+                fontSize: '15px',
                 color: 'var(--text-main, #0F172A)',
                 outline: 'none',
               }}
@@ -421,7 +421,7 @@ export const ModeratorTransfersPage: React.FC = () => {
               <option value="user-03">Ngô Phương Thảo (IB180622) — [Thành viên]</option>
             </select>
             {selectedStudent === 'user-leader' && (
-              <span style={{ display: 'block', fontSize: '11px', color: '#D97706', marginTop: '4px', fontWeight: 600 }}>
+              <span style={{ display: 'block', fontSize: '13px', color: '#D97706', marginTop: '4px', fontWeight: 600 }}>
                 👑 Sinh viên này là Trưởng nhóm: Bạn kế tiếp sẽ tự động kế nhiệm làm Trưởng nhóm mới.
               </span>
             )}
@@ -429,7 +429,7 @@ export const ModeratorTransfersPage: React.FC = () => {
 
           {/* 3. Loại thao tác điều chuyển */}
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
               3. Loại hình chuyển:
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -439,9 +439,9 @@ export const ModeratorTransfersPage: React.FC = () => {
                 onClick={() => setTransferType('ONE_WAY')}
                 style={{
                   flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  fontSize: '12px',
+                  height: 44,
+                  borderRadius: 10,
+                  fontSize: '14px',
                   fontWeight: 700,
                   cursor: isOneWayDisabled ? 'not-allowed' : 'pointer',
                   opacity: isOneWayDisabled ? 0.4 : 1,
@@ -457,9 +457,9 @@ export const ModeratorTransfersPage: React.FC = () => {
                 onClick={() => setTransferType('SWAP')}
                 style={{
                   flex: 1,
-                  height: 38,
-                  borderRadius: 8,
-                  fontSize: '12px',
+                  height: 44,
+                  borderRadius: 10,
+                  fontSize: '14px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   border: transferType === 'SWAP' ? '2px solid #0054A6' : '1px solid var(--border-medium, #CBD5E1)',
@@ -471,7 +471,7 @@ export const ModeratorTransfersPage: React.FC = () => {
               </button>
             </div>
             {isOneWayDisabled && (
-              <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
+              <span style={{ fontSize: '13px', color: '#DC2626', marginTop: '4px', display: 'block' }}>
                 * Nhóm nguồn có 3 người, khóa chuyển 1 chiều.
               </span>
             )}
@@ -479,7 +479,7 @@ export const ModeratorTransfersPage: React.FC = () => {
 
           {/* 4. Chọn Nhóm đích */}
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+            <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
               4. Nhóm đích (Target Group):
             </label>
             <select
@@ -487,12 +487,12 @@ export const ModeratorTransfersPage: React.FC = () => {
               onChange={(e) => setTargetRoom(e.target.value)}
               style={{
                 width: '100%',
-                height: 38,
+                height: 44,
                 padding: '0 10px',
-                borderRadius: 8,
+                borderRadius: 10,
                 border: '1px solid var(--border-medium, #CBD5E1)',
                 backgroundColor: 'var(--bg-input, #FFFFFF)',
-                fontSize: '13px',
+                fontSize: '15px',
                 color: 'var(--text-main, #0F172A)',
                 outline: 'none',
               }}
@@ -506,7 +506,7 @@ export const ModeratorTransfersPage: React.FC = () => {
           {/* 5. Nếu Swap: Chọn sinh viên nhóm đích */}
           {transferType === 'SWAP' && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
                 5. Sinh viên nhóm đích để đổi chéo:
               </label>
               <select
@@ -514,12 +514,12 @@ export const ModeratorTransfersPage: React.FC = () => {
                 onChange={(e) => setSwapTargetStudent(e.target.value)}
                 style={{
                   width: '100%',
-                  height: 38,
+                  height: 44,
                   padding: '0 10px',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   border: '1px solid var(--border-medium, #CBD5E1)',
                   backgroundColor: 'var(--bg-input, #FFFFFF)',
-                  fontSize: '13px',
+                  fontSize: '15px',
                   color: 'var(--text-main, #0F172A)',
                   outline: 'none',
                 }}
@@ -538,11 +538,11 @@ export const ModeratorTransfersPage: React.FC = () => {
           style={{
             height: 42,
             padding: '0 24px',
-            borderRadius: 10,
+            borderRadius: 12,
             backgroundColor: '#F27024',
             color: '#FFFFFF',
             border: 'none',
-            fontSize: '14px',
+            fontSize: '16px',
             fontWeight: 700,
             cursor: 'pointer',
             display: 'flex',

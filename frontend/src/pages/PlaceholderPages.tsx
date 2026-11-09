@@ -267,10 +267,10 @@ export const NotificationsPage: React.FC = () => {
         }}
       >
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
             Thông báo Hệ thống ({unreadCount} chưa đọc)
           </h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px', margin: 0 }}>
+          <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px', margin: 0 }}>
             Cập nhật trạng thái ghép nhóm, lời mời và kết quả dự án môn EXE của bạn
           </p>
         </div>
@@ -287,7 +287,7 @@ export const NotificationsPage: React.FC = () => {
               gap: '6px',
               borderRadius: '8px',
               padding: '7px 14px',
-              fontSize: '13px',
+              fontSize: '15px',
               fontWeight: 500,
             }}
           >
@@ -307,7 +307,7 @@ export const NotificationsPage: React.FC = () => {
               border: '1px solid ' + (unreadCount > 0 ? 'var(--pill-active-border)' : 'var(--border-light)'),
               borderRadius: '8px',
               padding: '7px 14px',
-              fontSize: '13px',
+              fontSize: '15px',
               fontWeight: 500,
               cursor: unreadCount > 0 ? 'pointer' : 'default',
             }}
@@ -331,8 +331,8 @@ export const NotificationsPage: React.FC = () => {
             color: filterUnread === undefined ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
             border: '1px solid ' + (filterUnread === undefined ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
             borderRadius: '8px',
-            padding: '6px 14px',
-            fontSize: '13px',
+            padding: '9px 18px',
+            fontSize: '15px',
             fontWeight: 500,
             cursor: 'pointer',
           }}
@@ -350,8 +350,8 @@ export const NotificationsPage: React.FC = () => {
             color: filterUnread === false ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
             border: '1px solid ' + (filterUnread === false ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
             borderRadius: '8px',
-            padding: '6px 14px',
-            fontSize: '13px',
+            padding: '9px 18px',
+            fontSize: '15px',
             fontWeight: 500,
             cursor: 'pointer',
           }}
@@ -369,8 +369,8 @@ export const NotificationsPage: React.FC = () => {
             color: filterUnread === true ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
             border: '1px solid ' + (filterUnread === true ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
             borderRadius: '8px',
-            padding: '6px 14px',
-            fontSize: '13px',
+            padding: '9px 18px',
+            fontSize: '15px',
             fontWeight: 500,
             cursor: 'pointer',
           }}
@@ -388,7 +388,7 @@ export const NotificationsPage: React.FC = () => {
             backgroundColor: '#fee2e2',
             border: '1px solid #fca5a5',
             borderRadius: '10px',
-            fontSize: '13px',
+            fontSize: '15px',
           }}
         >
           {error}
@@ -407,7 +407,7 @@ export const NotificationsPage: React.FC = () => {
         <div
           style={{
             backgroundColor: 'var(--bg-card)',
-            borderRadius: '16px',
+            borderRadius: '20px',
             border: '1px solid var(--border-light)',
             overflow: 'hidden',
             boxShadow: 'var(--shadow-sm)',
@@ -423,7 +423,7 @@ export const NotificationsPage: React.FC = () => {
                 key={n.id}
                 style={{
                   backgroundColor: !n.isRead ? 'var(--bg-subtle)' : 'var(--bg-card)',
-                  padding: '16px 20px',
+                  padding: '20px 26px',
                   borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
                   display: 'flex',
                   alignItems: 'center',
@@ -437,7 +437,7 @@ export const NotificationsPage: React.FC = () => {
                   <div
                     style={{
                       width: '36px',
-                      height: '36px',
+                      height: '42px',
                       borderRadius: '9999px',
                       backgroundColor: config.bg,
                       color: config.color,
@@ -468,7 +468,7 @@ export const NotificationsPage: React.FC = () => {
                       )}
                       <span
                         style={{
-                          fontSize: '11px',
+                          fontSize: '13px',
                           fontWeight: 600,
                           color: config.color,
                           backgroundColor: config.bg,
@@ -479,15 +479,15 @@ export const NotificationsPage: React.FC = () => {
                       >
                         {config.label}
                       </span>
-                      <h4 style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '15px', margin: 0 }}>
+                      <h4 style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '17px', margin: 0 }}>
                         {n.title}
                       </h4>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                      <span style={{ fontSize: '14px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                         {new Date(n.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>
 
-                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', margin: '4px 0 0 0', lineHeight: 1.5 }}>
                       {n.message}
                     </p>
                   </div>
@@ -501,7 +501,7 @@ export const NotificationsPage: React.FC = () => {
                     style={{
                       borderRadius: '8px',
                       padding: '6px 12px',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
@@ -528,13 +528,13 @@ export const NotificationsPage: React.FC = () => {
             style={{
               borderRadius: '6px',
               padding: '6px 12px',
-              fontSize: '12px',
+              fontSize: '14px',
               opacity: page <= 1 ? 0.5 : 1,
             }}
           >
             Trước
           </button>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)', alignSelf: 'center' }}>
+          <span style={{ fontSize: '15px', color: 'var(--text-muted)', alignSelf: 'center' }}>
             Trang {page} / {totalPages}
           </span>
           <button
@@ -545,7 +545,7 @@ export const NotificationsPage: React.FC = () => {
             style={{
               borderRadius: '6px',
               padding: '6px 12px',
-              fontSize: '12px',
+              fontSize: '14px',
               opacity: page >= totalPages ? 0.5 : 1,
             }}
           >
@@ -737,7 +737,7 @@ export const ReportsPage: React.FC = () => {
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
             Báo cáo Tình hình Ghép nhóm EXE
           </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '1.025rem', marginTop: '0.25rem' }}>
             Dành cho Giảng viên & Quản trị viên theo dõi tiến độ sinh viên (Report Service • Redis Streams Projection)
           </p>
         </div>
@@ -778,7 +778,7 @@ export const ReportsPage: React.FC = () => {
             padding: '0.9rem 1.15rem',
             borderLeft: '3px solid #ef4444',
             color: '#ef4444',
-            fontSize: '0.875rem',
+            fontSize: '0.975rem',
           }}
         >
           {error}
@@ -795,46 +795,46 @@ export const ReportsPage: React.FC = () => {
         }}
       >
         <div className="card">
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.925rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             TỔNG SINH VIÊN
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {totalStudents}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.875rem', color: '#10b981', marginTop: '0.25rem' }}>
             100% sinh viên môn EXE
           </div>
         </div>
         <div className="card">
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.925rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             ĐÃ CÓ NHÓM
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981', marginTop: '0.25rem' }}>
             {studentsInGroup}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
             {inGroupPercent}% hoàn thành
           </div>
         </div>
         <div className="card">
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.925rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             CHƯA CÓ NHÓM
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444', marginTop: '0.25rem' }}>
             {studentsWithoutGroup}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.875rem', color: '#ef4444', marginTop: '0.25rem' }}>
             Cần hỗ trợ ghép nhóm
           </div>
         </div>
         <div className="card">
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.925rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             TỔNG SỐ NHÓM
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#6366f1', marginTop: '0.25rem' }}>
             {totalGroups}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
             {fullGroups} nhóm đã đủ quân số
           </div>
         </div>
@@ -843,7 +843,7 @@ export const ReportsPage: React.FC = () => {
       {/* Breakdown by Major */}
       {summary && summary.byMajor.length > 0 && (
         <div className="card" style={{ marginBottom: '1.75rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.85rem' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.85rem' }}>
             Phân bố sinh viên theo chuyên ngành
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -852,15 +852,15 @@ export const ReportsPage: React.FC = () => {
                 key={m.major}
                 style={{
                   padding: '0.75rem 1rem',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   background: 'var(--bg-main, #f8fafc)',
                   border: '1px solid var(--border-light, #e2e8f0)',
                 }}
               >
-                <div style={{ fontWeight: 700, color: '#f26f21', fontSize: '0.9rem' }}>
+                <div style={{ fontWeight: 700, color: '#f26f21', fontSize: '1.025rem' }}>
                   Ngành {m.major}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.925rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                   Tổng: <strong>{m.totalStudents}</strong> • Có nhóm: <strong style={{ color: '#10b981' }}>{m.studentsInGroup}</strong> • Chưa: <strong style={{ color: '#ef4444' }}>{m.studentsWithoutGroup}</strong>
                 </div>
               </div>
@@ -906,11 +906,11 @@ export const ReportsPage: React.FC = () => {
             onChange={(e) => setSelectedMajor(e.target.value)}
             style={{
               padding: '0.45rem 0.75rem',
-              borderRadius: 8,
+              borderRadius: 10,
               border: '1px solid var(--border-light, #cbd5e1)',
               background: 'var(--bg-card, #ffffff)',
               color: 'var(--text-main)',
-              fontSize: '0.85rem',
+              fontSize: '0.95rem',
             }}
           >
             <option value="">Tất cả chuyên ngành</option>
@@ -931,11 +931,11 @@ export const ReportsPage: React.FC = () => {
             onChange={(e) => setSelectedStatus(e.target.value as GroupStatStatus | '')}
             style={{
               padding: '0.45rem 0.75rem',
-              borderRadius: 8,
+              borderRadius: 10,
               border: '1px solid var(--border-light, #cbd5e1)',
               background: 'var(--bg-card, #ffffff)',
               color: 'var(--text-main)',
-              fontSize: '0.85rem',
+              fontSize: '0.95rem',
             }}
           >
             <option value="">Tất cả trạng thái</option>
@@ -968,14 +968,14 @@ export const ReportsPage: React.FC = () => {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '0.75rem 1rem',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     background: 'var(--bg-main, #f8fafc)',
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
                   <div>
                     <strong style={{ color: 'var(--text-main)' }}>{s.fullName}</strong>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{s.email}</div>
+                    <div style={{ fontSize: '0.925rem', color: 'var(--text-muted)' }}>{s.email}</div>
                   </div>
                   <span className="badge badge-domain">{s.major || 'Chưa chọn ngành'}</span>
                 </div>
@@ -997,14 +997,14 @@ export const ReportsPage: React.FC = () => {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     padding: '0.75rem 1rem',
-                    borderRadius: 8,
+                    borderRadius: 10,
                     background: 'var(--bg-main, #f8fafc)',
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
                   <div>
                     <strong style={{ color: 'var(--text-main)' }}>{g.name}</strong>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '0.925rem', color: 'var(--text-muted)' }}>
                       Cập nhật: {new Date(g.updatedAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
@@ -1033,7 +1033,7 @@ export const ReportsPage: React.FC = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '0.75rem 1rem',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   background: 'var(--bg-main, #f8fafc)',
                   border: '1px solid var(--border-light, #e2e8f0)',
                 }}
@@ -1042,7 +1042,7 @@ export const ReportsPage: React.FC = () => {
                   <strong style={{ color: 'var(--text-main)' }}>
                     Snapshot lúc {new Date(snap.generatedAt).toLocaleString('vi-VN')}
                   </strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '0.925rem', color: 'var(--text-muted)' }}>
                     SV: {snap.totalStudents} (Có nhóm: {snap.studentsInGroup}, Chưa: {snap.studentsWithoutGroup})
                   </div>
                 </div>
@@ -1065,9 +1065,9 @@ export const ReportsPage: React.FC = () => {
       ) : activeTab === 'roster' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {/* Space Selector & Actions */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-main)', padding: '0.85rem 1rem', borderRadius: 8, border: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-main)', padding: '0.85rem 1rem', borderRadius: 10, border: '1px solid var(--border-light)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                <label style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                   Không gian môn học:
                 </label>
                 <select
@@ -1080,7 +1080,7 @@ export const ReportsPage: React.FC = () => {
                     background: 'var(--bg-card)',
                     color: 'var(--text-main)',
                     fontWeight: 600,
-                    fontSize: '0.85rem',
+                    fontSize: '0.95rem',
                   }}
                 >
                   {spaces.map((sp) => (
@@ -1117,27 +1117,27 @@ export const ReportsPage: React.FC = () => {
             {/* KPI Roster Summary */}
             {roster && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
-                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG NHÓM</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ padding: '0.85rem', borderRadius: 10, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG NHÓM</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalGroups}
                   </div>
                 </div>
-                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SINH VIÊN</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ padding: '0.85rem', borderRadius: 10, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SINH VIÊN</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#059669', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalStudents}
                   </div>
                 </div>
-                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>SĨ SỐ BÌNH QUÂN</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-orange)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                <div style={{ padding: '0.85rem', borderRadius: 10, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>SĨ SỐ BÌNH QUÂN</div>
+                  <div style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--fpt-orange)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalGroups > 0 ? (roster.totalStudents / roster.totalGroups).toFixed(1) : '0'} SV/nhóm
                   </div>
                 </div>
-                <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRẠNG THÁI</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: roster.status === 'Locked' ? '#dc2626' : 'var(--text-main)', marginTop: '0.25rem' }}>
+                <div style={{ padding: '0.85rem', borderRadius: 10, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRẠNG THÁI</div>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 800, color: roster.status === 'Locked' ? '#dc2626' : 'var(--text-main)', marginTop: '0.25rem' }}>
                     {roster.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : roster.status}
                   </div>
                 </div>
@@ -1153,7 +1153,7 @@ export const ReportsPage: React.FC = () => {
                 placeholder="Tìm kiếm nhóm, MSSV hoặc tên sinh viên trong Bảng điểm..."
                 value={rosterSearch}
                 onChange={(e) => setRosterSearch(e.target.value)}
-                style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
+                style={{ paddingLeft: '2.25rem', fontSize: '0.95rem' }}
               />
             </div>
 
@@ -1176,10 +1176,10 @@ export const ReportsPage: React.FC = () => {
                     return g.groupCode.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) || g.members.some(m => m.fullName.toLowerCase().includes(q) || m.studentCode.toLowerCase().includes(q));
                   })
                   .map((grp) => (
-                    <div key={grp.groupId} style={{ border: '1px solid var(--border-light)', borderRadius: 8, padding: '1rem', background: 'var(--bg-main)' }}>
+                    <div key={grp.groupId} style={{ border: '1px solid var(--border-light)', borderRadius: 10, padding: '1rem', background: 'var(--bg-main)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--fpt-blue)', fontSize: '0.85rem' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--fpt-blue)', fontSize: '0.95rem' }}>
                             {grp.groupCode}
                           </span>
                           <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{grp.name}</strong>
@@ -1189,12 +1189,12 @@ export const ReportsPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.925rem', fontWeight: 700, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
                           {grp.memberCount} / {grp.maxMembers} SV
                         </span>
                       </div>
 
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: 'var(--bg-card)', borderRadius: 6, overflow: 'hidden' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.925rem', background: 'var(--bg-card)', borderRadius: 6, overflow: 'hidden' }}>
                         <thead>
                           <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', textAlign: 'left' }}>
                             <th style={{ padding: '0.45rem 0.65rem' }}>MSSV</th>

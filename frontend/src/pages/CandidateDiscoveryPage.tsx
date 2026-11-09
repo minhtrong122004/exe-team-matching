@@ -170,7 +170,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             gap: '0.35rem',
             padding: '0.25rem 0.65rem',
             borderRadius: 9999,
-            fontSize: '0.75rem',
+            fontSize: '0.875rem',
             fontWeight: 700,
             background: '#dcfce7',
             color: '#15803d',
@@ -201,7 +201,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             gap: '0.35rem',
             padding: '0.25rem 0.65rem',
             borderRadius: 9999,
-            fontSize: '0.75rem',
+            fontSize: '0.875rem',
             fontWeight: 600,
             background: '#e0f2fe',
             color: '#0369a1',
@@ -223,7 +223,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           gap: '0.35rem',
           padding: '0.25rem 0.65rem',
           borderRadius: 9999,
-          fontSize: '0.75rem',
+          fontSize: '0.875rem',
           fontWeight: 600,
           background: '#f1f5f9',
           color: '#64748b',
@@ -261,7 +261,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
       <div style={{ marginBottom: '1.75rem' }}>
         <h1
           style={{
-            fontSize: '24px',
+            fontSize: '28px',
             fontWeight: 700,
             color: 'var(--text-main)',
             letterSpacing: '-0.02em',
@@ -271,7 +271,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           Danh bạ Ứng viên & Thành viên EXE
         </h1>
 
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: 740, lineHeight: 1.5, margin: '4px 0 0 0' }}>
+        <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: 740, lineHeight: 1.5, margin: '4px 0 0 0' }}>
           Tìm kiếm đồng đội phù hợp với dự án khởi nghiệp của bạn. Kết nối sinh viên đa ngành (Kỹ thuật phần mềm, Trí tuệ nhân tạo, An toàn thông tin, Thiết kế đồ họa, Digital Marketing, Kinh doanh quốc tế) và chiêu mộ thành viên.
         </p>
       </div>
@@ -282,7 +282,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
       <div
         style={{
           background: 'var(--bg-card)',
-          borderRadius: 16,
+          borderRadius: 20,
           padding: '1.5rem',
           border: '1px solid var(--border-light)',
           boxShadow: 'var(--shadow-sm)',
@@ -294,7 +294,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={searchInputId}
-              style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
             >
               Tìm kiếm theo tên / định hướng
             </label>
@@ -316,7 +316,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={majorSelectId}
-              style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
             >
               Chuyên ngành
             </label>
@@ -346,7 +346,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={skillSelectId}
-              style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
             >
               Kỹ năng công nghệ
             </label>
@@ -376,7 +376,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={availabilitySelectId}
-              style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
             >
               Trạng thái ghép nhóm
             </label>
@@ -413,7 +413,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         >
           {/* Quick major pill buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Lọc nhanh chuyên ngành:</span>
+            <span style={{ fontSize: '15px', color: 'var(--text-muted)', fontWeight: 600 }}>Lọc nhanh chuyên ngành:</span>
             <button
               type="button"
               onClick={() => {
@@ -425,8 +425,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 color: selectedMajor === 'ALL' ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
                 border: '1px solid ' + (selectedMajor === 'ALL' ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
                 borderRadius: '8px',
-                padding: '6px 14px',
-                fontSize: '13px',
+                padding: '9px 18px',
+                fontSize: '15px',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -449,8 +449,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     color: isSelected ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
                     border: '1px solid ' + (isSelected ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
                     borderRadius: '8px',
-                    padding: '6px 14px',
-                    fontSize: '13px',
+                    padding: '9px 18px',
+                    fontSize: '15px',
                     fontWeight: 500,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
@@ -474,7 +474,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 background: 'none',
                 border: 'none',
                 color: '#f26f21',
-                fontSize: '0.825rem',
+                fontSize: '0.95rem',
                 fontWeight: 600,
                 cursor: 'pointer',
                 padding: '0.2rem 0.5rem',
@@ -504,7 +504,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           {selectedSkill && ` với kỹ năng "${selectedSkill}"`}
           {onlyLookingForTeam && ' đang tìm nhóm'}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+        <div style={{ fontSize: '0.95rem', color: '#64748b' }}>
           Trang {page} / {totalPages}
         </div>
       </div>
@@ -536,7 +536,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(390px, 1fr))',
             gap: '1.5rem',
             minHeight: 300,
           }}
@@ -546,7 +546,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               key={i}
               style={{
                 background: 'var(--bg-card)',
-                borderRadius: 16,
+                borderRadius: 20,
                 padding: '1.5rem',
                 border: '1px solid var(--border-light)',
                 display: 'flex',
@@ -562,7 +562,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   <div style={{ width: '40%', height: 12, background: 'var(--bg-tag)', borderRadius: 4 }} />
                 </div>
               </div>
-              <div style={{ height: 40, background: 'var(--bg-subtle)', borderRadius: 8 }} />
+              <div style={{ height: 40, background: 'var(--bg-subtle)', borderRadius: 10 }} />
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <div style={{ width: 60, height: 22, background: 'var(--border-light)', borderRadius: 9999 }} />
                 <div style={{ width: 70, height: 22, background: 'var(--border-light)', borderRadius: 9999 }} />
@@ -574,7 +574,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         <div
           style={{
             background: 'var(--bg-card)',
-            borderRadius: 16,
+            borderRadius: 20,
             padding: '4rem 2rem',
             textAlign: 'center',
             border: '1px solid var(--border-light)',
@@ -595,17 +595,17 @@ export const CandidateDiscoveryPage: React.FC = () => {
           >
             <Users size={32} />
           </div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
             Không tìm thấy ứng viên phù hợp
           </h3>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: 420, margin: '0 auto 1.5rem' }}>
+          <p style={{ color: '#64748b', fontSize: '1.025rem', maxWidth: 420, margin: '0 auto 1.5rem' }}>
             Thử mở rộng tiêu chí tìm kiếm, chọn &quot;Tất cả chuyên ngành&quot; hoặc tắt điều kiện &quot;Chỉ hiện người đang tìm nhóm&quot;.
           </p>
           <button
             type="button"
             className="btn btn-outline"
             onClick={handleResetFilters}
-            style={{ borderRadius: 10, padding: '0.6rem 1.25rem', fontWeight: 600 }}
+            style={{ borderRadius: 12, padding: '0.6rem 1.25rem', fontWeight: 600 }}
           >
             Xóa bộ lọc tìm kiếm
           </button>
@@ -614,7 +614,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(390px, 1fr))',
             gap: '1.5rem',
           }}
         >
@@ -626,7 +626,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 key={c.userId}
                 style={{
                   backgroundColor: 'var(--bg-card)',
-                  borderRadius: '16px',
+                  borderRadius: '20px',
                   border: '1px solid var(--border-light)',
                   padding: '22px',
                   display: 'flex',
@@ -651,7 +651,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '15px',
+                          fontSize: '17px',
                           fontWeight: 700,
                           flexShrink: 0,
                         }}
@@ -678,7 +678,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
-                            fontSize: '12px',
+                            fontSize: '14px',
                             color: 'var(--text-muted)',
                             marginTop: '2px',
                             whiteSpace: 'nowrap',
@@ -707,7 +707,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         style={{
                           padding: '3px 9px',
                           borderRadius: '6px',
-                          fontSize: '12px',
+                          fontSize: '14px',
                           fontWeight: 600,
                           backgroundColor: 'var(--bg-tag)',
                           color: 'var(--text-secondary)',
@@ -722,7 +722,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         style={{
                           padding: '0.2rem 0.6rem',
                           borderRadius: 6,
-                          fontSize: '0.75rem',
+                          fontSize: '0.875rem',
                           fontWeight: 700,
                           background: '#fff7ed',
                           color: '#c2410c',
@@ -742,7 +742,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                           gap: '4px',
                           padding: '3px 9px',
                           borderRadius: '6px',
-                          fontSize: '12px',
+                          fontSize: '14px',
                           fontWeight: 500,
                           backgroundColor: 'var(--bg-subtle)',
                           color: 'var(--text-secondary)',
@@ -759,7 +759,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   {c.bio ? (
                     <p
                       style={{
-                        fontSize: '13px',
+                        fontSize: '15px',
                         color: 'var(--text-secondary)',
                         lineHeight: 1.55,
                         margin: '0 0 14px 0',
@@ -772,7 +772,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                       {c.bio}
                     </p>
                   ) : (
-                    <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 0 14px 0' }}>
+                    <p style={{ fontSize: '15px', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0 0 14px 0' }}>
                       Chưa cập nhật phần giới thiệu bản thân.
                     </p>
                   )}
@@ -780,7 +780,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   {/* Skills Chips */}
                   {c.skills && c.skills.length > 0 && (
                     <div style={{ marginBottom: '14px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         Kỹ năng chính:
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -790,7 +790,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                             style={{
                               padding: '2px 8px',
                               borderRadius: '6px',
-                              fontSize: '12px',
+                              fontSize: '14px',
                               backgroundColor: 'var(--bg-subtle)',
                               border: '1px solid var(--border-light)',
                               color: 'var(--text-secondary)',
@@ -800,7 +800,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                             }}
                           >
                             <span>{s.skillName}</span>
-                            <span style={{ fontSize: '11px', color: '#F27024', fontWeight: 700 }}>
+                            <span style={{ fontSize: '13px', color: '#F27024', fontWeight: 700 }}>
                               ★{s.level}
                             </span>
                           </span>
@@ -810,7 +810,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                             style={{
                               padding: '2px 7px',
                               borderRadius: '6px',
-                              fontSize: '11px',
+                              fontSize: '13px',
                               backgroundColor: 'var(--bg-tag)',
                               color: 'var(--text-muted)',
                               fontWeight: 600,
@@ -827,7 +827,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   {c.interests && c.interests.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
                       {c.interests.slice(0, 3).map((item, idx) => (
-                        <span key={idx} style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        <span key={idx} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>
                           #{item}
                         </span>
                       ))}
@@ -843,7 +843,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     style={{
                       flex: 1,
                       padding: '8px 12px',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',
@@ -863,7 +863,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     style={{
                       flex: 1,
                       padding: '8px 12px',
-                      fontSize: '12px',
+                      fontSize: '14px',
                       borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',
@@ -902,7 +902,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             className="btn btn-outline"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            style={{ padding: '0.5rem 0.8rem', borderRadius: 8, fontSize: '0.85rem' }}
+            style={{ padding: '0.5rem 0.8rem', borderRadius: 10, fontSize: '0.95rem' }}
           >
             <ChevronLeft size={16} /> Trước
           </button>
@@ -916,9 +916,9 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   onClick={() => setPage(p)}
                   style={{
                     width: 38,
-                    height: 38,
-                    borderRadius: 8,
-                    fontSize: '0.875rem',
+                    height: 44,
+                    borderRadius: 10,
+                    fontSize: '0.975rem',
                     fontWeight: 700,
                     border: p === page ? 'none' : '1px solid var(--border-medium)',
                     background: p === page ? 'var(--primary)' : 'var(--bg-card)',
@@ -946,7 +946,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             className="btn btn-outline"
             disabled={page >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            style={{ padding: '0.5rem 0.8rem', borderRadius: 8, fontSize: '0.85rem' }}
+            style={{ padding: '0.5rem 0.8rem', borderRadius: 10, fontSize: '0.95rem' }}
           >
             Sau <ChevronRight size={16} />
           </button>
@@ -1034,7 +1034,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                   {renderAvailabilityBadge(selectedCandidate.availability)}
                   {selectedCandidate.campus && (
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: '0.925rem', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                       <MapPin size={13} />
                       Cơ sở {selectedCandidate.campus}
                     </span>
@@ -1054,7 +1054,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '0.75rem',
                 marginBottom: '1.25rem',
-                fontSize: '0.85rem',
+                fontSize: '0.95rem',
               }}
             >
               <div>
@@ -1090,7 +1090,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   Điểm 5 Kỹ năng Cốt lõi
                 </h4>
                 {selectedCandidate.isProfileCompleted && (
-                  <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{ fontSize: '0.875rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     <ShieldCheck size={14} /> Đã cam kết trung thực
                   </span>
                 )}
@@ -1104,8 +1104,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   { name: 'Tiếp thị (Marketing)', score: selectedCandidate.marketingScore },
                   { name: 'Bán hàng (Sale)', score: selectedCandidate.saleScore },
                 ].map((s, idx) => (
-                  <div key={idx} style={{ background: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
+                  <div key={idx} style={{ background: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.925rem', marginBottom: 4 }}>
                       <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{s.name}</span>
                       <span style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
                         {s.score}%
@@ -1133,12 +1133,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
               </h4>
               <p
                 style={{
-                  fontSize: '0.9rem',
+                  fontSize: '1.025rem',
                   color: 'var(--text-secondary)',
                   lineHeight: 1.6,
                   background: 'var(--bg-card)',
                   border: '1px solid var(--border-light)',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   padding: '1rem',
                   margin: 0,
                 }}
@@ -1160,12 +1160,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
                       style={{
                         background: 'var(--bg-subtle)',
                         border: '1px solid var(--border-subtle)',
-                        borderRadius: 10,
+                        borderRadius: 12,
                         padding: '0.75rem 1rem',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-main)' }}>{s.skillName}</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.975rem', color: 'var(--text-main)' }}>{s.skillName}</span>
                         <span style={{ fontSize: '0.775rem', fontWeight: 700, color: 'var(--primary)' }}>
                           Level {s.level}/5 • {getSkillLevelText(s.level)}
                         </span>
@@ -1185,7 +1185,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '0.95rem', color: '#94a3b8', fontStyle: 'italic' }}>
                   Chưa cập nhật kỹ năng công nghệ.
                 </div>
               )}
@@ -1207,7 +1207,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         backgroundColor: 'var(--bg-tag)',
                         border: '1px solid var(--border-light)',
                         color: 'var(--text-secondary)',
-                        fontSize: '0.8rem',
+                        fontSize: '0.925rem',
                         fontWeight: 500,
                       }}
                     >
@@ -1227,7 +1227,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 background: 'var(--bg-subtle)',
                 border: '1px solid var(--border-subtle)',
                 padding: '0.75rem 1rem',
-                borderRadius: 10,
+                borderRadius: 12,
                 fontSize: '0.775rem',
                 color: 'var(--text-muted)',
                 lineHeight: 1.5,
@@ -1248,7 +1248,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 onClick={() => {
                   setSelectedCandidate(null);
                 }}
-                style={{ borderRadius: 10, padding: '0.65rem 1.25rem', fontWeight: 600, border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
+                style={{ borderRadius: 12, padding: '0.65rem 1.25rem', fontWeight: 600, border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
               >
                 Đóng
               </button>
@@ -1260,7 +1260,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   setSelectedCandidate(null);
                 }}
                 style={{
-                  borderRadius: 10,
+                  borderRadius: 12,
                   padding: '0.65rem 1.45rem',
                   fontWeight: 600,
                   boxShadow: '0 4px 14px rgba(242, 111, 33, 0.35)',

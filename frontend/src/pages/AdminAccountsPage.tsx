@@ -298,7 +298,7 @@ export const AdminAccountsPage: React.FC = () => {
     Boolean(searchTerm) || roleFilter !== 'ALL' || statusFilter !== 'ALL' || sortBy !== 'createdAt';
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: '3rem' }}>
+    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3rem' }}>
       {/* ── HEADER & TIÊU ĐỀ ────────────────────────────────────────────── */}
       <div
         style={{
@@ -315,7 +315,7 @@ export const AdminAccountsPage: React.FC = () => {
             <div
               style={{
                 width: 38,
-                height: 38,
+                height: 44,
                 borderRadius: 'var(--radius-md, 10px)',
                 background: 'linear-gradient(135deg, #f26f21 0%, #ea580c 100%)',
                 display: 'flex',
@@ -331,7 +331,7 @@ export const AdminAccountsPage: React.FC = () => {
               Quản trị Tài khoản
             </h1>
           </div>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.925rem' }}>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '1.05rem' }}>
             Cấp tài khoản Giảng viên / Moderator và kiểm soát quyền truy cập. Danh sách sinh viên được import trong từng Không gian học phần.
           </p>
         </div>
@@ -365,7 +365,7 @@ export const AdminAccountsPage: React.FC = () => {
             padding: '0.85rem 1.25rem',
             borderRadius: 'var(--radius-md, 10px)',
             marginBottom: '1.25rem',
-            fontSize: '0.9rem',
+            fontSize: '1.025rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -394,7 +394,7 @@ export const AdminAccountsPage: React.FC = () => {
             padding: '0.85rem 1.25rem',
             borderRadius: 'var(--radius-md, 10px)',
             marginBottom: '1.25rem',
-            fontSize: '0.9rem',
+            fontSize: '1.025rem',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -427,7 +427,7 @@ export const AdminAccountsPage: React.FC = () => {
               htmlFor={searchInputId}
               style={{
                 display: 'block',
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 marginBottom: '0.35rem',
@@ -480,7 +480,7 @@ export const AdminAccountsPage: React.FC = () => {
               htmlFor={roleFilterId}
               style={{
                 display: 'block',
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 marginBottom: '0.35rem',
@@ -510,7 +510,7 @@ export const AdminAccountsPage: React.FC = () => {
               htmlFor={statusFilterId}
               style={{
                 display: 'block',
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 marginBottom: '0.35rem',
@@ -539,7 +539,7 @@ export const AdminAccountsPage: React.FC = () => {
               htmlFor={sortByFilterId}
               style={{
                 display: 'block',
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
                 color: 'var(--text-muted)',
                 marginBottom: '0.35rem',
@@ -610,7 +610,7 @@ export const AdminAccountsPage: React.FC = () => {
               width: '100%',
               borderCollapse: 'collapse',
               textAlign: 'left',
-              fontSize: '0.9rem',
+              fontSize: '1.025rem',
               color: 'var(--text-main)',
             }}
           >
@@ -648,7 +648,7 @@ export const AdminAccountsPage: React.FC = () => {
                         margin: '0 auto 12px auto',
                       }}
                     />
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '1.025rem' }}>
                       Đang tải danh sách tài khoản từ hệ thống...
                     </p>
                   </td>
@@ -681,7 +681,7 @@ export const AdminAccountsPage: React.FC = () => {
                     >
                       Không tìm thấy tài khoản nào
                     </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.975rem', marginBottom: '1rem' }}>
                       Không có kết quả nào phù hợp với bộ lọc hoặc từ khóa hiện tại.
                     </p>
                     {hasActiveFilters && (
@@ -727,7 +727,7 @@ export const AdminAccountsPage: React.FC = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
-                              fontSize: '0.8rem',
+                              fontSize: '0.925rem',
                               flexShrink: 0,
                             }}
                           >
@@ -783,7 +783,7 @@ export const AdminAccountsPage: React.FC = () => {
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-light, #94a3b8)' }}>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-light, #94a3b8)' }}>
                               ID: {acc.id.substring(0, 8)}...
                             </div>
                           </div>
@@ -880,7 +880,7 @@ export const AdminAccountsPage: React.FC = () => {
                         style={{
                           padding: '1rem 1.25rem',
                           color: 'var(--text-muted)',
-                          fontSize: '0.825rem',
+                          fontSize: '0.95rem',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -956,7 +956,7 @@ export const AdminAccountsPage: React.FC = () => {
           }}
         >
           {/* Thông tin số lượng */}
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
             Hiển thị{' '}
             <strong style={{ color: 'var(--text-main)' }}>
               {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}
@@ -971,7 +971,7 @@ export const AdminAccountsPage: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {/* Lựa chọn số mục mỗi trang */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.95rem' }}>
               <label htmlFor={pageSizeId} style={{ color: 'var(--text-muted)' }}>
                 Hiển thị:
               </label>
@@ -983,7 +983,7 @@ export const AdminAccountsPage: React.FC = () => {
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                style={{ padding: '0.3rem 0.5rem', width: 'auto', fontSize: '0.85rem' }}
+                style={{ padding: '0.3rem 0.5rem', width: 'auto', fontSize: '0.95rem' }}
               >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
@@ -1004,7 +1004,7 @@ export const AdminAccountsPage: React.FC = () => {
                 <ChevronLeft size={16} />
               </button>
 
-              <span style={{ fontSize: '0.85rem', padding: '0 0.5rem', color: 'var(--text-main)' }}>
+              <span style={{ fontSize: '0.95rem', padding: '0 0.5rem', color: 'var(--text-main)' }}>
                 Trang <strong>{page}</strong> / {totalPages || 1}
               </span>
 
@@ -1075,7 +1075,7 @@ export const AdminAccountsPage: React.FC = () => {
                 >
                   <GraduationCap size={20} />
                 </div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>
                   Khởi tạo tài khoản Giảng viên / Moderator
                 </h3>
               </div>
@@ -1100,7 +1100,7 @@ export const AdminAccountsPage: React.FC = () => {
                 borderRadius: 'var(--radius-md, 10px)',
                 padding: '0.75rem 1rem',
                 marginBottom: '1.25rem',
-                fontSize: '0.825rem',
+                fontSize: '0.95rem',
                 color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -1125,7 +1125,7 @@ export const AdminAccountsPage: React.FC = () => {
                   padding: '0.75rem 1rem',
                   borderRadius: 'var(--radius-md, 10px)',
                   marginBottom: '1.25rem',
-                  fontSize: '0.85rem',
+                  fontSize: '0.95rem',
                 }}
               >
                 <AlertCircle size={16} style={{ flexShrink: 0, color: '#ef4444' }} />
@@ -1263,12 +1263,12 @@ export const AdminAccountsPage: React.FC = () => {
               >
                 <Lock size={20} />
               </div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>
                 Xác nhận khóa tài khoản
               </h3>
             </div>
 
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.025rem', marginBottom: '1rem' }}>
               Bạn có chắc chắn muốn khóa tài khoản người dùng{' '}
               <strong style={{ color: 'var(--text-main)' }}>{accountToLock.fullName}</strong> (
               <span style={{ color: '#2563eb' }}>{accountToLock.email}</span>)?
@@ -1281,7 +1281,7 @@ export const AdminAccountsPage: React.FC = () => {
                 borderRadius: 'var(--radius-md, 10px)',
                 padding: '0.75rem 1rem',
                 marginBottom: '1.5rem',
-                fontSize: '0.825rem',
+                fontSize: '0.95rem',
                 color: '#92400e',
                 display: 'flex',
                 alignItems: 'flex-start',
