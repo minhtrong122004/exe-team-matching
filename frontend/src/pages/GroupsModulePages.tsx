@@ -18,11 +18,10 @@ import {
   ArrowLeftRight,
   ShieldAlert,
   Send,
-  ChevronRight,
   TrendingUp,
-  Eye,
+  UserPlus,
   Users,
-} from 'lucide-react';
+} from '../utils/icons';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TYPES & MOCK DATA
@@ -80,8 +79,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'SE1801',
         major: 'Kỹ thuật phần mềm (SE)',
         role: 'Leader',
-        avatarBg: '#E0F2FE',
-        avatarText: '#0369A1',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '08:30 • 08/11/2026',
       },
       {
@@ -91,8 +90,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'GD1802',
         major: 'Thiết kế mỹ thuật số (GD)',
         role: 'Member',
-        avatarBg: '#FCE7F3',
-        avatarText: '#BE185D',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '14:15 • 08/11/2026',
       },
     ],
@@ -116,8 +115,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'SE1802',
         major: 'Kỹ thuật phần mềm (SE)',
         role: 'Leader',
-        avatarBg: '#DCFCE7',
-        avatarText: '#15803D',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '09:00 • 07/11/2026',
       },
       {
@@ -127,8 +126,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'SE1801',
         major: 'Trí tuệ nhân tạo (AI)',
         role: 'Member',
-        avatarBg: '#FEF3C7',
-        avatarText: '#B45309',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '10:30 • 07/11/2026',
       },
       {
@@ -138,8 +137,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'MKT1801',
         major: 'Digital Marketing (MKT)',
         role: 'Member',
-        avatarBg: '#EDE9FE',
-        avatarText: '#6D28D9',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '16:00 • 08/11/2026',
       },
     ],
@@ -163,8 +162,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'IA1801',
         major: 'An toàn thông tin (IA)',
         role: 'Leader',
-        avatarBg: '#FFEDD5',
-        avatarText: '#C2410C',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '11:00 • 06/11/2026',
       },
       {
@@ -174,8 +173,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'SE1803',
         major: 'Kỹ thuật phần mềm (SE)',
         role: 'Member',
-        avatarBg: '#F3E8FF',
-        avatarText: '#7E22CE',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '13:45 • 06/11/2026',
       },
       {
@@ -185,8 +184,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'IB1802',
         major: 'Kinh doanh quốc tế (IB)',
         role: 'Member',
-        avatarBg: '#E0E7FF',
-        avatarText: '#4338CA',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '15:20 • 07/11/2026',
       },
       {
@@ -196,8 +195,8 @@ const INITIAL_ROOMS: RoomItem[] = [
         classCode: 'GD1801',
         major: 'Thiết kế mỹ thuật số (GD)',
         role: 'Member',
-        avatarBg: '#CCFBF1',
-        avatarText: '#0F766E',
+        avatarBg: '#F1F5F9',
+        avatarText: '#334155',
         joinedAt: '18:10 • 08/11/2026',
       },
     ],
@@ -212,11 +211,11 @@ const INITIAL_ROOMS: RoomItem[] = [
     currentMembers: 5,
     maxMembers: 5,
     members: [
-      { id: 'u5a', name: 'Nguyễn Văn A', studentCode: 'SE180111', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#E0F2FE', avatarText: '#0369A1', joinedAt: '05/11/2026' },
-      { id: 'u5b', name: 'Trần Thị B', studentCode: 'GD180222', classCode: 'GD1802', major: 'GD', role: 'Member', avatarBg: '#FCE7F3', avatarText: '#BE185D', joinedAt: '05/11/2026' },
-      { id: 'u5c', name: 'Lê Văn C', studentCode: 'MKT18033', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#FEF3C7', avatarText: '#B45309', joinedAt: '06/11/2026' },
-      { id: 'u5d', name: 'Phạm Thị D', studentCode: 'IB18044', classCode: 'IB1804', major: 'IB', role: 'Member', avatarBg: '#EDE9FE', avatarText: '#6D28D9', joinedAt: '06/11/2026' },
-      { id: 'u5e', name: 'Hoàng Văn E', studentCode: 'AI18055', classCode: 'AI1805', major: 'AI', role: 'Member', avatarBg: '#DCFCE7', avatarText: '#15803D', joinedAt: '07/11/2026' },
+      { id: 'u5a', name: 'Nguyễn Văn A', studentCode: 'SE180111', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
+      { id: 'u5b', name: 'Trần Thị B', studentCode: 'GD180222', classCode: 'GD1802', major: 'GD', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
+      { id: 'u5c', name: 'Lê Văn C', studentCode: 'MKT18033', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '06/11/2026' },
+      { id: 'u5d', name: 'Phạm Thị D', studentCode: 'IB18044', classCode: 'IB1804', major: 'IB', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '06/11/2026' },
+      { id: 'u5e', name: 'Hoàng Văn E', studentCode: 'AI18055', classCode: 'AI1805', major: 'AI', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '07/11/2026' },
     ],
   },
   {
@@ -229,10 +228,10 @@ const INITIAL_ROOMS: RoomItem[] = [
     currentMembers: 4,
     maxMembers: 5,
     members: [
-      { id: 'u6a', name: 'Vũ Đức Thành', studentCode: 'SE180101', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#E0F2FE', avatarText: '#0369A1', joinedAt: '04/11/2026' },
-      { id: 'u6b', name: 'Đỗ Thu Hà', studentCode: 'IB180202', classCode: 'IB1802', major: 'IB', role: 'Member', avatarBg: '#FCE7F3', avatarText: '#BE185D', joinedAt: '04/11/2026' },
-      { id: 'u6c', name: 'Phan Minh Khang', studentCode: 'MKT180303', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#FEF3C7', avatarText: '#B45309', joinedAt: '05/11/2026' },
-      { id: 'u6d', name: 'Lâm Gia Tuệ', studentCode: 'SE180404', classCode: 'SE1804', major: 'SE', role: 'Member', avatarBg: '#EDE9FE', avatarText: '#6D28D9', joinedAt: '05/11/2026' },
+      { id: 'u6a', name: 'Vũ Đức Thành', studentCode: 'SE180101', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '04/11/2026' },
+      { id: 'u6b', name: 'Đỗ Thu Hà', studentCode: 'IB180202', classCode: 'IB1802', major: 'IB', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '04/11/2026' },
+      { id: 'u6c', name: 'Phan Minh Khang', studentCode: 'MKT180303', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
+      { id: 'u6d', name: 'Lâm Gia Tuệ', studentCode: 'SE180404', classCode: 'SE1804', major: 'SE', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
     ],
   },
 ];
@@ -286,8 +285,8 @@ export const GroupsPage: React.FC = () => {
             classCode,
             major,
             role: 'Leader',
-            avatarBg: '#FFEDD5',
-            avatarText: '#C2410C',
+            avatarBg: '#F1F5F9',
+            avatarText: '#334155',
             joinedAt: 'Vừa xong',
           };
           showToast(`Chúc mừng! Bạn đã vào phòng ${r.code} và trở thành Nhóm trưởng (Leader)!`);
@@ -308,8 +307,8 @@ export const GroupsPage: React.FC = () => {
             classCode,
             major,
             role: 'Member',
-            avatarBg: '#E0F2FE',
-            avatarText: '#0369A1',
+            avatarBg: '#F1F5F9',
+            avatarText: '#334155',
             joinedAt: 'Vừa xong',
           };
           showToast(`Bạn đã vào phòng ${r.code}! Sĩ số đạt 3/5: Phòng chính thức chuyển sang chế độ "Nhóm đang tuyển" và khóa cổng vào thẳng.`);
@@ -331,8 +330,8 @@ export const GroupsPage: React.FC = () => {
           classCode,
           major,
           role: 'Member',
-          avatarBg: '#E0F2FE',
-          avatarText: '#0369A1',
+          avatarBg: '#F1F5F9',
+          avatarText: '#334155',
           joinedAt: 'Vừa xong',
         };
         showToast(`Bạn đã tham gia thành công phòng ${r.code}!`);
@@ -408,427 +407,758 @@ export const GroupsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header Section */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F27024' }}>
-            <Layers size={20} />
-          </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-            Phòng & Nhóm Học Phần EXE
-          </h1>
+      {/* C. Page Header — EdTech Product Structure: Breadcrumb + Large Title + Concise Description */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12.5px',
+            fontWeight: 450,
+            color: 'var(--text-muted, #64748B)',
+            marginBottom: '0.45rem',
+          }}
+        >
+          <span>Học phần</span>
+          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+          <span>EXE</span>
+          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+          <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Phòng nhóm</span>
         </div>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0, lineHeight: 1.5 }}>
-          Danh sách các phòng nhóm được khởi tạo cho học kỳ hiện tại. Sinh viên thuộc các lớp khác nhau trong cùng môn học có thể tham gia chung một phòng.
+
+        <h1
+          style={{
+            fontSize: '1.75rem',
+            fontWeight: 650,
+            color: 'var(--text-main, #0F172A)',
+            margin: '0 0 0.35rem 0',
+            letterSpacing: '-0.022em',
+            lineHeight: 1.25,
+          }}
+        >
+          Phòng & Nhóm Học Phần EXE
+        </h1>
+        <p
+          style={{
+            color: 'var(--text-muted, #64748B)',
+            fontSize: '0.95rem',
+            fontWeight: 400,
+            margin: 0,
+            lineHeight: 1.5,
+          }}
+        >
+          Tìm kiếm đồng đội liên ngành, tham gia các phòng khởi nghiệp đang mở hoặc ứng tuyển vào nhóm phù hợp.
         </p>
       </div>
 
-      {/* Filter Tabs & Search Controls */}
+      {/* D. Filter & Search Toolbar — Flat Segmented Control (clear active state, no shadow/gradient) + Secondary Search & Filter */}
       <div
         style={{
-          backgroundColor: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '20px 26px',
-          marginBottom: '1.75rem',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '1.5rem',
+          paddingBottom: '1rem',
+          borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
         }}
       >
-        {/* Status Filter Pills */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
+        {/* 1. Primary Component: Flat Segmented Control with High-Contrast Active State (No shadow, no gradient) */}
+        <div
+          style={{
+            display: 'inline-flex',
+            flexWrap: 'wrap',
+            gap: '3px',
+            padding: '4px',
+            borderRadius: 10,
+            backgroundColor: '#F1F5F9',
+            border: '1px solid #E2E8F0',
+          }}
+        >
           {[
-            { key: 'ALL', label: `Tất cả (${rooms.length})` },
-            { key: 'EMPTY', label: `Phòng trống (0/5 • ${rooms.filter((r) => r.status === 'Empty').length})` },
-            { key: 'FORMING', label: `Đang lập (1-2/5 • Vào thẳng)` },
-            { key: 'RECRUITING', label: `Nhóm đang tuyển (3-4/5 • Nộp đơn)` },
-            { key: 'CLOSED', label: `Đã đóng tuyển (${rooms.filter((r) => r.status === 'Closed').length})` },
-            { key: 'LOCKED', label: `Đã chốt sổ (${rooms.filter((r) => r.status === 'Locked').length})` },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setFilterTab(tab.key)}
-              style={{
-                padding: '9px 18px',
-                borderRadius: 999,
-                fontSize: '15px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: filterTab === tab.key ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
-                backgroundColor: filterTab === tab.key ? 'var(--primary-light, #FFF7ED)' : 'var(--bg-card, #FFFFFF)',
-                color: filterTab === tab.key ? '#F27024' : 'var(--text-muted, #64748B)',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+            { key: 'ALL', label: 'Tất cả', count: rooms.length },
+            { key: 'EMPTY', label: 'Phòng trống', count: rooms.filter((r) => r.status === 'Empty').length },
+            { key: 'FORMING', label: 'Đang lập nhóm', count: rooms.filter((r) => r.status === 'Forming').length },
+            { key: 'RECRUITING', label: 'Đang tuyển', count: rooms.filter((r) => r.status === 'Recruiting').length },
+            { key: 'CLOSED', label: 'Đã đóng tuyển', count: rooms.filter((r) => r.status === 'Closed').length },
+            { key: 'LOCKED', label: 'Đã chốt sổ', count: rooms.filter((r) => r.status === 'Locked').length },
+          ].map((tab) => {
+            const active = filterTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                className={`motion-tab-pill${active ? ' is-active-tab' : ''}`}
+                onClick={() => setFilterTab(tab.key)}
+                style={{
+                  padding: '6px 13px',
+                  borderRadius: 7,
+                  fontSize: '13.5px',
+                  fontWeight: active ? 500 : 450,
+                  cursor: 'pointer',
+                  border: 'none',
+                  backgroundColor: active ? '#0F172A' : 'transparent',
+                  color: active ? '#FFFFFF' : '#475569',
+                  boxShadow: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span>{tab.label}</span>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    padding: '1px 6.5px',
+                    borderRadius: 999,
+                    backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : '#E2E8F0',
+                    color: active ? '#FFFFFF' : '#64748B',
+                    fontVariantNumeric: 'tabular-nums',
+                    transition: 'background-color 180ms ease, color 180ms ease',
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Search & Slot dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
-            <Search size={16} style={{ position: 'absolute', left: 12, top: 11, color: 'var(--text-light, #94A3B8)' }} />
+        {/* 2. Secondary Search + 3. Advanced Slot Filter (Aligned on 38px height baseline) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="motion-search-wrap" style={{ position: 'relative', width: 256 }}>
+            <Search size={15} className="motion-search-icon" style={{ position: 'absolute', left: 12, top: 11.5, color: '#94A3B8' }} />
             <input
               type="text"
-              placeholder="Tìm theo mã phòng (FA26EXE101-01), tên phòng hoặc đề tài..."
+              className="motion-search-input"
+              placeholder="Tìm mã phòng, tên, đề tài..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                height: 44,
-                paddingLeft: '2.25rem',
-                paddingRight: '1rem',
-                borderRadius: 12,
-                border: '1px solid var(--border-medium, #CBD5E1)',
-                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                fontSize: '15px',
+                height: 38,
+                paddingLeft: '2.15rem',
+                paddingRight: '0.85rem',
+                borderRadius: 8,
+                border: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                fontSize: '13.5px',
+                fontWeight: 400,
+                color: '#0F172A',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Chỗ trống:</span>
-            <select
-              value={slotFilter}
-              onChange={(e) => setSlotFilter(e.target.value)}
-              style={{
-                height: 44,
-                padding: '0 12px',
-                borderRadius: 12,
-                border: '1px solid var(--border-medium, #CBD5E1)',
-                backgroundColor: 'var(--bg-card, #FFFFFF)',
-                fontSize: '15px',
-                fontWeight: 600,
-                color: 'var(--text-main, #0F172A)',
-                outline: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="ALL">Tất cả chỗ trống</option>
-              <option value="1">Còn đúng 1 chỗ</option>
-              <option value="2-3">Còn 2-3 chỗ trống</option>
-              <option value="4-5">Còn 4-5 chỗ trống</option>
-            </select>
-          </div>
+          <select
+            value={slotFilter}
+            onChange={(e) => setSlotFilter(e.target.value)}
+            title="Bộ lọc nâng cao theo số chỗ trống"
+            style={{
+              height: 38,
+              padding: '0 12px',
+              borderRadius: 8,
+              border: '1px solid #E2E8F0',
+              backgroundColor: '#FFFFFF',
+              fontSize: '13.5px',
+              fontWeight: 450,
+              color: '#475569',
+              outline: 'none',
+              cursor: 'pointer',
+              transition: 'border-color 165ms ease, box-shadow 165ms ease',
+            }}
+          >
+            <option value="ALL">Chỗ trống: Tất cả</option>
+            <option value="1">Còn 1 vị trí</option>
+            <option value="2-3">Còn 2–3 vị trí</option>
+            <option value="4-5">Còn 4–5 vị trí</option>
+          </select>
         </div>
       </div>
 
-      {/* Grid 6 Thẻ Phòng Nhóm */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.25rem' }}>
-        {filteredRooms.map((room) => {
+      {/* A. 4-Column Room Cards Grid — Equal Row Height (No Staircase), Balanced Zones & Readable SaaS Scale */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '1.15rem',
+          alignItems: 'stretch',
+        }}
+      >
+        {filteredRooms.map((room, idx) => {
           const isDirectJoin = room.status === 'Empty' || room.status === 'Forming';
           const isRecruiting = room.status === 'Recruiting';
           const isClosed = room.status === 'Closed';
           const isLocked = room.status === 'Locked';
+          const remainingSlots = Math.max(0, room.maxMembers - room.currentMembers);
 
           return (
             <div
               key={room.id}
-              style={{
-                backgroundColor: 'var(--bg-card, #FFFFFF)',
-                border: '1px solid var(--border-light, #E2E8F0)',
-                borderRadius: '20px',
-                padding: '26px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              }}
+              className="motion-card-interactive motion-stagger-item"
+              style={
+                {
+                  '--stagger-index': Math.min(idx, 7),
+                  backgroundColor: 'var(--bg-card, #FFFFFF)',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  borderRadius: '14px',
+                  padding: '20px 22px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  height: '100%',
+                } as React.CSSProperties
+              }
             >
-              <div>
-                {/* Card Top: Code & Status Badge */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '15px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '3px 8px', borderRadius: 6, border: '1px solid #BFDBFE' }}>
-                      {room.code}
-                    </span>
-                  </div>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                {/* ZONE 1: Low-Priority Room Code + Medium-Priority Semantic Status Badge */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span
+                    style={{
+                      fontVariantNumeric: 'tabular-nums',
+                      fontWeight: 400,
+                      fontSize: '13px',
+                      color: '#64748B',
+                    }}
+                  >
+                    {room.code}
+                  </span>
 
-                  {room.status === 'Empty' && (
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-tag, #F1F5F9)', padding: '3px 9px', borderRadius: 999 }}>
-                      Phòng trống (0/{room.maxMembers})
-                    </span>
-                  )}
                   {room.status === 'Forming' && (
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#0284C7', backgroundColor: '#E0F2FE', padding: '3px 9px', borderRadius: 999, border: '1px solid #BAE6FD' }}>
-                      Đang lập ({room.currentMembers}/{room.maxMembers} • Vào thẳng)
+                    <span
+                      style={{
+                        fontSize: '12.5px',
+                        fontWeight: 500,
+                        color: '#334155',
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '-0.005em',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: '#10B981',
+                          boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.18)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      Đang lập nhóm
                     </span>
                   )}
                   {room.status === 'Recruiting' && (
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#C2410C', backgroundColor: '#FFF7ED', padding: '3px 9px', borderRadius: 999, border: '1px solid #FED7AA' }}>
-                      Đang tuyển ({room.currentMembers}/{room.maxMembers} • Nộp đơn)
+                    <span
+                      style={{
+                        fontSize: '12.5px',
+                        fontWeight: 500,
+                        color: '#334155',
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '-0.005em',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: '#F59E0B',
+                          boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      Đang tuyển
                     </span>
                   )}
-                  {room.status === 'Closed' && (
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#15803D', backgroundColor: '#F0FDF4', padding: '3px 9px', borderRadius: 999, border: '1px solid #BBF7D0' }}>
-                      Đã đóng tuyển ({room.currentMembers}/{room.maxMembers})
-                    </span>
-                  )}
-                  {room.status === 'Locked' && (
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #475569)', backgroundColor: 'var(--bg-tag, #F1F5F9)', padding: '3px 9px', borderRadius: 999, border: '1px solid var(--border-medium, #CBD5E1)' }}>
-                      Đã chốt sổ học kỳ
+                  {(room.status === 'Empty' || room.status === 'Closed' || room.status === 'Locked') && (
+                    <span
+                      style={{
+                        fontSize: '12.5px',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '-0.005em',
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: '#94A3B8',
+                          flexShrink: 0,
+                        }}
+                      />
+                      {room.status === 'Empty'
+                        ? 'Phòng trống'
+                        : room.status === 'Closed'
+                        ? 'Đã đóng tuyển'
+                        : 'Đã chốt sổ'}
                     </span>
                   )}
                 </div>
 
-                {/* Room Name & Topic */}
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0' }}>
+                {/* ZONE 2: High-Priority Room Name & Standardized Project Topic Zone (Fixed min-height so divider lines align across row) */}
+                <h3
+                  style={{
+                    fontSize: '17.5px',
+                    fontWeight: 600,
+                    color: '#0F172A',
+                    margin: '0 0 8px 0',
+                    letterSpacing: '-0.015em',
+                  }}
+                >
                   {room.name}
                 </h3>
-                {room.topic ? (
-                  <div style={{ marginBottom: '1rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '8px 12px', borderRadius: 12, border: '1px solid var(--border-subtle, #F1F5F9)' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase' }}>Đề tài dự kiến:</div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginTop: '2px' }}>{room.topic}</div>
-                    {room.topicDesc && (
-                      <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginTop: '3px', lineHeight: 1.4 }}>{room.topicDesc}</div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: '14.5px', color: 'var(--text-light, #94A3B8)', fontStyle: 'italic', marginBottom: '1rem' }}>
-                    Chưa đăng ký đề tài chính thức
-                  </div>
-                )}
 
-                {/* Skill Match Badge for Recruiting rooms */}
-                {isRecruiting && room.skillBalance && (
-                  <div style={{ marginBottom: '1rem', padding: '8px 12px', borderRadius: 12, backgroundColor: '#FAF5FF', border: '1px solid #F3E8FF' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#7E22CE', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <Sparkles size={14} /> Độ cân bằng kỹ năng:
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#7E22CE' }}>
-                        {room.skillBalance}%
-                      </span>
-                    </div>
-                    {room.neededSkills && room.neededSkills.length > 0 && (
-                      <div style={{ fontSize: '13.5px', color: '#6B21A8' }}>
-                        <strong>Cần thêm:</strong> {room.neededSkills.join(', ')}
+                <div style={{ minHeight: 64, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+                  {room.topic ? (
+                    <div>
+                      {/* High-Priority Project Topic Title */}
+                      <div
+                        style={{
+                          fontSize: '14.5px',
+                          fontWeight: 600,
+                          color: '#1E293B',
+                          lineHeight: 1.38,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={room.topic}
+                      >
+                        {room.topic}
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Member Roster List */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>Thành viên trong phòng ({room.currentMembers}/{room.maxMembers}):</span>
-                    {isClosed && !isStaff && (
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <Lock size={11} /> Đã bảo mật danh sách
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Privacy Check: If closed/locked and not staff, hide detail emails/profiles */}
-                  {(isClosed || isLocked) && !isStaff ? (
-                    <div style={{ padding: '12px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed #CBD5E1', textAlign: 'center', fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                      Thông tin chi tiết thành viên đã được bảo mật do nhóm đã đóng tuyển đủ thành viên.
-                    </div>
-                  ) : room.members.length === 0 ? (
-                    <div style={{ padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed #E2E8F0', color: 'var(--text-light, #94A3B8)', fontSize: '14px', textAlign: 'center' }}>
-                      Chưa có thành viên nào. Hãy là người đầu tiên tham gia để làm Nhóm trưởng!
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {room.members.map((m) => (
+                      {/* Low-Priority Secondary Description (1-line clamp to prevent crowding) */}
+                      {room.topicDesc && (
                         <div
-                          key={m.id}
                           style={{
+                            fontSize: '13px',
+                            fontWeight: 400,
+                            color: '#64748B',
+                            marginTop: '3px',
+                            lineHeight: 1.4,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                          title={room.topicDesc}
+                        >
+                          {room.topicDesc}
+                        </div>
+                      )}
+                      {/* Quiet Neutral Metadata for Recruiting Needs */}
+                      {isRecruiting && (room.neededSkills?.length || room.skillBalance) && (
+                        <div
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 400,
+                            color: '#64748B',
+                            marginTop: '6px',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            borderRadius: 10,
-                            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                            border: '1px solid var(--border-subtle, #F1F5F9)',
+                            gap: '6px',
+                            flexWrap: 'wrap',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {room.neededSkills && room.neededSkills.length > 0 && (
+                            <span>
+                              Cần thêm: <span style={{ color: '#0F172A', fontWeight: 500 }}>{room.neededSkills.join(', ')}</span>
+                            </span>
+                          )}
+                          {room.skillBalance && (
+                            <>
+                              <span style={{ color: '#CBD5E1' }}>·</span>
+                              <span style={{ fontVariantNumeric: 'tabular-nums' }}>Cân bằng {room.skillBalance}%</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : room.status === 'Empty' ? (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#475569', lineHeight: 1.38 }}>
+                        Chưa đăng ký đề tài dự án
+                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: 400, color: '#94A3B8', marginTop: '3px' }}>
+                        Mở tự do cho nhóm mới định hướng ý tưởng
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#334155', lineHeight: 1.38 }}>
+                        Đang thảo luận ý tưởng khởi nghiệp
+                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px' }}>
+                        Chốt đề tài chính thức khi đủ 3 thành viên
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clear Divider between Project Info and Member Roster */}
+                <div
+                  style={{
+                    height: 1,
+                    backgroundColor: '#F1F5F9',
+                    margin: '14px 0',
+                  }}
+                />
+
+                {/* ZONE 3: Member Roster + Controlled Progress Bar (Flex-1 so all cards in a row share equal bottom baseline) */}
+                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '7px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#475569',
+                      }}
+                    >
+                      Thành viên
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: '#64748B',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {room.currentMembers} / {room.maxMembers}
+                    </span>
+                  </div>
+
+                  {/* 5-Segment Progress Bar (Synced with user's chosen accent/progress color) */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${room.maxMembers}, 1fr)`,
+                      gap: '5px',
+                      marginBottom: '14px',
+                    }}
+                  >
+                    {Array.from({ length: room.maxMembers }).map((_, idx) => {
+                      const isFilled = idx < room.currentMembers;
+                      return (
+                        <div
+                          key={idx}
+                          className={isFilled ? 'motion-progress-fill' : undefined}
+                          style={{
+                            height: 4,
+                            borderRadius: 999,
+                            backgroundColor: isFilled
+                              ? 'var(--status-progress, #7C3AED)'
+                              : '#E2E8F0',
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Member Rows or Proportional Empty/Privacy State */}
+                  {(isClosed || isLocked) && !isStaff ? (
+                    <div
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        borderRadius: 10,
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #F1F5F9',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
+                        <Lock size={14} color="#64748B" style={{ flexShrink: 0 }} />
+                        <span>Danh sách thành viên được bảo mật</span>
+                      </div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '22px', lineHeight: 1.45 }}>
+                        Phòng đã hoàn tất ghép đội hoặc khóa sổ học kỳ.
+                      </div>
+                    </div>
+                  ) : room.members.length === 0 ? (
+                    /* Proportional Empty State for Card 01 (Fills roster zone naturally so Card 01 aligns with Row 1) */
+                    <div
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        borderRadius: 10,
+                        backgroundColor: '#F8FAFC',
+                        border: '1px dashed #E2E8F0',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        gap: '5px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
+                        <UserPlus size={15} color="#64748B" style={{ flexShrink: 0 }} />
+                        <span>Chưa có thành viên tham gia</span>
+                      </div>
+                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '23px', lineHeight: 1.45 }}>
+                        Sinh viên vào đầu tiên giữ vai trò Nhóm trưởng. Cổng vào thẳng mở tự do đến 3/5.
+                      </div>
+                    </div>
+                  ) : (
+                    /* Single-line Member Rows + Remaining Open Slots Indicator at Bottom of Roster */
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                        {room.members.map((m) => {
+                          const shortMajorMatch = m.major.match(/\(([^)]+)\)/);
+                          const shortMajor = shortMajorMatch ? shortMajorMatch[1] : m.major;
+                          return (
                             <div
+                              key={m.id}
                               style={{
-                                width: 38,
-                                height: 38,
-                                borderRadius: '50%',
-                                backgroundColor: m.avatarBg,
-                                color: m.avatarText,
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '13px',
-                                fontWeight: 800,
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                minHeight: 26,
                               }}
                             >
-                              {m.name.charAt(0)}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span>{m.name}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
+                                <span
+                                  style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#F1F5F9',
+                                    color: '#334155',
+                                    border: '1px solid #E2E8F0',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: 500,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {m.name.charAt(0)}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                    color: '#0F172A',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
+                                  {m.name}
+                                </span>
                                 {m.role === 'Leader' && (
-                                  <span title="Trưởng nhóm" style={{ display: 'inline-flex' }}>
-                                    <Crown size={12} color="#F27024" />
+                                  <span
+                                    title="Trưởng nhóm"
+                                    style={{
+                                      fontSize: '11.5px',
+                                      fontWeight: 500,
+                                      color: '#475569',
+                                      backgroundColor: '#F1F5F9',
+                                      padding: '1.5px 6px',
+                                      borderRadius: 5,
+                                      flexShrink: 0,
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    Leader
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
-                                {m.studentCode} • {m.major}
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Original Class Badge (SE1801, GD1802...) */}
-                          <span
-                            style={{
-                              fontFamily: 'monospace',
-                              fontWeight: 700,
-                              fontSize: '13px',
-                              backgroundColor: '#E2E8F0',
-                              color: 'var(--text-secondary, #334155)',
-                              padding: '2px 6px',
-                              borderRadius: 4,
-                            }}
-                          >
-                            {m.classCode}
-                          </span>
+                              {/* Low-Priority Metadata: Major Code & Class Code (Never bolded) */}
+                              <span
+                                style={{
+                                  fontVariantNumeric: 'tabular-nums',
+                                  fontWeight: 400,
+                                  fontSize: '12.5px',
+                                  color: '#64748B',
+                                  flexShrink: 0,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {shortMajor} · {m.classCode}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {remainingSlots > 0 && (
+                        <div
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: 7,
+                            backgroundColor: '#F8FAFC',
+                            fontSize: '12.5px',
+                            fontWeight: 400,
+                            color: '#64748B',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <span>+ Còn {remainingSlots} vị trí trống</span>
+                          <span style={{ color: '#94A3B8' }}>{isDirectJoin ? 'Mở tự do' : 'Xét duyệt'}</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Bottom Action Button */}
-              <div style={{ borderTop: '1px solid var(--border-subtle, #F1F5F9)', paddingTop: '14px' }}>
+              {/* ZONE 4: Card Footer — Pinned at Bottom so all 4 Cards Align Horizontally */}
+              <div
+                style={{
+                  borderTop: '1px solid #F1F5F9',
+                  paddingTop: '13px',
+                  marginTop: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 400,
+                    color: '#64748B',
+                  }}
+                >
+                  {isDirectJoin && `Còn ${remainingSlots} vị trí · Vào thẳng`}
+                  {isRecruiting && `Còn ${remainingSlots} vị trí · Duyệt đơn`}
+                  {isClosed && `Đủ ${room.currentMembers}/${room.maxMembers} thành viên`}
+                  {isLocked && 'Đã khóa sổ học kỳ'}
+                </span>
+
                 {isStaff ? (
                   <button
                     type="button"
+                    className="motion-cta-btn"
                     onClick={() => setInspectRoomModal(room)}
                     style={{
-                      width: '100%',
-                      padding: '13px 20px',
-                      borderRadius: 12,
-                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                      border: '1px solid var(--border-light, #E2E8F0)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '15px',
-                      fontWeight: 700,
+                      padding: '6.5px 13px',
+                      borderRadius: 8,
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      color: '#0F172A',
+                      fontSize: '13px',
+                      fontWeight: 500,
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '7px',
-                      transition: 'all 0.15s ease',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                      gap: '4px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <Eye size={15} color="#0054A6" />
-                    <span>Xem chi tiết & Giám sát phòng</span>
+                    <span>Xem chi tiết</span>
+                    <span className="motion-arrow">→</span>
                   </button>
                 ) : (
                   <>
                     {isDirectJoin && (
                       <button
                         type="button"
+                        className="motion-cta-btn"
                         onClick={() => handleDirectJoin(room.code)}
                         style={{
-                          width: '100%',
-                          padding: '13px 20px',
-                          borderRadius: 12,
-                          backgroundColor: '#F27024',
-                          border: 'none',
-                          color: '#FFFFFF',
-                          fontSize: '15px',
-                          fontWeight: 700,
+                          padding: '6.5px 13px',
+                          borderRadius: 8,
+                          backgroundColor: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          color: '#0F172A',
+                          fontSize: '13px',
+                          fontWeight: 500,
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 6px rgba(242, 112, 36, 0.25)',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        <span>Tham gia ngay (Vào thẳng)</span>
-                        <ChevronRight size={15} />
+                        <span>Tham gia</span>
+                        <span className="motion-arrow">→</span>
                       </button>
                     )}
 
                     {isRecruiting && (
                       <button
                         type="button"
+                        className="motion-cta-btn"
                         onClick={() => setApplyModalRoom(room)}
                         style={{
-                          width: '100%',
-                          padding: '13px 20px',
-                          borderRadius: 12,
-                          backgroundColor: '#0054A6',
-                          border: 'none',
+                          padding: '6.5px 13px',
+                          borderRadius: 8,
+                          backgroundColor: '#0F172A',
+                          border: '1px solid #0F172A',
                           color: '#FFFFFF',
-                          fontSize: '15px',
-                          fontWeight: 700,
+                          fontSize: '13px',
+                          fontWeight: 500,
                           cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 6px rgba(0, 84, 166, 0.25)',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        <Send size={14} />
-                        <span>Ứng tuyển vào nhóm (Apply)</span>
+                        <span>Ứng tuyển</span>
+                        <span className="motion-arrow">→</span>
                       </button>
                     )}
 
-                    {isClosed && (
-                      <button
-                        type="button"
-                        disabled
+                    {(isClosed || isLocked) && (
+                      <span
                         style={{
-                          width: '100%',
-                          padding: '13px 20px',
-                          borderRadius: 12,
-                          backgroundColor: 'var(--bg-tag, #F1F5F9)',
-                          border: '1px solid var(--border-light, #E2E8F0)',
-                          color: 'var(--text-light, #94A3B8)',
-                          fontSize: '15px',
-                          fontWeight: 600,
-                          cursor: 'not-allowed',
-                          display: 'flex',
+                          fontSize: '12.5px',
+                          fontWeight: 400,
+                          color: '#94A3B8',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
-                        <Lock size={14} />
-                        <span>Phòng đã đóng tuyển (Đủ 5/5)</span>
-                      </button>
-                    )}
-
-                    {isLocked && (
-                      <button
-                        type="button"
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '13px 20px',
-                          borderRadius: 12,
-                          backgroundColor: 'var(--bg-tag, #F1F5F9)',
-                          border: '1px solid var(--border-medium, #CBD5E1)',
-                          color: 'var(--text-muted, #64748B)',
-                          fontSize: '14.5px',
-                          fontWeight: 600,
-                          cursor: 'not-allowed',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                        }}
-                      >
-                        <Lock size={14} />
-                        <span>Học kỳ đã chốt sổ (Chỉ điều phối / Đổi chéo)</span>
-                      </button>
+                        <Lock size={12} />
+                        <span>{isClosed ? 'Đã đóng' : 'Chỉ đổi chéo'}</span>
+                      </span>
                     )}
                   </>
                 )}
@@ -841,6 +1171,7 @@ export const GroupsPage: React.FC = () => {
       {/* Modal Ứng tuyển vào nhóm */}
       {applyModalRoom && (
         <div
+          className="motion-modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -854,6 +1185,7 @@ export const GroupsPage: React.FC = () => {
           }}
         >
           <div
+            className="motion-modal-dialog"
             style={{
               backgroundColor: 'var(--bg-card, #FFFFFF)',
               border: '1px solid var(--border-light, #E2E8F0)',
@@ -1025,7 +1357,7 @@ export const GroupsPage: React.FC = () => {
             <div style={{ marginBottom: '18px' }}>
               <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Users size={16} color="#F27024" />
+                  <Users size={16} color="var(--accent-color, #F26F21)" />
                   Danh sách thành viên chính thức ({inspectRoomModal.members.length}/{inspectRoomModal.maxMembers})
                 </span>
                 <span style={{ fontSize: '13.5px', color: '#059669', fontWeight: 600 }}>
@@ -1073,8 +1405,7 @@ export const GroupsPage: React.FC = () => {
                           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span>{m.name}</span>
                             {m.role === 'Leader' && (
-                              <span style={{ fontSize: '13px', fontWeight: 700, color: '#C2410C', backgroundColor: 'rgba(242, 112, 36, 0.12)', padding: '2px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <Crown size={12} color="#F27024" />
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', padding: '1px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
                                 Trưởng nhóm
                               </span>
                             )}
@@ -1144,8 +1475,8 @@ export const MyGroupPage: React.FC = () => {
       classCode: 'SE1801',
       major: 'Kỹ thuật phần mềm (SE)',
       role: 'Leader',
-      avatarBg: '#FFEDD5',
-      avatarText: '#C2410C',
+      avatarBg: '#F1F5F9',
+      avatarText: '#334155',
       joinedAt: '08:00 • 07/11/2026',
     },
     {
@@ -1155,8 +1486,8 @@ export const MyGroupPage: React.FC = () => {
       classCode: 'SE1801',
       major: 'Kỹ thuật phần mềm (SE)',
       role: 'Member',
-      avatarBg: '#E0F2FE',
-      avatarText: '#0369A1',
+      avatarBg: '#F1F5F9',
+      avatarText: '#334155',
       joinedAt: '08:30 • 07/11/2026',
     },
     {
@@ -1166,8 +1497,8 @@ export const MyGroupPage: React.FC = () => {
       classCode: 'GD1802',
       major: 'Thiết kế mỹ thuật số (GD)',
       role: 'Member',
-      avatarBg: '#FCE7F3',
-      avatarText: '#BE185D',
+      avatarBg: '#F1F5F9',
+      avatarText: '#334155',
       joinedAt: '14:15 • 07/11/2026',
     },
   ]);
@@ -1346,8 +1677,8 @@ export const MyGroupPage: React.FC = () => {
       classCode: app.classCode,
       major: app.major,
       role: 'Member',
-      avatarBg: '#E0F2FE',
-      avatarText: '#0369A1',
+      avatarBg: '#F1F5F9',
+      avatarText: '#334155',
       joinedAt: 'Vừa xong',
     };
     setMembers([...members, newMember]);
@@ -1392,7 +1723,7 @@ export const MyGroupPage: React.FC = () => {
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'space-between',
           marginBottom: '1.5rem',
           flexWrap: 'wrap',
@@ -1400,49 +1731,99 @@ export const MyGroupPage: React.FC = () => {
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '16px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '4px 10px', borderRadius: 6, border: '1px solid #BFDBFE' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '12.5px',
+              fontWeight: 450,
+              color: 'var(--text-muted, #64748B)',
+              marginBottom: '0.4rem',
+            }}
+          >
+            <span>Học phần</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span>EXE</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Nhóm của tôi</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>·</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, color: '#94A3B8' }}>
               FA26EXE101-02
             </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.022em' }}>
+              Nhóm Khởi Nghiệp Của Tôi
+            </h1>
             <span
               style={{
-                fontSize: '14.5px',
-                fontWeight: 700,
-                padding: '4px 10px',
-                borderRadius: 999,
-                backgroundColor: isLockedSemester ? '#F1F5F9' : isEarlyClosed ? '#F0FDF4' : '#FFF7ED',
-                color: isLockedSemester ? '#475569' : isEarlyClosed ? '#15803D' : '#C2410C',
-                border: isLockedSemester ? '1px solid #CBD5E1' : isEarlyClosed ? '1px solid #BBF7D0' : '1px solid #FED7AA',
+                fontSize: '12.5px',
+                fontWeight: 500,
+                padding: '3px 9px',
+                borderRadius: 6,
+                backgroundColor: '#F8FAFC',
+                color: isLockedSemester || isEarlyClosed ? '#64748B' : '#334155',
+                border: '1px solid #E2E8F0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
               }}
             >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  backgroundColor:
+                    isLockedSemester || isEarlyClosed
+                      ? '#94A3B8'
+                      : '#F59E0B',
+                  boxShadow:
+                    isLockedSemester || isEarlyClosed
+                      ? 'none'
+                      : '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                  flexShrink: 0,
+                }}
+              />
               {isLockedSemester
-                ? 'Đã chốt sổ học kỳ (Khóa cứng)'
+                ? 'Đã chốt sổ học kỳ'
                 : isEarlyClosed
-                ? 'Đã đóng tuyển sớm (Đủ quân)'
-                : `Đang mở tuyển sinh viên (${members.length}/5)`}
+                ? 'Đã đóng tuyển sớm'
+                : `Đang tuyển (${members.length}/5)`}
             </span>
           </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '8px 0 2px 0' }}>
-            Nhóm Khởi Nghiệp Của Tôi
-          </h1>
         </div>
 
-        {/* Mode Switcher Pill */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '4px 6px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', paddingLeft: 6 }}>Chế độ kiểm thử:</span>
+        {/* Mode Switcher — Flat Segmented Control (No shadow, no gradient) */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '2px',
+            backgroundColor: '#F1F5F9',
+            border: '1px solid #E2E8F0',
+            padding: '3px',
+            borderRadius: 9,
+          }}
+        >
+          <span style={{ fontSize: '12px', fontWeight: 450, color: '#64748B', paddingLeft: 8, paddingRight: 6 }}>
+            Chế độ kiểm thử:
+          </span>
           <button
             type="button"
             onClick={() => setIsLockedSemester(false)}
             style={{
-              padding: '6px 12px',
-              borderRadius: 10,
-              fontSize: '14.5px',
-              fontWeight: 700,
+              padding: '5px 11px',
+              borderRadius: 6,
+              fontSize: '12.5px',
+              fontWeight: !isLockedSemester ? 500 : 450,
               cursor: 'pointer',
-              border: !isLockedSemester ? '1px solid #F27024' : '1px solid transparent',
-              backgroundColor: !isLockedSemester ? 'var(--bg-card, #FFFFFF)' : 'transparent',
-              color: !isLockedSemester ? '#F27024' : 'var(--text-muted, #64748B)',
-              boxShadow: !isLockedSemester ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              border: 'none',
+              backgroundColor: !isLockedSemester ? '#0F172A' : 'transparent',
+              color: !isLockedSemester ? '#FFFFFF' : '#475569',
+              boxShadow: 'none',
             }}
           >
             Đang mở đăng ký
@@ -1451,15 +1832,15 @@ export const MyGroupPage: React.FC = () => {
             type="button"
             onClick={() => setIsLockedSemester(true)}
             style={{
-              padding: '6px 12px',
-              borderRadius: 10,
-              fontSize: '14.5px',
-              fontWeight: 700,
+              padding: '5px 11px',
+              borderRadius: 6,
+              fontSize: '12.5px',
+              fontWeight: isLockedSemester ? 500 : 450,
               cursor: 'pointer',
-              border: isLockedSemester ? '1px solid var(--border-medium, #475569)' : '1px solid transparent',
-              backgroundColor: isLockedSemester ? 'var(--bg-card, #FFFFFF)' : 'transparent',
-              color: isLockedSemester ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
-              boxShadow: isLockedSemester ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              border: 'none',
+              backgroundColor: isLockedSemester ? '#0F172A' : 'transparent',
+              color: isLockedSemester ? '#FFFFFF' : '#475569',
+              boxShadow: 'none',
             }}
           >
             Đã chốt sổ học kỳ
@@ -1471,9 +1852,9 @@ export const MyGroupPage: React.FC = () => {
       {isLockedSemester && (
         <div
           style={{
-            backgroundColor: '#EFF6FF',
-            border: '1px solid #BFDBFE',
-            borderRadius: 18,
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: 16,
             padding: '14px 18px',
             marginBottom: '1.5rem',
             display: 'flex',
@@ -1483,13 +1864,15 @@ export const MyGroupPage: React.FC = () => {
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Lock size={20} color="#0054A6" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
+              <Lock size={17} />
+            </div>
             <div>
-              <div style={{ fontWeight: 800, color: '#1E3A8A', fontSize: '15.5px' }}>
+              <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '14.5px' }}>
                 Học kỳ đã chốt sổ danh sách (Locked)
               </div>
-              <div style={{ fontSize: '14.5px', color: '#1E40AF', marginTop: '2px' }}>
+              <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '2px' }}>
                 Cổng đăng ký và kết nạp tự do đã đóng. Mọi điều chỉnh thành viên chỉ được thực hiện qua quy trình nộp đơn xin Chuyển nhóm / Đổi chéo để Điều phối viên phê duyệt.
               </div>
             </div>
@@ -1499,17 +1882,18 @@ export const MyGroupPage: React.FC = () => {
             type="button"
             onClick={() => setShowTransferSwapModal(true)}
             style={{
-              padding: '8px 16px',
-              borderRadius: 12,
-              backgroundColor: '#0054A6',
+              padding: '9px 16px',
+              borderRadius: 10,
+              background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
               border: 'none',
               color: '#FFFFFF',
-              fontSize: '15px',
-              fontWeight: 700,
+              fontSize: '13.5px',
+              fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
+              boxShadow: '0 2px 4px rgba(242, 111, 33, 0.25)',
             }}
           >
             <ArrowLeftRight size={14} />
@@ -1522,16 +1906,20 @@ export const MyGroupPage: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
         {/* Left Column: Project Info & 5 Skills Bar Chart (shadcn Card Architecture) */}
         <div
-          style={{
-            backgroundColor: 'var(--bg-card, #FFFFFF)',
-            border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
-            padding: '28px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            boxShadow: '0 4px 16px -4px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03)',
-          }}
+          className="motion-stagger-item"
+          style={
+            {
+              '--stagger-index': 0,
+              backgroundColor: 'var(--bg-card, #FFFFFF)',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              borderRadius: '20px',
+              padding: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
+            } as React.CSSProperties
+          }
         >
           <div>
             {/* CardHeader: Topic Eyebrow + Action Button */}
@@ -1542,19 +1930,18 @@ export const MyGroupPage: React.FC = () => {
                     width: 28,
                     height: 28,
                     borderRadius: 8,
-                    backgroundColor: '#FFF7ED',
-                    border: '1px solid #FFEDD5',
+                    background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#EA580C',
+                    color: '#FFFFFF',
                   }}
                 >
-                  <Sparkles size={14} strokeWidth={2.3} />
+                  <Sparkles size={14} strokeWidth={2.2} />
                 </div>
                 <span
                   style={{
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     fontWeight: 700,
                     color: '#64748B',
                     textTransform: 'uppercase',
@@ -1570,30 +1957,22 @@ export const MyGroupPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowEditTopicModal(true)}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                    fontSize: '13.5px',
+                    padding: '7px 14px',
+                    borderRadius: 9,
+                    background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
+                    border: 'none',
+                    boxShadow: '0 2px 4px rgba(242, 111, 33, 0.25)',
+                    fontSize: '13px',
                     fontWeight: 600,
-                    color: '#0F172A',
+                    color: '#FFFFFF',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
                     transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#F8FAFC';
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#FFFFFF';
-                    e.currentTarget.style.borderColor = '#E2E8F0';
-                  }}
                 >
-                  <Edit3 size={14} color="#64748B" />
+                  <Edit3 size={13.5} color="#FFFFFF" />
                   <span>Cập nhật đề tài</span>
                 </button>
               )}
@@ -1611,7 +1990,7 @@ export const MyGroupPage: React.FC = () => {
             >
               <h3
                 style={{
-                  fontSize: '1.35rem',
+                  fontSize: '1.25rem',
                   fontWeight: 800,
                   color: '#0F172A',
                   letterSpacing: '-0.02em',
@@ -1623,7 +2002,7 @@ export const MyGroupPage: React.FC = () => {
               </h3>
               <p
                 style={{
-                  fontSize: '14.5px',
+                  fontSize: '14px',
                   color: '#475569',
                   lineHeight: 1.55,
                   margin: 0,
@@ -1636,19 +2015,18 @@ export const MyGroupPage: React.FC = () => {
             {/* 5 Core Skills Section Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <TrendingUp size={17} color="#F27024" strokeWidth={2.4} />
-                <span style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                <TrendingUp size={16} color="var(--accent-color, #F26F21)" strokeWidth={2.2} />
+                <span style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
                   Năng lực tổng hợp 5 Kỹ năng của cả nhóm
                 </span>
               </div>
               <span
                 style={{
-                  fontSize: '12.5px',
+                  fontSize: '12px',
                   fontWeight: 700,
-                  color: '#0F172A',
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  padding: '4px 10px',
+                  color: '#FFFFFF',
+                  background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
+                  padding: '3.5px 10px',
                   borderRadius: 999,
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -1657,109 +2035,50 @@ export const MyGroupPage: React.FC = () => {
               </span>
             </div>
 
-            {/* 5 Core Skills Rows (shadcn Metric List) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* 5 Core Skills Rows (Synced with user's chosen accent color + Clean Neutral Badges) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
               {[
-                {
-                  name: 'Tech',
-                  sub: 'Kỹ thuật & Lập trình',
-                  score: 82,
-                  color: '#F27024',
-                  trackBg: '#FFEDD5',
-                  badge: 'Thế mạnh',
-                  badgeBg: '#ECFDF5',
-                  badgeColor: '#059669',
-                  badgeBorder: '#A7F3D0',
-                },
-                {
-                  name: 'Management',
-                  sub: 'Quản lý dự án & Vận hành',
-                  score: 75,
-                  color: '#0284C7',
-                  trackBg: '#E0F2FE',
-                  badge: 'Thế mạnh',
-                  badgeBg: '#ECFDF5',
-                  badgeColor: '#059669',
-                  badgeBorder: '#A7F3D0',
-                },
-                {
-                  name: 'Graphic Design',
-                  sub: 'Thiết kế UI/UX & Đồ họa',
-                  score: 68,
-                  color: '#7C3AED',
-                  trackBg: '#EDE9FE',
-                  badge: 'Ổn định',
-                  badgeBg: '#F1F5F9',
-                  badgeColor: '#475569',
-                  badgeBorder: '#E2E8F0',
-                },
-                {
-                  name: 'Marketing',
-                  sub: 'Truyền thông & Tăng trưởng',
-                  score: 45,
-                  color: '#D97706',
-                  trackBg: '#FEF3C7',
-                  badge: 'Cần bổ sung',
-                  badgeBg: '#FFF1F2',
-                  badgeColor: '#E11D48',
-                  badgeBorder: '#FECDD3',
-                },
-                {
-                  name: 'Sale',
-                  sub: 'Kinh doanh & Bán hàng',
-                  score: 40,
-                  color: '#E11D48',
-                  trackBg: '#FFE4E6',
-                  badge: 'Cần bổ sung',
-                  badgeBg: '#FFF1F2',
-                  badgeColor: '#E11D48',
-                  badgeBorder: '#FECDD3',
-                },
+                { name: 'Tech', sub: 'Kỹ thuật & Lập trình', score: 82, badge: 'Thế mạnh' },
+                { name: 'Management', sub: 'Quản lý dự án & Vận hành', score: 75, badge: 'Thế mạnh' },
+                { name: 'Graphic Design', sub: 'Thiết kế UI/UX & Đồ họa', score: 68, badge: 'Ổn định' },
+                { name: 'Marketing', sub: 'Truyền thông & Tăng trưởng', score: 45, badge: 'Cần bổ sung' },
+                { name: 'Sale', sub: 'Kinh doanh & Bán hàng', score: 40, badge: 'Cần bổ sung' },
               ].map((s) => (
                 <div
                   key={s.name}
                   style={{
-                    padding: '11px 14px',
-                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    borderRadius: '11px',
                     backgroundColor: '#F8FAFC',
-                    border: '1px solid #F1F5F9',
+                    border: '1px solid #E2E8F0',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 999,
-                          backgroundColor: s.color,
-                          display: 'inline-block',
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A' }}>{s.name}</span>
-                      <span style={{ fontSize: '13.5px', fontWeight: 500, color: '#64748B' }}>· {s.sub}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{s.name}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748B' }}>· {s.sub}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <span
                         style={{
-                          fontSize: '11.5px',
-                          fontWeight: 700,
+                          fontSize: '12px',
+                          fontWeight: 500,
                           padding: '2px 8px',
                           borderRadius: 999,
-                          backgroundColor: s.badgeBg,
-                          color: s.badgeColor,
-                          border: `1px solid ${s.badgeBorder}`,
+                          backgroundColor: '#FFFFFF',
+                          color: s.score >= 65 ? '#0F172A' : '#64748B',
+                          border: '1px solid #E2E8F0',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {s.badge}
                       </span>
                       <span
                         style={{
-                          fontSize: '14.5px',
-                          fontWeight: 800,
-                          color: '#0F172A',
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          color: s.score >= 65 ? 'var(--accent-color, #F26F21)' : '#0F172A',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '38px',
                           textAlign: 'right',
@@ -1770,22 +2089,22 @@ export const MyGroupPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* shadcn Progress primitive style */}
+                  {/* Progress bar synced with user's chosen accent color */}
                   <div
                     style={{
-                      height: 8,
+                      height: 6,
                       borderRadius: 999,
                       backgroundColor: '#E2E8F0',
                       overflow: 'hidden',
                     }}
                   >
                     <div
+                      className="motion-progress-fill"
                       style={{
                         width: `${s.score}%`,
                         height: '100%',
-                        backgroundColor: s.color,
+                        background: s.score >= 65 ? 'var(--accent-gradient, var(--accent-color, #F26F21))' : '#94A3B8',
                         borderRadius: 999,
-                        transition: 'width 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                       }}
                     />
                   </div>
@@ -1797,16 +2116,20 @@ export const MyGroupPage: React.FC = () => {
 
         {/* Right Column: Control Buttons & Leader Election */}
         <div
-          style={{
-            backgroundColor: 'var(--bg-card, #FFFFFF)',
-            border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
-            padding: '28px',
-            boxShadow: '0 4px 16px -4px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-          }}
+          className="motion-stagger-item"
+          style={
+            {
+              '--stagger-index': 1,
+              backgroundColor: 'var(--bg-card, #FFFFFF)',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              borderRadius: '20px',
+              padding: '28px',
+              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+            } as React.CSSProperties
+          }
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -1816,19 +2139,19 @@ export const MyGroupPage: React.FC = () => {
                     width: 28,
                     height: 28,
                     borderRadius: 8,
-                    backgroundColor: '#F0F9FF',
-                    border: '1px solid #BAE6FD',
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#0284C7',
+                    color: '#334155',
                   }}
                 >
-                  <Layers size={14} strokeWidth={2.3} />
+                  <Layers size={14} strokeWidth={2.2} />
                 </div>
                 <span
                   style={{
-                    fontSize: '12.5px',
+                    fontSize: '12px',
                     fontWeight: 700,
                     color: '#64748B',
                     textTransform: 'uppercase',
@@ -1840,25 +2163,25 @@ export const MyGroupPage: React.FC = () => {
               </div>
             </div>
 
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 18px 0' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 18px 0' }}>
               Bảng điều khiển & Tác vụ Nhóm
             </h3>
 
-            {/* Action Buttons (shadcn Action Grid) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1.25rem' }}>
+            {/* Action Buttons (Clean Neutral Surface Grid) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.25rem' }}>
               {/* Đóng tuyển sớm / Mở tuyển lại */}
               <button
                 type="button"
                 onClick={handleToggleEarlyClose}
                 disabled={isLockedSemester}
                 style={{
-                  padding: '13px 16px',
-                  borderRadius: 12,
-                  border: isEarlyClosed ? '1px solid #BBF7D0' : '1px solid #FED7AA',
-                  backgroundColor: isEarlyClosed ? '#F0FDF4' : '#FFF7ED',
-                  color: isEarlyClosed ? '#15803D' : '#C2410C',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
+                  padding: '12px 14px',
+                  borderRadius: 11,
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#0F172A',
+                  fontSize: '14px',
+                  fontWeight: 600,
                   cursor: isLockedSemester ? 'not-allowed' : 'pointer',
                   opacity: isLockedSemester ? 0.5 : 1,
                   display: 'flex',
@@ -1870,18 +2193,19 @@ export const MyGroupPage: React.FC = () => {
               >
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 9,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
                     backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     flexShrink: 0,
+                    color: '#334155',
                   }}
                 >
-                  {isEarlyClosed ? <Unlock size={16} /> : <Lock size={16} />}
+                  {isEarlyClosed ? <Unlock size={15} /> : <Lock size={15} />}
                 </div>
                 <span>{isEarlyClosed ? 'Mở tuyển lại' : 'Đóng tuyển sớm'}</span>
               </button>
@@ -1892,13 +2216,13 @@ export const MyGroupPage: React.FC = () => {
                 onClick={() => setShowTransferLeaderModal(true)}
                 disabled={isLockedSemester || !isCurrentUserLeader}
                 style={{
-                  padding: '13px 16px',
-                  borderRadius: 12,
+                  padding: '12px 14px',
+                  borderRadius: 11,
                   border: '1px solid #E2E8F0',
                   backgroundColor: '#F8FAFC',
                   color: '#0F172A',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
+                  fontSize: '14px',
+                  fontWeight: 600,
                   cursor: isLockedSemester || !isCurrentUserLeader ? 'not-allowed' : 'pointer',
                   opacity: isLockedSemester || !isCurrentUserLeader ? 0.5 : 1,
                   display: 'flex',
@@ -1910,9 +2234,9 @@ export const MyGroupPage: React.FC = () => {
               >
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 9,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
                     backgroundColor: '#FFFFFF',
                     border: '1px solid #E2E8F0',
                     display: 'flex',
@@ -1921,7 +2245,7 @@ export const MyGroupPage: React.FC = () => {
                     flexShrink: 0,
                   }}
                 >
-                  <Crown size={16} color="#F27024" />
+                  <Crown size={15} color="#334155" />
                 </div>
                 <span>Chuyển quyền Leader</span>
               </button>
@@ -1932,13 +2256,13 @@ export const MyGroupPage: React.FC = () => {
                 onClick={() => setShowElectionCard(true)}
                 disabled={isLockedSemester}
                 style={{
-                  padding: '13px 16px',
-                  borderRadius: 12,
+                  padding: '12px 14px',
+                  borderRadius: 11,
                   border: '1px solid #E2E8F0',
                   backgroundColor: '#F8FAFC',
                   color: '#0F172A',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
+                  fontSize: '14px',
+                  fontWeight: 600,
                   cursor: isLockedSemester ? 'not-allowed' : 'pointer',
                   opacity: isLockedSemester ? 0.5 : 1,
                   display: 'flex',
@@ -1950,9 +2274,9 @@ export const MyGroupPage: React.FC = () => {
               >
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 9,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
                     backgroundColor: '#FFFFFF',
                     border: '1px solid #E2E8F0',
                     display: 'flex',
@@ -1961,7 +2285,7 @@ export const MyGroupPage: React.FC = () => {
                     flexShrink: 0,
                   }}
                 >
-                  <Vote size={16} color="#0284C7" />
+                  <Vote size={15} color="#334155" />
                 </div>
                 <span>Bầu chọn Leader mới</span>
               </button>
@@ -1972,13 +2296,13 @@ export const MyGroupPage: React.FC = () => {
                 onClick={handleLeaveGroup}
                 disabled={isLockedSemester}
                 style={{
-                  padding: '13px 16px',
-                  borderRadius: 12,
-                  border: '1px solid #FECDD3',
-                  backgroundColor: '#FFF1F2',
-                  color: '#E11D48',
-                  fontSize: '14.5px',
-                  fontWeight: 700,
+                  padding: '12px 14px',
+                  borderRadius: 11,
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#DC2626',
+                  fontSize: '14px',
+                  fontWeight: 600,
                   cursor: isLockedSemester ? 'not-allowed' : 'pointer',
                   opacity: isLockedSemester ? 0.5 : 1,
                   display: 'flex',
@@ -1990,18 +2314,18 @@ export const MyGroupPage: React.FC = () => {
               >
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 9,
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
                     backgroundColor: '#FFFFFF',
+                    border: '1px solid #E2E8F0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     flexShrink: 0,
                   }}
                 >
-                  <LogOut size={16} color="#E11D48" />
+                  <LogOut size={15} color="#DC2626" />
                 </div>
                 <span>Rời nhóm</span>
               </button>
@@ -2019,19 +2343,19 @@ export const MyGroupPage: React.FC = () => {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Vote size={16} color="#0284C7" />
+                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Vote size={15} color="#334155" />
                     <span>Bình chọn Leader mới: Trần Minh Quân</span>
                   </div>
-                  <span style={{ fontSize: '12.5px', color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: 999, fontWeight: 700 }}>
+                  <span style={{ fontSize: '12px', color: '#475569', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 999, fontWeight: 600 }}>
                     Còn 23 giờ
                   </span>
                 </div>
-                <div style={{ fontSize: '14px', color: '#64748B', marginBottom: '8px' }}>
-                  Tiến độ phiếu bầu: <strong>{electionVotes}/3 đồng ý (&gt;50%)</strong>
+                <div style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '8px' }}>
+                  Tiến độ phiếu bầu: <strong style={{ color: '#0F172A' }}>{electionVotes}/3 đồng ý (&gt;50%)</strong>
                 </div>
-                <div style={{ height: 7, borderRadius: 999, backgroundColor: '#E2E8F0', overflow: 'hidden', marginBottom: '12px' }}>
-                  <div style={{ width: `${(electionVotes / 3) * 100}%`, height: '100%', backgroundColor: '#0284C7' }} />
+                <div style={{ height: 6, borderRadius: 999, backgroundColor: '#E2E8F0', overflow: 'hidden', marginBottom: '12px' }}>
+                  <div style={{ width: `${(electionVotes / 3) * 100}%`, height: '100%', backgroundColor: '#0F172A' }} />
                 </div>
                 <button
                   type="button"
@@ -2039,13 +2363,13 @@ export const MyGroupPage: React.FC = () => {
                   disabled={userVotedElection}
                   style={{
                     width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    backgroundColor: userVotedElection ? '#CBD5E1' : '#0284C7',
+                    padding: '9px 14px',
+                    borderRadius: 9,
+                    backgroundColor: userVotedElection ? '#CBD5E1' : '#0F172A',
                     border: 'none',
                     color: '#FFFFFF',
-                    fontSize: '14px',
-                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    fontWeight: 600,
                     cursor: userVotedElection ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -2067,7 +2391,7 @@ export const MyGroupPage: React.FC = () => {
               gap: '12px',
             }}
           >
-            <ShieldAlert size={18} color="#F27024" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <ShieldAlert size={17} color="#64748B" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55 }}>
               <strong style={{ color: '#0F172A' }}>Quy định chuyển nhóm:</strong> Khi nhóm trưởng rời nhóm, quyền Trưởng nhóm tự động trao cho thành viên vào sớm nhất kế tiếp. Nếu sĩ số giảm từ 3 xuống 2, nhóm quay về trạng thái phòng đang lập và mở lại cổng vào thẳng.
             </div>
@@ -2083,89 +2407,108 @@ export const MyGroupPage: React.FC = () => {
           borderRadius: '20px',
           padding: '26px',
           marginBottom: '1.75rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         }}
       >
-        <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: '0 0 1rem 0', letterSpacing: '-0.015em' }}>
           Danh sách Thành viên Nhóm ({members.length}/5)
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
           {members.map((m) => (
             <div
               key={m.id}
               style={{
-                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                border: '1px solid var(--border-light, #E2E8F0)',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
                 borderRadius: 12,
-                padding: '14px',
+                padding: '15px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                gap: '12px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
                 <div
                   style={{
-                    width: 42,
-                    height: 42,
+                    width: 40,
+                    height: 40,
                     borderRadius: '50%',
-                    backgroundColor: m.avatarBg,
-                    color: m.avatarText,
+                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#F1F5F9',
+                    color: m.role === 'Leader' ? '#FFFFFF' : '#334155',
+                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '16px',
-                    fontWeight: 800,
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    flexShrink: 0,
                   }}
                 >
                   {m.name.charAt(0)}
                 </div>
-                <div>
-                  <div style={{ fontSize: '15.5px', fontWeight: 800, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>{m.name}</span>
-                    {m.id === 'current-user' && <span style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>(Bạn)</span>}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
+                    {m.id === 'current-user' && (
+                      <span style={{ fontSize: '12.5px', color: 'var(--accent-color, #F26F21)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        (Bạn)
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
-                    MSSV: {m.studentCode} • {m.major}
+                  <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px', lineHeight: 1.4 }}>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{m.studentCode}</span> · {m.major}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-light, #94A3B8)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
                     Tham gia: {m.joinedAt}
                   </div>
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  flexShrink: 0,
+                }}
+              >
                 <span
                   style={{
-                    display: 'inline-block',
-                    fontFamily: 'monospace',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    backgroundColor: '#E2E8F0',
-                    color: 'var(--text-secondary, #334155)',
-                    padding: '2px 8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontWeight: 500,
+                    fontSize: '12.5px',
+                    backgroundColor: '#FFFFFF',
+                    color: '#475569',
+                    border: '1px solid #E2E8F0',
+                    padding: '2.5px 9px',
                     borderRadius: 6,
-                    marginBottom: '4px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {m.classCode}
                 </span>
-                <div>
-                  <span
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      padding: '2px 8px',
-                      borderRadius: 999,
-                      backgroundColor: m.role === 'Leader' ? '#FFF7ED' : '#F1F5F9',
-                      color: m.role === 'Leader' ? '#C2410C' : '#64748B',
-                      border: m.role === 'Leader' ? '1px solid #FED7AA' : '1px solid #CBD5E1',
-                    }}
-                  >
-                    {m.role === 'Leader' ? 'Trưởng nhóm' : 'Thành viên'}
-                  </span>
-                </div>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#FFFFFF',
+                    color: m.role === 'Leader' ? '#FFFFFF' : '#64748B',
+                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {m.role === 'Leader' ? 'Trưởng nhóm' : 'Thành viên'}
+                </span>
               </div>
             </div>
           ))}
@@ -2179,15 +2522,15 @@ export const MyGroupPage: React.FC = () => {
           border: '1px solid var(--border-light, #E2E8F0)',
           borderRadius: '20px',
           padding: '26px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
               Đơn ứng tuyển & Biểu quyết Thành viên ({applicants.filter((a) => a.status === 'Pending').length} đang chờ)
             </h3>
-            <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: '3px 0 0 0' }}>
+            <p style={{ fontSize: '14px', color: '#64748B', margin: '3px 0 0 0' }}>
               Toàn bộ thành viên có quyền biểu quyết tham khảo cho ứng viên. Trưởng nhóm sẽ là người ra quyết định chấp thuận cuối cùng.
             </p>
           </div>
@@ -2198,82 +2541,91 @@ export const MyGroupPage: React.FC = () => {
             <div
               key={app.id}
               style={{
-                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                border: '1px solid var(--border-light, #E2E8F0)',
-                borderRadius: 18,
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 16,
                 padding: '16px',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h4 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
                       {app.name}
                     </h4>
-                    <span style={{ fontFamily: 'monospace', fontSize: '14px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '2px 6px', borderRadius: 4 }}>
+                    <span style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)', fontVariantNumeric: 'tabular-nums', fontSize: '13px', fontWeight: 600, color: '#334155', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 6 }}>
                       {app.studentCode} • Lớp {app.classCode}
                     </span>
-                    <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
+                    <span style={{ fontSize: '13.5px', color: '#64748B' }}>
                       ({app.major})
                     </span>
                   </div>
-                  <div style={{ fontSize: '14.5px', color: 'var(--text-secondary, #475569)', marginTop: '6px', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '14px', color: '#475569', marginTop: '6px', fontStyle: 'italic' }}>
                     "{app.intro}"
                   </div>
                 </div>
 
                 {app.status === 'Accepted' && (
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#15803D', backgroundColor: '#DCFCE7', padding: '4px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
                     Đã chấp nhận vào nhóm
                   </span>
                 )}
                 {app.status === 'Rejected' && (
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#991B1B', backgroundColor: '#FEE2E2', padding: '4px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999 }}>
                     Đã từ chối
                   </span>
                 )}
               </div>
 
-              {/* 5 Skills scores pills */}
+              {/* 5 Skills scores pills — Unified Neutral Slate Badges instead of 5 Rainbow Pills */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13.5px', backgroundColor: '#FFF7ED', color: '#C2410C', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  Tech: {app.scores.tech}/100
-                </span>
-                <span style={{ fontSize: '13.5px', backgroundColor: '#EFF6FF', color: '#0369A1', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  Mgt: {app.scores.mgt}/100
-                </span>
-                <span style={{ fontSize: '13.5px', backgroundColor: '#FAF5FF', color: '#7E22CE', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  Design: {app.scores.design}/100
-                </span>
-                <span style={{ fontSize: '13.5px', backgroundColor: '#FEF3C7', color: '#B45309', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  Marketing: {app.scores.mkt}/100
-                </span>
-                <span style={{ fontSize: '13.5px', backgroundColor: '#F0FDF4', color: '#15803D', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  Sale: {app.scores.sale}/100
-                </span>
+                {[
+                  { label: 'Tech', val: app.scores.tech },
+                  { label: 'Mgt', val: app.scores.mgt },
+                  { label: 'Design', val: app.scores.design },
+                  { label: 'Marketing', val: app.scores.mkt },
+                  { label: 'Sale', val: app.scores.sale },
+                ].map((sk) => (
+                  <span
+                    key={sk.label}
+                    style={{
+                      fontSize: '13px',
+                      backgroundColor: '#FFFFFF',
+                      color: '#334155',
+                      border: '1px solid #E2E8F0',
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {sk.label}: <strong style={{ color: '#0F172A' }}>{sk.val}/100</strong>
+                  </span>
+                ))}
               </div>
 
               {/* Voting Bar & Actions */}
               {app.status === 'Pending' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light, #E2E8F0)', paddingTop: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
                   {/* Member voting buttons */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Biểu quyết của bạn:</span>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#64748B' }}>Biểu quyết của bạn:</span>
                     <button
                       type="button"
                       onClick={() => handleVoteApplicant(app.id, 'YES')}
                       style={{
-                        padding: '5px 10px',
-                        borderRadius: 6,
-                        border: app.userVote === 'YES' ? '1px solid #16A34A' : '1px solid var(--border-medium, #CBD5E1)',
-                        backgroundColor: app.userVote === 'YES' ? '#DCFCE7' : 'var(--bg-card, #FFFFFF)',
-                        color: app.userVote === 'YES' ? '#15803D' : 'var(--text-secondary, #475569)',
-                        fontSize: '14px',
-                        fontWeight: 700,
+                        padding: '5px 11px',
+                        borderRadius: 7,
+                        border: app.userVote === 'YES' ? '1px solid #0F172A' : '1px solid #E2E8F0',
+                        backgroundColor: app.userVote === 'YES' ? '#0F172A' : '#FFFFFF',
+                        color: app.userVote === 'YES' ? '#FFFFFF' : '#475569',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                       }}
                     >
                       <ThumbsUp size={13} />
@@ -2283,25 +2635,25 @@ export const MyGroupPage: React.FC = () => {
                       type="button"
                       onClick={() => handleVoteApplicant(app.id, 'NO')}
                       style={{
-                        padding: '5px 10px',
-                        borderRadius: 6,
-                        border: app.userVote === 'NO' ? '1px solid #DC2626' : '1px solid var(--border-medium, #CBD5E1)',
-                        backgroundColor: app.userVote === 'NO' ? '#FEE2E2' : 'var(--bg-card, #FFFFFF)',
-                        color: app.userVote === 'NO' ? '#991B1B' : 'var(--text-secondary, #475569)',
-                        fontSize: '14px',
-                        fontWeight: 700,
+                        padding: '5px 11px',
+                        borderRadius: 7,
+                        border: app.userVote === 'NO' ? '1px solid #334155' : '1px solid #E2E8F0',
+                        backgroundColor: app.userVote === 'NO' ? '#334155' : '#FFFFFF',
+                        color: app.userVote === 'NO' ? '#FFFFFF' : '#475569',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                       }}
                     >
                       <ThumbsDown size={13} />
                       <span>Từ chối</span>
                     </button>
 
-                    <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginLeft: '6px' }}>
-                      (Tổng kết: <strong>{app.yesVotes} Đồng ý • {app.noVotes} Từ chối</strong>)
+                    <span style={{ fontSize: '13.5px', color: '#64748B', marginLeft: '4px' }}>
+                      (Tổng kết: <strong style={{ color: '#0F172A' }}>{app.yesVotes} Đồng ý • {app.noVotes} Từ chối</strong>)
                     </span>
                   </div>
 
@@ -2312,13 +2664,13 @@ export const MyGroupPage: React.FC = () => {
                         type="button"
                         onClick={() => handleRejectApplicant(app.id)}
                         style={{
-                          padding: '6px 12px',
-                          borderRadius: 10,
-                          backgroundColor: 'var(--bg-card, #FFFFFF)',
-                          border: '1px solid var(--border-medium, #CBD5E1)',
-                          color: 'var(--text-secondary, #475569)',
-                          fontSize: '14.5px',
-                          fontWeight: 700,
+                          padding: '7px 13px',
+                          borderRadius: 8,
+                          backgroundColor: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          color: '#475569',
+                          fontSize: '13.5px',
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
@@ -2328,13 +2680,13 @@ export const MyGroupPage: React.FC = () => {
                         type="button"
                         onClick={() => handleAcceptApplicant(app)}
                         style={{
-                          padding: '9px 18px',
-                          borderRadius: 10,
-                          backgroundColor: '#0054A6',
+                          padding: '7px 16px',
+                          borderRadius: 8,
+                          backgroundColor: 'var(--accent-color, #F26F21)',
                           border: 'none',
                           color: '#FFFFFF',
-                          fontSize: '14.5px',
-                          fontWeight: 700,
+                          fontSize: '13.5px',
+                          fontWeight: 600,
                           cursor: 'pointer',
                         }}
                       >
@@ -2384,7 +2736,7 @@ export const MyGroupPage: React.FC = () => {
                   setShowEditTopicModal(false);
                   showToast('Đã cập nhật đề tài dự án thành công!');
                 }}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: '#F27024', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
+                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
               >
                 Lưu thay đổi
               </button>
@@ -2440,7 +2792,7 @@ export const MyGroupPage: React.FC = () => {
                 type="button"
                 onClick={handleConfirmTransferLeader}
                 disabled={!selectedNewLeaderId}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: '#F27024', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700, cursor: selectedNewLeaderId ? 'pointer' : 'not-allowed' }}
+                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700, cursor: selectedNewLeaderId ? 'pointer' : 'not-allowed' }}
               >
                 Xác nhận chuyển quyền
               </button>
@@ -2662,11 +3014,28 @@ export const JoinRequestsPage: React.FC = () => {
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '12.5px',
+            fontWeight: 450,
+            color: 'var(--text-muted, #64748B)',
+            marginBottom: '0.45rem',
+          }}
+        >
+          <span>Học phần</span>
+          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+          <span>EXE</span>
+          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+          <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Đơn ứng tuyển</span>
+        </div>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0', letterSpacing: '-0.022em' }}>
           Đơn Ứng Tuyển Của Tôi
         </h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0 }}>
-          Theo dõi trạng thái các đơn xin gia nhập nhóm đề tài khởi nghiệp trong học kỳ hiện tại.
+        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '0.95rem', fontWeight: 400, margin: 0 }}>
+          Theo dõi trạng thái xét duyệt các đơn ứng tuyển vào nhóm khởi nghiệp của bạn.
         </p>
       </div>
 
@@ -2683,32 +3052,32 @@ export const JoinRequestsPage: React.FC = () => {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F27024' }}>
-            <Clock size={20} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
+            <Clock size={16} />
           </div>
           <div>
-            <div style={{ fontSize: '15.5px', fontWeight: 800, color: 'var(--text-main, #0F172A)' }}>
-              Đơn đang chờ duyệt: <span style={{ color: '#F27024' }}>{pendingCount} / 3 đơn tối đa</span> cùng lúc
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
+              Đơn đang chờ duyệt: <span style={{ fontWeight: 600, color: '#0F172A' }}>{pendingCount} / 3 đơn tối đa</span> cùng lúc
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', marginTop: '2px' }}>
               Quy định giới hạn tối đa 3 đơn đồng thời để đảm bảo tính cam kết và tránh gửi đơn trùng lặp.
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div style={{ display: 'flex', gap: '5px' }}>
           {[1, 2, 3].map((slot) => (
             <div
               key={slot}
               style={{
                 width: 24,
-                height: 10,
+                height: 4,
                 borderRadius: 999,
-                backgroundColor: slot <= pendingCount ? '#F27024' : '#E2E8F0',
+                backgroundColor: slot <= pendingCount ? 'var(--status-progress, #7C3AED)' : '#E2E8F0',
               }}
             />
           ))}
@@ -2716,38 +3085,42 @@ export const JoinRequestsPage: React.FC = () => {
       </div>
 
       {/* Request List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {requests.map((req) => (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {requests.map((req, idx) => (
           <div
             key={req.id}
-            style={{
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '20px',
-              padding: '22px 26px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '12px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-            }}
+            className="motion-card-interactive motion-stagger-item"
+            style={
+              {
+                '--stagger-index': Math.min(idx, 6),
+                backgroundColor: 'var(--bg-card, #FFFFFF)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                borderRadius: '12px',
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+              } as React.CSSProperties
+            }
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '14.5px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '2px 8px', borderRadius: 4 }}>
-                  {req.roomCode}
-                </span>
-                <span style={{ fontWeight: 800, color: 'var(--text-main, #0F172A)', fontSize: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '14.5px' }}>
                   {req.topic}
                 </span>
+                <span style={{ color: '#CBD5E1' }}>·</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, fontSize: '12px', color: '#94A3B8' }}>
+                  {req.roomCode}
+                </span>
               </div>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
+              <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8' }}>
                 Thời điểm nộp đơn: {req.submittedAt}
               </div>
               {req.reason && (
-                <div style={{ fontSize: '14px', color: '#DC2626', marginTop: '4px', fontWeight: 600 }}>
-                  Lý do: {req.reason}
+                <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px', fontWeight: 450 }}>
+                  Ghi chú: {req.reason}
                 </div>
               )}
             </div>
@@ -2755,20 +3128,44 @@ export const JoinRequestsPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {req.status === 'Pending' && (
                 <>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#C2410C', backgroundColor: '#FFF7ED', padding: '4px 10px', borderRadius: 999, border: '1px solid #FED7AA' }}>
+                  <span
+                    style={{
+                      fontSize: '12.5px',
+                      fontWeight: 500,
+                      color: '#334155',
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: '#F59E0B',
+                        boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                        flexShrink: 0,
+                      }}
+                    />
                     Đang chờ duyệt
                   </span>
                   <button
                     type="button"
                     onClick={() => handleWithdraw(req.id)}
                     style={{
-                      padding: '7px 14px',
-                      borderRadius: 10,
-                      backgroundColor: 'var(--bg-card, #FFFFFF)',
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      color: 'var(--text-secondary, #475569)',
-                      fontSize: '14.5px',
-                      fontWeight: 600,
+                      padding: '5px 12px',
+                      borderRadius: 8,
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      color: '#475569',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
                       cursor: 'pointer',
                     }}
                   >
@@ -2777,12 +3174,51 @@ export const JoinRequestsPage: React.FC = () => {
                 </>
               )}
               {req.status === 'Cancelled' && (
-                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-tag, #F1F5F9)', padding: '4px 10px', borderRadius: 999 }}>
+                <span
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    color: '#64748B',
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    padding: '3px 9px',
+                    borderRadius: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#94A3B8', flexShrink: 0 }} />
                   Đã hủy
                 </span>
               )}
               {req.status === 'Accepted' && (
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#15803D', backgroundColor: '#DCFCE7', padding: '4px 10px', borderRadius: 999 }}>
+                <span
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    color: '#334155',
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    padding: '3px 9px',
+                    borderRadius: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: '#10B981',
+                      boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.18)',
+                      flexShrink: 0,
+                    }}
+                  />
                   Đã chấp thuận
                 </span>
               )}

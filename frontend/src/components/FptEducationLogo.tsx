@@ -86,14 +86,13 @@ export const FptEducationLogo: React.FC<FptEducationLogoProps> = ({ compact = fa
     <div
       style={{
         display: 'inline-flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         userSelect: 'none',
         transform: scale !== 1 ? `scale(${scale})` : undefined,
-        transformOrigin: 'left top',
+        transformOrigin: 'left center',
       }}
     >
-      {/* Top row: [F] [P] [T] emblem + Education */}
+      {/* Single clean row: [F] [P] [T] emblem + Education */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
           {/* F Leaf */}
@@ -169,7 +168,7 @@ export const FptEducationLogo: React.FC<FptEducationLogoProps> = ({ compact = fa
             style={{
               color: '#0072bc',
               fontWeight: 700,
-              fontSize: '1.05rem',
+              fontSize: '1.1rem',
               letterSpacing: '-0.01em',
               fontFamily: 'system-ui, -apple-system, sans-serif',
               lineHeight: 1,
@@ -189,23 +188,6 @@ export const FptEducationLogo: React.FC<FptEducationLogoProps> = ({ compact = fa
             ®
           </span>
         </div>
-      </div>
-
-      {/* Bottom row: TRƯỜNG ĐẠI HỌC FPT (Chunky Slab-Serif with full Vietnamese subset) */}
-      <div
-        style={{
-          color: '#f26f21',
-          fontWeight: 400,
-          fontSize: '0.96rem',
-          letterSpacing: '0.035em',
-          textTransform: 'uppercase',
-          marginTop: '7px',
-          lineHeight: 1.2,
-          fontFamily: '"Alfa Slab One", "Roboto Slab", serif',
-          WebkitFontSmoothing: 'antialiased',
-        }}
-      >
-        TRƯỜNG ĐẠI HỌC FPT
       </div>
     </div>
   );

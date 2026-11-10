@@ -26,7 +26,7 @@ import {
   X,
   Mail,
   User as UserIcon,
-} from 'lucide-react';
+} from '../utils/icons';
 
 export const AdminAccountsPage: React.FC = () => {
   const { user: authUser } = useAuth();

@@ -13,7 +13,7 @@ import {
   FileSpreadsheet,
   Crown,
   Search,
-} from 'lucide-react';
+} from '../utils/icons';
 import { notificationsApi } from '../api/notifications';
 import { reportsApi } from '../api/reports';
 import { spacesApi } from '../api/spaces';
@@ -63,9 +63,9 @@ const getNotificationTypeConfig = (type: string) => {
       return {
         label: 'Biểu quyết nội bộ',
         icon: Sparkles,
-        color: '#7C3AED',
-        bg: '#EDE9FE',
-        border: '#DDD6FE',
+        color: '#475569',
+        bg: '#F1F5F9',
+        border: '#E2E8F0',
       };
     case 'SYSTEM_ACCOUNT':
     case 'SYSTEM':
@@ -73,9 +73,9 @@ const getNotificationTypeConfig = (type: string) => {
       return {
         label: 'Thông báo học vụ',
         icon: Bell,
-        color: '#0054A6',
-        bg: '#EFF6FF',
-        border: '#BFDBFE',
+        color: '#475569',
+        bg: '#F8FAFC',
+        border: '#E2E8F0',
       };
   }
 };
@@ -260,18 +260,25 @@ export const NotificationsPage: React.FC = () => {
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
+          alignItems: 'flex-end',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.75rem',
+          marginBottom: '1.5rem',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 500, color: '#64748B', marginBottom: '6px' }}>
+            <span>Cá nhân</span>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span>EXE</span>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span style={{ color: '#0F172A' }}>Thông báo</span>
+          </div>
+          <h1 style={{ fontSize: '26px', fontWeight: 600, color: '#0F172A', letterSpacing: '-0.02em', margin: 0, lineHeight: 1.2 }}>
             Thông báo Hệ thống ({unreadCount} chưa đọc)
           </h1>
-          <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px', margin: 0 }}>
-            Cập nhật trạng thái ghép nhóm, lời mời và kết quả dự án môn EXE của bạn
+          <p style={{ fontSize: '14px', fontWeight: 400, color: '#64748B', marginTop: '6px', marginBottom: 0 }}>
+            Cập nhật trạng thái ghép nhóm, lời mời và kết quả dự án môn EXE của bạn.
           </p>
         </div>
 
@@ -287,7 +294,7 @@ export const NotificationsPage: React.FC = () => {
               gap: '6px',
               borderRadius: '8px',
               padding: '7px 14px',
-              fontSize: '15px',
+              fontSize: '13px',
               fontWeight: 500,
             }}
           >
@@ -302,24 +309,34 @@ export const NotificationsPage: React.FC = () => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              backgroundColor: unreadCount > 0 ? 'var(--pill-active-bg)' : 'var(--bg-tag)',
-              color: unreadCount > 0 ? 'var(--pill-active-text)' : 'var(--text-muted)',
-              border: '1px solid ' + (unreadCount > 0 ? 'var(--pill-active-border)' : 'var(--border-light)'),
+              backgroundColor: unreadCount > 0 ? '#0F172A' : '#F8FAFC',
+              color: unreadCount > 0 ? '#FFFFFF' : '#94A3B8',
+              border: '1px solid ' + (unreadCount > 0 ? '#0F172A' : '#E2E8F0'),
               borderRadius: '8px',
               padding: '7px 14px',
-              fontSize: '15px',
+              fontSize: '13px',
               fontWeight: 500,
               cursor: unreadCount > 0 ? 'pointer' : 'default',
             }}
           >
-            <CheckCheck size={15} />
+            <CheckCheck size={14} />
             <span>Đánh dấu tất cả đã đọc</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem' }}>
+      {/* Filter Tabs: Flat Segmented Control */}
+      <div
+        style={{
+          display: 'inline-flex',
+          gap: '2px',
+          backgroundColor: '#F1F5F9',
+          padding: '3px',
+          borderRadius: '9px',
+          border: '1px solid #E2E8F0',
+          marginBottom: '1.25rem',
+        }}
+      >
         <button
           type="button"
           onClick={() => {
@@ -327,14 +344,16 @@ export const NotificationsPage: React.FC = () => {
             setFilterUnread(undefined);
           }}
           style={{
-            backgroundColor: filterUnread === undefined ? 'var(--pill-active-bg)' : 'var(--pill-inactive-bg)',
-            color: filterUnread === undefined ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
-            border: '1px solid ' + (filterUnread === undefined ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
-            borderRadius: '8px',
-            padding: '9px 18px',
-            fontSize: '15px',
+            backgroundColor: filterUnread === undefined ? '#0F172A' : 'transparent',
+            color: filterUnread === undefined ? '#FFFFFF' : '#64748B',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '6px 14px',
+            fontSize: '13px',
             fontWeight: 500,
             cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: 'none',
           }}
         >
           Tất cả
@@ -346,14 +365,16 @@ export const NotificationsPage: React.FC = () => {
             setFilterUnread(false);
           }}
           style={{
-            backgroundColor: filterUnread === false ? 'var(--pill-active-bg)' : 'var(--pill-inactive-bg)',
-            color: filterUnread === false ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
-            border: '1px solid ' + (filterUnread === false ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
-            borderRadius: '8px',
-            padding: '9px 18px',
-            fontSize: '15px',
+            backgroundColor: filterUnread === false ? '#0F172A' : 'transparent',
+            color: filterUnread === false ? '#FFFFFF' : '#64748B',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '6px 14px',
+            fontSize: '13px',
             fontWeight: 500,
             cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: 'none',
           }}
         >
           Chưa đọc ({unreadCount})
@@ -365,14 +386,16 @@ export const NotificationsPage: React.FC = () => {
             setFilterUnread(true);
           }}
           style={{
-            backgroundColor: filterUnread === true ? 'var(--pill-active-bg)' : 'var(--pill-inactive-bg)',
-            color: filterUnread === true ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
-            border: '1px solid ' + (filterUnread === true ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
-            borderRadius: '8px',
-            padding: '9px 18px',
-            fontSize: '15px',
+            backgroundColor: filterUnread === true ? '#0F172A' : 'transparent',
+            color: filterUnread === true ? '#FFFFFF' : '#64748B',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '6px 14px',
+            fontSize: '13px',
             fontWeight: 500,
             cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            boxShadow: 'none',
           }}
         >
           Đã đọc

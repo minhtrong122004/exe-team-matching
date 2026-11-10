@@ -55,7 +55,7 @@ import {
   ArrowLeftRight,
   UserCheck,
   Trash2,
-} from 'lucide-react';
+} from '../utils/icons';
 
 /** Danh sách lỗi hiện ngay trong cửa sổ, vì thông báo chung của trang nằm phía sau lớp phủ. */
 const ModalErrors: React.FC<{ messages: string[] }> = ({ messages }) =>
@@ -2297,7 +2297,7 @@ export const CourseSpacesPage: React.FC = () => {
                         style={{ padding: '0.65rem 1.15rem' }}
                       >
                         <Upload size={16} />
-                        <span>📁 Tải lên file từ máy</span>
+                        <span>Tải lên file từ máy</span>
                       </button>
                     </div>
                   </div>
@@ -2535,7 +2535,7 @@ export const CourseSpacesPage: React.FC = () => {
                       ) : (
                         <>
                           <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                            ⚡ Bạn chưa có nhóm đề tài trong học kỳ này
+                            Bạn chưa có nhóm đề tài trong học kỳ này
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                             Phòng dưới ngưỡng (<strong style={{ fontFamily: 'var(--font-mono)' }}>&lt; {selectedSpace?.groupThreshold || Math.floor((selectedSpace?.maxMembersPerGroup || 5) / 2) + 1} SV</strong>): Được vào thẳng trực tiếp, người đầu tiên là Leader.
@@ -2600,7 +2600,7 @@ export const CourseSpacesPage: React.FC = () => {
                         className="btn btn-secondary"
                       >
                         <Upload size={16} />
-                        <span>📁 Tải lên file</span>
+                        <span>Tải lên file</span>
                       </button>
                     </div>
                   )}
@@ -4077,7 +4077,7 @@ export const CourseSpacesPage: React.FC = () => {
                         <option value="">-- Chọn sinh viên trong nhóm --</option>
                         {assignedStudentsList.map((st) => (
                           <option key={st.studentId} value={st.studentId}>
-                            [{st.group.groupCode}] {st.studentCode} - {st.fullName} {st.isLeader ? '(Leader 👑)' : ''}
+                            [{st.group.groupCode}] {st.studentCode} - {st.fullName} {st.isLeader ? '(Leader)' : ''}
                           </option>
                         ))}
                       </select>
@@ -4208,7 +4208,7 @@ export const CourseSpacesPage: React.FC = () => {
                             <option value="">-- Chọn sinh viên đổi ngược --</option>
                             {selectedTargetGroup?.members.map((m) => (
                               <option key={m.studentId} value={m.studentId}>
-                                {m.studentCode} - {m.fullName} ({m.major}) {m.isLeader ? '(Leader 👑)' : ''}
+                                {m.studentCode} - {m.fullName} ({m.major}) {m.isLeader ? '(Leader)' : ''}
                               </option>
                             ))}
                           </select>
@@ -5054,7 +5054,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <FolderUp size={14} />
-                <span>📁 Tải lên File</span>
+                <span>Tải lên File</span>
               </button>
 
               <button
@@ -5077,7 +5077,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <FileText size={14} />
-                <span>📝 Dán văn bản CSV</span>
+                <span>Dán văn bản CSV</span>
               </button>
             </div>
 
@@ -5111,7 +5111,7 @@ export const CourseSpacesPage: React.FC = () => {
                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', color: 'var(--fpt-blue)' }}
                   >
                     <Download size={14} />
-                    <span>📥 Tải file mẫu CSV chuẩn</span>
+                    <span>Tải file mẫu CSV chuẩn</span>
                   </button>
                 </div>
 

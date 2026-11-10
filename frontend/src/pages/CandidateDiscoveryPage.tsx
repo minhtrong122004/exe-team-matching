@@ -21,7 +21,7 @@ import {
   RotateCcw,
   UserCheck,
   UserX,
-} from 'lucide-react';
+} from '../utils/icons';
 
 const MAJOR_OPTIONS: { value: Major; label: string }[] = [
   { value: 'SE', label: 'SE - Kỹ thuật phần mềm' },

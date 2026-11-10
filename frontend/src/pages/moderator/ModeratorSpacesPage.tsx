@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Layers,
   Settings,
   Upload,
   Database,
@@ -15,7 +14,7 @@ import {
   Save,
   ChevronLeft,
   ChevronRight,
-} from 'lucide-react';
+} from '../../utils/icons';
 
 interface FapStudent {
   id: string;
@@ -159,46 +158,47 @@ export const ModeratorSpacesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              backgroundColor: 'rgba(242, 112, 36, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#F27024',
-            }}
-          >
-            <Layers size={20} />
-          </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-            Quản lý Không gian Môn học & Đồng bộ FAP
-          </h1>
+      {/* Header — Minimal Enterprise Hierarchy */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#64748B',
+            marginBottom: '6px',
+          }}
+        >
+          <span>Điều phối & Học kỳ</span>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span style={{ color: '#334155', fontWeight: 600 }}>Quản lý không gian môn học & FAP</span>
         </div>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0, lineHeight: 1.5 }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 650, color: '#0F172A', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+          Quản lý Không gian Môn học & Đồng bộ FAP
+        </h1>
+        <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0, lineHeight: 1.5 }}>
           Thiết lập thông số nhóm học phần EXE, đồng bộ danh sách sinh viên đủ điều kiện từ FAP và khởi tạo số lượng phòng trống tự động cho học kỳ.
         </p>
       </div>
 
-      {/* Course Selector Tabs */}
+      {/* Course Selector Tabs — Synced with user's chosen accent color */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
         <button
           type="button"
+          className="motion-btn"
           onClick={() => setActiveCourse('EXE101')}
           style={{
-            padding: '8px 18px',
-            borderRadius: 12,
-            fontSize: '16px',
-            fontWeight: 700,
+            padding: '9px 18px',
+            borderRadius: 10,
+            fontSize: '14.5px',
+            fontWeight: 600,
             cursor: 'pointer',
-            border: activeCourse === 'EXE101' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
-            backgroundColor: activeCourse === 'EXE101' ? 'rgba(242, 112, 36, 0.12)' : 'var(--bg-card, #FFFFFF)',
-            color: activeCourse === 'EXE101' ? '#F27024' : 'var(--text-muted, #64748B)',
+            border: activeCourse === 'EXE101' ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+            background: activeCourse === 'EXE101' ? 'var(--accent-gradient, var(--accent-color, #F26F21))' : 'var(--bg-card, #FFFFFF)',
+            color: activeCourse === 'EXE101' ? '#FFFFFF' : 'var(--text-muted, #64748B)',
+            boxShadow: activeCourse === 'EXE101' ? '0 1px 3px var(--accent-shadow, rgba(242, 111, 33, 0.2))' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
@@ -206,16 +206,18 @@ export const ModeratorSpacesPage: React.FC = () => {
         </button>
         <button
           type="button"
+          className="motion-btn"
           onClick={() => setActiveCourse('EXE201')}
           style={{
-            padding: '8px 18px',
-            borderRadius: 12,
-            fontSize: '16px',
-            fontWeight: 700,
+            padding: '9px 18px',
+            borderRadius: 10,
+            fontSize: '14.5px',
+            fontWeight: 600,
             cursor: 'pointer',
-            border: activeCourse === 'EXE201' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
-            backgroundColor: activeCourse === 'EXE201' ? 'rgba(242, 112, 36, 0.12)' : 'var(--bg-card, #FFFFFF)',
-            color: activeCourse === 'EXE201' ? '#F27024' : 'var(--text-muted, #64748B)',
+            border: activeCourse === 'EXE201' ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+            background: activeCourse === 'EXE201' ? 'var(--accent-gradient, var(--accent-color, #F26F21))' : 'var(--bg-card, #FFFFFF)',
+            color: activeCourse === 'EXE201' ? '#FFFFFF' : 'var(--text-muted, #64748B)',
+            boxShadow: activeCourse === 'EXE201' ? '0 1px 3px var(--accent-shadow, rgba(242, 111, 33, 0.2))' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
@@ -245,15 +247,19 @@ export const ModeratorSpacesPage: React.FC = () => {
           </div>
           <span
             style={{
-              padding: '4px 12px',
+              padding: '5px 12px',
               borderRadius: 999,
-              fontSize: '14px',
-              fontWeight: 700,
-              backgroundColor: currentPhase === 2 ? 'rgba(5, 150, 105, 0.12)' : 'rgba(242, 112, 36, 0.12)',
-              color: currentPhase === 2 ? '#059669' : '#F27024',
-              border: `1px solid ${currentPhase === 2 ? 'rgba(5, 150, 105, 0.3)' : 'rgba(242, 112, 36, 0.3)'}`,
+              fontSize: '13.5px',
+              fontWeight: 600,
+              backgroundColor: '#F8FAFC',
+              color: '#0F172A',
+              border: '1px solid #E2E8F0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
+            <span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: 'var(--accent-color, #F26F21)' }} />
             {currentPhase === 1 && 'Giai đoạn 1: Bản nháp cấu hình'}
             {currentPhase === 2 && 'Giai đoạn 2: Đang mở đăng ký tự nguyện'}
             {currentPhase === 3 && 'Giai đoạn 3: Đã đóng đăng ký (Chờ điều phối)'}
@@ -261,13 +267,13 @@ export const ModeratorSpacesPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Phase Buttons */}
+        {/* Phase Buttons — Clean White Cards with Solid Orange Indicator (No pastel fill) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           {[
-            { phase: 1, title: '1. Bản nháp cấu hình', desc: 'Thiết lập quy tắc sĩ số & hạn nộp', color: '#64748B' },
-            { phase: 2, title: '2. Đang mở đăng ký tự nguyện', desc: 'Sinh viên tự do vào phòng & nộp đơn', color: '#059669' },
-            { phase: 3, title: '3. Đã đóng đăng ký', desc: 'Chờ điều phối sinh viên chưa có nhóm', color: '#D97706' },
-            { phase: 4, title: '4. Đã chốt sổ học kỳ', desc: 'Khóa cứng danh sách nhóm môn học', color: '#0054A6' },
+            { phase: 1, title: '1. Bản nháp cấu hình', desc: 'Thiết lập quy tắc sĩ số & hạn nộp' },
+            { phase: 2, title: '2. Đang mở đăng ký tự nguyện', desc: 'Sinh viên tự do vào phòng & nộp đơn' },
+            { phase: 3, title: '3. Đã đóng đăng ký', desc: 'Chờ điều phối sinh viên chưa có nhóm' },
+            { phase: 4, title: '4. Đã chốt sổ học kỳ', desc: 'Khóa cứng danh sách nhóm môn học' },
           ].map((item) => {
             const isActive = currentPhase === item.phase;
             const isPassed = currentPhase > item.phase;
@@ -279,20 +285,21 @@ export const ModeratorSpacesPage: React.FC = () => {
                   cursor: 'pointer',
                   padding: '14px 16px',
                   borderRadius: 12,
-                  border: isActive ? `2px solid ${item.color}` : '1px solid var(--border-light, #E2E8F0)',
-                  backgroundColor: isActive ? 'var(--bg-subtle, #F8FAFC)' : 'var(--bg-card, #FFFFFF)',
+                  border: isActive ? '2px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: isActive ? '#FFFFFF' : 'var(--bg-subtle, #F8FAFC)',
+                  boxShadow: isActive ? '0 2px 8px var(--accent-shadow, rgba(242, 111, 33, 0.12))' : 'none',
                   transition: 'all 0.15s ease',
                   position: 'relative',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: isActive ? item.color : 'var(--text-main, #0F172A)' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: isActive ? '#0F172A' : 'var(--text-secondary, #334155)' }}>
                     {item.title}
                   </span>
                   {isPassed ? (
-                    <CheckCircle2 size={16} color="#059669" />
+                    <CheckCircle2 size={16} color="#10B981" />
                   ) : isActive ? (
-                    <div style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: item.color }} />
+                    <div style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: 'var(--accent-color, #F26F21)' }} />
                   ) : null}
                 </div>
                 <p style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', margin: 0 }}>
@@ -305,7 +312,7 @@ export const ModeratorSpacesPage: React.FC = () => {
       </div>
 
       {/* Grid: 2 Columns for Config & Bulk Init */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
         {/* KHUNG 1: Cấu hình Thông số Ghép nhóm */}
         <div
           style={{
@@ -320,12 +327,12 @@ export const ModeratorSpacesPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(0, 84, 166, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054A6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)', flexShrink: 0 }}>
                 <Settings size={18} />
               </div>
               <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>
                   Cấu hình Thông số Ghép nhóm ({activeCourse})
                 </h3>
                 <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
@@ -334,156 +341,165 @@ export const ModeratorSpacesPage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Sĩ số tối đa */}
-              <div>
-                <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
-                  Sĩ số tối đa mỗi nhóm:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="number"
-                    min={3}
-                    max={6}
-                    value={maxMembers}
-                    onChange={(e) => setMaxMembers(Number(e.target.value))}
-                    style={{
-                      width: 90,
-                      height: 44,
-                      padding: '0 10px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: 'var(--text-main, #0F172A)',
-                      outline: 'none',
-                    }}
-                  />
-                  <span style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)' }}>
-                    sinh viên / nhóm (Mặc định: 5)
-                  </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Sĩ số tối đa & Hệ số dự phòng trên 2 cột gọn gàng */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '8px' }}>
+                    Sĩ số tối đa mỗi nhóm
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="number"
+                      min={3}
+                      max={6}
+                      value={maxMembers}
+                      onChange={(e) => setMaxMembers(Number(e.target.value))}
+                      style={{
+                        width: 76,
+                        height: 40,
+                        padding: '0 10px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border-medium, #CBD5E1)',
+                        backgroundColor: 'var(--bg-input, #FFFFFF)',
+                        fontSize: '15.5px',
+                        fontWeight: 800,
+                        color: 'var(--text-main, #0F172A)',
+                        fontVariantNumeric: 'tabular-nums',
+                        outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      SV / nhóm (Mặc định: 5)
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '12px 14px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '8px' }}>
+                    Hệ số phòng dự phòng
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="number"
+                      step={0.1}
+                      min={1.0}
+                      max={1.5}
+                      value={reserveRatio}
+                      onChange={(e) => setReserveRatio(Number(e.target.value))}
+                      style={{
+                        width: 76,
+                        height: 40,
+                        padding: '0 10px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border-medium, #CBD5E1)',
+                        backgroundColor: 'var(--bg-input, #FFFFFF)',
+                        fontSize: '15.5px',
+                        fontWeight: 800,
+                        color: 'var(--text-main, #0F172A)',
+                        fontVariantNumeric: 'tabular-nums',
+                        outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      × ước tính (Mặc định: 1.2)
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Ngưỡng tối thiểu thành lập nhóm (Tự động tính) */}
-              <div style={{ padding: '10px 14px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-subtle, #F1F5F9)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
-                    Ngưỡng tối thiểu thành lập nhóm:
+              <div style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                    Ngưỡng tối thiểu thành lập nhóm
                   </span>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.12)', padding: '2px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>
                     Tự động tính: {minThreshold} thành viên
                   </span>
                 </div>
-                <p style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0' }}>
+                <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
                   Khi đạt đủ 3 người, phòng tự động khóa cổng vào thẳng và chuyển sang chế độ Nhóm chính thức (chỉ nhận thêm thành viên qua đơn ứng tuyển).
                 </p>
               </div>
 
-              {/* Hệ số phòng dự phòng */}
-              <div>
-                <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
-                  Hệ số phòng dự phòng:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="number"
-                    step={0.1}
-                    min={1.0}
-                    max={1.5}
-                    value={reserveRatio}
-                    onChange={(e) => setReserveRatio(Number(e.target.value))}
-                    style={{
-                      width: 90,
-                      height: 44,
-                      padding: '0 10px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: 'var(--text-main, #0F172A)',
-                      outline: 'none',
-                    }}
-                  />
-                  <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                    (Mặc định: 1.2 — Nhân với số phòng ước tính để đảm bảo luôn dư phòng trống cho sinh viên lựa chọn)
-                  </span>
+              {/* Giới hạn đơn ứng tuyển & Thời hạn đóng đăng ký trên 2 cột */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '8px' }}>
+                    Giới hạn đơn chờ cùng lúc
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={5}
+                      value={maxPendingRequests}
+                      onChange={(e) => setMaxPendingRequests(Number(e.target.value))}
+                      style={{
+                        width: 76,
+                        height: 40,
+                        padding: '0 10px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border-medium, #CBD5E1)',
+                        backgroundColor: 'var(--bg-input, #FFFFFF)',
+                        fontSize: '15.5px',
+                        fontWeight: 800,
+                        color: 'var(--text-main, #0F172A)',
+                        fontVariantNumeric: 'tabular-nums',
+                        outline: 'none',
+                      }}
+                    />
+                    <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                      đơn tối đa / SV
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Giới hạn đơn ứng tuyển chờ cùng lúc */}
-              <div>
-                <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
-                  Giới hạn đơn ứng tuyển chờ duyệt cùng lúc của 1 sinh viên:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={maxPendingRequests}
-                    onChange={(e) => setMaxPendingRequests(Number(e.target.value))}
-                    style={{
-                      width: 90,
-                      height: 44,
-                      padding: '0 10px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      fontSize: '16px',
-                      fontWeight: 700,
-                      color: 'var(--text-main, #0F172A)',
-                      outline: 'none',
-                    }}
-                  />
-                  <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                    đơn tối đa (Mặc định: 3 — thay đổi chỉ áp dụng cho các đơn nộp sau thời điểm cập nhật)
-                  </span>
-                </div>
-              </div>
-
-              {/* Thời hạn đóng đăng ký tự nguyện */}
-              <div>
-                <label style={{ display: 'block', fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginBottom: '4px' }}>
-                  Thời hạn đóng đăng ký tự nguyện:
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={16} color="var(--text-light, #94A3B8)" />
-                  <input
-                    type="datetime-local"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    style={{
-                      height: 44,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      fontSize: '15px',
-                      color: 'var(--text-main, #0F172A)',
-                      outline: 'none',
-                    }}
-                  />
+                <div style={{ padding: '12px 14px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '8px' }}>
+                    Hạn đóng đăng ký tự nguyện
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Calendar size={15} color="#64748B" style={{ flexShrink: 0 }} />
+                    <input
+                      type="datetime-local"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: 40,
+                        padding: '0 10px',
+                        borderRadius: 10,
+                        border: '1px solid var(--border-medium, #CBD5E1)',
+                        backgroundColor: 'var(--bg-input, #FFFFFF)',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        color: 'var(--text-main, #0F172A)',
+                        fontVariantNumeric: 'tabular-nums',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div style={{ marginTop: '1.25rem', paddingTop: '12px', borderTop: '1px solid var(--border-light, #E2E8F0)' }}>
+          <div style={{ marginTop: '1.25rem', paddingTop: '14px', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
             <button
               type="button"
               onClick={handleSaveConfig}
               style={{
                 width: '100%',
-                height: 40,
+                height: 44,
                 borderRadius: 12,
-                backgroundColor: '#F27024',
+                background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
+                boxShadow: '0 2px 6px rgba(242, 111, 33, 0.25)',
                 color: '#FFFFFF',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '16px',
+                fontSize: '15px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -512,12 +528,12 @@ export const ModeratorSpacesPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(242, 112, 36, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F27024' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)', flexShrink: 0 }}>
                 <Hash size={18} />
               </div>
               <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>
                   Khởi tạo Phòng trống Hàng loạt
                 </h3>
                 <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
@@ -526,24 +542,49 @@ export const ModeratorSpacesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Công thức tính toán rõ ràng */}
+            {/* Công thức tính toán đồng bộ font Sans-Serif + Pill số liệu */}
             <div
               style={{
-                padding: '16px',
-                borderRadius: 12,
-                backgroundColor: 'rgba(0, 84, 166, 0.05)',
-                border: '1px solid rgba(0, 84, 166, 0.2)',
-                marginBottom: '1rem',
+                padding: '16px 18px',
+                borderRadius: 14,
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                marginBottom: '16px',
               }}
             >
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0054A6', marginBottom: '6px', textTransform: 'uppercase' }}>
-                Công thức tính số lượng phòng tự động:
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Công thức tính số lượng phòng tự động
               </div>
-              <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', marginBottom: '8px' }}>
-                {totalStudentsCount} SV đủ điều kiện ÷ {maxMembers} người/nhóm × Hệ số {reserveRatio} = {computedRoomsCount} Phòng
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  marginBottom: '10px',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                <span style={{ padding: '5px 11px', borderRadius: 8, backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                  {totalStudentsCount} SV đủ điều kiện
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#64748B' }}>÷</span>
+                <span style={{ padding: '5px 11px', borderRadius: 8, backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                  {maxMembers} người/nhóm
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#64748B' }}>×</span>
+                <span style={{ padding: '5px 11px', borderRadius: 8, backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                  Hệ số {reserveRatio}
+                </span>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#64748B' }}>=</span>
+                <span style={{ padding: '5px 12px', borderRadius: 8, background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))', fontSize: '14.5px', fontWeight: 700, color: '#FFFFFF', whiteSpace: 'nowrap' }}>
+                  {computedRoomsCount} Phòng trống
+                </span>
               </div>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.4 }}>
-                Hệ số dự phòng 1.2 đảm bảo luôn có dư ít nhất 2 phòng trống để sinh viên có thể chủ động lựa chọn môi trường ghép nhóm phù hợp.
+
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
+                Hệ số dự phòng {reserveRatio} đảm bảo luôn dư tối thiểu 2 phòng trống để sinh viên chủ động lựa chọn nhóm phù hợp.
               </p>
             </div>
 
@@ -553,49 +594,85 @@ export const ModeratorSpacesPage: React.FC = () => {
               onClick={handleCreateRooms}
               style={{
                 width: '100%',
-                height: 42,
+                height: 44,
                 borderRadius: 12,
-                backgroundColor: '#0054A6',
+                backgroundColor: 'var(--accent-color, #F26F21)',
                 color: '#FFFFFF',
                 border: 'none',
                 fontWeight: 700,
-                fontSize: '16px',
+                fontSize: '15px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                marginBottom: '1rem',
+                marginBottom: '16px',
               }}
             >
               <Sparkles size={16} />
-              Khởi tạo tự động {computedRoomsCount} Phòng trống (FA26{activeCourse}-01 → FA26{activeCourse}-{computedRoomsCount < 10 ? `0${computedRoomsCount}` : computedRoomsCount})
+              <span>
+                Khởi tạo tự động {computedRoomsCount} Phòng trống (FA26{activeCourse}-01 → FA26{activeCourse}-{computedRoomsCount < 10 ? `0${computedRoomsCount}` : computedRoomsCount})
+              </span>
             </button>
 
-            {/* Danh sách phòng đã tạo */}
+            {/* Danh sách phòng đã tạo (Lưới 3 cột cố định, không bị rớt dòng mã phòng) */}
             <div>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>
-                Danh sách phòng hiện có ({createdRooms.length} phòng):
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Danh sách phòng hiện có ({createdRooms.length} phòng)
+                </span>
+                <span style={{ fontSize: '12.5px', fontWeight: 600, color: '#64748B' }}>
+                  Sẵn sàng mở đăng ký
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '10px',
+                }}
+              >
                 {createdRooms.map((roomCode) => (
                   <div
                     key={roomCode}
                     style={{
-                      padding: '8px 10px',
+                      padding: '9px 12px',
                       borderRadius: 10,
                       border: '1px solid var(--border-light, #E2E8F0)',
                       backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      fontSize: '14px',
+                      gap: '6px',
                     }}
                   >
-                    <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                    <span
+                      style={{
+                        fontSize: '13.5px',
+                        fontWeight: 700,
+                        color: 'var(--text-main, #0F172A)',
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums',
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
                       {roomCode}
                     </span>
-                    <span style={{ fontSize: '13px', color: '#059669', fontWeight: 600 }}>0/5</span>
+                    <span
+                      style={{
+                        fontSize: '12px',
+                        color: '#475569',
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        padding: '1px 7px',
+                        borderRadius: 999,
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      0/{maxMembers}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -616,7 +693,7 @@ export const ModeratorSpacesPage: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(5, 150, 105, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F172A' }}>
               <Database size={20} />
             </div>
             <div>
@@ -664,7 +741,7 @@ export const ModeratorSpacesPage: React.FC = () => {
                 padding: '0 16px',
                 borderRadius: 12,
                 border: 'none',
-                backgroundColor: '#F27024',
+                backgroundColor: 'var(--accent-color, #F26F21)',
                 color: '#FFFFFF',
                 fontSize: '15px',
                 fontWeight: 700,
@@ -807,17 +884,19 @@ export const ModeratorSpacesPage: React.FC = () => {
                       </span>
                     </td>
                     <td style={{ padding: '11px 14px' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: 999, fontSize: '13.5px', fontWeight: 700, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: '1px solid rgba(5, 150, 105, 0.25)' }}>
-                        <Check size={13} /> Đã gửi mail khởi tạo
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: 999, fontSize: '13.5px', fontWeight: 600, backgroundColor: '#F8FAFC', color: '#334155', border: '1px solid #E2E8F0' }}>
+                        <Check size={13} color="#10B981" /> Đã gửi mail khởi tạo
                       </span>
                     </td>
                     <td style={{ padding: '11px 14px' }}>
                       {st.profileCompleted ? (
-                        <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '13.5px', fontWeight: 700, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669', border: '1px solid rgba(5, 150, 105, 0.25)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: 999, fontSize: '13.5px', fontWeight: 600, backgroundColor: '#F8FAFC', color: '#334155', border: '1px solid #E2E8F0' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#10B981' }} />
                           Đã hoàn tất
                         </span>
                       ) : (
-                        <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '13.5px', fontWeight: 700, backgroundColor: 'rgba(242, 112, 36, 0.12)', color: '#C2410C', border: '1px solid rgba(242, 112, 36, 0.25)' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: 999, fontSize: '13.5px', fontWeight: 600, backgroundColor: '#F8FAFC', color: '#64748B', border: '1px solid #E2E8F0' }}>
+                          <span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#F59E0B' }} />
                           Chưa hoàn tất
                         </span>
                       )}
