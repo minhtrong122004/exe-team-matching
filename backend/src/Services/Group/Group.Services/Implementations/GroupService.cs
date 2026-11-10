@@ -233,16 +233,9 @@ public class GroupService(
 
         var userId = currentUser.UserId;
 
-        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
-        var profile = await userClient.GetProfileAsync(userId, ct);
-        if (profile == null || !profile.IsProfileCompleted)
-        {
-            throw new BusinessRuleException("PROFILE_INCOMPLETE",
-                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
-        }
-
         // Kiểm tra sinh viên trong Space (BR-01)
         int threshold = (group.MaxMembers / 2) + 1;
+        SpaceEnrollment? currentEnrollment = null;
         if (group.SpaceId.HasValue)
         {
             var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
@@ -254,8 +247,8 @@ public class GroupService(
                         "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Sinh viên không thể tự do chọn phòng vào lúc này.");
                 }
 
-                var isEnrolled = await spaceRepo.IsStudentEnrolledAsync(space.Id, userId, ct);
-                if (!isEnrolled)
+                currentEnrollment = await spaceRepo.GetEnrollmentAsync(space.Id, userId, ct);
+                if (currentEnrollment == null)
                 {
                     var enrolledSpaces = await spaceRepo.GetSpacesForStudentAsync(userId, currentUser.Email, ct);
                     if (!enrolledSpaces.Any(s => s.Id == space.Id))
@@ -267,6 +260,25 @@ public class GroupService(
 
                 threshold = space.GroupThreshold;
             }
+        }
+
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
+        // Tối ưu Event-driven: Ưu tiên đọc cờ IsProfileCompleted nội bộ từ SpaceEnrollment, fallback sang REST nếu chưa đồng bộ
+        bool isProfileCompleted = currentEnrollment?.IsProfileCompleted ?? false;
+        if (!isProfileCompleted)
+        {
+            var profile = await userClient.GetProfileAsync(userId, ct);
+            if (profile != null && profile.IsProfileCompleted)
+            {
+                isProfileCompleted = true;
+                await spaceRepo.UpdateProfileCompletionAsync(userId, true, ct);
+            }
+        }
+
+        if (!isProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
         }
 
         var member = await membership.AddDirectMemberAsync(

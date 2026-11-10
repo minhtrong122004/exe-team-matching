@@ -54,7 +54,8 @@ public record SpaceEnrollmentResponse(
     string Major,
     string Cohort,
     string? ClassCode,
-    DateTime EnrolledAt);
+    DateTime EnrolledAt,
+    bool IsProfileCompleted = false);
 
 /// <summary>GET /api/spaces/{id}/rooms?status=&amp;minAvailableSlots=&amp;search=&amp;page=&amp;pageSize= (BR-13).</summary>
 public class RoomQuery : PagedRequest

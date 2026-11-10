@@ -1,6 +1,7 @@
 using Exe.BuildingBlocks.EventBus;
 using Exe.BuildingBlocks.Persistence;
 using Exe.BuildingBlocks.Web;
+using Group.API.Workers;
 using Group.Repository;
 using Group.Repository.Data;
 using Group.Services;
@@ -21,6 +22,8 @@ builder.Services.AddGroupServices(builder.Configuration);
 // ── 3. Event bus (Redis Streams) — Group chỉ là producer ────────────────────
 builder.Services.AddExeEventBus(builder.Configuration);
 
+// ── 4. Background job & Event Consumers ─────────────────────────────────────
+builder.Services.AddHostedService<UserProfileUpdatedConsumer>();
 // ═══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();
 

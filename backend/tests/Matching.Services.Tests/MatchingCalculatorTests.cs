@@ -277,4 +277,73 @@ public class MatchingCalculatorTests
         var leaderAssigned = plan.AddedStudents.First(s => s.UserId == "c3");
         Assert.True(leaderAssigned.IsLeader);
     }
+
+    [Theory]
+    [InlineData(1, 3, 5, 2, new int[] { })]
+    [InlineData(2, 3, 5, 2, new int[] { })]
+    [InlineData(3, 3, 5, 2, new int[] { 3 })]
+    [InlineData(4, 3, 5, 2, new int[] { 4 })]
+    [InlineData(5, 3, 5, 2, new int[] { 5 })]
+    [InlineData(6, 3, 5, 2, new int[] { 3, 3 })]
+    [InlineData(7, 3, 5, 2, new int[] { 4, 3 })]
+    [InlineData(8, 3, 5, 2, new int[] { 4, 4 })]
+    [InlineData(11, 3, 5, 3, new int[] { 4, 4, 3 })]
+    public void CalculateBalancedGroupSizes_ReturnsBalancedThresholdCompliantSizes(
+        int totalStudents, int threshold, int maxMembers, int maxRooms, int[] expected)
+    {
+        var actual = MatchingCalculator.CalculateBalancedGroupSizes(totalStudents, threshold, maxMembers, maxRooms);
+        Assert.Equal(expected, actual);
+        foreach (var size in actual)
+        {
+            Assert.InRange(size, threshold, maxMembers);
+        }
+    }
+
+    [Fact]
+    public void Distribute_Step2_WhenFewerThanThreshold_DoesNotCreateInvalidSubgroups()
+    {
+        var emptyRoom = new DistributeRoomInput("r_empty", "FA26EXE101-02", "Phòng 02", null, [], true);
+
+        // Chỉ có 2 sinh viên lẻ (dưới ngưỡng 3 người của BR-16)
+        var candidates = new List<DistributeCandidateInput>
+        {
+            new("c1", "Sinh viên 1", "SE180001", "SE", 80, 60, 70, 60, 50),
+            new("c2", "Sinh viên 2", "AI180001", "AI", 85, 75, 60, 60, 50)
+        };
+
+        var request = new DistributeRequestInput("sp1", 5, 3, candidates, [], [emptyRoom]);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        // Phải từ chối tạo nhóm 2 người, giữ lại ở TotalRemaining
+        Assert.Equal(2, result.TotalUnmatched);
+        Assert.Equal(0, result.TotalDistributed);
+        Assert.Equal(2, result.TotalRemaining);
+        Assert.Empty(result.RoomPlans);
+    }
+
+    [Fact]
+    public void Distribute_Step2_SixStudents_SplitIntoTwoThreeMemberGroups()
+    {
+        var roomA = new DistributeRoomInput("ra", "FA26EXE101-02", "Phòng 02", null, [], true);
+        var roomB = new DistributeRoomInput("rb", "FA26EXE101-03", "Phòng 03", null, [], true);
+
+        var candidates = new List<DistributeCandidateInput>
+        {
+            new("c1", "Sinh viên 1", "SE180001", "SE", 80, 95, 70, 60, 50),
+            new("c2", "Sinh viên 2", "AI180001", "AI", 85, 90, 60, 60, 50),
+            new("c3", "Sinh viên 3", "GD180001", "GD", 60, 70, 95, 60, 50),
+            new("c4", "Sinh viên 4", "MKT180001", "MKT", 50, 60, 50, 95, 60),
+            new("c5", "Sinh viên 5", "IB180001", "IB", 50, 60, 50, 50, 95),
+            new("c6", "Sinh viên 6", "SE180002", "SE", 90, 50, 50, 50, 50)
+        };
+
+        var request = new DistributeRequestInput("sp1", 5, 3, candidates, [], [roomA, roomB]);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        Assert.Equal(6, result.TotalDistributed);
+        Assert.Equal(0, result.TotalRemaining);
+        Assert.Equal(2, result.RoomPlans.Count);
+        Assert.All(result.RoomPlans, p => Assert.Equal(3, p.MemberCountAfter));
+        Assert.All(result.RoomPlans, p => Assert.True(p.IsNewlyFormed));
+    }
 }

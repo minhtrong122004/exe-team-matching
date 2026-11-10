@@ -2998,6 +2998,7 @@ export const CourseSpacesPage: React.FC = () => {
                           <th style={{ padding: '0.85rem 1rem' }}>Chuyên ngành</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Khóa</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Lớp FAP</th>
+                          <th style={{ padding: '0.85rem 1rem' }}>Hồ sơ kỹ năng (BR-07)</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Ngày ghi danh</th>
                         </tr>
                       </thead>
@@ -3058,6 +3059,44 @@ export const CourseSpacesPage: React.FC = () => {
                               </td>
                               <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
                                 {enr.classCode || 'EXE101-01'}
+                              </td>
+                              <td style={{ padding: '0.85rem 1rem', whiteSpace: 'nowrap' }}>
+                                {enr.isProfileCompleted ? (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      background: 'rgba(0, 136, 55, 0.1)',
+                                      color: 'var(--fpt-green, #008837)',
+                                      border: '1px solid rgba(0, 136, 55, 0.25)',
+                                    }}
+                                  >
+                                    <CheckCircle2 size={12} strokeWidth={2} />
+                                    <span>Đã hoàn tất</span>
+                                  </span>
+                                ) : (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.3rem',
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '6px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      background: 'rgba(100, 116, 139, 0.1)',
+                                      color: 'var(--text-muted, #64748b)',
+                                      border: '1px solid var(--border-light, #e2e8f0)',
+                                    }}
+                                  >
+                                    <span>Chưa khai báo</span>
+                                  </span>
+                                )}
                               </td>
                               <td style={{ padding: '0.85rem 1rem', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                                 {formatDate(enr.enrolledAt)}
