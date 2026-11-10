@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Exe.BuildingBlocks.Auth;
+using Exe.BuildingBlocks.Paging;
 using Exe.BuildingBlocks.Web;
 using Exe.Contracts.Events;
 using Exe.Contracts.Matching;
@@ -12,6 +14,7 @@ using Group.Services.DTOs;
 using Group.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using ICurrentUser = Exe.BuildingBlocks.Web.ICurrentUser;
 
 namespace Group.Services.Implementations;
 
@@ -26,6 +29,7 @@ public partial class CourseSpaceService(
     IMatchingClient matchingClient,
     IUserClient userClient,
     GroupEventPublisher eventPublisher,
+    ICurrentUser currentUser,
     ILogger<CourseSpaceService> logger) : ICourseSpaceService
 {
     public async Task<CourseSpaceResponse> CreateSpaceAsync(CreateCourseSpaceRequest request, CancellationToken ct = default)
@@ -71,6 +75,28 @@ public partial class CourseSpaceService(
         return ToResponse(space, 0, 0);
     }
 
+    public async Task DeleteSpaceAsync(Guid spaceId, CancellationToken ct = default)
+    {
+        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
+            ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        // Chỉ dùng để sửa thao tác tạo nhầm: Space đã có dữ liệu thì không được xóa.
+        if (space.Status != CourseSpaceStatus.Draft)
+        {
+            throw new BusinessRuleException("SPACE_NOT_DRAFT", "Chỉ xóa được Không gian học phần đang ở trạng thái Draft.");
+        }
+
+        if (space.Enrollments.Count > 0 || space.Rooms.Count > 0)
+        {
+            throw new BusinessRuleException("SPACE_NOT_EMPTY", "Không thể xóa Không gian học phần đã có sinh viên hoặc phòng.");
+        }
+
+        spaceRepo.Remove(space);
+        await uow.SaveChangesAsync(ct);
+
+        logger.LogInformation("Deleted empty CourseSpace {Id} - {SemesterCode} {SubjectCode}", space.Id, space.SemesterCode, space.SubjectCode);
+    }
+
     public async Task<IReadOnlyList<CourseSpaceResponse>> GetAllSpacesAsync(string? semesterCode, CourseSpaceStatus? status, CancellationToken ct = default)
     {
         var spaces = await spaceRepo.GetAllAsync(semesterCode, status, ct);
@@ -97,8 +123,26 @@ public partial class CourseSpaceService(
             throw new BusinessRuleException("SPACE_LOCKED", "Không thể chỉnh sửa cấu hình không gian môn học đã chốt sổ (BR-33).");
         }
 
+        var newThreshold = (request.MaxMembersPerGroup / 2) + 1;
+
+        // BR-08: sĩ số mới áp dụng cho cả các Room đã tạo, nên không được thấp hơn số người đang ở trong phòng.
+        var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        var overfullRoom = trackedRooms.FirstOrDefault(r => r.Members.Count > request.MaxMembersPerGroup);
+        if (overfullRoom != null)
+        {
+            throw new BusinessRuleException("MAX_MEMBERS_BELOW_MEMBER_COUNT",
+                $"Phòng {overfullRoom.RoomCode ?? overfullRoom.Name} đang có {overfullRoom.Members.Count} thành viên, không thể giảm sĩ số xuống {request.MaxMembersPerGroup} (BR-08).");
+        }
+
+        foreach (var room in trackedRooms)
+        {
+            room.MaxMembers = request.MaxMembersPerGroup;
+            room.Status = ResolveRoomStatus(room, request.MaxMembersPerGroup, newThreshold);
+            room.UpdatedAt = DateTime.UtcNow;
+        }
+
         space.MaxMembersPerGroup = request.MaxMembersPerGroup;
-        space.GroupThreshold = (request.MaxMembersPerGroup / 2) + 1;
+        space.GroupThreshold = newThreshold;
         space.BufferRatio = request.BufferRatio;
         space.MaxConcurrentApplies = request.MaxConcurrentApplies;
         space.RegistrationDeadline = request.RegistrationDeadline;
@@ -158,9 +202,9 @@ public partial class CourseSpaceService(
 
         if (toAdd.Count > 0)
         {
-            // Bắn request sang Auth Service để tạo tài khoản & đồng bộ StudentId chuẩn xác theo AccountId
+            // Tài khoản là điều kiện đăng nhập: Auth lỗi thì dừng import, không lưu sinh viên chưa có tài khoản.
             var authHeader = httpContextAccessor.HttpContext?.Request.Headers.Authorization.ToString();
-            await TryTriggerAuthProvisioningAsync(space.SemesterCode, space.SubjectCode, toAdd, authHeader);
+            await ProvisionAccountsAsync(space.SemesterCode, space.SubjectCode, toAdd, authHeader, ct);
 
             spaceRepo.AddEnrollmentsRange(toAdd);
             space.UpdatedAt = now;
@@ -169,15 +213,6 @@ public partial class CourseSpaceService(
         }
 
         return toAdd.Count;
-    }
-
-    public async Task<int> SyncMockFapStudentsAsync(Guid spaceId, CancellationToken ct = default)
-    {
-        var space = await spaceRepo.GetByIdAsync(spaceId, ct)
-            ?? throw new NotFoundException("CourseSpace", spaceId);
-
-        var mockList = GenerateMockFapStudents(space.SemesterCode, space.SubjectCode);
-        return await ImportFapStudentsAsync(spaceId, new ImportFapStudentsRequest(mockList), ct);
     }
 
     public async Task<GenerateRoomsResponse> GenerateRoomsAsync(Guid spaceId, CancellationToken ct = default)
@@ -300,21 +335,32 @@ public partial class CourseSpaceService(
         )).ToList();
     }
 
-    public async Task<IReadOnlyList<RoomSummaryResponse>> GetSpaceRoomsAsync(Guid spaceId, GroupStatus? status, CancellationToken ct = default)
+    public async Task<PagedResult<RoomSummaryResponse>> GetSpaceRoomsAsync(Guid spaceId, RoomQuery query, CancellationToken ct = default)
     {
-        var rooms = await spaceRepo.GetRoomsBySpaceAsync(spaceId, status, ct);
-        return rooms.Select(r => new RoomSummaryResponse(
-            r.Id,
-            r.RoomCode,
-            r.Name,
-            r.Status.ToString(),
-            r.Members.Count,
-            r.MaxMembers,
-            r.LeaderId,
-            r.Members.FirstOrDefault(m => m.UserId == r.LeaderId)?.FullName,
-            r.SpaceId,
-            r.CreatedAt
-        )).ToList();
+        var page = await spaceRepo.GetPagedRoomsBySpaceAsync(
+            spaceId, query.Status, query.MinAvailableSlots, query.Search, query.NormalizedPage, query.NormalizedPageSize, ct);
+
+        var isStudent = currentUser.IsInRole(Roles.Student);
+
+        return page.Map(r =>
+        {
+            // BR-13: phòng đã đủ hoặc đã đóng thì ẩn Leader với sinh viên ngoài nhóm.
+            var hideLeader = isStudent
+                             && r.Status is GroupStatus.Closed or GroupStatus.Locked
+                             && r.Members.All(m => m.UserId != currentUser.UserId);
+
+            return new RoomSummaryResponse(
+                r.Id,
+                r.RoomCode,
+                r.Name,
+                r.Status.ToString(),
+                r.Members.Count,
+                r.MaxMembers,
+                hideLeader ? null : r.LeaderId,
+                hideLeader ? null : r.Members.FirstOrDefault(m => m.UserId == r.LeaderId)?.FullName,
+                r.SpaceId,
+                r.CreatedAt);
+        });
     }
 
     public async Task<CourseSpaceResponse> CloseRegistrationAsync(Guid spaceId, CancellationToken ct = default)
@@ -376,7 +422,7 @@ public partial class CourseSpaceService(
         }).ToList();
 
         var incompleteRooms = rooms
-            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Closed && r.Status != GroupStatus.Locked)
+            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Locked)
             .Select(ToRoomDistributionItem)
             .ToList();
 
@@ -386,7 +432,7 @@ public partial class CourseSpaceService(
             .ToList();
 
         var fullRooms = rooms
-            .Where(r => r.Members.Count >= space.MaxMembersPerGroup || r.Status == GroupStatus.Closed || r.Status == GroupStatus.Locked)
+            .Where(r => r.Members.Count >= space.MaxMembersPerGroup || r.Status == GroupStatus.Locked)
             .Select(ToRoomDistributionItem)
             .ToList();
 
@@ -441,7 +487,7 @@ public partial class CourseSpaceService(
 
         var rooms = await spaceRepo.GetRoomsBySpaceAsync(spaceId, null, ct);
         var existingRoomsWithMembers = rooms
-            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Closed && r.Status != GroupStatus.Locked)
+            .Where(r => r.Members.Count > 0 && r.Members.Count < space.MaxMembersPerGroup && r.Status != GroupStatus.Locked)
             .ToList();
 
         var emptyRooms = rooms
@@ -529,7 +575,9 @@ public partial class CourseSpaceService(
             grpcResponse.TotalUnmatched,
             grpcResponse.TotalDistributed,
             grpcResponse.TotalRemaining,
-            plans
+            plans,
+            // Dư ít người thì nhóm có thể dưới ngưỡng: báo để Moderator tự xử lý trước khi chốt sổ.
+            plans.Where(p => p.MemberCountAfter < space.GroupThreshold).Select(p => p.RoomCode).ToList()
         );
     }
 
@@ -557,6 +605,8 @@ public partial class CourseSpaceService(
 
         var now = DateTime.UtcNow;
         int updatedRoomsCount = 0;
+        var joinedEvents = new List<MemberJoined>();
+        var distributedStudentIds = new HashSet<Guid>();
 
         foreach (var plan in preview.RoomPlans)
         {
@@ -589,35 +639,40 @@ public partial class CourseSpaceService(
                     room.LeaderId = resolvedUserId;
                 }
 
-                await eventPublisher.PublishAsync(new MemberJoined(
+                distributedStudentIds.Add(resolvedUserId);
+                joinedEvents.Add(new MemberJoined(
                     room.Id,
                     room.Name,
-                    student.UserId,
+                    resolvedUserId,
                     email,
                     student.FullName,
                     room.Members.Count,
-                    room.MaxMembers), ct);
+                    room.MaxMembers));
             }
 
-            if (room.Members.Count >= space.MaxMembersPerGroup)
-            {
-                room.Status = GroupStatus.Closed;
-            }
-            else if (room.Members.Count >= space.GroupThreshold)
-            {
-                room.Status = GroupStatus.Recruiting;
-            }
-            else if (room.Members.Count > 0)
-            {
-                room.Status = GroupStatus.Forming;
-            }
-
+            room.Status = ResolveRoomStatus(room, space.MaxMembersPerGroup, space.GroupThreshold);
             room.UpdatedAt = now;
             updatedRoomsCount++;
         }
 
+        // BR-26: sinh viên đã được xếp nhóm thì mọi đơn đang chờ của họ trong môn này thành Cancelled.
+        foreach (var pending in await spaceRepo.GetPendingJoinRequestsBySpaceAsync(spaceId, ct))
+        {
+            if (distributedStudentIds.Contains(pending.StudentId))
+            {
+                pending.Status = JoinRequestStatus.Cancelled;
+                pending.DecidedAt = now;
+            }
+        }
+
         space.UpdatedAt = now;
         await uow.SaveChangesAsync(ct);
+
+        // Chỉ phát event sau khi đã lưu, để không báo cho consumer về thay đổi chưa commit.
+        foreach (var joined in joinedEvents)
+        {
+            await eventPublisher.PublishAsync(joined, ct);
+        }
 
         logger.LogInformation("Confirmed distribution for CourseSpace {SpaceId}: {Distributed} students distributed to {Rooms} rooms (BR-31, BR-32)",
             spaceId, preview.TotalDistributed, updatedRoomsCount);
@@ -641,6 +696,12 @@ public partial class CourseSpaceService(
             throw new BusinessRuleException("ALREADY_FINALIZED", "Không gian môn học này đã được chốt sổ trước đó (BR-33).");
         }
 
+        if (space.Status != CourseSpaceStatus.ClosedRegistration)
+        {
+            throw new BusinessRuleException("REGISTRATION_NOT_CLOSED",
+                "Phải đóng đăng ký trước khi chốt sổ (BR-30, BR-33).");
+        }
+
         var now = DateTime.UtcNow;
 
         space.Status = CourseSpaceStatus.Locked;
@@ -648,6 +709,11 @@ public partial class CourseSpaceService(
 
         var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
         int lockedRoomsCount = 0;
+
+        // Vẫn cho chốt khi còn sinh viên lẻ, nhưng báo số lượng để Moderator biết và xử lý bằng chuyển nhóm.
+        var joinedUserIds = trackedRooms.SelectMany(r => r.Members.Select(m => m.UserId)).ToHashSet();
+        var unmatchedStudentsCount = (await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct))
+            .Count(e => !joinedUserIds.Contains(e.StudentId));
 
         foreach (var room in trackedRooms)
         {
@@ -694,8 +760,39 @@ public partial class CourseSpaceService(
             space.Status.ToString(),
             lockedRoomsCount,
             rejectedRequestsCount,
-            now
+            now,
+            unmatchedStudentsCount
         );
+    }
+
+    /// <summary>Trạng thái Room theo sĩ số (BR-14, BR-16, BR-17, BR-28). Nhóm Leader đã đóng tuyển vẫn giữ Closed.</summary>
+    private static GroupStatus ResolveRoomStatus(GroupEntity room, int maxMembers, int threshold)
+    {
+        if (room.Status == GroupStatus.Locked) return GroupStatus.Locked;
+        if (room.Members.Count == 0) return GroupStatus.Empty;
+        if (room.Members.Count < threshold) return GroupStatus.Forming;
+        if (room.Members.Count >= maxMembers || room.IsClosedByLeader) return GroupStatus.Closed;
+        return GroupStatus.Recruiting;
+    }
+
+    /// <summary>
+    /// Sau khi chuyển nhóm: nhóm không còn Leader hợp lệ thì người vào sớm nhất làm Leader (BR-20),
+    /// và nhóm đã có người trong Space đã chốt sổ thì khóa lại (BR-33).
+    /// </summary>
+    private static void NormalizeRoomAfterTransfer(GroupEntity room)
+    {
+        if (room.Members.Count == 0)
+        {
+            room.LeaderId = null;
+        }
+        else if (room.Members.All(m => m.UserId != room.LeaderId))
+        {
+            var nextLeader = room.Members.OrderBy(m => m.JoinedAt).First();
+            room.LeaderId = nextLeader.UserId;
+            nextLeader.Role = MemberRole.Leader;
+        }
+
+        room.Status = room.Members.Count == 0 ? GroupStatus.Closed : GroupStatus.Locked;
     }
 
     private static RoomDistributionItem ToRoomDistributionItem(GroupEntity r)
@@ -750,175 +847,91 @@ public partial class CourseSpaceService(
     [GeneratedRegex(@"(?:[A-Za-z]+)?(\d{2})")]
     private static partial Regex CohortRegex();
 
-    /// <summary>
-    /// Tạo danh sách 50 sinh viên mẫu đa ngành chuẩn FAP (SE, AI, IA, GD, MKT, IB).
-    /// </summary>
-    private static List<FapStudentItem> GenerateMockFapStudents(string semesterCode, string subjectCode)
-    {
-        var list = new List<FapStudentItem>();
-
-        // Sinh viên 1 đã có sẵn trong seed của Auth Service: Nguyễn Minh Hoàng (SE180101)
-        list.Add(new FapStudentItem("SE180101", "Nguyễn Minh Hoàng (SE)", "student1@exe.local", "SE", "K18", "SE1801"));
-
-        // Sinh viên SE (15 bạn)
-        string[] seNames =
-        [
-            "Trần Quang Khải", "Lê Bảo Trâm", "Phạm Đức Minh", "Vũ Hoàng Long", "Ngô Thành Nam",
-            "Đỗ Thu Trang", "Hoàng Kim Ngân", "Đặng Tuấn Anh", "Bùi Việt Hùng", "Dương Khánh Linh",
-            "Lý Quốc Bảo", "Hồ Minh Châu", "Phan Gia Huy", "Tạ Nhật Minh", "Võ Quỳnh Nga"
-        ];
-        for (int i = 0; i < seNames.Length; i++)
-        {
-            var code = $"SE1800{i + 2:D2}";
-            list.Add(new FapStudentItem(code, seNames[i], $"{code.ToLowerInvariant()}@fpt.edu.vn", "SE", "K18", "SE1801"));
-        }
-
-        // Sinh viên AI (8 bạn)
-        string[] aiNames =
-        [
-            "Nguyễn Hải Đăng", "Trần Mai Anh", "Lê Công Vinh", "Phạm Phương Thảo",
-            "Hoàng Thái Sơn", "Đỗ Lan Hương", "Vũ Minh Quân", "Bùi Ngọc Ánh"
-        ];
-        for (int i = 0; i < aiNames.Length; i++)
-        {
-            var code = $"AI1800{i + 1:D2}";
-            list.Add(new FapStudentItem(code, aiNames[i], $"{code.ToLowerInvariant()}@fpt.edu.vn", "AI", "K18", "AI1802"));
-        }
-
-        // Sinh viên IA (6 bạn)
-        string[] iaNames =
-        [
-            "Đặng Quốc Huy", "Ngô Bích Ngọc", "Trịnh Anh Tuấn", "Phan Minh Khang", "Lương Thùy Chi", "Vũ Gia Huy (IA)"
-        ];
-        for (int i = 0; i < iaNames.Length; i++)
-        {
-            var code = $"IA1800{i + 1:D2}";
-            var email = i == 5 ? "student7@exe.local" : $"{code.ToLowerInvariant()}@fpt.edu.vn";
-            list.Add(new FapStudentItem(code, iaNames[i], email, "IA", "K18", "IA1803"));
-        }
-
-        // Sinh viên GD - Graphic Design (6 bạn)
-        string[] gdNames =
-        [
-            "Lê Ngọc Bảo Châu", "Trần Đình Trọng", "Nguyễn Thảo Nguyên", "Phạm Hoàng Yến", "Đoàn Mỹ Duyên", "Bùi Ngọc Ánh (GD)"
-        ];
-        for (int i = 0; i < gdNames.Length; i++)
-        {
-            var code = $"GD1800{i + 1:D2}";
-            var email = i == 5 ? "student8@exe.local" : $"{code.ToLowerInvariant()}@fpt.edu.vn";
-            list.Add(new FapStudentItem(code, gdNames[i], email, "GD", "K18", "GD1801"));
-        }
-
-        // Sinh viên MKT - Digital Marketing (7 bạn)
-        string[] mktNames =
-        [
-            "Võ Minh Trí", "Nguyễn Thùy Dương", "Trần Khắc Việt", "Lê Hương Giang",
-            "Đỗ Quốc Thái", "Phan Thanh Tùng", "Hoàng Ngọc Mai"
-        ];
-        for (int i = 0; i < mktNames.Length; i++)
-        {
-            var code = $"MKT1800{i + 1:D2}";
-            list.Add(new FapStudentItem(code, mktNames[i], $"{code.ToLowerInvariant()}@fpt.edu.vn", "MKT", "K18", "MKT1802"));
-        }
-
-        // Sinh viên IB - International Business (7 bạn)
-        string[] ibNames =
-        [
-            "Nguyễn Duy Mạnh", "Lê Thu Hà", "Trần Đình Khang", "Phạm Yến Nhi",
-            "Vũ Hoàng Bách", "Đặng Diệu Linh", "Hoàng Đức Anh (IB)"
-        ];
-        for (int i = 0; i < ibNames.Length; i++)
-        {
-            var code = $"IB1800{i + 1:D2}";
-            var email = i == 6 ? "student5@exe.local" : $"{code.ToLowerInvariant()}@fpt.edu.vn";
-            list.Add(new FapStudentItem(code, ibNames[i], email, "IB", "K18", "IB1801"));
-        }
-
-        return list; // Đúng 50 sinh viên đa ngành!
-    }
-
-    private async Task TryTriggerAuthProvisioningAsync(
+    private async Task ProvisionAccountsAsync(
         string semesterCode,
         string subjectCode,
         List<SpaceEnrollment> enrollments,
-        string? authHeader)
+        string? authHeader,
+        CancellationToken ct)
     {
-        if (enrollments.Count == 0) return;
+        var client = httpClientFactory.CreateClient("Auth");
+        if (!string.IsNullOrWhiteSpace(authHeader))
+        {
+            client.DefaultRequestHeaders.Remove("Authorization");
+            client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authHeader);
+        }
 
+        var payload = new
+        {
+            semesterCode,
+            subjectCode,
+            students = enrollments.Select(e => new
+            {
+                studentCode = e.StudentCode,
+                fullName = e.FullName,
+                email = e.Email,
+                major = e.Major,
+                classCode = e.ClassCode
+            })
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+        string body;
         try
         {
-            var client = httpClientFactory.CreateClient("Auth");
-            if (!string.IsNullOrWhiteSpace(authHeader))
+            using var response = await client.PostAsync("/api/auth/accounts/provision-fap", content, ct);
+            body = await response.Content.ReadAsStringAsync(ct);
+            if (!response.IsSuccessStatusCode)
             {
-                client.DefaultRequestHeaders.Remove("Authorization");
-                client.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", authHeader);
+                logger.LogError("Auth Service provision-fap responded with {StatusCode}: {ErrorBody}", response.StatusCode, body);
+                throw ProvisioningFailed();
             }
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogError(ex, "Could not reach Auth Service to provision FAP accounts");
+            throw ProvisioningFailed();
+        }
 
-            var payload = new
+        var accountIdsByEmail = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("results", out var results) && results.ValueKind == JsonValueKind.Array)
             {
-                semesterCode,
-                subjectCode,
-                students = enrollments.Select(e => new
+                foreach (var item in results.EnumerateArray())
                 {
-                    studentCode = e.StudentCode,
-                    fullName = e.FullName,
-                    email = e.Email,
-                    major = e.Major,
-                    classCode = e.ClassCode
-                })
-            };
-
-            var content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
-            var response = await client.PostAsync("/api/auth/accounts/provision-fap", content);
-            if (response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                try
-                {
-                    using var doc = JsonDocument.Parse(body);
-                    if (doc.RootElement.TryGetProperty("results", out var resultsElem) && resultsElem.ValueKind == JsonValueKind.Array)
+                    if (item.TryGetProperty("accountId", out var idElem) && idElem.TryGetGuid(out var accountId) &&
+                        item.TryGetProperty("email", out var emailElem) && !string.IsNullOrWhiteSpace(emailElem.GetString()))
                     {
-                        var map = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
-                        foreach (var item in resultsElem.EnumerateArray())
-                        {
-                            if (item.TryGetProperty("accountId", out var idElem) && idElem.TryGetGuid(out var accId) &&
-                                item.TryGetProperty("email", out var emailElem))
-                            {
-                                var email = emailElem.GetString();
-                                if (!string.IsNullOrWhiteSpace(email))
-                                {
-                                    map[email.Trim()] = accId;
-                                }
-                            }
-                        }
-
-                        foreach (var e in enrollments)
-                        {
-                            if (map.TryGetValue(e.Email, out var realId) && realId != Guid.Empty)
-                            {
-                                e.StudentId = realId;
-                            }
-                        }
+                        accountIdsByEmail[emailElem.GetString()!.Trim()] = accountId;
                     }
                 }
-                catch (Exception parseEx)
-                {
-                    logger.LogWarning(parseEx, "Failed to parse accountIds from Auth Service provision-fap response");
-                }
-
-                logger.LogInformation("Successfully dispatched {Count} FAP accounts to Auth Service and mapped StudentIds", enrollments.Count);
-            }
-            else
-            {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                logger.LogWarning("Auth Service provision-fap responded with {StatusCode}: {ErrorBody}", response.StatusCode, errorBody);
             }
         }
-        catch (Exception ex)
+        catch (JsonException ex)
         {
-            logger.LogWarning(ex, "Could not notify Auth Service of new FAP enrollments (Auth service might be offline or handled asynchronously)");
+            logger.LogError(ex, "Could not parse the provision-fap response from Auth Service");
+            throw ProvisioningFailed();
         }
+
+        foreach (var enrollment in enrollments)
+        {
+            if (!accountIdsByEmail.TryGetValue(enrollment.Email, out var accountId) || accountId == Guid.Empty)
+            {
+                logger.LogError("Auth Service did not return an account for student {StudentCode}", enrollment.StudentCode);
+                throw ProvisioningFailed();
+            }
+
+            enrollment.StudentId = accountId;
+        }
+
+        logger.LogInformation("Provisioned {Count} FAP accounts through Auth Service", enrollments.Count);
     }
+
+    private static BusinessRuleException ProvisioningFailed() =>
+        new("ACCOUNT_PROVISIONING_FAILED", "Không tạo được tài khoản cho danh sách sinh viên nên chưa import. Vui lòng thử lại sau.");
 
     // ── Phase 6: Post-Lock Transfer & Lecturer Dashboard (BR-35, BR-36, BR-37, BR-38) ──
 
@@ -1023,35 +1036,8 @@ public partial class CourseSpaceService(
         fromGroup.UpdatedAt = DateTime.UtcNow;
         targetGroup.UpdatedAt = DateTime.UtcNow;
 
-        // Leader Promotion in fromGroup if student was Leader
-        if (fromGroup.LeaderId == request.StudentId)
-        {
-            var nextLeader = fromGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
-            if (nextLeader != null)
-            {
-                fromGroup.LeaderId = nextLeader.UserId;
-                nextLeader.Role = MemberRole.Leader;
-            }
-            else
-            {
-                fromGroup.LeaderId = null;
-            }
-        }
-
-        // Leader Promotion in targetGroup if swap student was Leader
-        if (request.SwapWithStudentId.HasValue && targetGroup.LeaderId == request.SwapWithStudentId.Value)
-        {
-            var nextLeader = targetGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
-            if (nextLeader != null)
-            {
-                targetGroup.LeaderId = nextLeader.UserId;
-                nextLeader.Role = MemberRole.Leader;
-            }
-            else
-            {
-                targetGroup.LeaderId = null;
-            }
-        }
+        NormalizeRoomAfterTransfer(fromGroup);
+        NormalizeRoomAfterTransfer(targetGroup);
 
         // Log transfer record (BR-35 audit)
         var transferLog = new GroupTransferRequest
@@ -1347,35 +1333,8 @@ public partial class CourseSpaceService(
         fromGroup.UpdatedAt = DateTime.UtcNow;
         targetGroup.UpdatedAt = DateTime.UtcNow;
 
-        // Leader promotion in fromGroup
-        if (fromGroup.LeaderId == transferReq.RequesterStudentId)
-        {
-            var nextLeader = fromGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
-            if (nextLeader != null)
-            {
-                fromGroup.LeaderId = nextLeader.UserId;
-                nextLeader.Role = MemberRole.Leader;
-            }
-            else
-            {
-                fromGroup.LeaderId = null;
-            }
-        }
-
-        // Leader promotion in targetGroup
-        if (transferReq.SwapWithStudentId.HasValue && targetGroup.LeaderId == transferReq.SwapWithStudentId.Value)
-        {
-            var nextLeader = targetGroup.Members.OrderBy(m => m.JoinedAt).FirstOrDefault();
-            if (nextLeader != null)
-            {
-                targetGroup.LeaderId = nextLeader.UserId;
-                nextLeader.Role = MemberRole.Leader;
-            }
-            else
-            {
-                targetGroup.LeaderId = null;
-            }
-        }
+        NormalizeRoomAfterTransfer(fromGroup);
+        NormalizeRoomAfterTransfer(targetGroup);
 
         transferReq.Status = TransferRequestStatus.Approved;
         transferReq.DecidedAt = DateTime.UtcNow;

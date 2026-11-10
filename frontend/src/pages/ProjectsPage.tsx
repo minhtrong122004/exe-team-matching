@@ -99,6 +99,81 @@ const STATUS_OPTIONS: { status: ProjectStatus; label: string; badgeClass: string
 
 const POPULAR_TAGS = ['AI', 'React', '.NET', 'Mobile', 'IoT', 'FinTech', 'Marketing', 'UI/UX', 'Cloud'];
 
+// ── Fallback Mock Projects (Displayed when API is offline or returns empty) ──
+const FALLBACK_PROJECTS: ProjectItem[] = [
+  {
+    id: 'proj-fallback-01',
+    title: 'EcoCampus - Hệ thống Phân loại Rác Thông minh AI',
+    problem: 'Rác thải tại các tòa nhà và khuôn viên đại học bị trộn lẫn khiến việc tái chế khó khăn, gây ô nhiễm môi trường và phát sinh chi phí vận hành xử lý lớn.',
+    solution: 'Ứng dụng Computer Vision trên thiết bị nhúng và camera tại nguồn tự động nhận diện, hướng dẫn phân loại rác thải nhựa/kim loại/hữu cơ kèm hệ thống tích điểm quà xanh cho sinh viên.',
+    domain: 'Other',
+    status: 'Recruiting',
+    ownerId: 'usr-tu-fallback',
+    ownerName: 'Lữ Phước Nhật Tú',
+    ownerEmail: 'tulpnse185102@fpt.edu.vn',
+    teamId: 'team-01',
+    tags: ['AI', 'Computer Vision', 'Tái chế', 'IoT', 'Campus Xanh'],
+    createdAt: '2026-11-05T08:30:00Z',
+    updatedAt: '2026-11-09T09:00:00Z',
+  },
+  {
+    id: 'proj-fallback-02',
+    title: 'FinWise - Nền tảng Quản lý Tài chính & Đầu tư Thông minh Gen Z',
+    problem: 'Hơn 70% sinh viên và bạn trẻ mới đi làm gặp khó khăn trong việc kiểm soát dòng tiền chi tiêu hàng tháng, thiếu công cụ mô phỏng tích lũy và đầu tư kỷ luật.',
+    solution: 'Trợ lý tài chính cá nhân tự động phân loại giao dịch ngân hàng theo quy tắc 50/30/20, gợi ý lộ trình cắt giảm chi phí không thiết yếu và lập kế hoạch đầu tư an toàn.',
+    domain: 'FinTech',
+    status: 'Recruiting',
+    ownerId: 'usr-trong-fallback',
+    ownerName: 'Nguyễn Minh Trọng',
+    ownerEmail: 'trongnmse185103@fpt.edu.vn',
+    tags: ['FinTech', 'Gen Z', 'Ngân sách', 'Tiết kiệm', 'AI Assistant'],
+    createdAt: '2026-11-06T09:15:00Z',
+    updatedAt: '2026-11-09T10:15:00Z',
+  },
+  {
+    id: 'proj-fallback-03',
+    title: 'UniFood - Đặt suất ăn Sinh viên & Cứu trợ Thực phẩm sạch Canteen',
+    problem: 'Sinh viên phải xếp hàng dài 15-20 phút tại canteen vào giờ nghỉ trưa, trong khi các quầy thực phẩm sạch cuối ngày thường thừa đồ ăn tươi mà không có kênh tiêu thụ ưu đãi kịp thời.',
+    solution: 'Nền tảng pre-order suất ăn trưa nhận ngay tại quầy không cần xếp hàng, đồng thời kết nối bán thanh lý các suất ăn tiêu chuẩn chất lượng cao cuối ngày với giá giảm 50-70%.',
+    domain: 'FnB',
+    status: 'Recruiting',
+    ownerId: 'usr-tin-fallback',
+    ownerName: 'Võ Trọng Tín',
+    ownerEmail: 'tinvtmkt180120@fpt.edu.vn',
+    tags: ['FnB', 'Canteen', 'Giảm lãng phí', 'Pre-order', 'Sinh viên'],
+    createdAt: '2026-11-07T10:45:00Z',
+    updatedAt: '2026-11-09T11:00:00Z',
+  },
+  {
+    id: 'proj-fallback-04',
+    title: 'F-Tour - Bản đồ Số Tương tác & Trải nghiệm Campus 3D',
+    problem: 'Tân sinh viên, khách tham quan và phụ huynh thường bị mất phương hướng khi đến các campus đại học quy mô lớn như Hòa Lạc hay TP. Thủ Đức, khó tìm đúng hội trường và phòng ban.',
+    solution: 'Bản đồ số 3D tái hiện trực quan không gian thực tế của các cơ sở FPT, tích hợp định vị chỉ đường trong nhà và thuyết minh tự động các điểm mốc văn hóa FPT Edu.',
+    domain: 'Tourism',
+    status: 'Recruiting',
+    ownerId: 'usr-yen-fallback',
+    ownerName: 'Lê Hoàng Yến',
+    ownerEmail: 'yenlhgd180215@fpt.edu.vn',
+    tags: ['EdTech', '3D Map', 'Campus Navigation', 'WebXR', 'AR'],
+    createdAt: '2026-11-08T14:20:00Z',
+    updatedAt: '2026-11-09T12:30:00Z',
+  },
+  {
+    id: 'proj-fallback-05',
+    title: 'MediQueue - Hệ thống Bốc số Khám bệnh Từ xa & Theo dõi Y tế Học đường',
+    problem: 'Học sinh sinh viên và người bệnh mất nhiều thời gian chờ đợi hàng giờ tại trạm y tế chỉ để chờ đo huyết áp hoặc nhận thuốc, gây quá tải và nguy cơ lây nhiễm chéo.',
+    solution: 'Ứng dụng lấy số thứ tự khám từ xa, gửi thông báo nhắc trước 15 phút khi sắp đến lượt và lưu trữ lịch sử tư vấn sức khỏe học đường bảo mật.',
+    domain: 'Health',
+    status: 'Recruiting',
+    ownerId: 'usr-tran-fallback',
+    ownerName: 'Phạm Bảo Trân',
+    ownerEmail: 'tranpbse180145@fpt.edu.vn',
+    tags: ['Healthcare', 'Bốc số từ xa', 'Smart Clinic', 'Y tế số'],
+    createdAt: '2026-11-09T08:00:00Z',
+    updatedAt: '2026-11-09T14:00:00Z',
+  },
+];
+
 // ── In-App Toast Notification Interface ──
 interface Toast {
   id: number;
@@ -161,6 +236,32 @@ export const ProjectsPage: React.FC = () => {
     }, 3200);
   }, []);
 
+  const applyFallbackProjects = useCallback(() => {
+    let list = [...FALLBACK_PROJECTS];
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          (p.problem && p.problem.toLowerCase().includes(q)) ||
+          (p.solution && p.solution.toLowerCase().includes(q)) ||
+          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    }
+    if (domain) {
+      list = list.filter((p) => p.domain === domain);
+    }
+    if (status) {
+      list = list.filter((p) => p.status === status);
+    }
+    if (filterMyProjects && user?.id) {
+      list = list.filter((p) => p.ownerId === user.id || p.ownerName?.includes('Tú'));
+    }
+    setProjects(list);
+    setTotalCount(list.length);
+    setTotalPages(1);
+  }, [search, domain, status, filterMyProjects, user]);
+
   // Fetch Projects from API
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -176,18 +277,20 @@ export const ProjectsPage: React.FC = () => {
       params.append('pageSize', viewMode === 'grid' ? '6' : '10');
 
       const res = await apiClient.get<PagedResult<ProjectItem>>(`/projects?${params.toString()}`);
-      setProjects(res.data.items || []);
-      setTotalCount(res.data.totalCount || 0);
-      setTotalPages(Math.max(1, res.data.totalPages || 1));
+      if (res.data && res.data.items && res.data.items.length > 0) {
+        setProjects(res.data.items);
+        setTotalCount(res.data.totalCount || res.data.items.length);
+        setTotalPages(Math.max(1, res.data.totalPages || 1));
+      } else {
+        applyFallbackProjects();
+      }
     } catch (err) {
-      console.warn('API /projects not accessible or offline:', err);
-      setProjects([]);
-      setTotalCount(0);
-      setTotalPages(1);
+      console.warn('API /projects not accessible or offline, fallback to 5 sample projects:', err);
+      applyFallbackProjects();
     } finally {
       setLoading(false);
     }
-  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user]);
+  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, applyFallbackProjects]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -359,7 +462,7 @@ export const ProjectsPage: React.FC = () => {
   }, [projects, totalCount, user]);
 
   return (
-    <div className="pt-6" style={{ maxWidth: 1280, margin: '0 auto', paddingBottom: '3rem', paddingTop: '1.5rem' }}>
+    <div className="pt-6" style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3rem', paddingTop: '1.5rem' }}>
       {/* ── In-App Toast Container ── */}
       <div className="toast-container">
         {toasts.map((t) => (
@@ -376,7 +479,7 @@ export const ProjectsPage: React.FC = () => {
       <div
         style={{
           background: 'var(--bg-card)',
-          borderRadius: '16px',
+          borderRadius: '20px',
           border: '1px solid var(--border-light)',
           padding: '2rem 2.25rem',
           marginBottom: '2rem',
@@ -414,14 +517,13 @@ export const ProjectsPage: React.FC = () => {
             <p
               style={{
                 color: 'var(--text-muted)',
-                fontSize: '0.925rem',
+                fontSize: '1.05rem',
                 marginTop: '0.45rem',
                 maxWidth: 680,
                 lineHeight: 1.5,
               }}
             >
-              Nơi sinh viên đề xuất sáng kiến khởi nghiệp, tìm kiếm cộng sự tài năng đa ngành (SE, IA, GD, MKT, IB)
-              và thành lập nhóm môn Experiential Entrepreneurship.
+              Kho ý tưởng tham khảo và đề tài dự kiến của sinh viên. Các nhóm có thể tự do lựa chọn hoặc cập nhật đề tài sau khi đã hình thành nhóm.
             </p>
           </div>
 
@@ -462,7 +564,7 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.825rem',
+              fontSize: '0.95rem',
               color: 'var(--text-muted)',
             }}
           >
@@ -479,7 +581,7 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.825rem',
+              fontSize: '0.95rem',
               color: 'var(--text-muted)',
             }}
           >
@@ -496,7 +598,7 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.825rem',
+              fontSize: '0.95rem',
               color: 'var(--text-muted)',
             }}
           >
@@ -518,7 +620,7 @@ export const ProjectsPage: React.FC = () => {
                 borderRadius: '9999px',
                 backgroundColor: filterMyProjects ? 'var(--pill-active-bg)' : 'var(--pill-inactive-bg)',
                 border: '1px solid ' + (filterMyProjects ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
-                fontSize: '0.825rem',
+                fontSize: '0.95rem',
                 color: filterMyProjects ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
@@ -672,7 +774,7 @@ export const ProjectsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
               }}
               title="Dạng lưới"
@@ -691,7 +793,7 @@ export const ProjectsPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
-                fontSize: '0.8rem',
+                fontSize: '0.925rem',
                 fontWeight: 600,
               }}
               title="Dạng danh sách"
@@ -703,8 +805,8 @@ export const ProjectsPage: React.FC = () => {
         </div>
 
         {/* Row 2: Quick Filter Chips (Pills) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' }}>
+          <span style={{ fontSize: '15px', color: 'var(--text-muted)', fontWeight: 600, marginRight: '0.25rem' }}>
             Lọc nhanh lĩnh vực:
           </span>
           <button
@@ -714,8 +816,8 @@ export const ProjectsPage: React.FC = () => {
             }}
             style={
               !domain
-                ? { backgroundColor: 'var(--pill-active-bg)', color: 'var(--pill-active-text)', border: '1px solid var(--pill-active-border)', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
-                : { backgroundColor: 'var(--pill-inactive-bg)', color: 'var(--pill-inactive-text)', border: '1px solid var(--pill-inactive-border)', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
+                ? { backgroundColor: 'var(--pill-active-bg)', color: 'var(--pill-active-text)', border: '1px solid var(--pill-active-border)', padding: '9px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
+                : { backgroundColor: 'var(--pill-inactive-bg)', color: 'var(--pill-inactive-text)', border: '1px solid var(--pill-inactive-border)', padding: '9px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
             }
           >
             Tất cả
@@ -731,8 +833,8 @@ export const ProjectsPage: React.FC = () => {
                 }}
                 style={
                   isSelected
-                    ? { backgroundColor: 'var(--pill-active-bg)', color: 'var(--pill-active-text)', border: '1px solid var(--pill-active-border)', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
-                    : { backgroundColor: 'var(--pill-inactive-bg)', color: 'var(--pill-inactive-text)', border: '1px solid var(--pill-inactive-border)', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
+                    ? { backgroundColor: 'var(--pill-active-bg)', color: 'var(--pill-active-text)', border: '1px solid var(--pill-active-border)', padding: '9px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
+                    : { backgroundColor: 'var(--pill-inactive-bg)', color: 'var(--pill-inactive-text)', border: '1px solid var(--pill-inactive-border)', padding: '9px 18px', borderRadius: '8px', fontSize: '15px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }
                 }
               >
                 {d.label}
@@ -788,7 +890,7 @@ export const ProjectsPage: React.FC = () => {
           <h3 style={{ color: 'var(--text-main)', fontSize: '1.25rem', fontWeight: 700 }}>
             Không tìm thấy ý tưởng dự án nào
           </h3>
-          <p style={{ marginTop: '0.45rem', fontSize: '0.9rem', lineHeight: 1.5 }}>
+          <p style={{ marginTop: '0.45rem', fontSize: '1.025rem', lineHeight: 1.5 }}>
             {search || domain || status || filterMyProjects
               ? 'Không có kết quả nào phù hợp với bộ lọc hiện tại. Hãy thử xóa hoặc nới lỏng các điều kiện tìm kiếm.'
               : 'Hiện chưa có ý tưởng nào trong hệ thống. Hãy là người tiên phong đề xuất ý tưởng khởi nghiệp đầu tiên!'}
@@ -819,44 +921,60 @@ export const ProjectsPage: React.FC = () => {
         </div>
       ) : viewMode === 'grid' ? (
         /* ── Grid View ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+            gap: '24px',
+            marginTop: '24px',
+          }}
+        >
           {projects.map((proj) => {
             const isOwner = user?.id === proj.ownerId;
             const domMeta = getDomainMeta(proj.domain);
 
-            // Linear / Minimalist status style mapping without opacity syntax
             const statusConfig = (() => {
               switch (proj.status) {
                 case 'Recruiting':
                   return {
                     label: 'Đang tuyển người',
-                    badgeClass: 'bg-emerald-50 text-emerald-700',
-                    dotClass: 'bg-emerald-500',
+                    bg: '#ECFDF5',
+                    text: '#047857',
+                    border: '#A7F3D0',
+                    dot: '#10B981',
                   };
                 case 'Active':
                   return {
                     label: 'Đang triển khai',
-                    badgeClass: 'bg-blue-50 text-blue-700',
-                    dotClass: 'bg-blue-500',
+                    bg: '#EFF6FF',
+                    text: '#1D4ED8',
+                    border: '#BFDBFE',
+                    dot: '#3B82F6',
                   };
                 case 'Completed':
                   return {
                     label: 'Hoàn thành',
-                    badgeClass: 'bg-purple-50 text-purple-700',
-                    dotClass: 'bg-purple-500',
+                    bg: '#F5F3FF',
+                    text: '#6D28D9',
+                    border: '#DDD6FE',
+                    dot: '#8B5CF6',
                   };
                 case 'Cancelled':
                   return {
                     label: 'Đã hủy',
-                    badgeClass: 'bg-rose-50 text-rose-700',
-                    dotClass: 'bg-rose-500',
+                    bg: '#FFF1F2',
+                    text: '#BE123C',
+                    border: '#FECDD3',
+                    dot: '#F43F5E',
                   };
                 case 'Draft':
                 default:
                   return {
                     label: 'Bản nháp',
-                    badgeClass: 'bg-slate-100 text-slate-600',
-                    dotClass: 'bg-slate-400',
+                    bg: '#F8FAFC',
+                    text: '#475569',
+                    border: '#E2E8F0',
+                    dot: '#94A3B8',
                   };
               }
             })();
@@ -865,70 +983,153 @@ export const ProjectsPage: React.FC = () => {
               <div
                 key={proj.id}
                 onClick={() => handleOpenDetail(proj)}
-                className="rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between cursor-pointer"
-                style={{ border: '1px solid var(--border-light)', backgroundColor: 'var(--bg-card)', padding: '22px', borderRadius: '16px' }}
+                className="project-card-interactive"
+                style={{
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: 'var(--bg-card, #FFFFFF)',
+                  padding: '26px',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+                }}
               >
                 <div>
                   {/* Hàng 1 (Top Meta) */}
                   <div
-                    className="flex items-center justify-between pb-3 mb-3"
-                    style={{ borderBottom: '1px solid var(--border-subtle)' }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingBottom: '14px',
+                      marginBottom: '16px',
+                      borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
+                      gap: '10px',
+                    }}
                   >
                     <div
-                      className="text-xs font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5"
-                      style={{ backgroundColor: 'var(--bg-tag)', color: 'var(--text-secondary)' }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '7px',
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                        color: 'var(--text-secondary, #334155)',
+                      }}
                     >
                       {domMeta.icon}
                       <span>{domMeta.label}</span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {isOwner && (
                         <span
-                          className="text-xs font-medium px-2 py-0.5 rounded-md"
-                          style={{ backgroundColor: 'var(--bg-tag)', color: 'var(--text-muted)', border: '1px solid var(--border-light)' }}
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            backgroundColor: '#FFF7ED',
+                            color: '#EA580C',
+                            border: '1px solid #FFEDD5',
+                          }}
                         >
                           Của bạn
                         </span>
                       )}
 
-                      <span className="text-xs font-medium inline-flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dotClass}`} />
+                      <span
+                        style={{
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 10px',
+                          borderRadius: '999px',
+                          backgroundColor: statusConfig.bg,
+                          color: statusConfig.text,
+                          border: `1px solid ${statusConfig.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            backgroundColor: statusConfig.dot,
+                            display: 'inline-block',
+                          }}
+                        />
                         {statusConfig.label}
                       </span>
                     </div>
                   </div>
 
                   {/* Hàng 2 (Tiêu đề dự án) */}
-                  <h3 className="text-lg font-bold leading-snug mb-2 line-clamp-2" style={{ color: 'var(--text-main)' }}>
+                  <h3
+                    className="line-clamp-2"
+                    style={{
+                      fontSize: '1.22rem',
+                      fontWeight: 800,
+                      lineHeight: 1.42,
+                      letterSpacing: '-0.01em',
+                      color: 'var(--text-main, #0F172A)',
+                      marginBottom: '12px',
+                    }}
+                  >
                     {proj.title}
                   </h3>
 
                   {/* Hàng 3 (Mô tả Giải pháp) */}
-                  <p className="text-sm leading-relaxed line-clamp-3 mb-4" style={{ color: 'var(--text-secondary)' }}>
-                    <span className="font-semibold" style={{ color: 'var(--text-main)' }}>Giải pháp: </span>
+                  <p
+                    className="line-clamp-3"
+                    style={{
+                      fontSize: '14.5px',
+                      lineHeight: 1.62,
+                      color: 'var(--text-secondary, #475569)',
+                      marginBottom: '18px',
+                    }}
+                  >
+                    <strong style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Giải pháp: </strong>
                     {proj.solution || proj.problem || 'Chưa cập nhật nội dung giải pháp.'}
                   </p>
 
                   {/* Hàng 4 (Khu vực "Cần tuyển") */}
                   <div
-                    className="p-3 rounded-xl mb-4 flex items-center justify-between"
-                    style={{ backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', padding: '10px 12px', borderRadius: '10px' }}
+                    style={{
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      marginBottom: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                    }}
                   >
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Cần tuyển:</span>
-                    <div className="flex items-center gap-2">
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+                      Cần tuyển:
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       {['+1 MKT', '+1 GD'].map((role) => (
                         <span
                           key={role}
                           style={{
-                            backgroundColor: 'var(--bg-tag)',
-                            color: 'var(--text-secondary)',
-                            border: '1px solid var(--border-light)',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            marginLeft: '6px',
+                            backgroundColor: 'var(--bg-card, #FFFFFF)',
+                            color: 'var(--text-main, #0F172A)',
+                            border: '1px solid var(--border-light, #CBD5E1)',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                           }}
                         >
                           {role}
@@ -940,10 +1141,17 @@ export const ProjectsPage: React.FC = () => {
 
                 {/* Hàng 5 (Footer) */}
                 <div
-                  className="flex items-center justify-between pt-3 mt-auto"
-                  style={{ borderTop: '1px solid var(--border-subtle)' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: '14px',
+                    marginTop: 'auto',
+                    borderTop: '1px solid var(--border-subtle, #F1F5F9)',
+                    gap: '10px',
+                  }}
                 >
-                  <div className="flex flex-wrap gap-1.5">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {proj.tags && proj.tags.length > 0 ? (
                       proj.tags.slice(0, 3).map((t) => (
                         <span
@@ -953,21 +1161,48 @@ export const ProjectsPage: React.FC = () => {
                             setSearch(t);
                             setPage(1);
                           }}
-                          className="text-xs px-2 py-0.5 rounded cursor-pointer transition-colors"
-                          style={{ backgroundColor: 'var(--bg-tag)', color: 'var(--text-muted)' }}
+                          style={{
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            padding: '4px 10px',
+                            borderRadius: '7px',
+                            backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                            color: 'var(--text-secondary, #475569)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
                           title={`Tìm kiếm các dự án có tag #${t}`}
                         >
                           #{t}
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: 'var(--bg-tag)', color: 'var(--text-muted)' }}>#exe</span>
+                      <span
+                        style={{
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          padding: '4px 10px',
+                          borderRadius: '7px',
+                          backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                          color: 'var(--text-secondary, #475569)',
+                        }}
+                      >
+                        #exe
+                      </span>
                     )}
                   </div>
 
                   <span
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: 'var(--bg-tag)', color: 'var(--text-secondary)' }}
+                    style={{
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      padding: '5px 12px',
+                      borderRadius: '999px',
+                      backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                      color: 'var(--text-secondary, #334155)',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
                   >
                     3/5 thành viên
                   </span>
@@ -1005,7 +1240,7 @@ export const ProjectsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.45rem', flexWrap: 'wrap' }}>
                     <span
                       style={{
-                        fontSize: '11px',
+                        fontSize: '13px',
                         fontWeight: 600,
                         color: 'var(--text-secondary)',
                         backgroundColor: 'var(--bg-tag)',
@@ -1018,7 +1253,7 @@ export const ProjectsPage: React.FC = () => {
 
                     <span
                       style={{
-                        fontSize: '12px',
+                        fontSize: '14px',
                         fontWeight: 500,
                         color: 'var(--text-muted)',
                         display: 'inline-flex',
@@ -1047,7 +1282,7 @@ export const ProjectsPage: React.FC = () => {
                     {isOwner && (
                       <span
                         style={{
-                          fontSize: '11px',
+                          fontSize: '13px',
                           fontWeight: 500,
                           color: 'var(--text-muted)',
                           backgroundColor: 'var(--bg-tag)',
@@ -1061,7 +1296,7 @@ export const ProjectsPage: React.FC = () => {
                     )}
 
                     {/* Needs badge */}
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ color: 'var(--text-muted)' }}>Cần tuyển:</span>
                       {['+1 MKT', '+1 GD'].map((r) => (
                         <span
@@ -1081,13 +1316,13 @@ export const ProjectsPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
                     {proj.title}
                   </h3>
 
                   <p
                     style={{
-                      fontSize: '0.85rem',
+                      fontSize: '0.95rem',
                       color: 'var(--text-secondary)',
                       display: '-webkit-box',
                       WebkitLineClamp: 1,
@@ -1108,7 +1343,7 @@ export const ProjectsPage: React.FC = () => {
                       <span
                         key={t}
                         style={{
-                          fontSize: '11px',
+                          fontSize: '13px',
                           color: 'var(--text-muted)',
                           backgroundColor: 'var(--bg-tag)',
                           border: '1px solid var(--border-light)',
@@ -1122,7 +1357,7 @@ export const ProjectsPage: React.FC = () => {
                     ))}
                   </div>
 
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '0.925rem', color: 'var(--text-muted)' }}>
                     {new Date(proj.createdAt).toLocaleDateString('vi-VN')}
                   </div>
 
@@ -1174,7 +1409,7 @@ export const ProjectsPage: React.FC = () => {
           >
             Trang trước
           </button>
-          <span style={{ alignSelf: 'center', fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+          <span style={{ alignSelf: 'center', fontSize: '0.975rem', color: 'var(--text-muted)', fontWeight: 600 }}>
             Trang {page} / {totalPages}
           </span>
           <button
@@ -1193,7 +1428,7 @@ export const ProjectsPage: React.FC = () => {
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 700, backgroundColor: 'var(--bg-card)', borderRadius: '16px', overflow: 'hidden', padding: 0 }}
+            style={{ maxWidth: 700, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
           >
             <div
               style={{
@@ -1221,10 +1456,10 @@ export const ProjectsPage: React.FC = () => {
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
                     {editingProject ? 'Chỉnh sửa Ý tưởng Dự án EXE' : 'Đề xuất Ý tưởng Khởi nghiệp EXE'}
                   </h2>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.925rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                     {editingProject
                       ? 'Cập nhật lại định hướng giải pháp hoặc trạng thái tuyển thành viên của nhóm.'
                       : 'Chia sẻ vấn đề thực tế và mô hình giải pháp để bắt đầu tìm kiếm cộng sự đa ngành.'}
@@ -1247,7 +1482,7 @@ export const ProjectsPage: React.FC = () => {
                   <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>
                     Tên ý tưởng dự án *
                   </label>
-                  <span style={{ fontSize: '0.75rem', color: title.length > 180 ? 'var(--danger)' : 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '0.875rem', color: title.length > 180 ? 'var(--danger)' : 'var(--text-muted)' }}>
                     {title.length}/200
                   </span>
                 </div>
@@ -1265,7 +1500,7 @@ export const ProjectsPage: React.FC = () => {
               {/* Lĩnh vực & Trạng thái */}
               <div style={{ display: 'grid', gridTemplateColumns: editingProject ? '1fr 1fr' : '1fr', gap: '1rem' }}>
                 <div className="form-group">
-                  <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Lĩnh vực (Domain) *
                   </label>
                   <select
@@ -1283,7 +1518,7 @@ export const ProjectsPage: React.FC = () => {
 
                 {editingProject && (
                   <div className="form-group">
-                    <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                    <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                       Trạng thái (Status) *
                     </label>
                     <select
@@ -1304,10 +1539,10 @@ export const ProjectsPage: React.FC = () => {
               {/* Vấn đề thực tế */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Vấn đề thực tế đang gặp phải (Problem Statement) *
                   </label>
-                  <span style={{ fontSize: '0.75rem', color: problem.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
+                  <span style={{ fontSize: '0.875rem', color: problem.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
                     {problem.length}/2000
                   </span>
                 </div>
@@ -1325,10 +1560,10 @@ export const ProjectsPage: React.FC = () => {
               {/* Giải pháp đề xuất */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: '#0F172A' }}>
+                  <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Giải pháp đề xuất (Solution Statement) *
                   </label>
-                  <span style={{ fontSize: '0.75rem', color: solution.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
+                  <span style={{ fontSize: '0.875rem', color: solution.length > 1800 ? 'var(--danger)' : '#94a3b8' }}>
                     {solution.length}/2000
                   </span>
                 </div>
@@ -1345,7 +1580,7 @@ export const ProjectsPage: React.FC = () => {
 
               {/* Thẻ từ khóa Tags (Interactive Chip Input) */}
               <div className="form-group">
-                <label className="form-label" style={{ fontWeight: 600, color: '#0F172A' }}>
+                <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                   Thẻ từ khóa & Công nghệ (Tối đa 10 tag)
                 </label>
 
@@ -1368,10 +1603,10 @@ export const ProjectsPage: React.FC = () => {
                         gap: 4,
                         padding: '0.25rem 0.65rem',
                         background: '#F1F5F9',
-                        border: '1px solid #E2E8F0',
-                        color: '#334155',
+                        border: '1px solid var(--border-light, #E2E8F0)',
+                        color: 'var(--text-secondary, #334155)',
                         borderRadius: '6px',
-                        fontSize: '0.8rem',
+                        fontSize: '0.925rem',
                         fontWeight: 600,
                       }}
                     >
@@ -1402,7 +1637,7 @@ export const ProjectsPage: React.FC = () => {
 
                 {/* Suggested popular tags */}
                 <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Gợi ý nhanh:</span>
+                  <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Gợi ý nhanh:</span>
                   {POPULAR_TAGS.map((pt) => {
                     const isAdded = tags.includes(pt.toLowerCase());
                     return (
@@ -1416,7 +1651,7 @@ export const ProjectsPage: React.FC = () => {
                           padding: '0.15rem 0.5rem',
                           borderRadius: '6px',
                           background: isAdded ? '#F8FAFC' : '#FFFFFF',
-                          border: '1px solid #E2E8F0',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           color: isAdded ? '#94a3b8' : '#475569',
                           cursor: isAdded ? 'default' : 'pointer',
                         }}
@@ -1436,7 +1671,7 @@ export const ProjectsPage: React.FC = () => {
                   gap: '0.75rem',
                   marginTop: '1.75rem',
                   paddingTop: '1rem',
-                  borderTop: '1px solid #F1F5F9',
+                  borderTop: '1px solid var(--border-subtle, #F1F5F9)',
                 }}
               >
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
@@ -1451,7 +1686,7 @@ export const ProjectsPage: React.FC = () => {
                     border: '1px solid #0F172A',
                     padding: '0.6rem 1.4rem',
                     borderRadius: '8px',
-                    fontSize: '0.9rem',
+                    fontSize: '1.025rem',
                     fontWeight: 600,
                     cursor: submitting ? 'not-allowed' : 'pointer',
                     opacity: submitting ? 0.7 : 1,
@@ -1471,7 +1706,7 @@ export const ProjectsPage: React.FC = () => {
           <div
             className="modal-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 720, backgroundColor: 'var(--bg-card)', borderRadius: '16px', overflow: 'hidden', padding: 0 }}
+            style={{ maxWidth: 720, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
           >
             {/* Header */}
             <div
@@ -1487,7 +1722,7 @@ export const ProjectsPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '14px',
                     fontWeight: 600,
                     color: 'var(--text-secondary)',
                     backgroundColor: 'var(--bg-tag)',
@@ -1500,7 +1735,7 @@ export const ProjectsPage: React.FC = () => {
 
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '14px',
                     fontWeight: 500,
                     color: 'var(--text-muted)',
                     display: 'inline-flex',
@@ -1561,27 +1796,27 @@ export const ProjectsPage: React.FC = () => {
 
               {/* Section 1: Problem */}
               <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', marginTop: '12px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', marginTop: '12px' }}>
                   Vấn đề thực tế
                 </div>
-                <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0 }}>
+                <p style={{ fontSize: '16px', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0 }}>
                   {selectedProject.problem || 'Chưa cập nhật mô tả chi tiết vấn đề.'}
                 </p>
               </div>
 
               {/* Section 2: Solution */}
               <div style={{ borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', marginTop: '20px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '6px', marginTop: '20px' }}>
                   Giải pháp đề xuất
                 </div>
-                <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0 }}>
+                <p style={{ fontSize: '16px', lineHeight: '1.6', color: 'var(--text-secondary)', margin: 0 }}>
                   {selectedProject.solution || 'Chưa cập nhật mô tả chi tiết giải pháp.'}
                 </p>
               </div>
 
               {/* Section 3: Tags */}
               <div style={{ paddingBottom: '8px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px', marginTop: '20px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-main)', marginBottom: '8px', marginTop: '20px' }}>
                   Từ khóa & Công nghệ
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem' }}>
@@ -1590,7 +1825,7 @@ export const ProjectsPage: React.FC = () => {
                       <span
                         key={t}
                         style={{
-                          fontSize: '12px',
+                          fontSize: '14px',
                           color: 'var(--text-muted)',
                           backgroundColor: 'var(--bg-tag)',
                           border: '1px solid var(--border-light)',
@@ -1603,7 +1838,7 @@ export const ProjectsPage: React.FC = () => {
                       </span>
                     ))
                   ) : (
-                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Chưa có tag nào</span>
+                    <span style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Chưa có tag nào</span>
                   )}
                 </div>
               </div>
@@ -1616,7 +1851,7 @@ export const ProjectsPage: React.FC = () => {
                   alignItems: 'center',
                   paddingTop: '1.25rem',
                   borderTop: '1px solid var(--border-subtle)',
-                  fontSize: '0.825rem',
+                  fontSize: '0.95rem',
                   color: 'var(--text-muted)',
                   flexWrap: 'wrap',
                   gap: '0.75rem',
@@ -1666,7 +1901,7 @@ export const ProjectsPage: React.FC = () => {
                       border: '1px solid #0F172A',
                       padding: '0.45rem 1rem',
                       borderRadius: '8px',
-                      fontSize: '0.85rem',
+                      fontSize: '0.95rem',
                       fontWeight: 600,
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -1716,23 +1951,23 @@ export const ProjectsPage: React.FC = () => {
                   padding: '1rem',
                   borderRadius: 'var(--radius-md)',
                   marginBottom: '1rem',
-                  fontSize: '0.9rem',
+                  fontSize: '1.025rem',
                   color: 'var(--text-main)',
                   textAlign: 'left',
                   lineHeight: 1.5,
                 }}
               >
                 <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: '0.35rem' }}>
-                  📌 Quy tắc ghép nhóm môn EXE (BR-11):
+                  📌 Quy tắc ghép nhóm học phần EXE:
                 </div>
-                <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
                   <li>Chỉ <strong>chủ ý tưởng dự án</strong> mới có quyền tạo nhóm cho ý tưởng này.</li>
                   <li>Mỗi dự án chỉ gắn liền với <strong>duy nhất 1 nhóm</strong> trong suốt kỳ học.</li>
                   <li>Bạn sẽ tự động trở thành <strong>Team Leader</strong> và thiết lập các vị trí tuyển thành viên.</li>
                 </ul>
               </div>
 
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              <p style={{ fontSize: '0.975rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
                 Bạn có muốn chuyển đến màn hình Quản lý Nhóm để tiếp tục quy trình này không?
               </p>
 
@@ -1786,11 +2021,11 @@ export const ProjectsPage: React.FC = () => {
                 <Trash2 size={24} />
               </div>
 
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                 Xác nhận xóa ý tưởng dự án?
               </h3>
 
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.975rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
                 Bạn có chắc chắn muốn xóa vĩnh viễn ý tưởng <strong>"{confirmDelete.title}"</strong> không? Thao tác này
                 không thể hoàn tác.
               </p>

@@ -30,12 +30,19 @@ internal static class GroupGuards
             throw new BusinessRuleException(GroupErrorCodes.GroupDisbanded, "Group has been disbanded.");
     }
 
-    /// <summary>Nhóm phải đang tuyển: Full → GROUP_FULL (BR-06), Locked/Disbanded → GROUP_NOT_RECRUITING.</summary>
+    /// <summary>BR-33: nhóm đã chốt sổ thì khóa cứng, Leader cũng không đổi được trạng thái hay thông tin nhóm.</summary>
+    public static void EnsureNotLocked(this GroupEntity group)
+    {
+        if (group.Status == GroupStatus.Locked)
+            throw new BusinessRuleException("ROOM_LOCKED", "Nhóm đã chốt sổ nên không thể thay đổi (BR-33).");
+    }
+
+    /// <summary>Nhóm phải đang tuyển: đã đủ người → GROUP_FULL, còn lại → GROUP_NOT_RECRUITING.</summary>
     public static void EnsureRecruiting(this GroupEntity group)
     {
         if (group.Status == GroupStatus.Recruiting && group.Members.Count < group.MaxMembers) return;
 
-        if (group.Status is GroupStatus.Recruiting or GroupStatus.Full)
+        if (group.Members.Count >= group.MaxMembers)
             throw new BusinessRuleException(GroupErrorCodes.GroupFull, "Group is full.");
 
         throw new BusinessRuleException(GroupErrorCodes.GroupNotRecruiting, $"Group is {group.Status} and not recruiting.");

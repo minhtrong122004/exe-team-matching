@@ -1,562 +1,490 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
   ShieldCheck,
   GraduationCap,
-  UserCheck,
   Users,
+  HelpCircle,
+  CheckCircle2,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
+
+const HEADING_FONT = '"Plus Jakarta Sans", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, sans-serif';
+const BODY_FONT = '"Plus Jakarta Sans", "Nunito Sans", "Be Vietnam Pro", sans-serif';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
-
-  const { login, loginDemo } = useAuth();
+  const [showProcessTooltip, setShowProcessTooltip] = useState<boolean>(false);
+  const { loginWithGoogle, loginDemo } = useAuth();
   const navigate = useNavigate();
 
-  const handleQuickLogin = async (loginEmail: string, loginPass: string, fallbackRole: 'Student' | 'Lecturer' | 'Admin') => {
-    setEmail(loginEmail);
-    setPassword(loginPass);
-    try {
-      await executeLogin(loginEmail, loginPass);
-    } catch {
-      loginDemo(fallbackRole);
-      if (fallbackRole === 'Admin') {
-        navigate('/admin/accounts');
-      } else if (fallbackRole === 'Lecturer') {
-        navigate('/spaces');
-      } else {
-        navigate('/projects');
-      }
-    }
-  };
-
-  const executeLogin = async (loginEmail: string, loginPass: string) => {
+  const handleCredential = async (idToken: string) => {
     setError(null);
-    setPendingVerificationEmail(null);
-    setLoading(true);
-
     try {
-      const authUser = await login(loginEmail, loginPass);
-      // Điều hướng theo vai trò thực tế trả về từ Backend JWT
-      if ((authUser.role as string) === 'Admin' || authUser.role === 'Moderator') {
-        navigate('/admin/accounts');
+      const authUser = await loginWithGoogle(idToken);
+      if (authUser.role === 'Moderator') {
+        navigate('/moderator/spaces');
       } else if (authUser.role === 'Lecturer') {
-        navigate('/spaces');
+        navigate('/lecturer/dashboard');
       } else {
-        navigate('/projects');
+        navigate('/groups');
       }
     } catch (err: any) {
-      if (err.response?.status === 401) {
-        setError('Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.');
-      } else if (err.response?.status === 403) {
-        const errorCode = err.response?.data?.code;
-        const detail = err.response?.data?.detail;
-        if (errorCode === 'EMAIL_NOT_CONFIRMED' || (detail && detail.includes('xác thực email'))) {
-          setPendingVerificationEmail(loginEmail.trim());
-          setError(detail || 'Tài khoản chưa được xác thực email. Vui lòng nhập mã OTP để kích hoạt.');
-        } else {
-          setError(detail || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên hệ thống.');
-        }
-      } else if (err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message) {
-        setError(err.response?.data?.detail || err.response?.data?.title || err.response?.data?.message);
-      } else {
-        setError('Không thể kết nối đến máy chủ xác thực. Vui lòng kiểm tra API Gateway.');
-      }
-    } finally {
-      setLoading(false);
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          (err.response
+            ? 'Không thể đăng nhập. Vui lòng kiểm tra lại tài khoản Google.'
+            : 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra API Gateway.')
+      );
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu.');
-      return;
-    }
-    await executeLogin(email, password);
   };
 
   return (
     <div
       style={{
-        minHeight: '100vh',
-        width: '100%',
+        height: '100vh',
+        width: '100vw',
+        overflow: 'hidden',
         backgroundColor: '#F8FAFC',
+        backgroundImage: `
+          radial-gradient(circle at 18% 22%, rgba(242, 112, 36, 0.05) 0%, transparent 45%),
+          radial-gradient(circle at 82% 78%, rgba(55, 112, 255, 0.05) 0%, transparent 45%)
+        `,
+        fontFamily: BODY_FONT,
+        color: '#0F172A',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
         alignItems: 'center',
-        padding: '36px 16px',
+        justifyContent: 'center',
+        padding: '0 40px',
         boxSizing: 'border-box',
       }}
     >
-      {/* ── 2-COLUMN SPLIT SHOWCASE CONTAINER ── */}
+      {/* ── MAIN STAGE (1.2fr / 0.9fr ratio so left hero title never wraps orphan words) ── */}
       <div
-        className="w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
         style={{
-          maxWidth: '1150px',
-          margin: '0 auto',
+          width: '100%',
+          maxWidth: '1220px',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(540px, 1.2fr) minmax(400px, 0.9fr)',
+          gap: '48px',
+          alignItems: 'center',
         }}
       >
-        {/* ── LEFT COLUMN (lg:col-span-7): EXE Network Showcase + 3D Globe ── */}
-        <div className="lg:col-span-7 flex flex-col justify-between py-2">
-          {/* Header */}
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <FptEducationLogo />
-              <div
-                style={{
-                  height: '24px',
-                  width: '1px',
-                  backgroundColor: '#CBD5E1',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: '#64748B',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Cổng Ghép nhóm Đa ngành Khởi nghiệp EXE
-              </span>
-            </div>
-
-            <h1
-              style={{
-                fontSize: '28px',
-                fontWeight: 700,
-                color: '#0F172A',
-                letterSpacing: '-0.02em',
-                marginTop: '16px',
-                lineHeight: 1.25,
-              }}
-            >
-              Mạng lưới Ghép nhóm Khởi nghiệp Đa ngành
-            </h1>
-
-            <p
-              style={{
-                fontSize: '14px',
-                color: '#64748B',
-                marginTop: '8px',
-                maxWidth: '520px',
-                lineHeight: 1.55,
-              }}
-            >
-              Kết nối sinh viên các chuyên ngành SE, AI, IA, GD, MKT, IB để hình thành đội ngũ dự án thực chiến môn Experiential Entrepreneurship (EXE).
-            </p>
+        {/* ════════════════════════════════════════════════════════════════
+            CỘT TRÁI: Thương hiệu FPTU + Tiêu đề 2 dòng cân đối + Quả địa cầu 3D
+           ════════════════════════════════════════════════════════════════ */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+          }}
+        >
+          {/* Logo FPT Education & TRƯỜNG ĐẠI HỌC FPT */}
+          <div style={{ marginBottom: '16px' }}>
+            <FptEducationLogo />
           </div>
 
-          {/* 3D Dotted Interactive Globe */}
-          <div style={{ margin: '8px 0' }}>
+          {/* Tiêu đề chính: Chuẩn 2 dòng gọn gàng, tuyệt đối không rớt chữ lẻ ("Đề / tài", "Đại / học") */}
+          <h1
+            style={{
+              fontFamily: HEADING_FONT,
+              fontSize: 'clamp(25px, 2.25vw, 32px)',
+              fontWeight: 800,
+              color: '#0F172A',
+              lineHeight: 1.3,
+              letterSpacing: '-0.025em',
+              margin: '0 0 12px 0',
+            }}
+          >
+            <span style={{ display: 'block', whiteSpace: 'nowrap' }}>
+              Hệ thống Ghép đội &amp; Kết nối Đề tài
+            </span>
+            <span
+              style={{
+                display: 'block',
+                color: '#F27024',
+                whiteSpace: 'nowrap',
+                marginTop: '3px',
+              }}
+            >
+              Khởi nghiệp EXE - Trường Đại học FPT
+            </span>
+          </h1>
+
+          {/* Mô tả ngắn gọn 2 dòng cân đối, giữ cụm từ tiếng Việt không bị ngắt nửa chừng */}
+          <p
+            style={{
+              fontFamily: BODY_FONT,
+              fontSize: '15px',
+              color: '#64748B',
+              lineHeight: 1.6,
+              margin: '0 0 8px 0',
+              maxWidth: '560px',
+              fontWeight: 500,
+            }}
+          >
+            Nền tảng chính thức hỗ trợ sinh viên 5 cơ sở FPTU tự do kết nối đa&nbsp;ngành&nbsp;nghề,
+            ghép nhóm khởi nghiệp đề tài EXE101/EXE201 và đồng bộ học vụ trực&nbsp;tiếp từ&nbsp;FAP.
+          </p>
+
+          {/* Quả địa cầu 3D tương tác 5 cơ sở */}
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
             <ExeNetworkGlobe />
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN (lg:col-span-5): Login Card + Quick Demo ── */}
-        <div className="lg:col-span-5 flex flex-col items-center w-full">
+        {/* ════════════════════════════════════════════════════════════════
+            CỘT PHẢI: Card Đăng nhập phong cách Devfolio (Bo góc mềm, không vạch đỉnh)
+           ════════════════════════════════════════════════════════════════ */}
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
           <div
             style={{
               width: '100%',
-              maxWidth: '420px',
+              maxWidth: '440px',
               backgroundColor: '#FFFFFF',
-              borderRadius: '16px',
-              border: '1px solid #E2E8F0',
-              padding: '32px 28px',
-              boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05)',
+              borderRadius: '24px',
+              border: '1px solid #EDF2F7',
+              boxShadow:
+                '0 20px 50px -12px rgba(15, 23, 42, 0.07), 0 4px 16px -4px rgba(15, 23, 42, 0.03)',
+              padding: '40px 36px',
               boxSizing: 'border-box',
+              position: 'relative',
             }}
           >
+            {/* Tiêu đề "Đăng nhập hệ thống" đồng bộ font với tiêu đề chính & mẫu Sign in */}
             <h2
               style={{
-                fontSize: '22px',
-                fontWeight: 700,
+                fontFamily: HEADING_FONT,
+                fontSize: '30px',
+                fontWeight: 800,
                 color: '#0F172A',
-                letterSpacing: '-0.02em',
-                margin: '0 0 4px 0',
+                margin: '0 0 10px 0',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.2,
               }}
             >
               Đăng nhập hệ thống
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px 0' }}>
-              Vui lòng nhập thông tin tài khoản của bạn để tiếp tục
-            </p>
 
+            {/* Dòng phụ + Nút nhỏ di chuột xem Quy trình ghép đội */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '26px',
+                position: 'relative',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '14.5px',
+                  color: '#64748B',
+                  fontWeight: 500,
+                }}
+              >
+                Dùng email Google trên FAP.
+              </span>
+
+              {/* Nút nhỏ di chuột vào để xem Quy trình ghép đội */}
+              <div
+                style={{ position: 'relative', display: 'inline-block' }}
+                onMouseEnter={() => setShowProcessTooltip(true)}
+                onMouseLeave={() => setShowProcessTooltip(false)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowProcessTooltip((prev) => !prev)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    backgroundColor: showProcessTooltip ? '#EFF6FF' : '#F8FAFC',
+                    color: '#2563EB',
+                    border: `1px solid ${showProcessTooltip ? '#BFDBFE' : '#E2E8F0'}`,
+                    borderRadius: '999px',
+                    padding: '4px 11px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    fontFamily: BODY_FONT,
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                  }}
+                >
+                  <HelpCircle size={14} />
+                  <span>Quy trình ghép đội</span>
+                </button>
+
+                {/* Tooltip Popover hiện ra khi di chuột vào */}
+                {showProcessTooltip && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 10px)',
+                      right: 0,
+                      width: '300px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '16px',
+                      border: '1px solid #E2E8F0',
+                      boxShadow:
+                        '0 20px 40px -10px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.05)',
+                      padding: '16px',
+                      zIndex: 50,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: HEADING_FONT,
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        color: '#0F172A',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      3 Bước ghép nhóm EXE
+                    </div>
+
+                    {[
+                      '1. Đăng nhập bằng Google trùng email FAP',
+                      '2. Khai báo bộ kỹ năng cá nhân (Tech, Design, Biz...)',
+                      '3. Vào thẳng Room (<3 SV) hoặc nộp đơn Apply',
+                    ].map((stepText, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '8px',
+                          fontSize: '12.5px',
+                          color: '#334155',
+                          lineHeight: 1.45,
+                          fontWeight: 600,
+                        }}
+                      >
+                        <CheckCircle2
+                          size={15}
+                          color="#2563EB"
+                          style={{ flexShrink: 0, marginTop: '2px' }}
+                        />
+                        <span>{stepText}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Thông báo lỗi nếu có */}
             {error && (
               <div
                 style={{
                   backgroundColor: '#FEF2F2',
                   border: '1px solid #FECACA',
-                  color: '#DC2626',
-                  padding: '12px 14px',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
+                  borderRadius: '12px',
+                  padding: '11px 14px',
                   marginBottom: '18px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  color: '#DC2626',
+                  fontSize: '13px',
+                  lineHeight: 1.45,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
-                </div>
-                {pendingVerificationEmail && (
-                  <div style={{ paddingLeft: '24px' }}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/verify-email?email=${encodeURIComponent(pendingVerificationEmail)}`)}
-                      style={{
-                        backgroundColor: '#EA580C',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Nhập mã xác thực OTP ngay &rarr;
-                    </button>
-                  </div>
-                )}
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <span>{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label
+            {/* Nút Google Sign-In chuẩn thiết kế Devfolio ("Continue with Google") */}
+            <GoogleSignInButton
+              onCredential={handleCredential}
+              onError={(msg) => setError(msg)}
+            />
+
+            {/* Cụm nút Demo xếp dọc chuẩn bố cục Devfolio */}
+            {loginDemo && (
+              <>
+                <div
                   style={{
-                    display: 'block',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#334155',
-                    marginBottom: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    margin: '22px 0',
                   }}
                 >
-                  Địa chỉ Email *
-                </label>
-                <input
-                  type="email"
-                  placeholder="sinhvien@fpt.edu.vn hoặc ban@gmail.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    padding: '0 14px',
-                    fontSize: '14px',
-                    color: '#0F172A',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#0F172A';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label
+                  <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
+                  <span
                     style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: '#334155',
-                      margin: 0,
+                      fontFamily: HEADING_FONT,
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#94A3B8',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
                     }}
                   >
-                    Mật khẩu *
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    style={{
-                      fontSize: '12px',
-                      color: '#F27024',
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Quên mật khẩu?
-                  </Link>
+                    HOẶC TRẢI NGHIỆM NHANH
+                  </span>
+                  <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
                 </div>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{
-                    width: '100%',
-                    height: '42px',
-                    borderRadius: '10px',
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    padding: '0 14px',
-                    fontSize: '14px',
-                    color: '#0F172A',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.borderColor = '#0F172A';
-                    e.currentTarget.style.boxShadow = '0 0 0 1px #0F172A';
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = '#CBD5E1';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  height: '42px',
-                  borderRadius: '10px',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  backgroundColor: '#F27024',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  cursor: loading ? 'default' : 'pointer',
-                  marginTop: '4px',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#EA580C';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) {
-                    e.currentTarget.style.backgroundColor = '#F27024';
-                  }
-                }}
-              >
-                {loading ? 'Đang xác thực...' : 'Đăng nhập'}
-              </button>
-            </form>
+                {/* 3 Nút bo góc 12px xếp dọc đầy đặn như ảnh mẫu Devfolio */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Nút 1: Student */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loginDemo('Student');
+                      navigate('/groups');
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '0 20px',
+                      backgroundColor: '#FFFFFF',
+                      color: '#1E293B',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontFamily: BODY_FONT,
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#F27024';
+                      e.currentTarget.style.backgroundColor = '#FFFBF7';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <Users size={19} color="#F27024" style={{ flexShrink: 0 }} />
+                    <span>Tiếp tục với vai trò Student (Tú)</span>
+                  </button>
 
-            {/* Thông báo chính sách cấp tài khoản từ danh sách FAP (BR-01) */}
-            <div
+                  {/* Nút 2: Moderator */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loginDemo('Moderator');
+                      navigate('/moderator/spaces');
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '0 20px',
+                      backgroundColor: '#FFFFFF',
+                      color: '#1E293B',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontFamily: BODY_FONT,
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#2563EB';
+                      e.currentTarget.style.backgroundColor = '#F8FAFF';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <ShieldCheck size={19} color="#2563EB" style={{ flexShrink: 0 }} />
+                    <span>Tiếp tục với vai trò Moderator</span>
+                  </button>
+
+                  {/* Nút 3: Lecturer */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      loginDemo('Lecturer');
+                      navigate('/lecturer/dashboard');
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
+                      padding: '0 20px',
+                      backgroundColor: '#FFFFFF',
+                      color: '#1E293B',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontFamily: BODY_FONT,
+                      fontSize: '15px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.18s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#059669';
+                      e.currentTarget.style.backgroundColor = '#F6FEF9';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.backgroundColor = '#FFFFFF';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <GraduationCap size={19} color="#059669" style={{ flexShrink: 0 }} />
+                    <span>Tiếp tục với vai trò Lecturer</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Dòng chú thích ngắn gọn ở đáy card */}
+            <p
               style={{
-                marginTop: '16px',
-                padding: '10px 12px',
-                borderRadius: 10,
-                background: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                fontSize: '12px',
-                color: '#475569',
-                lineHeight: 1.45,
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '8px',
-              }}
-            >
-              <ShieldCheck size={16} color="#0054A6" style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>
-                <strong style={{ color: '#0F172A' }}>Chính sách FAP (BR-01):</strong> Sinh viên được Điều phối viên (Moderator) đồng bộ trực tiếp từ FAP và nhận mật khẩu qua email trường.
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '13px', color: '#64748B' }}>
-              Chưa có tài khoản?{' '}
-              <Link to="/register" style={{ color: '#F27024', fontWeight: 600, textDecoration: 'none' }}>
-                Đăng ký ngay
-              </Link>
-            </div>
-          </div>
-
-          {/* ── QUICK DEMO BAR (Bỏ qua Backend hoặc Test 1-Click) ── */}
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '420px',
-              backgroundColor: '#F1F5F9',
-              borderRadius: '12px',
-              padding: '12px 14px',
-              border: '1px solid #E2E8F0',
-              marginTop: '14px',
-              boxSizing: 'border-box',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                color: '#64748B',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-                display: 'block',
+                marginTop: '24px',
+                marginBottom: 0,
                 textAlign: 'center',
-                letterSpacing: '0.04em',
+                fontSize: '12.5px',
+                color: '#94A3B8',
+                lineHeight: 1.55,
+                fontWeight: 500,
               }}
             >
-              Đăng nhập nhanh tài khoản kiểm thử (1-Click Demo):
-            </span>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('moderator@fpt.edu.vn', 'Moderator@123', 'Admin')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#0054A6';
-                  e.currentTarget.style.color = '#0054A6';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <ShieldCheck size={14} color="#0054A6" />
-                <span>Moderator</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('lecturer@fpt.edu.vn', 'Lecturer@123', 'Lecturer')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#008837';
-                  e.currentTarget.style.color = '#008837';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <GraduationCap size={14} color="#008837" />
-                <span>Giảng viên</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('tunp@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <Users size={14} color="#F27024" />
-                <span>SV Tú (SE185102)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('sinhvien.moi@fpt.edu.vn', 'Student@123', 'Student')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#0F172A',
-                  border: '1px solid #CBD5E1',
-                  borderRadius: '8px',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#F27024';
-                  e.currentTarget.style.color = '#F27024';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#CBD5E1';
-                  e.currentTarget.style.color = '#0F172A';
-                }}
-              >
-                <UserCheck size={14} color="#EA580C" />
-                <span>Tân SV (BR-34)</span>
-              </button>
-            </div>
+              Chính sách FAP: Chỉ email sinh viên do{' '}
+              <span style={{ color: '#2563EB', fontWeight: 600 }}>Điều phối viên</span> đồng bộ từ
+              FAP mới đăng nhập được.
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* ── FOOTER COPYRIGHT ── */}
-      <div style={{ textAlign: 'center', marginTop: '36px', fontSize: '12px', color: '#94A3B8' }}>
-        © 2026 Trường Đại học FPT • Hà Nội • TP.HCM • Đà Nẵng • Cần Thơ • Quy Nhơn
       </div>
     </div>
   );
 };
+
+export default LoginPage;

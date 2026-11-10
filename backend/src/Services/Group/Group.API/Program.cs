@@ -23,17 +23,15 @@ builder.Services.AddGroupServices(builder.Configuration);
 builder.Services.AddExeEventBus(builder.Configuration);
 
 // ── 4. Background job & Event Consumers ─────────────────────────────────────
-builder.Services.AddHostedService<InvitationExpiryJob>();
 builder.Services.AddHostedService<UserProfileUpdatedConsumer>();
-
 // ═══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();
 
-// ── 5. Pipeline: log request → bắt lỗi (ProblemDetails) → Swagger → JWT → controllers, /health ──
+// ── 4. Pipeline: log request → bắt lỗi (ProblemDetails) → Swagger → JWT → controllers, /health ──
 app.UseExeServiceDefaults();
 app.MapGet("/", () => "Group Service is running").AllowAnonymous().ExcludeFromDescription();
 
-// ── 6. Auto-migrate khi Development (có retry trong lúc SQL Server khởi động) ──
+// ── 5. Auto-migrate khi Development (có retry trong lúc SQL Server khởi động) ──
 await app.MigrateDatabaseAsync<GroupDbContext>();
 
 app.Run();

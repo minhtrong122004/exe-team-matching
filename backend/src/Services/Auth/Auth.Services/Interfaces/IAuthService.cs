@@ -3,28 +3,19 @@ using Auth.Services.DTOs;
 namespace Auth.Services.Interfaces;
 
 /// <summary>
-/// Hợp đồng nghiệp vụ xác thực chính của Auth Service:
-/// Đăng ký (kèm Transactional Outbox), Đăng nhập, Làm mới Refresh Token, Đăng xuất và Lấy thông tin tài khoản hiện tại.
+/// Hợp đồng quản lý phiên đăng nhập của Auth Service:
+/// đăng nhập Google, làm mới Refresh Token, đăng xuất, điều khoản BR-34 và lấy thông tin tài khoản hiện tại.
 /// </summary>
 public interface IAuthService
 {
-    Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
-
-    Task<VerifyEmailResponse> VerifyEmailAsync(VerifyEmailRequest request, CancellationToken ct = default);
-
-    Task<ResendVerificationResponse> ResendVerificationAsync(ResendVerificationRequest request, CancellationToken ct = default);
-
-    Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct = default);
+    /// <summary>
+    /// Đăng nhập bằng Google. Chỉ email đã có tài khoản (tạo khi import danh sách FAP hoặc do Moderator cấp) mới vào được.
+    /// </summary>
+    Task<AuthResponse> LoginWithGoogleAsync(GoogleLoginRequest request, CancellationToken ct = default);
 
     Task<AuthResponse> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken ct = default);
 
     Task LogoutAsync(LogoutRequest request, CancellationToken ct = default);
-
-    Task<ForgotPasswordResponse> ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken ct = default);
-
-    Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
-
-    Task<ChangePasswordResponse> ChangePasswordAsync(Guid accountId, ChangePasswordRequest request, CancellationToken ct = default);
 
     Task<AcceptTermsResponse> AcceptTermsAsync(Guid accountId, CancellationToken ct = default);
 

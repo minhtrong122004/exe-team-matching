@@ -20,7 +20,6 @@ public static class DependencyInjection
         services.AddScoped<ICourseSpaceRepository, CourseSpaceRepository>();
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IJoinRequestRepository, JoinRequestRepository>();
-        services.AddScoped<IInvitationRepository, InvitationRepository>();
         services.AddScoped<IGroupUnitOfWork, GroupUnitOfWork>();
         return services;
     }

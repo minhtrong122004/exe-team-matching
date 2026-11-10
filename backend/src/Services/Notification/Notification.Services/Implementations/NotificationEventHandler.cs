@@ -34,17 +34,8 @@ public class NotificationEventHandler : INotificationEventHandler
         if (await IsAlreadyProcessedAsync(eventId, nameof(UserRegistered), ct))
             return false;
 
-        var hasInitialPassword = !string.IsNullOrWhiteSpace(@event.InitialPassword);
-        var semester = string.IsNullOrWhiteSpace(@event.SemesterCode) ? "FA26" : @event.SemesterCode;
-        var subject = string.IsNullOrWhiteSpace(@event.SubjectCode) ? "EXE101" : @event.SubjectCode;
-
-        var title = hasInitialPassword
-            ? $"Thông tin tài khoản & Mật khẩu khởi tạo môn {subject} ({semester})"
-            : "Chào mừng đến với EXE Team Matching";
-
-        var message = hasInitialPassword
-            ? $"Xin chào {@event.FullName} ({@event.StudentCode ?? "FPT"}), tài khoản học phần {subject} kỳ {semester} của bạn đã được cấp từ danh sách FAP. Vui lòng xác nhận quy định điều phối (BR-34) và đổi mật khẩu bảo mật."
-            : $"Xin chào {@event.FullName}, tài khoản ({@event.Role}) của bạn đã sẵn sàng để tìm kiếm và ghép nhóm đồ án EXE.";
+        var title = "Chào mừng đến với EXE Team Matching";
+        var message = $"Xin chào {@event.FullName}, tài khoản ({@event.Role}) của bạn đã sẵn sàng để tìm kiếm và ghép nhóm đồ án EXE.";
 
         await _notificationRepo.AddAsync(new NotificationEntity
         {
@@ -60,38 +51,12 @@ public class NotificationEventHandler : INotificationEventHandler
 
         if (!string.IsNullOrWhiteSpace(@event.Email))
         {
-            var htmlBody = hasInitialPassword
-                ? $"""
-                   <div style="font-family: 'Plus Jakarta Sans', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                     <div style="background: #0a192f; color: #ffffff; padding: 20px 24px; border-bottom: 3px solid #f26f21;">
-                       <h2 style="margin: 0; font-size: 18px;">FPT University — EXE Team Matching</h2>
-                       <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Thông báo cấp tài khoản sinh viên đủ điều kiện học phần {subject} ({semester})</p>
-                     </div>
-                     <div style="padding: 24px; color: #0f172a; line-height: 1.6;">
-                       <p>Xin chào <strong>{@event.FullName}</strong>,</p>
-                       <p>Điều phối viên (Moderator) đã đồng bộ danh sách sinh viên đủ điều kiện từ hệ thống <strong>FAP</strong> cho học phần <strong>{subject} — Học kỳ {semester}</strong>. Dưới đây là thông tin đăng nhập của bạn:</p>
-                       <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px; margin: 16px 0; font-family: 'JetBrains Mono', monospace; font-size: 14px;">
-                         <p style="margin: 4px 0;"><strong>Mã số sinh viên (MSSV):</strong> {@event.StudentCode ?? "N/A"}</p>
-                         <p style="margin: 4px 0;"><strong>Email đăng nhập:</strong> {@event.Email}</p>
-                         <p style="margin: 4px 0;"><strong>Mật khẩu khởi tạo:</strong> <span style="color: #f26f21; font-weight: 700;">{@event.InitialPassword}</span></p>
-                       </div>
-                       <p style="font-size: 13px; color: #475569;"><strong>Lưu ý quan trọng khi đăng nhập lần đầu:</strong></p>
-                       <ol style="font-size: 13px; color: #475569; padding-left: 20px;">
-                         <li>Xác nhận đồng ý với quy định ghép nhóm liên ngành và sự điều phối của Moderator / Giảng viên (BR-34).</li>
-                         <li>Đổi mật khẩu cá nhân ngay sau khi đăng nhập để bảo mật tài khoản.</li>
-                         <li>Cập nhật bộ chỉ số kỹ năng để tham gia Room ghép nhóm.</li>
-                       </ol>
-                     </div>
-                   </div>
-                   """
-                : $"<p>Xin chào <strong>{@event.FullName}</strong>,</p><p>{message}</p>";
-
             await _emailLogRepo.AddAsync(new EmailLog
             {
                 Id = Guid.NewGuid(),
                 To = @event.Email,
                 Subject = $"[EXE Team Matching] {title}",
-                Body = htmlBody,
+                Body = $"<p>Xin chào <strong>{@event.FullName}</strong>,</p><p>{message}</p>",
                 Status = EmailStatus.Pending,
                 Attempts = 0,
                 CreatedAt = DateTime.UtcNow
@@ -155,44 +120,6 @@ public class NotificationEventHandler : INotificationEventHandler
             Id = Guid.NewGuid(),
             RecipientId = @event.StudentId,
             Type = type,
-            Title = title,
-            Message = message,
-            RelatedEntityId = @event.GroupId,
-            IsRead = false,
-            CreatedAt = DateTime.UtcNow
-        }, ct);
-
-        if (!string.IsNullOrWhiteSpace(@event.StudentEmail))
-        {
-            await _emailLogRepo.AddAsync(new EmailLog
-            {
-                Id = Guid.NewGuid(),
-                To = @event.StudentEmail,
-                Subject = $"[EXE Team Matching] {title}",
-                Body = $"<p>Xin chào <strong>{@event.StudentName}</strong>,</p><p>{message}</p>",
-                Status = EmailStatus.Pending,
-                Attempts = 0,
-                CreatedAt = DateTime.UtcNow
-            }, ct);
-        }
-
-        await MarkProcessedAndCommitAsync(eventId, ct);
-        return true;
-    }
-
-    public async Task<bool> HandleInvitationCreatedAsync(InvitationCreated @event, Guid eventId, CancellationToken ct = default)
-    {
-        if (await IsAlreadyProcessedAsync(eventId, nameof(InvitationCreated), ct))
-            return false;
-
-        var title = $"Lời mời tham gia nhóm {@event.GroupName}";
-        var message = $"Bạn nhận được lời mời tham gia nhóm \"{@event.GroupName}\" (hết hạn lúc {@event.ExpiresAt:dd/MM/yyyy HH:mm} UTC).";
-
-        await _notificationRepo.AddAsync(new NotificationEntity
-        {
-            Id = Guid.NewGuid(),
-            RecipientId = @event.StudentId,
-            Type = NotificationType.InvitationReceived,
             Title = title,
             Message = message,
             RelatedEntityId = @event.GroupId,

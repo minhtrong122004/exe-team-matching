@@ -1,35 +1,16 @@
 export type UserRole = 'Student' | 'Moderator' | 'Lecturer';
 
 /// <summary>
-/// DTO thông tin người dùng được trả về trong phiên xác thực (CLAUDE.md mục 11).
+/// DTO thông tin người dùng được trả về trong phiên xác thực.
 /// </summary>
 export interface AuthUserDto {
   id: string;
   email: string;
   fullName: string;
   role: UserRole;
-  mustChangePassword?: boolean;
   hasAcceptedTerms?: boolean;
   acceptedTermsAt?: string | null;
   studentCode?: string | null;
-}
-
-/// <summary>
-/// DTO yêu cầu đăng ký tài khoản sinh viên mới (POST /api/auth/register).
-/// </summary>
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  fullName: string;
-  role?: string;
-}
-
-/// <summary>
-/// DTO yêu cầu đăng nhập tài khoản (POST /api/auth/login).
-/// </summary>
-export interface LoginRequest {
-  email: string;
-  password: string;
 }
 
 /// <summary>
@@ -47,7 +28,7 @@ export interface LogoutRequest {
 }
 
 /// <summary>
-/// DTO phản hồi xác thực chuẩn từ Auth Service sau khi login/register/refresh.
+/// DTO phản hồi xác thực chuẩn từ Auth Service sau khi đăng nhập hoặc làm mới token.
 /// </summary>
 export interface AuthResponse {
   accessToken: string;
@@ -66,7 +47,6 @@ export interface AccountResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string | null;
-  mustChangePassword?: boolean;
   hasAcceptedTerms?: boolean;
   acceptedTermsAt?: string | null;
   studentCode?: string | null;
@@ -77,57 +57,14 @@ export interface AccountResponse {
 /// </summary>
 export interface CreateLecturerRequest {
   email: string;
-  password: string;
   fullName: string;
   role?: 'Lecturer' | 'Moderator';
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmNewPassword: string;
-}
-
-export interface ChangePasswordResponse {
-  message: string;
-  mustChangePassword: boolean;
 }
 
 export interface AcceptTermsResponse {
   message: string;
   hasAcceptedTerms: boolean;
   acceptedTermsAt: string;
-}
-
-export interface FapStudentImportItem {
-  studentCode: string;
-  fullName: string;
-  email: string;
-  major?: string;
-}
-
-export interface ProvisionFapStudentsRequest {
-  students: FapStudentImportItem[];
-  semesterCode: string;
-  subjectCode: string;
-}
-
-export interface ProvisionStudentResultItem {
-  accountId: string;
-  studentCode: string;
-  fullName: string;
-  email: string;
-  isNewlyCreated: boolean;
-  statusMessage: string;
-}
-
-export interface ProvisionFapStudentsResponse {
-  semesterCode: string;
-  subjectCode: string;
-  totalProcessed: number;
-  newlyCreatedCount: number;
-  existingCount: number;
-  results: ProvisionStudentResultItem[];
 }
 
 export interface GetAccountsQuery {
@@ -138,81 +75,4 @@ export interface GetAccountsQuery {
   sortDir?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
-}
-
-/// <summary>
-/// DTO phản hồi sau khi đăng ký tài khoản (Gate H).
-/// </summary>
-export interface RegisterResponse {
-  message: string;
-  email: string;
-  expiresAt: string;
-}
-
-/// <summary>
-/// DTO yêu cầu xác thực email bằng mã OTP (POST /api/auth/verify-email).
-/// </summary>
-export interface VerifyEmailRequest {
-  email: string;
-  otp: string;
-}
-
-/// <summary>
-/// DTO phản hồi sau khi xác thực email thành công (POST /api/auth/verify-email).
-/// </summary>
-export interface VerifyEmailResponse {
-  message: string;
-  email: string;
-}
-
-/// <summary>
-/// DTO yêu cầu gửi lại mã xác thực OTP (POST /api/auth/resend-verification).
-/// </summary>
-export interface ResendVerificationRequest {
-  email: string;
-}
-
-/// <summary>
-/// DTO phản hồi sau khi gửi lại mã xác thực OTP (POST /api/auth/resend-verification).
-/// </summary>
-export interface ResendVerificationResponse {
-  message: string;
-  email: string;
-  resendCooldownSeconds: number;
-  expiresAt: string;
-}
-
-/// <summary>
-/// DTO yêu cầu gửi mã OTP đặt lại mật khẩu (POST /api/auth/forgot-password).
-/// </summary>
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-/// <summary>
-/// DTO phản hồi sau khi gửi yêu cầu quên mật khẩu (POST /api/auth/forgot-password).
-/// </summary>
-export interface ForgotPasswordResponse {
-  message: string;
-  email: string;
-  resendCooldownSeconds: number;
-  expiresAt: string;
-}
-
-/// <summary>
-/// DTO yêu cầu đặt lại mật khẩu bằng mã OTP (POST /api/auth/reset-password).
-/// </summary>
-export interface ResetPasswordRequest {
-  email: string;
-  otp: string;
-  newPassword: string;
-  confirmNewPassword: string;
-}
-
-/// <summary>
-/// DTO phản hồi sau khi đặt lại mật khẩu thành công (POST /api/auth/reset-password).
-/// </summary>
-export interface ResetPasswordResponse {
-  message: string;
-  email: string;
 }

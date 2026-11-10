@@ -9,7 +9,6 @@ public enum GroupStatus
     Recruiting,   // Group đang tuyển (>= GroupThreshold và < MaxMembers, qua Apply)
     Closed,       // Đóng tuyển (đủ MaxMembers hoặc Leader chủ động đóng tuyển sớm)
     Locked,       // Đã chốt sổ
-    Full,         // Tương đương Closed (giữ tương thích dữ liệu cũ)
     Disbanded
 }
 
@@ -33,15 +32,6 @@ public enum JoinRequestStatus
     Accepted,
     Rejected,
     Cancelled
-}
-
-public enum InvitationStatus
-{
-    Pending,
-    Accepted,
-    Rejected,
-    Cancelled,
-    Expired
 }
 
 public enum ElectionStatus

@@ -62,12 +62,7 @@ apiClient.interceptors.response.use(
     // Không thử refresh nếu bản thân request là auth endpoint công khai / đặc thù
     const url = originalRequest.url || '';
     const isAuthEndpoint =
-      url.includes('/auth/login') ||
-      url.includes('/auth/register') ||
-      url.includes('/auth/verify-email') ||
-      url.includes('/auth/resend-verification') ||
-      url.includes('/auth/forgot-password') ||
-      url.includes('/auth/reset-password') ||
+      url.includes('/auth/google') ||
       url.includes('/auth/refresh') ||
       url.includes('/auth/logout');
 
@@ -96,13 +91,7 @@ apiClient.interceptors.response.use(
     if (!currentRefreshToken) {
       // Không có refresh token -> dọn dẹp phiên và từ chối
       clearAuthSession();
-      if (
-        window.location.pathname !== '/login' &&
-        window.location.pathname !== '/register' &&
-        window.location.pathname !== '/verify-email' &&
-        window.location.pathname !== '/forgot-password' &&
-        window.location.pathname !== '/reset-password'
-      ) {
+      if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
       isRefreshing = false;
@@ -141,13 +130,7 @@ apiClient.interceptors.response.use(
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       clearAuthSession();
-      if (
-        window.location.pathname !== '/login' &&
-        window.location.pathname !== '/register' &&
-        window.location.pathname !== '/verify-email' &&
-        window.location.pathname !== '/forgot-password' &&
-        window.location.pathname !== '/reset-password'
-      ) {
+      if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
       return Promise.reject(refreshErr);

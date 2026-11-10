@@ -13,7 +13,6 @@ export interface User {
   studentCode?: string;
   campus?: string;
   major?: string;
-  mustChangePassword?: boolean;
   hasAcceptedTerms?: boolean;
   acceptedTermsAt?: string | null;
   isProfileCompleted?: boolean;
@@ -38,6 +37,9 @@ export type ProjectStatus =
 export interface ProjectItem {
   id: string;
   ownerId: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  teamId?: string;
   title: string;
   problem: string;
   solution: string;
@@ -75,7 +77,7 @@ export interface PagedResult<T> {
   hasNext?: boolean;
 }
 
-export type GroupStatus = 'Recruiting' | 'Full' | 'Locked' | 'Disbanded';
+export type GroupStatus = 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked' | 'Disbanded';
 
 export interface GroupItem {
   id: string;

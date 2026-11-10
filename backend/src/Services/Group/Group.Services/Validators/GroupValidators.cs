@@ -5,7 +5,6 @@ namespace Group.Services.Validators;
 
 internal static class GroupRules
 {
-    public const int MinMembers = 4;
     public const int MaxMembers = 6;
 
     public static readonly string[] Majors = ["SE", "AI", "IA", "GD", "MKT", "IB", "Other"];
@@ -14,39 +13,12 @@ internal static class GroupRules
         string.IsNullOrWhiteSpace(major) || Majors.Contains(major.Trim(), StringComparer.OrdinalIgnoreCase);
 }
 
-public class CreateGroupRequestValidator : AbstractValidator<CreateGroupRequest>
-{
-    public CreateGroupRequestValidator()
-    {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
-        RuleFor(x => x.Description).MaximumLength(1000);
-        RuleFor(x => x.ProjectId).NotEmpty();
-
-        // BR-02
-        RuleFor(x => x.MaxMembers)
-            .InclusiveBetween(GroupRules.MinMembers, GroupRules.MaxMembers)
-            .WithMessage($"Must be between {GroupRules.MinMembers} and {GroupRules.MaxMembers}.");
-
-        RuleForEach(x => x.Slots).SetValidator(new SlotRequestValidator());
-
-        // Trưởng nhóm chiếm 1 chỗ, nên tổng vị trí tuyển không vượt quá MaxMembers - 1.
-        RuleFor(x => x.Slots)
-            .Must((req, slots) => slots is null || slots.Sum(s => s.Quantity) <= req.MaxMembers - 1)
-            .WithMessage("Total slot quantity must not exceed maxMembers - 1.");
-    }
-}
-
 public class UpdateGroupRequestValidator : AbstractValidator<UpdateGroupRequest>
 {
     public UpdateGroupRequestValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Description).MaximumLength(1000);
-
-        // BR-02
-        RuleFor(x => x.MaxMembers)
-            .InclusiveBetween(GroupRules.MinMembers, GroupRules.MaxMembers)
-            .WithMessage($"Must be between {GroupRules.MinMembers} and {GroupRules.MaxMembers}.");
     }
 }
 
@@ -71,14 +43,6 @@ public class CreateJoinRequestRequestValidator : AbstractValidator<CreateJoinReq
     public CreateJoinRequestRequestValidator()
     {
         RuleFor(x => x.Message).MaximumLength(1000);
-    }
-}
-
-public class CreateInvitationRequestValidator : AbstractValidator<CreateInvitationRequest>
-{
-    public CreateInvitationRequestValidator()
-    {
-        RuleFor(x => x.StudentId).NotEmpty();
     }
 }
 

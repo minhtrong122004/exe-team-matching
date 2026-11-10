@@ -15,7 +15,6 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<RecruitmentSlot> RecruitmentSlots => Set<RecruitmentSlot>();
     public DbSet<JoinRequest> JoinRequests => Set<JoinRequest>();
-    public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<LeaderElection> LeaderElections => Set<LeaderElection>();
     public DbSet<ElectionVote> ElectionVotes => Set<ElectionVote>();
     public DbSet<ApplicationVote> ApplicationVotes => Set<ApplicationVote>();
@@ -168,31 +167,6 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.HasOne(r => r.Group)
                   .WithMany()
                   .HasForeignKey(r => r.GroupId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // ── Invitation ─────────────────────────────────────────────────────────
-        modelBuilder.Entity<Invitation>(entity =>
-        {
-            entity.ToTable("Invitations");
-            entity.HasKey(i => i.Id);
-
-            entity.Property(i => i.StudentName).IsRequired().HasMaxLength(200);
-            // Chấp nhận lời mời không ghi đè được trạng thái Expired do InvitationExpiryJob vừa đặt (BR-10).
-            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20).IsConcurrencyToken();
-
-            entity.HasIndex(i => new { i.StudentId, i.Status });
-            entity.HasIndex(i => new { i.GroupId, i.Status });
-
-            entity.HasIndex(i => new { i.StudentId, i.GroupId })
-                  .HasDatabaseName(GroupIndexes.PendingInvitation)
-                  .IsUnique()
-                  .HasFilter("[Status] = 'Pending'");
-            entity.HasIndex(i => new { i.Status, i.ExpiresAt }); // job hết hạn lời mời
-
-            entity.HasOne(i => i.Group)
-                  .WithMany()
-                  .HasForeignKey(i => i.GroupId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 

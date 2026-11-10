@@ -13,27 +13,6 @@ namespace Auth.Services.Tests;
 public class SecurityTests
 {
     [Fact]
-    public void PasswordHasher_HashAndVerify_ShouldBeSecureAndConsistent()
-    {
-        // 3. Password hashing and verification
-        var hasher = new BCryptPasswordHasher();
-        var password = "SecurePassword@2026";
-
-        var hash1 = hasher.HashPassword(password);
-        var hash2 = hasher.HashPassword(password);
-
-        Assert.NotEmpty(hash1);
-        Assert.NotEmpty(hash2);
-        // BCrypt uses unique random salt each time
-        Assert.NotEqual(hash1, hash2);
-
-        Assert.True(hasher.VerifyPassword(password, hash1));
-        Assert.True(hasher.VerifyPassword(password, hash2));
-        Assert.False(hasher.VerifyPassword("WrongPassword123!", hash1));
-        Assert.False(hasher.VerifyPassword(string.Empty, hash1));
-    }
-
-    [Fact]
     public void TokenService_GenerateAccessToken_ShouldContainRequiredClaimsAndValidSignature()
     {
         // 7. JWT claims and validation

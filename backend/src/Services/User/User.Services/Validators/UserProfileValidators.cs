@@ -11,12 +11,6 @@ public class UpdateUserProfileRequestValidator : AbstractValidator<UpdateUserPro
             .NotEmpty().WithMessage("Họ và tên không được để trống.")
             .MaximumLength(100).WithMessage("Họ và tên không được vượt quá 100 ký tự.");
 
-        RuleFor(x => x.StudentCode)
-            .MaximumLength(20).WithMessage("Mã số sinh viên không được vượt quá 20 ký tự.")
-            .Matches("^[a-zA-Z0-9]+$")
-            .When(x => !string.IsNullOrWhiteSpace(x.StudentCode))
-            .WithMessage("Mã số sinh viên chỉ được chứa chữ cái và số.");
-
         RuleFor(x => x.Campus)
             .MaximumLength(50).WithMessage("Cơ sở học tập không được vượt quá 50 ký tự.");
 
@@ -29,37 +23,12 @@ public class UpdateUserProfileRequestValidator : AbstractValidator<UpdateUserPro
         RuleFor(x => x.Availability)
             .IsInEnum().WithMessage("Trạng thái tìm nhóm không hợp lệ.");
 
-        RuleFor(x => x.Major)
-            .IsInEnum()
-            .When(x => x.Major.HasValue)
-            .WithMessage("Chuyên ngành không hợp lệ.");
-
         RuleFor(x => x.Interests)
             .Must(list => list == null || list.Count <= 20)
             .WithMessage("Danh sách lĩnh vực quan tâm không được vượt quá 20 mục.");
 
         RuleForEach(x => x.Interests)
             .MaximumLength(50).WithMessage("Mỗi lĩnh vực quan tâm không được vượt quá 50 ký tự.");
-
-        RuleFor(x => x.TechScore)
-            .InclusiveBetween(0, 100).When(x => x.TechScore.HasValue)
-            .WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100.");
-
-        RuleFor(x => x.ManagementScore)
-            .InclusiveBetween(0, 100).When(x => x.ManagementScore.HasValue)
-            .WithMessage("Điểm kỹ năng Management phải từ 0 đến 100.");
-
-        RuleFor(x => x.GraphicDesignScore)
-            .InclusiveBetween(0, 100).When(x => x.GraphicDesignScore.HasValue)
-            .WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100.");
-
-        RuleFor(x => x.MarketingScore)
-            .InclusiveBetween(0, 100).When(x => x.MarketingScore.HasValue)
-            .WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100.");
-
-        RuleFor(x => x.SaleScore)
-            .InclusiveBetween(0, 100).When(x => x.SaleScore.HasValue)
-            .WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100.");
     }
 }
 
@@ -68,18 +37,23 @@ public class UpdateProfileSkillsRequestValidator : AbstractValidator<UpdateProfi
     public UpdateProfileSkillsRequestValidator()
     {
         RuleFor(x => x.TechScore)
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Tech (BR-05).")
             .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100 (BR-05).");
 
         RuleFor(x => x.ManagementScore)
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Management (BR-05).")
             .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Management phải từ 0 đến 100 (BR-05).");
 
         RuleFor(x => x.GraphicDesignScore)
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Graphic Design (BR-05).")
             .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100 (BR-05).");
 
         RuleFor(x => x.MarketingScore)
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Marketing (BR-05).")
             .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100 (BR-05).");
 
         RuleFor(x => x.SaleScore)
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Sale (BR-05).")
             .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100 (BR-05).");
 
         RuleFor(x => x.IsCommitted)

@@ -14,7 +14,6 @@ public record UserRegisteredEvent(
     DateTime OccurredAt,
     int SchemaVersion = 1,
     string? StudentCode = null,
-    string? InitialPassword = null,
     string? SemesterCode = null,
     string? SubjectCode = null,
     string? Major = null

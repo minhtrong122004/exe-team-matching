@@ -7,28 +7,27 @@ using Group.Services.Exceptions;
 namespace Group.Services.Implementations;
 
 /// <summary>
-/// Thêm/bớt thành viên — dùng chung cho chấp nhận yêu cầu, chấp nhận lời mời, rời nhóm và xóa thành viên.
+/// Thêm/bớt thành viên — dùng chung cho vào thẳng, chấp nhận yêu cầu, rời nhóm và xóa thành viên.
 /// Chỉ thay đổi entity đang track; người gọi SaveChanges (qua <see cref="GroupUnitOfWorkExtensions"/>).
 /// </summary>
 public sealed class GroupMembershipManager(
     IGroupRepository groups,
-    IJoinRequestRepository joinRequests,
-    IInvitationRepository invitations)
+    IJoinRequestRepository joinRequests)
 {
     /// <summary>
-    /// Thêm sinh viên vào nhóm, kiểm tra BR-01 và BR-06, rồi áp BR-07 và BR-08.
-    /// Người gọi đổi yêu cầu/lời mời của chính nó sang Accepted TRƯỚC khi gọi, để không bị hủy theo BR-07.
+    /// Thêm sinh viên vào nhóm qua Accept, kiểm tra BR-21, rồi áp BR-26 và BR-28.
+    /// Người gọi đổi yêu cầu của chính nó sang Accepted TRƯỚC khi gọi, để không bị hủy theo BR-26.
     /// </summary>
     public async Task<GroupMember> AddMemberAsync(
         GroupEntity group, Guid userId, string fullName, string email, Guid? slotId, DateTime now, CancellationToken ct)
     {
         group.EnsureNotDisbanded();
-        group.EnsureRecruiting(); // BR-06
+        group.EnsureRecruiting();
 
         if (group.Members.Any(m => m.UserId == userId))
             throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Student is already a member of this group.");
 
-        if (await groups.IsUserInActiveGroupAsync(userId, ct)) // BR-01
+        if (await groups.IsUserInActiveGroupAsync(userId, group.SpaceId, ct)) // BR-21
             throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Student is already in another group.");
 
         // Vị trí đã đủ người thì vẫn cho vào nhóm, chỉ không gắn với vị trí đó.
@@ -48,24 +47,17 @@ public sealed class GroupMembershipManager(
         group.Members.Add(member);
 
         // Luôn sửa dòng Groups để SQL Server kiểm tra RowVersion: hai người cùng vào nhóm gần đầy
-        // thì một bên nhận ConcurrencyConflictException, tải lại và kiểm tra lại BR-06.
+        // thì một bên nhận ConcurrencyConflictException, tải lại và kiểm tra lại sĩ số.
         group.UpdatedAt = now;
 
-        // BR-07: mọi yêu cầu và lời mời Pending khác của sinh viên bị hủy.
-        foreach (var r in (await joinRequests.GetPendingByStudentAsync(userId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
-        {
-            r.Status = JoinRequestStatus.Cancelled;
-            r.DecidedAt = now;
-        }
-        foreach (var i in (await invitations.GetPendingByStudentAsync(userId, ct)).Where(i => i.Status == InvitationStatus.Pending))
-        {
-            i.Status = InvitationStatus.Cancelled;
-            i.RespondedAt = now;
-        }
+        await CancelOtherPendingOfStudentAsync(userId, group.SpaceId, now, ct);
 
-        // BR-08: đủ người thì nhóm thành Closed/Full và hủy yêu cầu/lời mời Pending của nhóm.
+        // BR-28: đủ người thì nhóm thành Closed và các đơn đang chờ vào nhóm thành Rejected.
         if (group.Members.Count >= group.MaxMembers)
-            await MarkFullAsync(group, now, ct);
+        {
+            group.Status = GroupStatus.Closed;
+            await RejectPendingOfGroupAsync(group.Id, now, ct);
+        }
 
         return member;
     }
@@ -83,13 +75,13 @@ public sealed class GroupMembershipManager(
         if (group.Members.Any(m => m.UserId == userId))
             throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Bạn đã là thành viên của phòng này rồi.");
 
-        if (await groups.IsUserInActiveGroupAsync(userId, ct))
+        if (await groups.IsUserInActiveGroupAsync(userId, group.SpaceId, ct))
             throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Bạn hiện đang ở một nhóm/phòng khác. Mỗi sinh viên chỉ ở 1 phòng trong 1 môn (BR-21).");
 
         if (group.Members.Count >= group.MaxMembers)
             throw new BusinessRuleException("GROUP_FULL", "Phòng đã đủ sĩ số tối đa.");
 
-        if (group.Members.Count >= groupThreshold && group.Status != GroupStatus.Empty && group.Status != GroupStatus.Forming)
+        if (group.Status != GroupStatus.Empty && group.Status != GroupStatus.Forming)
         {
             throw new BusinessRuleException("ROOM_REACHED_THRESHOLD",
                 $"Phòng đã đạt ngưỡng {groupThreshold} thành viên và chuyển thành Group chính thức (BR-16). Vui lòng nộp đơn Apply để tham gia.");
@@ -126,17 +118,7 @@ public sealed class GroupMembershipManager(
 
         group.UpdatedAt = now;
 
-        // BR-26: Sinh viên vào được một nhóm thì mọi đơn Apply và lời mời Pending khác tự động bị hủy (Cancelled)
-        foreach (var r in (await joinRequests.GetPendingByStudentAsync(userId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
-        {
-            r.Status = JoinRequestStatus.Cancelled;
-            r.DecidedAt = now;
-        }
-        foreach (var i in (await invitations.GetPendingByStudentAsync(userId, ct)).Where(i => i.Status == InvitationStatus.Pending))
-        {
-            i.Status = InvitationStatus.Cancelled;
-            i.RespondedAt = now;
-        }
+        await CancelOtherPendingOfStudentAsync(userId, group.SpaceId, now, ct);
 
         return member;
     }
@@ -201,18 +183,16 @@ public sealed class GroupMembershipManager(
             r.Status = JoinRequestStatus.Rejected;
             r.DecidedAt = now;
         }
-        foreach (var i in (await invitations.GetPendingByGroupAsync(groupId, ct)).Where(i => i.Status == InvitationStatus.Pending))
-        {
-            i.Status = InvitationStatus.Cancelled;
-            i.RespondedAt = now;
-        }
     }
 
-    /// <summary>BR-08: trạng thái Full và hủy mọi yêu cầu/lời mời Pending của nhóm.</summary>
-    public async Task MarkFullAsync(GroupEntity group, DateTime now, CancellationToken ct)
+    /// <summary>BR-26: sinh viên vào được một nhóm thì mọi đơn đang chờ khác của họ trong cùng môn thành Cancelled.</summary>
+    private async Task CancelOtherPendingOfStudentAsync(Guid userId, Guid? spaceId, DateTime now, CancellationToken ct)
     {
-        group.Status = GroupStatus.Full;
-        await CancelPendingOfGroupAsync(group.Id, now, ct);
+        foreach (var r in (await joinRequests.GetPendingByStudentAsync(userId, spaceId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
+        {
+            r.Status = JoinRequestStatus.Cancelled;
+            r.DecidedAt = now;
+        }
     }
 
     /// <summary>
@@ -225,28 +205,14 @@ public sealed class GroupMembershipManager(
             r.SlotId = null;
     }
 
-    /// <summary>Hủy mọi yêu cầu và lời mời Pending của nhóm (khi đủ người hoặc giải tán).</summary>
-    public async Task CancelPendingOfGroupAsync(Guid groupId, DateTime now, CancellationToken ct)
-    {
-        foreach (var r in (await joinRequests.GetPendingByGroupAsync(groupId, ct)).Where(r => r.Status == JoinRequestStatus.Pending))
-        {
-            r.Status = JoinRequestStatus.Cancelled;
-            r.DecidedAt = now;
-        }
-        foreach (var i in (await invitations.GetPendingByGroupAsync(groupId, ct)).Where(i => i.Status == InvitationStatus.Pending))
-        {
-            i.Status = InvitationStatus.Cancelled;
-            i.RespondedAt = now;
-        }
-    }
 }
 
 internal static class GroupUnitOfWorkExtensions
 {
     /// <summary>
     /// Chạy lại toàn bộ thao tác (tải dữ liệu → kiểm tra rule → SaveChanges) khi Group.RowVersion hoặc Status của
-    /// yêu cầu/lời mời bị đổi giữa chừng. Lần thử sau đọc dữ liệu mới nên BR-06 trả GROUP_FULL nếu nhóm vừa đủ người
-    /// (CLAUDE.md mục 9), hoặc INVALID_STATUS / INVITATION_EXPIRED nếu yêu cầu/lời mời vừa bị xử lý.
+    /// yêu cầu bị đổi giữa chừng. Lần thử sau đọc dữ liệu mới nên trả GROUP_FULL nếu nhóm vừa đủ người,
+    /// hoặc INVALID_STATUS nếu yêu cầu vừa bị xử lý.
     /// </summary>
     public static async Task<T> RetryOnConcurrencyAsync<T>(
         this IGroupUnitOfWork uow, Func<Task<T>> operation, int maxAttempts = 3)

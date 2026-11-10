@@ -1,19 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   User,
-  UserRole,
   AuthResponse,
   AuthUserDto,
   AccountResponse,
   UserProfileResponse,
-  RegisterResponse,
-  VerifyEmailResponse,
-  ResendVerificationResponse,
-  ForgotPasswordResponse,
-  ResetPasswordRequest,
-  ResetPasswordResponse,
-  ChangePasswordRequest,
-  ChangePasswordResponse,
   AcceptTermsResponse,
 } from '../types';
 import apiClient, { clearAuthSession } from '../api/client';
@@ -22,14 +13,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<AuthUserDto>;
-  loginDemo: (role?: 'Student' | 'Lecturer' | 'Moderator' | 'Admin') => AuthUserDto;
-  register: (email: string, password: string, fullName: string) => Promise<RegisterResponse>;
-  verifyEmail: (email: string, otp: string) => Promise<VerifyEmailResponse>;
-  resendVerification: (email: string) => Promise<ResendVerificationResponse>;
-  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
-  resetPassword: (data: ResetPasswordRequest) => Promise<ResetPasswordResponse>;
-  changePassword: (data: ChangePasswordRequest) => Promise<ChangePasswordResponse>;
+  loginWithGoogle: (idToken: string) => Promise<AuthUserDto>;
+  loginDemo?: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
   acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -62,19 +47,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' | 'Admin' = 'Student'): AuthUserDto => {
-    const finalRole: UserRole = role === 'Admin' ? 'Moderator' : (role as UserRole);
-    const demoUser: User = {
-      id: '11111111-1111-1111-1111-111111111101',
-      email: role === 'Student' ? 'tulpnse185102@fpt.edu.vn' : `${finalRole.toLowerCase()}@exe.local`,
-      fullName: role === 'Student' ? 'Lữ Phước Nhật Tú' : role === 'Lecturer' ? 'TS. Nguyễn Văn Giảng Viên' : 'Điều Phối Viên EXE',
-      role: finalRole,
-      studentCode: role === 'Student' ? 'SE185102' : undefined,
-      campus: 'TP. Hồ Chí Minh',
-      major: role === 'Student' ? 'SE' : undefined,
-    };
-    localStorage.setItem('access_token', 'demo-access-token');
-    localStorage.setItem('refresh_token', 'demo-refresh-token');
+  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' = 'Student'): AuthUserDto => {
+    let demoUser: User;
+    if (role === 'Moderator') {
+      demoUser = {
+        id: '22222222-2222-2222-2222-222222222202',
+        email: 'moderator@fpt.edu.vn',
+        fullName: 'ThS. Lê Minh Điều Phối',
+        role: 'Moderator',
+        campus: 'Hà Nội',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else if (role === 'Lecturer') {
+      demoUser = {
+        id: '33333333-3333-3333-3333-333333333303',
+        email: 'lecturer@fpt.edu.vn',
+        fullName: 'TS. Nguyễn Văn Giảng Viên',
+        role: 'Lecturer',
+        campus: 'Đà Nẵng',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    } else {
+      demoUser = {
+        id: '11111111-1111-1111-1111-111111111101',
+        email: 'tulpnse185102@fpt.edu.vn',
+        fullName: 'Lữ Phước Nhật Tú',
+        role: 'Student',
+        studentCode: 'SE185102',
+        campus: 'TP. Hồ Chí Minh',
+        major: 'Kỹ thuật phần mềm',
+        hasAcceptedTerms: true,
+        isProfileCompleted: true,
+      };
+    }
+    const demoTokenMap: Record<'Student' | 'Lecturer' | 'Moderator', { accessToken: string; refreshToken: string }> = {"Student":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTEwMSIsInN1YiI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTEwMSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6InR1bHBuc2UxODUxMDJAZnB0LmVkdS52biIsImVtYWlsIjoidHVscG5zZTE4NTEwMkBmcHQuZWR1LnZuIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Ikzhu68gUGjGsOG7m2MgTmjhuq10IFTDuiIsIm5hbWUiOiJM4buvIFBoxrDhu5tjIE5o4bqtdCBUw7oiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJTdHVkZW50Iiwicm9sZSI6IlN0dWRlbnQiLCJqdGkiOiI1YmYzNDFiNC0zNTBjLTRhNTktYjhmZS1kYTRkZTdkODY3NzgiLCJuYmYiOjE3OTQyNDE2NTcsImV4cCI6MTgyNTc3NzY2NywiaXNzIjoiZXhlLWF1dGgiLCJhdWQiOiJleGUtYXBpIn0.U5o2ejYNtQFk4WHzG0_dhqyjpTiBPp5ERGbwPoSjfBc","refreshToken":"demo-refresh-token-student-tu-2026"},"Moderator":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIwMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIwMiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6Im1vZGVyYXRvckBmcHQuZWR1LnZuIiwiZW1haWwiOiJtb2RlcmF0b3JAZnB0LmVkdS52biIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJUaFMuIEzDqiBNaW5oIMSQaeG7gXUgUGjhu5FpIiwibmFtZSI6IlRoUy4gTMOqIE1pbmggxJBp4buBdSBQaOG7kWkiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJNb2RlcmF0b3IiLCJyb2xlIjoiTW9kZXJhdG9yIiwianRpIjoiZTI4NGI3M2YtYWJlYS00MGFkLTkwZDktZjM4YjljZTExM2E5IiwibmJmIjoxNzk0MjQxNjU3LCJleHAiOjE4MjU3Nzc2NjcsImlzcyI6ImV4ZS1hdXRoIiwiYXVkIjoiZXhlLWFwaSJ9.tXV04A8SB3xNsKUBBMc0UqNk-JZ0E3azp1Waet3DzBI","refreshToken":"demo-refresh-token-moderator-2026"},"Lecturer":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjMzMzMzMzMzLTMzMzMtMzMzMy0zMzMzLTMzMzMzMzMzMzMwMyIsInN1YiI6IjMzMzMzMzMzLTMzMzMtMzMzMy0zMzMzLTMzMzMzMzMzMzMwMyIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6ImxlY3R1cmVyQGZwdC5lZHUudm4iLCJlbWFpbCI6ImxlY3R1cmVyQGZwdC5lZHUudm4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiVFMuIE5ndXnhu4VuIFbEg24gR2nhuqNuZyBWacOqbiIsIm5hbWUiOiJUUy4gTmd1eeG7hW4gVsSDbiBHaeG6o25nIFZpw6puIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiTGVjdHVyZXIiLCJyb2xlIjoiTGVjdHVyZXIiLCJqdGkiOiI3N2U3OWNhOC1jNjczLTQyYmYtOGIzNi1iNjRiNzc2M2RkNjMiLCJuYmYiOjE3OTQyNDE2NTcsImV4cCI6MTgyNTc3NzY2NywiaXNzIjoiZXhlLWF1dGgiLCJhdWQiOiJleGUtYXBpIn0.l-5w8Ovve_Owb93XSnWG_PA5RUr7KmoCvblQoIltF00","refreshToken":"demo-refresh-token-lecturer-2026"}};
+    localStorage.setItem('access_token', demoTokenMap[role].accessToken);
+    localStorage.setItem('refresh_token', demoTokenMap[role].refreshToken);
     localStorage.setItem('user', JSON.stringify(demoUser));
     localStorage.setItem('is_demo_mode', 'true');
     setUser(demoUser);
@@ -90,15 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-      const saved = localStorage.getItem('user');
-      if (saved) {
-        setUser(JSON.parse(saved));
-      }
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await apiClient.get<AccountResponse>('/auth/me');
       const account = response.data;
@@ -108,12 +109,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fullName: account.fullName,
         role: account.role,
         studentCode: account.studentCode || undefined,
-        mustChangePassword: account.mustChangePassword ?? false,
         hasAcceptedTerms: account.hasAcceptedTerms ?? false,
         acceptedTermsAt: account.acceptedTermsAt ?? null,
       };
 
-      // Đối với Sinh viên, đồng bộ fullName và thông tin học thuật từ User Service (nguồn chuẩn)
       if (account.role === 'Student') {
         try {
           const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -125,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             verifiedUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
           }
         } catch {
-          // Bỏ qua nếu UserProfile chưa được tạo hoặc User.API tạm thời bận
+          // Bỏ qua nếu UserProfile chưa được tạo
         }
       }
 
@@ -153,17 +152,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (token.startsWith('demo-') || localStorage.getItem('is_demo_mode') === 'true') {
-        if (isMounted) {
-          const saved = localStorage.getItem('user');
-          if (saved) {
-            setUser(JSON.parse(saved));
-          }
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
         const response = await apiClient.get<AccountResponse>('/auth/me');
         if (!isMounted) return;
@@ -175,12 +163,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fullName: account.fullName,
           role: account.role,
           studentCode: account.studentCode || undefined,
-          mustChangePassword: account.mustChangePassword ?? false,
           hasAcceptedTerms: account.hasAcceptedTerms ?? false,
           acceptedTermsAt: account.acceptedTermsAt ?? null,
         };
 
-        // Đối với Sinh viên, đồng bộ fullName từ User Service (nguồn chuẩn cập nhật hồ sơ)
         if (account.role === 'Student') {
           try {
             const profileRes = await apiClient.get<UserProfileResponse>('/users/me');
@@ -214,7 +200,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     verifySession();
 
-    // Lắng nghe sự kiện đăng xuất từ Axios Interceptor (khi refresh token thất bại)
     const handleLogoutEvent = () => {
       if (isMounted) {
         setUser(null);
@@ -229,12 +214,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<AuthUserDto> => {
-    const response = await apiClient.post<AuthResponse>('/auth/login', {
-      email: email.trim(),
-      password,
-    });
-
+  const loginWithGoogle = async (idToken: string): Promise<AuthUserDto> => {
+    const response = await apiClient.post<AuthResponse>('/auth/google', { idToken });
     const { accessToken, refreshToken, user: authUser } = response.data;
 
     localStorage.setItem('access_token', accessToken);
@@ -243,10 +224,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentUser: User = {
       ...authUser,
       studentCode: authUser.studentCode || undefined,
-      mustChangePassword: authUser.mustChangePassword ?? false,
       hasAcceptedTerms: authUser.hasAcceptedTerms ?? false,
       acceptedTermsAt: authUser.acceptedTermsAt ?? null,
     };
+
     if (authUser.role === 'Student') {
       try {
         const profileRes = await apiClient.get<UserProfileResponse>('/users/me', {
@@ -260,72 +241,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           currentUser.isProfileCompleted = Boolean(profileRes.data.isProfileCompleted);
         }
       } catch {
-        // Fallback to authUser
+        // Hồ sơ chưa kịp tạo thì dùng thông tin từ Auth.
       }
     }
 
     localStorage.setItem('user', JSON.stringify(currentUser));
     setUser(currentUser);
     return authUser;
-  };
-
-  const register = async (
-    email: string,
-    password: string,
-    fullName: string
-  ): Promise<RegisterResponse> => {
-    // Đăng ký tài khoản sinh viên mới (Gate C, D, H).
-    // Phản hồi trả về thông tin chờ xác thực OTP, tuyệt đối không lưu token vào localStorage trước khi xác thực.
-    const response = await apiClient.post<RegisterResponse>('/auth/register', {
-      email: email.trim(),
-      password,
-      fullName: fullName.trim(),
-      role: 'Student',
-    });
-
-    return response.data;
-  };
-
-  const verifyEmail = async (email: string, otp: string): Promise<VerifyEmailResponse> => {
-    const response = await apiClient.post<VerifyEmailResponse>('/auth/verify-email', {
-      email: email.trim(),
-      otp: otp.trim(),
-    });
-    return response.data;
-  };
-
-  const resendVerification = async (email: string): Promise<ResendVerificationResponse> => {
-    const response = await apiClient.post<ResendVerificationResponse>('/auth/resend-verification', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const forgotPassword = async (email: string): Promise<ForgotPasswordResponse> => {
-    const response = await apiClient.post<ForgotPasswordResponse>('/auth/forgot-password', {
-      email: email.trim(),
-    });
-    return response.data;
-  };
-
-  const resetPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
-    const response = await apiClient.post<ResetPasswordResponse>('/auth/reset-password', {
-      email: data.email.trim(),
-      otp: data.otp.trim(),
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    return response.data;
-  };
-
-  const changePassword = async (data: ChangePasswordRequest): Promise<ChangePasswordResponse> => {
-    const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', {
-      currentPassword: data.currentPassword,
-      newPassword: data.newPassword,
-      confirmNewPassword: data.confirmNewPassword,
-    });
-    updateUserData({ mustChangePassword: false });
-    return response.data;
   };
 
   const acceptTerms = async (): Promise<AcceptTermsResponse> => {
@@ -345,7 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await apiClient.post('/auth/logout', { refreshToken });
       } catch (err) {
-        // Tiếp tục dọn dẹp local storage ngay cả khi mạng hoặc server gặp sự cố
         console.warn('Lỗi khi thu hồi refresh token từ server:', err);
       }
     }
@@ -360,14 +281,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         isLoading,
-        login,
+        loginWithGoogle,
         loginDemo,
-        register,
-        verifyEmail,
-        resendVerification,
-        forgotPassword,
-        resetPassword,
-        changePassword,
         acceptTerms,
         logout,
         refreshCurrentUser,

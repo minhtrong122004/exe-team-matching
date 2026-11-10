@@ -115,30 +115,6 @@ public class NotificationEventHandlerTests
     }
 
     [Fact]
-    public async Task HandleInvitationCreatedAsync_CreatesStudentNotificationAndPendingEmail()
-    {
-        var eventId = Guid.NewGuid();
-        var studentId = Guid.NewGuid();
-        var ev = new InvitationCreated(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "EcoRecycle FPT",
-            studentId,
-            "invited@fpt.edu.vn",
-            "Pham Van C",
-            DateTime.UtcNow.AddDays(2));
-
-        var processed = await _sut.HandleInvitationCreatedAsync(ev, eventId);
-
-        Assert.True(processed);
-        Assert.Single(_notificationRepo.Items);
-        Assert.Equal(studentId, _notificationRepo.Items[0].RecipientId);
-        Assert.Equal(NotificationType.InvitationReceived, _notificationRepo.Items[0].Type);
-        Assert.Single(_emailLogRepo.Items);
-        Assert.Equal("invited@fpt.edu.vn", _emailLogRepo.Items[0].To);
-    }
-
-    [Fact]
     public async Task HandleMemberJoinedAsync_CreatesNotificationAndPendingEmail()
     {
         var eventId = Guid.NewGuid();

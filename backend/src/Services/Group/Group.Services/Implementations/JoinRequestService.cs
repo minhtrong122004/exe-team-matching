@@ -46,6 +46,14 @@ public class JoinRequestService(
                     throw new BusinessRuleException("REGISTRATION_CLOSED",
                         "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.");
                 }
+
+                // BR-01: chỉ sinh viên có trong danh sách của môn mới được nộp đơn.
+                if (!await spaceRepo.IsStudentEnrolledAsync(space.Id, studentId, ct))
+                {
+                    throw new BusinessRuleException("NOT_ENROLLED_IN_SPACE",
+                        $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode} (BR-01).");
+                }
+
                 limit = space.MaxConcurrentApplies;
                 currentEnrollment = await spaceRepo.GetEnrollmentAsync(space.Id, studentId, ct);
             }
@@ -76,8 +84,8 @@ public class JoinRequestService(
 
         group.EnsureRecruiting();
 
-        // BR-01: đã có nhóm thì không xin vào nhóm khác.
-        if (await groups.IsUserInActiveGroupAsync(studentId, ct))
+        // BR-24: đã có nhóm trong môn này thì không xin vào nhóm khác.
+        if (await groups.IsUserInActiveGroupAsync(studentId, group.SpaceId, ct))
             throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "You are already in a group.");
 
         // BR-04: không có hai yêu cầu Pending tới cùng một nhóm.
@@ -85,7 +93,7 @@ public class JoinRequestService(
             throw new BusinessRuleException(GroupErrorCodes.DuplicateJoinRequest,
                 "You already have a pending request to this group.");
 
-        if (await joinRequests.CountPendingByStudentAsync(studentId, ct) >= limit)
+        if (await joinRequests.CountPendingByStudentAsync(studentId, group.SpaceId, ct) >= limit)
             throw new BusinessRuleException(GroupErrorCodes.JoinRequestLimit,
                 $"Bạn chỉ được nộp tối đa {limit} đơn ứng tuyển cùng lúc (BR-22). Vui lòng rút bớt đơn cũ trước khi nộp thêm.");
 
@@ -163,8 +171,8 @@ public class JoinRequestService(
                 }
             }
 
-            // Nhóm vừa đủ người (có thể do một lần duyệt đồng thời) đã hủy yêu cầu này theo BR-08 → báo GROUP_FULL.
-            if (r.Status == JoinRequestStatus.Cancelled && r.Group.Status == GroupStatus.Full)
+            // Nhóm vừa đủ người (có thể do một lần duyệt đồng thời) đã từ chối yêu cầu này theo BR-28 → báo GROUP_FULL.
+            if (r.Status == JoinRequestStatus.Rejected && r.Group.Members.Count >= r.Group.MaxMembers)
                 throw new BusinessRuleException(GroupErrorCodes.GroupFull, "Group is full.");
             EnsurePending(r);
 

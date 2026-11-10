@@ -1,3 +1,6 @@
+using Exe.BuildingBlocks.Paging;
+using Group.Repository.Enums;
+
 namespace Group.Services.DTOs;
 
 public record CreateCourseSpaceRequest(
@@ -53,6 +56,18 @@ public record SpaceEnrollmentResponse(
     string? ClassCode,
     DateTime EnrolledAt,
     bool IsProfileCompleted = false);
+
+/// <summary>GET /api/spaces/{id}/rooms?status=&amp;minAvailableSlots=&amp;search=&amp;page=&amp;pageSize= (BR-13).</summary>
+public class RoomQuery : PagedRequest
+{
+    public GroupStatus? Status { get; set; }
+
+    /// <summary>Chỉ lấy phòng còn ít nhất bao nhiêu chỗ trống.</summary>
+    public int? MinAvailableSlots { get; set; }
+
+    /// <summary>Tìm theo mã phòng hoặc tên phòng.</summary>
+    public string? Search { get; set; }
+}
 
 public record GenerateRoomsResponse(
     Guid SpaceId,

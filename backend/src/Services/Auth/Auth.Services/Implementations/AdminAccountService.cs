@@ -4,7 +4,6 @@ using Auth.Repository.Enums;
 using Auth.Repository.Interfaces;
 using Auth.Services.DTOs;
 using Auth.Services.Interfaces;
-using Auth.Services.Security;
 using Exe.BuildingBlocks.Exceptions;
 using Exe.BuildingBlocks.Paging;
 using Exe.Contracts.Events;
@@ -24,7 +23,6 @@ public class AdminAccountService : IAdminAccountService
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IOutboxRepository _outboxRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IPasswordHasher _passwordHasher;
     private readonly IValidator<CreateLecturerRequest> _createLecturerValidator;
     private readonly IValidator<ProvisionFapStudentsRequest> _provisionFapValidator;
     private readonly ILogger<AdminAccountService> _logger;
@@ -34,7 +32,6 @@ public class AdminAccountService : IAdminAccountService
         IRefreshTokenRepository refreshTokenRepository,
         IOutboxRepository outboxRepository,
         IUnitOfWork unitOfWork,
-        IPasswordHasher passwordHasher,
         IValidator<CreateLecturerRequest> createLecturerValidator,
         IValidator<ProvisionFapStudentsRequest> provisionFapValidator,
         ILogger<AdminAccountService> logger)
@@ -43,7 +40,6 @@ public class AdminAccountService : IAdminAccountService
         _refreshTokenRepository = refreshTokenRepository;
         _outboxRepository = outboxRepository;
         _unitOfWork = unitOfWork;
-        _passwordHasher = passwordHasher;
         _createLecturerValidator = createLecturerValidator;
         _provisionFapValidator = provisionFapValidator;
         _logger = logger;
@@ -57,7 +53,6 @@ public class AdminAccountService : IAdminAccountService
         a.IsActive,
         a.CreatedAt,
         a.UpdatedAt,
-        a.MustChangePassword,
         a.AcceptedTermsAt.HasValue,
         a.AcceptedTermsAt,
         a.StudentCode
@@ -151,8 +146,6 @@ public class AdminAccountService : IAdminAccountService
             throw new ConflictException("Email đã được đăng ký trong hệ thống.", "EMAIL_ALREADY_EXISTS");
         }
 
-        // 4. Băm mật khẩu bằng BCrypt
-        var passwordHash = _passwordHasher.HashPassword(request.Password);
         var now = DateTime.UtcNow;
 
         var targetRole = !string.IsNullOrWhiteSpace(request.Role) &&
@@ -160,24 +153,20 @@ public class AdminAccountService : IAdminAccountService
             ? AccountRole.Moderator
             : AccountRole.Lecturer;
 
-        // 5. Khởi tạo đối tượng Account với vai trò Lecturer hoặc Moderator
+        // 4. Khởi tạo đối tượng Account với vai trò Lecturer hoặc Moderator
         var account = new Account
         {
             Id = Guid.NewGuid(),
             Email = normalizedEmail,
-            PasswordHash = passwordHash,
             RegistrationFullName = request.FullName.Trim(),
             Role = targetRole,
-            MustChangePassword = false,
             AcceptedTermsAt = now,
             IsActive = true,
-            EmailConfirmed = true,
-            EmailConfirmedAt = now,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        // 6. Tạo sự kiện UserRegisteredEvent cho Transactional Outbox
+        // 5. Tạo sự kiện UserRegisteredEvent cho Transactional Outbox
         var userRegisteredEvent = new UserRegisteredEvent(
             EventId: Guid.NewGuid(),
             UserId: account.Id,
@@ -198,7 +187,7 @@ public class AdminAccountService : IAdminAccountService
             CreatedAt = now
         };
 
-        // 7. Lưu nguyên tử Account + OutboxMessage trong cùng một Transaction
+        // 6. Lưu nguyên tử Account + OutboxMessage trong cùng một Transaction
         try
         {
             await _unitOfWork.ExecuteInTransactionAsync(async () =>
@@ -214,7 +203,6 @@ public class AdminAccountService : IAdminAccountService
             throw new ConflictException("Email đã được đăng ký trong hệ thống.", "EMAIL_ALREADY_EXISTS");
         }
 
-        // 8. Ghi log an toàn tuyệt đối không lộ mật khẩu hay password hash
         _logger.LogInformation("{Role} account created successfully by administrator: {AccountId} with email {Email}", account.Role, account.Id, account.Email);
 
         return MapToResponse(account);
@@ -245,23 +233,10 @@ public class AdminAccountService : IAdminAccountService
             if (existingAccount != null)
             {
                 existingCount++;
-                var updated = false;
 
                 if (string.IsNullOrWhiteSpace(existingAccount.StudentCode) && !string.IsNullOrWhiteSpace(normalizedStudentCode))
                 {
                     existingAccount.StudentCode = normalizedStudentCode;
-                    updated = true;
-                }
-
-                if (!existingAccount.EmailConfirmed)
-                {
-                    existingAccount.EmailConfirmed = true;
-                    existingAccount.EmailConfirmedAt = now;
-                    updated = true;
-                }
-
-                if (updated)
-                {
                     existingAccount.UpdatedAt = now;
                     await _accountRepository.UpdateAsync(existingAccount, ct);
                 }
@@ -272,28 +247,20 @@ public class AdminAccountService : IAdminAccountService
                     existingAccount.RegistrationFullName,
                     existingAccount.Email,
                     IsNewlyCreated: false,
-                    StatusMessage: $"Tài khoản đã tồn tại từ kỳ trước ({semesterCode} - {subjectCode}) — giữ nguyên mật khẩu hiện tại."
+                    StatusMessage: $"Tài khoản đã tồn tại, đã ghi nhận vào danh sách {semesterCode} - {subjectCode}."
                 ));
                 continue;
             }
-
-            // Tạo mật khẩu khởi tạo chuẩn: Fpt@{MSSV}! (đạt chuẩn >= 8 ký tự, chữ hoa, chữ thường, số, ký tự đặc biệt)
-            var initialPassword = $"Fpt@{normalizedStudentCode}!";
-            var passwordHash = _passwordHasher.HashPassword(initialPassword);
 
             var newAccount = new Account
             {
                 Id = Guid.NewGuid(),
                 Email = normalizedEmail,
-                PasswordHash = passwordHash,
                 RegistrationFullName = fullName,
                 Role = AccountRole.Student,
                 StudentCode = normalizedStudentCode,
-                MustChangePassword = true,
                 AcceptedTermsAt = null,
                 IsActive = true,
-                EmailConfirmed = true,
-                EmailConfirmedAt = now,
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -309,7 +276,6 @@ public class AdminAccountService : IAdminAccountService
                 OccurredAt: now,
                 SchemaVersion: 1,
                 StudentCode: normalizedStudentCode,
-                InitialPassword: initialPassword,
                 SemesterCode: semesterCode,
                 SubjectCode: subjectCode,
                 Major: normalizedMajor
@@ -340,7 +306,7 @@ public class AdminAccountService : IAdminAccountService
                 newAccount.RegistrationFullName,
                 newAccount.Email,
                 IsNewlyCreated: true,
-                StatusMessage: $"Đã cấp tài khoản mới & gửi email mật khẩu khởi tạo ({initialPassword}) qua hệ thống."
+                StatusMessage: "Đã cấp tài khoản mới."
             ));
         }
 
@@ -356,26 +322,6 @@ public class AdminAccountService : IAdminAccountService
             existingCount,
             results
         );
-    }
-
-    public async Task<ProvisionFapStudentsResponse> ProvisionMockFapStudentsAsync(
-        string semesterCode = "FA26",
-        string subjectCode = "EXE101",
-        CancellationToken ct = default)
-    {
-        var mockStudents = new List<FapStudentImportItem>
-        {
-            new("SE180101", "Nguyễn Hoàng Phương Huyền Trân", "trannhphse180101@fpt.edu.vn", "SE"),
-            new("AI180205", "Trần Minh Khôi", "khoitmai180205@fpt.edu.vn", "AI"),
-            new("GD180312", "Lê Ngọc Bảo Châu", "chaulnbgd180312@fpt.edu.vn", "GD"),
-            new("MKT180408", "Phạm Quốc Đạt", "datpqmkt180408@fpt.edu.vn", "MKT"),
-            new("IB180519", "Võ Thị Thanh Thảo", "thaovttib180519@fpt.edu.vn", "IB"),
-            new("IA180622", "Đặng Gia Huy", "huydgia180622@fpt.edu.vn", "IA")
-        };
-
-        return await ProvisionFapStudentsAsync(
-            new ProvisionFapStudentsRequest(mockStudents, semesterCode, subjectCode),
-            ct);
     }
 
     private static string? NormalizeMajor(string? raw)

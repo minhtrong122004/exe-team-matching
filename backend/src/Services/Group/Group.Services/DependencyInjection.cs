@@ -21,14 +21,13 @@ public static class DependencyInjection
         // ── Business services ────────────────────────────────────────────────
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IJoinRequestService, JoinRequestService>();
-        services.AddScoped<IInvitationService, InvitationService>();
         services.AddScoped<IGroupMatchingService, GroupMatchingService>();
         services.AddScoped<ICourseSpaceService, CourseSpaceService>();
         services.AddScoped<IElectionService, ElectionService>();
         services.AddScoped<GroupMembershipManager>();
         services.AddScoped<GroupEventPublisher>();
 
-        services.AddValidatorsFromAssemblyContaining<CreateGroupRequestValidator>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<UpdateGroupRequestValidator>(includeInternalTypes: true);
 
         // ── REST clients (base URL: Services:User, Services:Project, Services:Auth) ─────────
         services.AddHttpContextAccessor();
