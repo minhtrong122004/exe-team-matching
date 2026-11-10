@@ -6,10 +6,9 @@ import {
   Lock,
   Sparkles,
   ArrowRight,
-  Crown,
   Layers,
   Send,
-} from 'lucide-react';
+} from '../../utils/icons';
 
 interface UnassignedStudent {
   id: string;
@@ -240,28 +239,27 @@ export const ModeratorDistributionPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              backgroundColor: 'rgba(242, 112, 36, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#F27024',
-            }}
-          >
-            <Users size={20} />
-          </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-            Điều phối Sinh viên lẻ & Chốt sổ Học kỳ
-          </h1>
+      {/* Header — Minimal Enterprise Hierarchy */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#64748B',
+            marginBottom: '6px',
+          }}
+        >
+          <span>Điều phối & Học kỳ</span>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span style={{ color: '#334155', fontWeight: 600 }}>Điều phối sinh viên lẻ & Chốt sổ</span>
         </div>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0, lineHeight: 1.5 }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 650, color: '#0F172A', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+          Điều phối Sinh viên lẻ & Chốt sổ Học kỳ
+        </h1>
+        <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0, lineHeight: 1.5 }}>
           Tự động phân bổ sinh viên chưa có nhóm vào các phòng còn thiếu hoặc tạo nhóm mới tối ưu theo 5 chỉ số năng lực, sau đó chốt sổ học kỳ.
         </p>
       </div>
@@ -499,7 +497,7 @@ export const ModeratorDistributionPage: React.FC = () => {
           {/* NHÓM ƯU TIÊN 2 */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 800, backgroundColor: 'rgba(242, 112, 36, 0.12)', color: '#F27024' }}>
+              <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 800, backgroundColor: 'rgba(242, 112, 36, 0.12)', color: 'var(--accent-color, #F26F21)' }}>
                 ƯU TIÊN 2
               </span>
               <strong style={{ fontSize: '16px', color: 'var(--text-main, #0F172A)' }}>
@@ -517,17 +515,16 @@ export const ModeratorDistributionPage: React.FC = () => {
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '16px', color: '#F27024', backgroundColor: '#FFF7ED', padding: '3px 10px', borderRadius: 6, border: '1px solid #FED7AA' }}>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontSize: '14px', color: '#334155', backgroundColor: '#FFFFFF', padding: '3px 9px', borderRadius: 6, border: '1px solid #E2E8F0' }}>
                     {previewPlan.priority2.targetRoom}
                   </span>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 650, color: '#0F172A' }}>
                     Nhóm khởi nghiệp mới (4 thành viên)
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', padding: '4px 10px', borderRadius: 10 }}>
-                  <Crown size={15} color="#F27024" />
-                  <span style={{ fontSize: '14px', fontWeight: 800, color: '#C2410C' }}>
-                    Tự động chọn làm Trưởng nhóm (Điểm Quản lý cao nhất: {previewPlan.priority2.newLeader.skills.management}/100): {previewPlan.priority2.newLeader.name} ({previewPlan.priority2.newLeader.studentCode})
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '4px 10px', borderRadius: 8 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                    Trưởng nhóm đề xuất (Quản lý: {previewPlan.priority2.newLeader.skills.management}/100): <strong style={{ color: '#0F172A' }}>{previewPlan.priority2.newLeader.name}</strong> ({previewPlan.priority2.newLeader.studentCode})
                   </span>
                 </div>
               </div>
@@ -548,8 +545,13 @@ export const ModeratorDistributionPage: React.FC = () => {
                       fontSize: '14px',
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
-                      {st.name} {st.studentCode === previewPlan.priority2.newLeader.studentCode ? '👑' : ''}
+                    <div style={{ fontWeight: 650, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>{st.name}</span>
+                      {st.studentCode === previewPlan.priority2.newLeader.studentCode && (
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '1px 6px', borderRadius: 5, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155' }}>
+                          Trưởng nhóm
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
                       {st.studentCode} • {st.major}
@@ -628,11 +630,11 @@ export const ModeratorDistributionPage: React.FC = () => {
                       <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main, #0F172A)' }}>
                         {st.name}
                       </span>
-                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '14px', color: '#0054A6' }}>
+                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '14px', color: '#475569' }}>
                         {st.studentCode}
                       </span>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-tag, #F1F5F9)', padding: '2px 8px', borderRadius: 4 }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 4 }}>
                       Lớp {st.classCode}
                     </span>
                   </div>
@@ -642,21 +644,21 @@ export const ModeratorDistributionPage: React.FC = () => {
                   </div>
 
                   {/* 5 Skills Badges */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: 4, backgroundColor: '#EFF6FF', color: '#1D4ED8', fontWeight: 600 }}>
-                      Tech: {st.skills.tech}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
+                      Tech: <strong style={{ color: '#0F172A' }}>{st.skills.tech}</strong>
                     </span>
-                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: 4, backgroundColor: '#FEF3C7', color: '#B45309', fontWeight: 700 }}>
-                      Mgt: {st.skills.management} {st.skills.management >= 80 ? '⭐' : ''}
+                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
+                      Mgt: <strong style={{ color: '#0F172A' }}>{st.skills.management}</strong>
                     </span>
-                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: 4, backgroundColor: '#FCE7F3', color: '#BE185D', fontWeight: 600 }}>
-                      GD: {st.skills.graphicDesign}
+                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
+                      GD: <strong style={{ color: '#0F172A' }}>{st.skills.graphicDesign}</strong>
                     </span>
-                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: 4, backgroundColor: '#EDE9FE', color: '#6D28D9', fontWeight: 600 }}>
-                      MKT: {st.skills.marketing}
+                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
+                      MKT: <strong style={{ color: '#0F172A' }}>{st.skills.marketing}</strong>
                     </span>
-                    <span style={{ fontSize: '13px', padding: '2px 6px', borderRadius: 4, backgroundColor: '#ECFDF5', color: '#047857', fontWeight: 600 }}>
-                      Sale: {st.skills.sale}
+                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
+                      Sale: <strong style={{ color: '#0F172A' }}>{st.skills.sale}</strong>
                     </span>
                   </div>
                 </div>
@@ -677,7 +679,7 @@ export const ModeratorDistributionPage: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(0, 84, 166, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054A6' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F172A' }}>
                 <Layers size={18} />
               </div>
               <div>
@@ -713,7 +715,7 @@ export const ModeratorDistributionPage: React.FC = () => {
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '15px', color: '#0054A6' }}>
+                    <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>
                       {room.code}
                     </span>
                     <span
@@ -721,9 +723,10 @@ export const ModeratorDistributionPage: React.FC = () => {
                         padding: '2px 8px',
                         borderRadius: 999,
                         fontSize: '13px',
-                        fontWeight: 700,
-                        backgroundColor: room.currentCount === 0 ? 'var(--bg-tag, #F1F5F9)' : 'rgba(242, 112, 36, 0.12)',
-                        color: room.currentCount === 0 ? 'var(--text-muted, #64748B)' : '#C2410C',
+                        fontWeight: 600,
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        color: room.currentCount === 0 ? '#64748B' : '#0F172A',
                       }}
                     >
                       {room.currentCount}/{room.maxCount} thành viên
@@ -740,11 +743,12 @@ export const ModeratorDistributionPage: React.FC = () => {
                     <span
                       key={idx}
                       style={{
-                        fontSize: '13px',
+                        fontSize: '12.5px',
                         padding: '2px 8px',
                         borderRadius: 999,
-                        backgroundColor: room.currentCount === 5 ? 'rgba(5, 150, 105, 0.1)' : 'rgba(0, 84, 166, 0.08)',
-                        color: room.currentCount === 5 ? '#059669' : '#0054A6',
+                        backgroundColor: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        color: '#334155',
                         fontWeight: 600,
                       }}
                     >

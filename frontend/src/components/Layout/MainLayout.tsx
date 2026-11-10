@@ -1,9 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { FptEducationLogo } from '../FptEducationLogo';
+import {
+  AppearanceCustomizerModal,
+  UserAvatarBubble,
+  loadAppearanceSettings,
+  saveAppearanceSettings,
+  applyAccentCssVariables,
+  getAccentOption,
+  type AppearanceSettings,
+} from './AppearanceCustomizerModal';
 import { notificationsApi } from '../../api/notifications';
-import type { UserRole } from '../../types';
+import type { UserRole, NotificationResponse } from '../../types';
 import {
   Lightbulb,
   Layers,
@@ -16,14 +25,17 @@ import {
   UserPlus,
   Menu,
   ChevronDown,
-  MapPin,
   Sparkles,
   Moon,
   Sun,
   CheckCircle2,
   AlertCircle,
   ArrowLeftRight,
-} from 'lucide-react';
+  CheckCheck,
+  Check,
+  Mail,
+  X,
+} from '../../utils/icons';
 
 interface NavSection {
   title: string;
@@ -35,14 +47,222 @@ interface NavSection {
   }[];
 }
 
+const getNotificationTypeConfig = (type: string) => {
+  switch (type) {
+    case 'GROUP_ACCEPTED':
+      return {
+        label: 'Đã duyệt vào nhóm',
+        icon: CheckCircle2,
+        color: '#16A34A',
+        bg: '#DCFCE7',
+        border: '#BBF7D0',
+      };
+    case 'GROUP_REQUEST':
+    case 'GROUP_INVITE':
+      return {
+        label: 'Đơn ứng tuyển mới',
+        icon: Mail,
+        color: '#EA580C',
+        bg: '#FFEDD5',
+        border: '#FED7AA',
+      };
+    case 'ELECTION_OPEN':
+    case 'MATCHING_FOUND':
+      return {
+        label: 'Biểu quyết nội bộ',
+        icon: Sparkles,
+        color: '#7C3AED',
+        bg: '#EDE9FE',
+        border: '#DDD6FE',
+      };
+    case 'SYSTEM_ACCOUNT':
+    case 'SYSTEM':
+    default:
+      return {
+        label: 'Thông báo học vụ',
+        icon: Bell,
+        color: '#0054A6',
+        bg: '#EFF6FF',
+        border: '#BFDBFE',
+      };
+  }
+};
+
+const STUDENT_NOTIFICATIONS: NotificationResponse[] = [
+  {
+    id: 'notif-stu-02',
+    recipientId: 'curr-user',
+    type: 'GROUP_REQUEST',
+    title: 'Có ứng viên mới nộp đơn vào nhóm FA26EXE101-02',
+    message: 'Sinh viên Nguyễn Minh Trọng (SE185103 • AI) vừa nộp đơn ứng tuyển vào nhóm với vai trò Kỹ thuật & AI.',
+    isRead: false,
+    createdAt: '2026-11-09T09:15:00Z',
+  },
+  {
+    id: 'notif-stu-03',
+    recipientId: 'curr-user',
+    type: 'ELECTION_OPEN',
+    title: 'Mở đợt biểu quyết bầu Trưởng nhóm mới (24h)',
+    message: 'Thành viên trong nhóm FA26EXE101-02 đã khởi xướng cuộc bỏ phiếu tín nhiệm bầu chọn Trưởng nhóm mới.',
+    isRead: false,
+    createdAt: '2026-11-09T10:30:00Z',
+  },
+  {
+    id: 'notif-stu-04',
+    recipientId: 'curr-user',
+    type: 'GROUP_ACCEPTED',
+    title: 'Kết quả đơn ứng tuyển phòng FA26EXE101-02',
+    message: 'Chúc mừng bạn! Trưởng nhóm FA26EXE101-02 đã đồng ý duyệt bạn vào nhóm chính thức cho đề tài EcoCampus.',
+    isRead: false,
+    createdAt: '2026-11-09T11:45:00Z',
+  },
+  {
+    id: 'notif-stu-01',
+    recipientId: 'curr-user',
+    type: 'SYSTEM_ACCOUNT',
+    title: 'Khởi tạo tài khoản & Cấp quyền học kỳ Fall 2026',
+    message: 'Tài khoản của bạn đã được đồng bộ tự động từ danh sách FAP cho học phần EXE101.',
+    isRead: true,
+    createdAt: '2026-11-08T08:00:00Z',
+  },
+];
+
+const MODERATOR_NOTIFICATIONS: NotificationResponse[] = [
+  {
+    id: 'notif-mod-02',
+    recipientId: 'mod-user',
+    type: 'GROUP_REQUEST',
+    title: 'Có 3 yêu cầu xin chuyển nhóm / đổi chéo mới chờ duyệt',
+    message: 'Sinh viên từ các nhóm đã nộp 3 đơn chuyển nhóm kèm lý do đổi chéo đề tài đang chờ phê duyệt.',
+    isRead: false,
+    createdAt: '2026-11-09T09:30:00Z',
+  },
+  {
+    id: 'notif-mod-03',
+    recipientId: 'mod-user',
+    type: 'SYSTEM',
+    title: 'Cảnh báo: Còn 8 sinh viên chưa có nhóm trước hạn đóng',
+    message: 'Thời hạn đăng ký tự nguyện sắp kết thúc. Còn 8 sinh viên chưa tham gia phòng nào.',
+    isRead: false,
+    createdAt: '2026-11-09T10:45:00Z',
+  },
+  {
+    id: 'notif-mod-04',
+    recipientId: 'mod-user',
+    type: 'GROUP_ACCEPTED',
+    title: 'Phòng FA26EXE101-02 vừa chạm ngưỡng 3 thành viên',
+    message: 'Phòng FA26EXE101-02 vừa tiếp nhận thành viên thứ 3 và tự động chuyển sang chế độ Nhóm đang tuyển.',
+    isRead: false,
+    createdAt: '2026-11-09T11:15:00Z',
+  },
+  {
+    id: 'notif-mod-01',
+    recipientId: 'mod-user',
+    type: 'SYSTEM_ACCOUNT',
+    title: 'Đồng bộ thành công 50 sinh viên từ FAP cho EXE101',
+    message: 'Hệ thống đã nạp danh sách 50 sinh viên đủ điều kiện từ FAP kỳ Fall 2026.',
+    isRead: true,
+    createdAt: '2026-11-08T08:30:00Z',
+  },
+];
+
+const LECTURER_NOTIFICATIONS: NotificationResponse[] = [
+  {
+    id: 'notif-lec-01',
+    recipientId: 'lec-user',
+    type: 'SYSTEM_ACCOUNT',
+    title: 'Danh sách 10 nhóm EXE101 đã được chốt sổ chính thức',
+    message: 'Điều phối viên đã khóa sổ 10 nhóm môn EXE101. Giảng viên có thể tải file CSV để theo dõi và chấm điểm.',
+    isRead: false,
+    createdAt: '2026-11-09T12:00:00Z',
+  },
+];
+
 export const MainLayout: React.FC = () => {
   const { user, logout, acceptTerms } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [spaceMenuOpen, setSpaceMenuOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [appearance, setAppearance] = useState<AppearanceSettings>(() => loadAppearanceSettings());
+  const [notifFilter, setNotifFilter] = useState<'all' | 'unread'>('all');
+  const [notifItems, setNotifItems] = useState<NotificationResponse[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
+  const spaceMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    applyAccentCssVariables(appearance.accentId);
+    saveAppearanceSettings(appearance);
+  }, [appearance]);
+
+  const activeAccent = getAccentOption(appearance.accentId);
+
+  const getRoleFallbackNotifications = useCallback(() => {
+    if (user?.role === 'Moderator') return MODERATOR_NOTIFICATIONS;
+    if (user?.role === 'Lecturer') return LECTURER_NOTIFICATIONS;
+    return STUDENT_NOTIFICATIONS;
+  }, [user?.role]);
+
+  const loadNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [pagedRes, unreadRes] = await Promise.all([
+        notificationsApi.getMyNotifications({ page: 1, pageSize: 12 }),
+        notificationsApi.getUnreadCount(),
+      ]);
+      if (pagedRes.items && pagedRes.items.length > 0) {
+        setNotifItems(pagedRes.items);
+        setUnreadCount(unreadRes.unreadCount ?? pagedRes.items.filter((n) => !n.isRead).length);
+      } else {
+        const fb = getRoleFallbackNotifications();
+        setNotifItems(fb);
+        setUnreadCount(fb.filter((n) => !n.isRead).length);
+      }
+    } catch {
+      const fb = getRoleFallbackNotifications();
+      setNotifItems(fb);
+      setUnreadCount(fb.filter((n) => !n.isRead).length);
+    }
+  }, [user, getRoleFallbackNotifications]);
+
+  useEffect(() => {
+    void loadNotifications();
+    const handler = () => void loadNotifications();
+    window.addEventListener('notifications:updated', handler);
+    return () => window.removeEventListener('notifications:updated', handler);
+  }, [loadNotifications]);
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await notificationsApi.markAsRead(id);
+    } catch {
+      // Offline fallback
+    }
+    setNotifItems((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+      setUnreadCount(updated.filter((n) => !n.isRead).length);
+      return updated;
+    });
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationsApi.markAllAsRead();
+    } catch {
+      // Offline fallback
+    }
+    setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
+  };
+
+  const displayedNotifs = notifFilter === 'unread' ? notifItems.filter((n) => !n.isRead) : notifItems;
 
   // Topbar Course Space Selector
   const [selectedSpace, setSelectedSpace] = useState<string>(() => {
@@ -85,23 +305,6 @@ export const MainLayout: React.FC = () => {
     }
   };
 
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchUnread = async () => {
-      try {
-        const res = await notificationsApi.getUnreadCount();
-        setUnreadCount(res.unreadCount ?? 0);
-      } catch {
-        // Ignore if notification service is offline in dev
-      }
-    };
-    void fetchUnread();
-    const handler = () => void fetchUnread();
-    window.addEventListener('notifications:updated', handler);
-    return () => window.removeEventListener('notifications:updated', handler);
-  }, [user]);
-
   // Dark / Light Mode state
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark';
@@ -118,11 +321,17 @@ export const MainLayout: React.FC = () => {
     setIsDarkMode((prev) => !prev);
   };
 
-  // Close user dropdown when clicking outside
+  // Close user, notification & course space dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (notifMenuRef.current && !notifMenuRef.current.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
+      if (spaceMenuRef.current && !spaceMenuRef.current.contains(event.target as Node)) {
+        setSpaceMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -302,7 +511,7 @@ export const MainLayout: React.FC = () => {
   };
 
   const navSections: NavSection[] = getNavSectionsForRole(user?.role);
-  const sidebarWidth = isCollapsed ? 80 : 284;
+  const sidebarWidth = isCollapsed ? 76 : 272;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main, #f4f6fa)' }}>
@@ -321,13 +530,14 @@ export const MainLayout: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          SIDEBAR: Clean White in Light Mode, Dark Slate in Dark Mode
+          SIDEBAR: Linear / Vercel / Cal.com Inspired Precision Layout
          ══════════════════════════════════════════════════════════════ */}
       <aside
+        className="motion-sidebar-shell"
         style={{
           width: sidebarWidth,
           background: 'var(--bg-sidebar, #ffffff)',
-          color: 'var(--text-main, #1e293b)',
+          color: 'var(--text-main, #0f172a)',
           display: 'flex',
           flexDirection: 'column',
           position: 'fixed',
@@ -335,33 +545,173 @@ export const MainLayout: React.FC = () => {
           bottom: 0,
           left: 0,
           zIndex: 50,
-          borderRight: '1px solid var(--border-light, #eaedf2)',
-          boxShadow: isDarkMode ? '4px 0 20px rgba(0, 0, 0, 0.25)' : '2px 0 10px rgba(0, 0, 0, 0.02)',
-          transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1), background-color 200ms ease',
-          overflowX: 'hidden',
+          borderRight: '1px solid var(--border-light, #e2e8f0)',
+          boxShadow: isDarkMode ? '4px 0 20px rgba(0, 0, 0, 0.25)' : '1px 0 0 rgba(15, 23, 42, 0.02)',
+          overflowX: isCollapsed ? 'visible' : 'hidden',
         }}
       >
-        {/* Brand Header */}
+        {/* Unified Brand & Academic Workspace Header (Logo + Semester Context integrated as one cohesive block) */}
         <div
           style={{
-            padding: isCollapsed ? '1rem 0' : '1.15rem 1.25rem',
-            borderBottom: '1px solid var(--border-light, #f1f5f9)',
+            padding: isCollapsed ? '14px 8px' : '16px 12px 14px 12px',
+            borderBottom: '1px solid var(--border-subtle, #f1f5f9)',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'flex-start',
-            minHeight: 72,
+            flexDirection: 'column',
+            gap: isCollapsed ? '10px' : '12px',
             boxSizing: 'border-box',
+            flexShrink: 0,
           }}
         >
-          <FptEducationLogo compact={isCollapsed} />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isCollapsed ? 'center' : 'space-between',
+              padding: isCollapsed ? '0' : '0 4px',
+              minHeight: 34,
+            }}
+          >
+            <FptEducationLogo compact={isCollapsed} />
+            {!isCollapsed && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 500,
+                  color: 'var(--text-muted, #64748B)',
+                  backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.7)' : '#F1F5F9',
+                  padding: '2px 7px',
+                  borderRadius: 6,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                Fall 2026
+              </span>
+            )}
+          </div>
+
+          {!isCollapsed ? (
+            <div
+              onClick={() => {
+                setSpaceMenuOpen(true);
+              }}
+              title="Nhấn để chuyển không gian học phần EXE"
+              style={{
+                padding: '9px 11px',
+                borderRadius: 9,
+                backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : '#F8FAFC',
+                border: `1px solid ${isDarkMode ? '#334155' : '#EEF2F6'}`,
+                cursor: 'pointer',
+                transition: 'all 165ms cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: 'var(--text-main, #0F172A)',
+                    letterSpacing: '-0.01em',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {selectedSpace === 'exe101'
+                    ? 'EXE101 · Khởi nghiệp 1'
+                    : 'EXE201 · Khởi nghiệp 2'}
+                </div>
+                <ChevronDown size={14} color="var(--text-light, #94A3B8)" style={{ flexShrink: 0 }} />
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginTop: '6px',
+                  fontSize: '12px',
+                  fontWeight: 450,
+                  color: 'var(--text-muted, #64748B)',
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      backgroundColor: selectedSpace === 'exe201-unauthorized' ? '#94A3B8' : 'var(--status-forming, #10B981)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>Giai đoạn lập nhóm</span>
+                </span>
+                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, color: 'var(--text-light, #94A3B8)' }}>
+                  2 / 4
+                </span>
+              </div>
+
+              {/* Standardized Progress Bar */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: '4px',
+                  marginTop: '7px',
+                }}
+              >
+                {[1, 2, 3, 4].map((step) => (
+                  <div
+                    key={step}
+                    className="motion-progress-fill"
+                    style={{
+                      height: 3.5,
+                      borderRadius: 999,
+                      backgroundColor:
+                        step <= 2
+                          ? 'var(--status-progress, #7C3AED)'
+                          : isDarkMode
+                          ? '#334155'
+                          : '#E2E8F0',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              onClick={() => setSpaceMenuOpen(true)}
+              data-sidebar-tooltip="EXE101 • Học kỳ Fall 2026 (Đợt 2/4)"
+              style={{
+                width: 36,
+                height: 36,
+                margin: '0 auto',
+                borderRadius: 8,
+                backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC',
+                border: `1px solid ${isDarkMode ? '#334155' : '#E2E8F0'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--text-main, #0F172A)',
+                cursor: 'pointer',
+              }}
+            >
+              {selectedSpace === 'exe101' ? '101' : '201'}
+            </div>
+          )}
         </div>
 
-        {/* Grouped Navigation */}
+        {/* Grouped Navigation — Standardized Spacing & Subtle Pill Active State (Attio / Zainstudio style) */}
         <nav
           style={{
-            padding: isCollapsed ? '0.85rem 0.35rem' : '1rem 0.75rem',
+            padding: isCollapsed ? '14px 8px' : '14px 10px',
             flex: 1,
-            overflowY: 'auto',
+            overflowY: isCollapsed ? 'visible' : 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
           }}
         >
           {navSections.map((section) => {
@@ -371,476 +721,1116 @@ export const MainLayout: React.FC = () => {
             if (visibleItems.length === 0) return null;
 
             return (
-              <div key={section.title} style={{ marginBottom: '1.25rem' }}>
+              <div key={section.title}>
                 {!isCollapsed && (
                   <div
                     style={{
-                      fontSize: '0.75rem',
-                      textTransform: 'uppercase',
+                      fontSize: '12px',
                       color: 'var(--text-light, #94a3b8)',
-                      fontWeight: 700,
-                      padding: '0 0.75rem 0.45rem 0.75rem',
-                      letterSpacing: '0.06em',
+                      fontWeight: 500,
+                      padding: '0 10px 6px 10px',
+                      letterSpacing: '-0.005em',
                     }}
                   >
                     {section.title}
                   </div>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  {visibleItems.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => setSidebarOpen(false)}
-                      title={isCollapsed ? item.label : undefined}
-                      style={({ isActive }) => ({
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: isCollapsed ? 'center' : 'flex-start',
-                        gap: isCollapsed ? 0 : '0.75rem',
-                        padding: isCollapsed ? '0.8rem 0' : '0.72rem 1rem',
-                        borderRadius: 12,
-                        fontSize: '0.95rem',
-                        fontWeight: isActive ? 700 : 500,
-                        color: isActive ? '#f26f21' : 'var(--text-muted, #475569)',
-                        background: isActive ? 'var(--bg-sidebar-active, #fff7ed)' : 'transparent',
-                        borderLeft: isCollapsed
-                          ? 'none'
-                          : isActive
-                          ? '3px solid #f26f21'
-                          : '3px solid transparent',
-                        transition: 'all 120ms ease',
-                      })}
-                    >
-                      <div
-                        style={{
-                          flexShrink: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  {visibleItems.map((item) => {
+                    const isNotifItem = item.to === '/notifications';
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        className={({ isActive }) => {
+                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          return `motion-sidebar-link${activeState ? ' is-active-nav' : ''}`;
+                        }}
+                        data-sidebar-tooltip={isCollapsed ? item.label : undefined}
+                        onClick={(e) => {
+                          if (isNotifItem) {
+                            e.preventDefault();
+                            setSidebarOpen(false);
+                            setNotifOpen((prev) => !prev);
+                          } else {
+                            setSidebarOpen(false);
+                            setNotifOpen(false);
+                          }
+                        }}
+                        style={({ isActive }) => {
+                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          return {
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: isCollapsed ? 'center' : 'space-between',
+                            gap: isCollapsed ? 0 : '10px',
+                            padding: isCollapsed ? '8px 0' : '8px 10px',
+                            minHeight: 38,
+                            borderRadius: 8,
+                            fontSize: '14px',
+                            letterSpacing: '-0.01em',
+                            fontWeight: activeState ? 550 : 450,
+                            color: activeState
+                              ? isDarkMode
+                                ? '#FFFFFF'
+                                : '#0F172A'
+                              : 'var(--text-muted, #475569)',
+                            background: activeState
+                              ? isDarkMode
+                                ? 'rgba(255, 255, 255, 0.08)'
+                                : '#F1F5F9'
+                              : 'transparent',
+                            textDecoration: 'none',
+                            outline: 'none',
+                            border: 'none',
+                          };
+                        }}
+                        onMouseEnter={(e) => {
+                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page' && !notifOpen;
+                          const activeState = isNotifItem ? notifOpen : isCurrentActive;
+                          if (!activeState) {
+                            e.currentTarget.style.background = isDarkMode ? 'rgba(30, 41, 59, 0.45)' : '#F8FAFC';
+                            e.currentTarget.style.color = isDarkMode ? '#F8FAFC' : '#0F172A';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page' && !notifOpen;
+                          const activeState = isNotifItem ? notifOpen : isCurrentActive;
+                          if (!activeState) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--text-muted, #475569)';
+                          }
                         }}
                       >
-                        {item.icon}
-                      </div>
-                      {!isCollapsed && (
-                        <span
-                          style={{
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {item.label}
-                        </span>
-                      )}
-                    </NavLink>
-                  ))}
+                        {({ isActive }) => {
+                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          return (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : '10px', minWidth: 0 }}>
+                                <div
+                                  className="motion-sidebar-icon"
+                                  style={{
+                                    position: 'relative',
+                                    width: 18,
+                                    height: 18,
+                                    flexShrink: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: activeState ? 'var(--accent-color, #F26F21)' : 'var(--text-light, #64748B)',
+                                  }}
+                                >
+                                  {item.icon}
+                                  {isCollapsed && isNotifItem && unreadCount > 0 && (
+                                    <span
+                                      style={{
+                                        position: 'absolute',
+                                        top: -5,
+                                        right: -6,
+                                        minWidth: 15,
+                                        height: 15,
+                                        padding: '0 3.5px',
+                                        borderRadius: 999,
+                                        background: 'var(--accent-color, #F26F21)',
+                                        color: '#FFFFFF',
+                                        fontSize: '10px',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: `0 0 0 2px ${isDarkMode ? '#0b1120' : '#ffffff'}`,
+                                        fontVariantNumeric: 'tabular-nums',
+                                      }}
+                                    >
+                                      {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                                {!isCollapsed && (
+                                  <span
+                                    style={{
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    {item.label}
+                                  </span>
+                                )}
+                              </div>
+                              {!isCollapsed && isNotifItem && unreadCount > 0 && (
+                                <span
+                                  style={{
+                                    minWidth: 18,
+                                    height: 18,
+                                    padding: '0 5.5px',
+                                    borderRadius: 999,
+                                    background: 'var(--accent-color, #F26F21)',
+                                    color: '#FFFFFF',
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontVariantNumeric: 'tabular-nums',
+                                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.08)',
+                                  }}
+                                >
+                                  {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                              )}
+                            </>
+                          );
+                        }}
+                      </NavLink>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
         </nav>
 
-        {/* Sidebar Mini Footer */}
-        {!isCollapsed && (
-          <div
+        {/* Cohesive Bottom Utility Row (Integrated into Sidebar padding like Attio "... All lists" pill) */}
+        <div
+          style={{
+            padding: isCollapsed ? '8px' : '6px 10px 14px 10px',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setAppearanceOpen(true)}
+            data-sidebar-tooltip={isCollapsed ? 'Tùy chỉnh giao diện' : undefined}
+            title={!isCollapsed ? 'Tùy chỉnh giao diện cá nhân' : undefined}
             style={{
-              padding: '0.85rem 1.15rem',
-              borderTop: '1px solid var(--border-light, #f1f5f9)',
-              fontSize: '0.925rem',
-              color: 'var(--text-light, #94a3b8)',
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: isCollapsed ? 'center' : 'space-between',
+              gap: '8px',
+              padding: isCollapsed ? '8px 0' : '8px 10px',
+              borderRadius: 8,
+              backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.45)' : '#F8FAFC',
+              border: 'none',
+              color: 'var(--text-muted, #475569)',
+              fontSize: '12.5px',
+              fontWeight: 450,
+              cursor: 'pointer',
+              transition: 'background-color 150ms ease, transform 120ms ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(30, 41, 59, 0.75)' : '#F1F5F9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(30, 41, 59, 0.45)' : '#F8FAFC';
             }}
           >
-            <span>Môn học EXE</span>
-            <span style={{ fontWeight: 600, color: '#f26f21' }}>FA26 • FPT</span>
-          </div>
-        )}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  width: 9,
+                  height: 9,
+                  borderRadius: '50%',
+                  background: 'var(--accent-gradient, #F26F21)',
+                  flexShrink: 0,
+                }}
+              />
+              {!isCollapsed && <span>Tùy chỉnh giao diện</span>}
+            </span>
+            {!isCollapsed && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 450,
+                  color: 'var(--text-light, #94A3B8)',
+                }}
+              >
+                TP. HCM
+              </span>
+            )}
+          </button>
+        </div>
       </aside>
 
       {/* ══════════════════════════════════════════════════════════════
-          MAIN CONTENT AREA (No colored bar on top)
+          MAIN CONTENT AREA
          ══════════════════════════════════════════════════════════════ */}
       <div
+        className="motion-main-content-shell"
         style={{
           flex: 1,
           marginLeft: sidebarWidth,
           display: 'flex',
           flexDirection: 'column',
-          transition: 'margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         {/* ══════════════════════════════════════════════════════════════
-            TOPBAR (Clean, Hamburger + Campus + Moon/Sun + Bell + User)
+            TOPBAR — Visual Hierarchy: Context first → Utilities → User last
            ══════════════════════════════════════════════════════════════ */}
         <header
           style={{
-            height: 72,
+            height: 64,
             background: 'var(--bg-header, #ffffff)',
-            borderBottom: '1px solid var(--border-light, #eaedf2)',
+            borderBottom: '1px solid var(--border-subtle, #f1f5f9)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 2.25rem',
+            padding: '0 2rem',
             position: 'sticky',
             top: 0,
             zIndex: 30,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             transition: 'background-color 200ms ease, border-color 200ms ease',
           }}
         >
-          {/* Left section: Hamburger toggle & University portal identity */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            {/* Hamburger button */}
+          {/* 1. CONTEXT FIRST: Ghost Sidebar Toggle + Unified Semester/Subject Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
+              className="motion-topbar-btn"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+              title={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: 'var(--bg-sidebar-hover, #f8fafc)',
-                border: '1px solid var(--border-light, #e2e8f0)',
-                color: 'var(--text-muted, #475569)',
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-muted, #64748B)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'all 150ms ease',
                 cursor: 'pointer',
               }}
             >
               <Menu size={18} />
             </button>
 
-            {/* Campus selector badge */}
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.5rem 0.9rem',
-                borderRadius: 12,
-                background: 'var(--bg-sidebar-hover, #f8fafc)',
-                border: '1px solid var(--border-light, #e2e8f0)',
-                fontSize: '0.925rem',
-                color: 'var(--text-main, #334155)',
-                fontWeight: 600,
+                width: 1,
+                height: 18,
+                backgroundColor: 'var(--border-light, #E2E8F0)',
+                margin: '0 0.25rem',
               }}
-            >
-              <MapPin size={15} color="#f26f21" />
-              <span>TP. HCM</span>
-            </div>
+            />
 
-            {/* Course Space Selector */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                padding: '0.45rem 0.9rem',
-                borderRadius: 12,
-                backgroundColor: 'var(--bg-card, #FFFFFF)',
-                border: '1px solid var(--border-medium, #CBD5E1)',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              }}
-            >
-              <Layers size={15} color="#F27024" />
-              <select
-                value={selectedSpace}
-                onChange={(e) => handleSpaceChange(e.target.value)}
-                aria-label="Course Space Selector"
+            {/* Unified Semester / Subject Switcher */}
+            <div style={{ position: 'relative' }} ref={spaceMenuRef}>
+              <button
+                type="button"
+                className="motion-topbar-btn"
+                onClick={() => {
+                  setSpaceMenuOpen((prev) => !prev);
+                  setNotifOpen(false);
+                  setUserMenuOpen(false);
+                }}
                 style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.55rem',
+                  padding: '6px 10px',
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: spaceMenuOpen
+                    ? isDarkMode
+                      ? '#1E293B'
+                      : '#F8FAFC'
+                    : 'transparent',
                   border: 'none',
-                  backgroundColor: 'transparent',
-                  fontSize: '0.925rem',
-                  fontWeight: 600,
-                  color: 'var(--text-main, #0F172A)',
-                  outline: 'none',
                   cursor: 'pointer',
-                  maxWidth: '440px',
                 }}
               >
-                <option value="exe101">Học kỳ Fall 2026 • Môn EXE101 (Đang mở đăng ký)</option>
-                <option value="exe201">Học kỳ Fall 2026 • Môn EXE201 (Đang mở đăng ký)</option>
-                <option value="exe201-unauthorized">Học kỳ Fall 2026 • Môn EXE201 (Mô phỏng: Chưa có trong danh sách FAP)</option>
-              </select>
+                <span
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 500,
+                    color: 'var(--text-muted, #64748B)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Fall 2026
+                </span>
+                <span style={{ color: 'var(--text-light, #CBD5E1)', fontSize: '13px' }}>/</span>
+                <span
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    color: 'var(--text-main, #0F172A)',
+                    whiteSpace: 'nowrap',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {selectedSpace === 'exe201'
+                    ? 'EXE201 — Thực chiến Khởi nghiệp 2'
+                    : selectedSpace === 'exe201-unauthorized'
+                    ? 'EXE201 — Kiểm thử phân quyền FAP'
+                    : 'EXE101 — Trải nghiệm Khởi nghiệp 1'}
+                </span>
+
+                {/* Subtle status dot */}
+                <span
+                  title={
+                    selectedSpace === 'exe201-unauthorized'
+                      ? 'Chưa có trong danh sách FAP'
+                      : 'Đang mở đăng ký nhóm'
+                  }
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    backgroundColor:
+                      selectedSpace === 'exe201-unauthorized' ? '#94A3B8' : '#10B981',
+                    flexShrink: 0,
+                  }}
+                />
+
+                <ChevronDown
+                  size={14}
+                  color="var(--text-light, #64748B)"
+                  style={{
+                    transform: spaceMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                />
+              </button>
+
+              {spaceMenuOpen && (
+                <div
+                  className="motion-dropdown-menu-left"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    left: 0,
+                    width: 450,
+                    maxWidth: '92vw',
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
+                    borderRadius: 14,
+                    padding: '8px',
+                    boxShadow:
+                      '0 20px 40px -10px rgba(15, 23, 42, 0.15), 0 4px 12px -2px rgba(15, 23, 42, 0.06)',
+                    zIndex: 65,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '6px 10px 6px 10px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>Chuyển học kỳ & môn học</span>
+                    <span>Fall 2026</span>
+                  </div>
+
+                  {[
+                    {
+                      value: 'exe101',
+                      code: '101',
+                      title: 'Môn EXE101 — Trải nghiệm Khởi nghiệp 1',
+                      subtitle: 'Học kỳ Fall 2026 • 50 SV đủ điều kiện • 12 Phòng nhóm',
+                      badge: 'Đang mở đăng ký',
+                      dotColor: '#10B981',
+                    },
+                    {
+                      value: 'exe201',
+                      code: '201',
+                      title: 'Môn EXE201 — Thực chiến Khởi nghiệp 2',
+                      subtitle: 'Học kỳ Fall 2026 • Liên ngành Công nghệ & Kinh doanh',
+                      badge: 'Đang mở đăng ký',
+                      dotColor: '#10B981',
+                    },
+                  ].map((opt) => {
+                    const isSelected = selectedSpace === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className="motion-dropdown-item"
+                        onClick={() => {
+                          handleSpaceChange(opt.value);
+                          setSpaceMenuOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          padding: '10px',
+                          borderRadius: 10,
+                          border: isSelected ? '1px solid #E2E8F0' : '1px solid transparent',
+                          backgroundColor: isSelected ? '#F8FAFC' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          marginBottom: '2px',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 8,
+                              background: isSelected
+                                ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))'
+                                : '#F1F5F9',
+                              color: isSelected ? '#FFFFFF' : '#334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              flexShrink: 0,
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {opt.code}
+                          </div>
+
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                              <span
+                                style={{
+                                  fontSize: '13.5px',
+                                  fontWeight: 600,
+                                  color: '#0F172A',
+                                  letterSpacing: '-0.01em',
+                                }}
+                              >
+                                {opt.title}
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '12px',
+                                color: '#64748B',
+                                marginTop: '3px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                            >
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontWeight: 500,
+                                  color: '#334155',
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    backgroundColor: opt.dotColor,
+                                  }}
+                                />
+                                {opt.badge}
+                              </span>
+                              <span>•</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {opt.subtitle}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <span
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 999,
+                              backgroundColor: 'var(--accent-color, #F26F21)',
+                              color: '#FFFFFF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check size={12} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {/* Divider for QA Simulation Mode */}
+                  <div
+                    style={{
+                      height: 1,
+                      backgroundColor: '#F1F5F9',
+                      margin: '6px 4px',
+                    }}
+                  />
+                  <div
+                    style={{
+                      padding: '4px 10px 4px 10px',
+                      fontSize: '10.5px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#94A3B8',
+                    }}
+                  >
+                    Chế độ Kiểm thử Phân quyền (QA Simulation)
+                  </div>
+
+                  {(() => {
+                    const isSelected = selectedSpace === 'exe201-unauthorized';
+                    return (
+                      <button
+                        type="button"
+                        className="motion-dropdown-item"
+                        onClick={() => {
+                          handleSpaceChange('exe201-unauthorized');
+                          setSpaceMenuOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          padding: '9px 10px',
+                          borderRadius: 10,
+                          border: isSelected ? '1px solid #E2E8F0' : '1px solid transparent',
+                          backgroundColor: isSelected ? '#F8FAFC' : 'transparent',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: 8,
+                              backgroundColor: isSelected ? '#0F172A' : '#F1F5F9',
+                              color: isSelected ? '#FFFFFF' : '#64748B',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            QA
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                              Môn EXE201 (Mô phỏng: Chưa có trong danh sách FAP)
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>
+                              Kiểm thử giao diện từ chối truy cập khi sinh viên chưa được đồng bộ FAP
+                            </div>
+                          </div>
+                        </div>
+
+                        {isSelected && (
+                          <span
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 999,
+                              backgroundColor: 'var(--accent-color, #F26F21)',
+                              color: '#FFFFFF',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Check size={12} />
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right section: Light/Dark Mode + Notification Bell + User Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Theme Toggle Button: Moon 🌙 / Sun ☀️ */}
+          {/* 2. UTILITIES SECOND → 3. USER LAST: Simple icon buttons + Clean User Profile */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {/* Theme Toggle: Simple Ghost Icon Button */}
             <button
+              className="motion-topbar-btn motion-theme-btn"
               onClick={toggleTheme}
               title={isDarkMode ? 'Chuyển sang chế độ Sáng (Light Mode)' : 'Chuyển sang chế độ Tối (Dark Mode)'}
               style={{
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: isDarkMode ? '#1e293b' : '#f8fafc',
-                border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-                color: isDarkMode ? '#fbbf24' : '#475569',
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: 'transparent',
+                border: 'none',
+                color: isDarkMode ? '#fbbf24' : 'var(--text-muted, #64748B)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
               }}
             >
               {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
-            {/* Notification Bell */}
-            <button
-              onClick={() => navigate('/notifications')}
-              title={`Thông báo hệ thống (${unreadCount} chưa đọc)`}
-              style={{
-                position: 'relative',
-                width: 42,
-                height: 42,
-                borderRadius: 12,
-                background: isDarkMode ? '#1e293b' : '#f8fafc',
-                border: `1px solid ${isDarkMode ? '#334155' : '#e2e8f0'}`,
-                color: isDarkMode ? '#cbd5e1' : '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    right: -4,
-                    minWidth: 18,
-                    height: 18,
-                    padding: '0 4px',
-                    borderRadius: 999,
-                    background: '#f26f21',
-                    color: '#ffffff',
-                    fontSize: '0.68rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: `0 0 0 2px ${isDarkMode ? '#1e293b' : '#ffffff'}`,
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* ══════════════════════════════════════════════════════════
-                USER PROFILE & LOGOUT DROPDOWN
-               ══════════════════════════════════════════════════════════ */}
-            <div style={{ position: 'relative' }} ref={userMenuRef}>
+            {/* Notification Bell: Simple Ghost Icon Button + Badge */}
+            <div style={{ position: 'relative' }} ref={notifMenuRef}>
               <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                type="button"
+                className="motion-topbar-btn motion-bell-btn"
+                onClick={() => {
+                  setNotifOpen((prev) => !prev);
+                  setUserMenuOpen(false);
+                }}
+                title={`Thông báo hệ thống (${unreadCount} chưa đọc)`}
                 style={{
+                  position: 'relative',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: notifOpen ? (isDarkMode ? '#1E293B' : '#F1F5F9') : 'transparent',
+                  border: 'none',
+                  color: notifOpen
+                    ? 'var(--accent-color, #F26F21)'
+                    : 'var(--text-muted, #64748B)',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.65rem',
-                  padding: '0.3rem 0.65rem',
-                  borderRadius: 10,
-                  background: userMenuOpen ? 'var(--bg-sidebar-hover, #f1f5f9)' : 'var(--bg-sidebar-hover, #f8fafc)',
-                  border: '1px solid var(--border-light, #e2e8f0)',
+                  justifyContent: 'center',
                   cursor: 'pointer',
-                  transition: 'all 150ms ease',
                 }}
               >
-                {/* Avatar with Initials */}
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background:
-                      user?.role === 'Moderator'
-                        ? '#0054a6'
-                        : user?.role === 'Lecturer'
-                        ? '#008837'
-                        : '#f26f21',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '0.85rem',
-                    flexShrink: 0,
-                  }}
-                >
-                  {getInitials(user?.role)}
-                </div>
-
-                {/* Name & ID/Role */}
-                <div style={{ textAlign: 'left', lineHeight: 1.35, minWidth: 0 }}>
-                  <div
-                    title={user?.fullName || 'Người dùng'}
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span
                     style={{
-                      fontSize: '0.95rem',
-                      fontWeight: 700,
-                      color: 'var(--text-main, #0f172a)',
-                      maxWidth: 190,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {user?.fullName || 'Người dùng'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '0.725rem',
-                      color: 'var(--text-muted, #64748b)',
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      minWidth: 15,
+                      height: 15,
+                      padding: '0 3.5px',
+                      borderRadius: 999,
+                      background: 'var(--accent-color, #F26F21)',
+                      color: '#ffffff',
+                      fontSize: '10px',
                       fontWeight: 600,
-                      fontFamily: user?.studentCode ? 'var(--font-mono, monospace)' : undefined,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: `0 0 0 2px ${isDarkMode ? '#0f172a' : '#ffffff'}`,
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {user?.role === 'Moderator'
-                      ? 'Điều phối viên'
-                      : user?.role === 'Lecturer'
-                      ? 'Giảng viên'
-                      : user?.studentCode || 'Sinh viên'}
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover Dropdown */}
+              {notifOpen && (
+                <div
+                  className="motion-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 10px)',
+                    right: 0,
+                    width: 420,
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    borderRadius: 16,
+                    border: '1px solid var(--border-light, #E2E8F0)',
+                    boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.06)',
+                    zIndex: 120,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Header */}
+                  <div
+                    style={{
+                      padding: '15px 18px 12px 18px',
+                      borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>
+                          Thông báo
+                        </h3>
+                        {unreadCount > 0 && (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '2px 7px',
+                              borderRadius: 999,
+                              backgroundColor: 'var(--accent-soft, rgba(242, 111, 33, 0.12))',
+                              color: 'var(--accent-color, #F26F21)',
+                              fontVariantNumeric: 'tabular-nums',
+                            }}
+                          >
+                            {unreadCount} mới
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {unreadCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkAllAsRead()}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '4px 8px',
+                              borderRadius: 6,
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '12px',
+                              fontWeight: 500,
+                              color: 'var(--accent-color, #F26F21)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <CheckCheck size={13} />
+                            <span>Đánh dấu đã đọc</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setNotifOpen(false)}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 6,
+                            border: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#64748B',
+                            cursor: 'pointer',
+                          }}
+                          title="Đóng"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        gap: '4px',
+                        padding: '3px',
+                        borderRadius: 8,
+                        backgroundColor: '#F1F5F9',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={`motion-tab-pill${notifFilter === 'all' ? ' is-active-tab' : ''}`}
+                        onClick={() => setNotifFilter('all')}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: '12px',
+                          fontWeight: notifFilter === 'all' ? 600 : 450,
+                          cursor: 'pointer',
+                          backgroundColor: notifFilter === 'all' ? '#FFFFFF' : 'transparent',
+                          color: notifFilter === 'all' ? '#0F172A' : '#64748B',
+                          boxShadow: notifFilter === 'all' ? '0 1px 2px rgba(15, 23, 42, 0.06)' : 'none',
+                          border: 'none',
+                        }}
+                      >
+                        Tất cả ({notifItems.length})
+                      </button>
+                      <button
+                        type="button"
+                        className={`motion-tab-pill${notifFilter === 'unread' ? ' is-active-tab' : ''}`}
+                        onClick={() => setNotifFilter('unread')}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: '12px',
+                          fontWeight: notifFilter === 'unread' ? 600 : 450,
+                          cursor: 'pointer',
+                          backgroundColor: notifFilter === 'unread' ? '#FFFFFF' : 'transparent',
+                          color: notifFilter === 'unread' ? '#0F172A' : '#64748B',
+                          boxShadow: notifFilter === 'unread' ? '0 1px 2px rgba(15, 23, 42, 0.06)' : 'none',
+                          border: 'none',
+                        }}
+                      >
+                        Chưa đọc ({unreadCount})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Notification Items List */}
+                  <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                    {displayedNotifs.length === 0 ? (
+                      <div style={{ padding: '32px 20px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
+                        Không có thông báo chưa đọc nào.
+                      </div>
+                    ) : (
+                      displayedNotifs.map((n, idx) => {
+                        const cfg = getNotificationTypeConfig(n.type);
+                        const IconComp = cfg.icon;
+                        const isLast = idx === displayedNotifs.length - 1;
+
+                        return (
+                          <div
+                            key={n.id}
+                            className="motion-dropdown-item"
+                            onClick={() => {
+                              if (!n.isRead) void handleMarkAsRead(n.id);
+                            }}
+                            style={{
+                              padding: '13px 18px',
+                              borderBottom: isLast ? 'none' : '1px solid var(--border-subtle, #F1F5F9)',
+                              backgroundColor: !n.isRead ? 'var(--bg-subtle, #F8FAFC)' : 'var(--bg-card, #FFFFFF)',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '12px',
+                              cursor: !n.isRead ? 'pointer' : 'default',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                                color: !n.isRead ? 'var(--accent-color, #F26F21)' : '#64748B',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                marginTop: 2,
+                              }}
+                            >
+                              <IconComp size={15} />
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '3px' }}>
+                                <div
+                                  style={{
+                                    fontSize: '13px',
+                                    fontWeight: !n.isRead ? 600 : 500,
+                                    color: 'var(--text-main, #0F172A)',
+                                    lineHeight: 1.4,
+                                  }}
+                                >
+                                  {n.title}
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginTop: '2px' }}>
+                                  <span style={{ fontSize: '11px', color: '#94A3B8', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                    {new Date(n.createdAt).toLocaleDateString('vi-VN', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                    })}
+                                  </span>
+                                  {!n.isRead && (
+                                    <span
+                                      style={{
+                                        width: 6,
+                                        height: 6,
+                                        borderRadius: '50%',
+                                        backgroundColor: 'var(--accent-color, #F26F21)',
+                                        display: 'inline-block',
+                                        flexShrink: 0,
+                                      }}
+                                      title="Chưa đọc (Bấm để đánh dấu đã đọc)"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+
+                              <p
+                                style={{
+                                  fontSize: '12.5px',
+                                  fontWeight: 400,
+                                  color: 'var(--text-secondary, #64748B)',
+                                  lineHeight: 1.5,
+                                  margin: 0,
+                                }}
+                              >
+                                {n.message}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
+              )}
+            </div>
 
-                <ChevronDown size={15} color="var(--text-muted, #64748b)" />
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                backgroundColor: 'var(--border-light, #E2E8F0)',
+                margin: '0 0.35rem',
+              }}
+            />
+
+            {/* 3. USER LAST: Clean Avatar + Name + Dropdown */}
+            <div style={{ position: 'relative' }} ref={userMenuRef}>
+              <button
+                className="motion-topbar-btn"
+                onClick={() => {
+                  setUserMenuOpen(!userMenuOpen);
+                  setNotifOpen(false);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.55rem',
+                  padding: '4px 8px 4px 4px',
+                  borderRadius: 999,
+                  background: userMenuOpen ? (isDarkMode ? '#1E293B' : '#F1F5F9') : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <UserAvatarBubble
+                  settings={appearance}
+                  initials={getInitials(user?.role)}
+                  size={32}
+                  borderRadius={999}
+                />
+
+                <span
+                  title={user?.fullName || 'Người dùng'}
+                  style={{
+                    fontSize: '13.5px',
+                    fontWeight: 500,
+                    color: 'var(--text-main, #0f172a)',
+                    maxWidth: 160,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {user?.fullName || 'Người dùng'}
+                </span>
+
+                <ChevronDown
+                  size={14}
+                  color="var(--text-muted, #64748b)"
+                  style={{
+                    transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                />
               </button>
 
               {/* Popover Menu */}
               {userMenuOpen && (
                 <div
+                  className="motion-dropdown-menu"
                   style={{
                     position: 'absolute',
-                    top: 'calc(100% + 8px)',
+                    top: 'calc(100% + 10px)',
                     right: 0,
-                    width: 250,
+                    width: 268,
                     background: 'var(--bg-card, #ffffff)',
-                    borderRadius: 12,
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                    borderRadius: 16,
+                    boxShadow: '0 20px 40px -10px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.06)',
                     border: '1px solid var(--border-light, #e2e8f0)',
-                    zIndex: 100,
-                    padding: '0.5rem',
-                    animation: 'fadeIn 120ms ease-out',
+                    zIndex: 120,
+                    padding: '8px',
                   }}
                 >
                   {/* User Profile Header in Popover */}
                   <div
                     style={{
-                      padding: '0.75rem 0.85rem',
-                      borderBottom: '1px solid var(--border-light, #f1f5f9)',
-                      marginBottom: '0.35rem',
+                      padding: '12px 14px',
+                      borderBottom: '1px solid var(--border-subtle, #f1f5f9)',
+                      marginBottom: '6px',
                     }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main, #0f172a)' }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        fontSize: '14.5px',
+                        color: 'var(--text-main, #0f172a)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {user?.fullName}
                     </div>
-                    <div style={{ fontSize: '0.775rem', color: 'var(--text-muted, #64748b)', marginTop: '2px' }}>
+                    <div
+                      style={{
+                        fontSize: '12.5px',
+                        color: 'var(--text-muted, #64748b)',
+                        marginTop: '3px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {user?.email}
                     </div>
                     <div
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.35rem',
-                        marginTop: '0.45rem',
-                        padding: '0.2rem 0.55rem',
+                        gap: '6px',
+                        marginTop: '10px',
+                        padding: '3px 9px',
                         borderRadius: 6,
-                        background:
-                          user?.role === 'Moderator'
-                            ? '#f0fdf4'
-                            : user?.role === 'Lecturer'
-                            ? '#eef2ff'
-                            : '#fff7ed',
-                        color:
-                          user?.role === 'Moderator'
-                            ? '#008837'
-                            : user?.role === 'Lecturer'
-                            ? '#0054a6'
-                            : '#ea580c',
-                        fontSize: '0.725rem',
-                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px solid var(--border-light, #E2E8F0)',
+                        color: 'var(--text-secondary, #334155)',
+                        fontSize: '12px',
+                        fontWeight: 500,
                       }}
                     >
-                      <Sparkles size={12} />
-                      Vai trò: {user?.role}
-                    </div>
-                  </div>
-
-                  {/* Account Link - Accessible to Student, Lecturer & Moderator */}
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      navigate('/profile');
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.65rem',
-                      padding: '0.6rem 0.85rem',
-                      borderRadius: 8,
-                      color: 'var(--text-main, #334155)',
-                      fontSize: '0.85rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'background 100ms ease',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-sidebar-hover, #f8fafc)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <User size={16} color="var(--text-muted, #64748b)" />
-                    <span>Hồ sơ cá nhân (My Account)</span>
-                  </button>
-
-                  {/* Quick Role Switcher for Demo */}
-                  <div
-                    style={{
-                      padding: '0.5rem 0.85rem',
-                      borderTop: '1px solid var(--border-light, #f1f5f9)',
-                      borderBottom: '1px solid var(--border-light, #f1f5f9)',
-                      margin: '0.35rem 0',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '0.775rem',
-                        padding: '0.25rem 0.2rem',
-                      }}
-                    >
-                      <span style={{ color: 'var(--text-light, #94a3b8)', fontWeight: 600 }}>
-                        Vai trò xác thực:
-                      </span>
                       <span
                         style={{
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: 6,
-                          fontWeight: 700,
-                          fontSize: '0.75rem',
-                          background:
-                            user?.role === 'Moderator'
-                              ? '#f0fdf4'
-                              : user?.role === 'Lecturer'
-                              ? '#eff6ff'
-                              : '#fff7ed',
-                          color:
-                            user?.role === 'Moderator'
-                              ? '#008837'
-                              : user?.role === 'Lecturer'
-                              ? '#2563eb'
-                              : '#ea580c',
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--accent-color, #F26F21)',
+                          flexShrink: 0,
                         }}
-                      >
+                      />
+                      <span>
+                        Vai trò:{' '}
                         {user?.role === 'Moderator'
                           ? 'Điều phối viên'
                           : user?.role === 'Lecturer'
@@ -850,26 +1840,101 @@ export const MainLayout: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Account Link */}
+                  <button
+                    type="button"
+                    className="motion-dropdown-item"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      navigate('/profile');
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      color: 'var(--text-main, #0F172A)',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-sidebar-hover, #f8fafc)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <User size={16} color="var(--text-muted, #64748b)" style={{ flexShrink: 0 }} />
+                    <span>Hồ sơ cá nhân</span>
+                  </button>
+
+                  {/* Cycle Appearance Customizer Link */}
+                  <button
+                    type="button"
+                    className="motion-dropdown-item"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setAppearanceOpen(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      color: 'var(--text-main, #0F172A)',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-sidebar-hover, #f8fafc)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Sparkles size={16} color={activeAccent.hex} style={{ flexShrink: 0 }} />
+                      <span>Cá nhân hóa giao diện</span>
+                    </div>
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        backgroundColor: activeAccent.hex,
+                        flexShrink: 0,
+                      }}
+                    />
+                  </button>
+
+                  <div style={{ height: 1, backgroundColor: 'var(--border-subtle, #f1f5f9)', margin: '6px 0' }} />
+
                   {/* Logout Button */}
                   <button
+                    type="button"
+                    className="motion-dropdown-item"
                     onClick={handleLogout}
                     style={{
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.65rem',
-                      padding: '0.6rem 0.85rem',
-                      borderRadius: 8,
-                      color: '#dc2626',
-                      fontSize: '0.85rem',
+                      gap: '10px',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      color: '#E11D48',
+                      fontSize: '14px',
                       fontWeight: 600,
+                      textAlign: 'left',
+                      whiteSpace: 'nowrap',
                       cursor: 'pointer',
-                      transition: 'background 100ms ease',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF1F2')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <LogOut size={16} />
+                    <LogOut size={16} style={{ flexShrink: 0 }} />
                     <span>Đăng xuất</span>
                   </button>
                 </div>
@@ -884,6 +1949,8 @@ export const MainLayout: React.FC = () => {
         <main style={{ flex: 1, padding: '2.25rem 2.75rem' }}>
           {selectedSpace === 'exe201-unauthorized' ? (
             <div
+              key="unauthorized-space"
+              className="motion-page-enter"
               style={{
                 maxWidth: 580,
                 margin: '48px auto',
@@ -918,11 +1985,12 @@ export const MainLayout: React.FC = () => {
               </p>
               <button
                 type="button"
+                className="motion-cta-btn"
                 onClick={() => handleSpaceChange('exe101')}
                 style={{
                   padding: '10px 24px',
                   borderRadius: 10,
-                  backgroundColor: '#F27024',
+                  backgroundColor: 'var(--accent-color, #F26F21)',
                   color: '#FFFFFF',
                   border: 'none',
                   fontWeight: 600,
@@ -935,7 +2003,9 @@ export const MainLayout: React.FC = () => {
               </button>
             </div>
           ) : (
-            <Outlet />
+            <div key={`${location.pathname}-${selectedSpace}`} className="motion-page-enter">
+              <Outlet />
+            </div>
           )}
         </main>
       </div>
@@ -948,6 +2018,7 @@ export const MainLayout: React.FC = () => {
           role="dialog"
           aria-modal="true"
           aria-labelledby="onboarding-modal-title"
+          className="motion-modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
@@ -961,6 +2032,7 @@ export const MainLayout: React.FC = () => {
           }}
         >
           <div
+            className="motion-modal-dialog"
             style={{
               width: '100%',
               maxWidth: 580,
@@ -970,7 +2042,6 @@ export const MainLayout: React.FC = () => {
               borderRadius: '20px',
               backgroundColor: 'var(--bg-card, #FFFFFF)',
               boxShadow: '0 20px 45px rgba(0, 0, 0, 0.15)',
-              animation: 'onboardingPopIn 220ms cubic-bezier(0.23, 1, 0.32, 1)',
             }}
           >
             {/* Modal Header: Clean White Header with 1px border */}
@@ -1064,7 +2135,7 @@ export const MainLayout: React.FC = () => {
                         setTermsChecked(e.target.checked);
                         if (e.target.checked) setOnboardingError(null);
                       }}
-                      style={{ marginTop: 2, width: 16, height: 16, accentColor: '#F27024' }}
+                      style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--accent-color, #F26F21)' }}
                     />
                     <span>
                       Tôi đã đọc hiểu và đồng ý với quy định ghép nhóm cũng như quyền điều phối của nhà trường.
@@ -1080,7 +2151,7 @@ export const MainLayout: React.FC = () => {
                     style={{
                       padding: '9px 20px',
                       borderRadius: 10,
-                      backgroundColor: termsChecked ? '#F27024' : '#CBD5E1',
+                      backgroundColor: termsChecked ? 'var(--accent-color, #F26F21)' : '#CBD5E1',
                       border: 'none',
                       color: '#FFFFFF',
                       fontSize: '13px',
@@ -1107,6 +2178,18 @@ export const MainLayout: React.FC = () => {
           `}</style>
         </div>
       )}
+      {/* ══════════════════════════════════════════════════════════════
+          CYCLE-STYLE APPEARANCE CUSTOMIZER MODAL ("Make yourself at home")
+         ══════════════════════════════════════════════════════════════ */}
+      <AppearanceCustomizerModal
+        open={appearanceOpen}
+        onClose={() => setAppearanceOpen(false)}
+        settings={appearance}
+        onChangeSettings={setAppearance}
+        isDarkMode={isDarkMode}
+        onSelectTheme={(dark) => setIsDarkMode(dark)}
+        initials={getInitials(user?.role)}
+      />
     </div>
   );
 };

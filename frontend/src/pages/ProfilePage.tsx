@@ -12,10 +12,10 @@ import {
   EyeOff,
   KeyRound,
   ShieldCheck,
-} from 'lucide-react';
+} from '../utils/icons';
 
 // ══════════════════════════════════════════════════════════════
-// SVG 5-AXIS RADAR CHART (BIỂU ĐỒ NGŨ GIÁC NĂNG LỰC)
+// SVG 5-AXIS RADAR CHART (BIỂU ĐỒ NGŨ GIÁC NĂNG LỰC CHUẨN SAAS)
 // ══════════════════════════════════════════════════════════════
 const RadarChart5: React.FC<{
   tech: number;
@@ -24,10 +24,11 @@ const RadarChart5: React.FC<{
   marketing: number;
   sale: number;
 }> = ({ tech, management, graphicDesign, marketing, sale }) => {
-  const size = 300;
-  const cx = size / 2;
-  const cy = size / 2;
-  const R = 85;
+  const width = 390;
+  const height = 340;
+  const cx = width / 2;
+  const cy = height / 2 + 6;
+  const R = 114;
 
   // 5 trục: Tech (-90°), Management (-18°), Graphic Design (54°), Marketing (126°), Sale (198°)
   const angles = [
@@ -38,160 +39,309 @@ const RadarChart5: React.FC<{
     -Math.PI / 2 + (8 * Math.PI) / 5,
   ];
 
-  const gridLevels = [0.25, 0.5, 0.75, 1.0];
+  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
   const scores = [tech, management, graphicDesign, marketing, sale];
 
   const dataPoints = angles.map((angle, idx) => {
-    const scoreFrac = Math.max(0.04, Math.min(1, scores[idx] / 100));
+    const scoreFrac = Math.max(0.05, Math.min(1, scores[idx] / 100));
     const r = scoreFrac * R;
     const x = cx + r * Math.cos(angle);
     const y = cy + r * Math.sin(angle);
-    return { x, y };
+    return { x, y, score: scores[idx] };
   });
 
   const polygonPointsStr = dataPoints.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
-  const skillLabels = [
-    { name: 'Tech', score: tech, angle: angles[0], align: 'middle', dy: -10, dx: 0 },
-    { name: 'Management', score: management, angle: angles[1], align: 'start', dy: 4, dx: 8 },
-    { name: 'Design', score: graphicDesign, angle: angles[2], align: 'start', dy: 14, dx: 6 },
-    { name: 'Marketing', score: marketing, angle: angles[3], align: 'end', dy: 14, dx: -6 },
-    { name: 'Sale', score: sale, angle: angles[4], align: 'end', dy: 4, dx: -8 },
+  // Đa giác chuẩn cân bằng 60% (Benchmark)
+  const benchmarkPointsStr = angles
+    .map((a) => `${(cx + 0.6 * R * Math.cos(a)).toFixed(1)},${(cy + 0.6 * R * Math.sin(a)).toFixed(1)}`)
+    .join(' ');
+
+  const skillMeta = [
+    { name: 'Tech', role: 'Tech Lead', score: tech, angle: angles[0], align: 'middle', dy: -22, dx: 0 },
+    { name: 'Management', role: 'Team Leader', score: management, angle: angles[1], align: 'start', dy: -2, dx: 12 },
+    { name: 'Design', role: 'UI/UX Lead', score: graphicDesign, angle: angles[2], align: 'start', dy: 16, dx: 10 },
+    { name: 'Marketing', role: 'Growth Lead', score: marketing, angle: angles[3], align: 'end', dy: 16, dx: -10 },
+    { name: 'Sale', role: 'Pitching Lead', score: sale, angle: angles[4], align: 'end', dy: -2, dx: -12 },
   ];
 
   const avg = Math.round((tech + management + graphicDesign + marketing + sale) / 5);
+  const topSkill = [...skillMeta].sort((a, b) => b.score - a.score)[0];
+  const suggestedRole = management >= 75 ? 'Trưởng nhóm (Leader)' : topSkill.role;
 
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-        borderRadius: 18,
-        padding: '1rem',
+        borderRadius: 16,
+        padding: '18px 20px',
         border: '1px solid var(--border-light, #E2E8F0)',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+        height: '100%',
       }}
     >
-      <svg
-        viewBox={`0 0 ${size} ${size}`}
-        style={{ width: '100%', maxWidth: 280, height: 'auto', overflow: 'visible' }}
-        role="img"
-        aria-label="Biểu đồ radar 5 kỹ năng sinh viên"
-      >
-        {/* Vòng đa giác lưới đồng tâm */}
-        {gridLevels.map((level, lIdx) => {
-          const r = level * R;
-          const pts = angles
-            .map((a) => `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`)
-            .join(' ');
-          return (
-            <polygon
-              key={lIdx}
-              points={pts}
-              fill={lIdx === gridLevels.length - 1 ? 'var(--bg-card, #FFFFFF)' : 'none'}
-              stroke="var(--border-medium, #CBD5E1)"
-              strokeWidth={lIdx === gridLevels.length - 1 ? '1.5' : '1'}
-              strokeDasharray={lIdx === gridLevels.length - 1 ? undefined : '3 3'}
-            />
-          );
-        })}
+      {/* Radar Card Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
+            Biểu đồ Ngũ giác Năng lực
+          </div>
+          <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', marginTop: '1px' }}>
+            Phân tích đa chiều theo thời gian thực
+          </div>
+        </div>
+        <span
+          style={{
+            fontSize: '12.5px',
+            fontWeight: 600,
+            padding: '4px 10px',
+            borderRadius: 999,
+            backgroundColor: 'var(--accent-soft, rgba(242, 111, 33, 0.12))',
+            color: 'var(--accent-color, #F26F21)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          TB: {avg}/100
+        </span>
+      </div>
 
-        {/* 5 đường nan hoa hướng tâm */}
-        {angles.map((a, aIdx) => (
-          <line
-            key={aIdx}
-            x1={cx}
-            y1={cy}
-            x2={(cx + R * Math.cos(a)).toFixed(1)}
-            y2={(cy + R * Math.sin(a)).toFixed(1)}
+      {/* Main SVG Radar */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '4px 0' }}>
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ width: '100%', maxWidth: 380, height: 'auto', overflow: 'visible' }}
+          role="img"
+          aria-label="Biểu đồ radar 5 kỹ năng sinh viên"
+        >
+          {/* 5 Vòng đa giác lưới đồng tâm (20%, 40%, 60%, 80%, 100%) */}
+          {[...gridLevels].reverse().map((level, revIdx) => {
+            const r = level * R;
+            const pts = angles
+              .map((a) => `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`)
+              .join(' ');
+            const isOuter = level === 1.0;
+            const isEven = revIdx % 2 === 0;
+            return (
+              <polygon
+                key={level}
+                points={pts}
+                fill={isEven ? 'var(--bg-card, #FFFFFF)' : 'var(--bg-subtle, #F8FAFC)'}
+                stroke={isOuter ? 'var(--border-medium, #CBD5E1)' : 'var(--border-light, #E2E8F0)'}
+                strokeWidth={isOuter ? '1.5' : '1'}
+              />
+            );
+          })}
+
+          {/* 5 đường trục hướng tâm */}
+          {angles.map((a, aIdx) => (
+            <line
+              key={aIdx}
+              x1={cx}
+              y1={cy}
+              x2={(cx + R * Math.cos(a)).toFixed(1)}
+              y2={(cy + R * Math.sin(a)).toFixed(1)}
+              stroke="var(--border-light, #E2E8F0)"
+              strokeWidth="1"
+            />
+          ))}
+
+          {/* Vòng chuẩn cân bằng nhóm 60% (Benchmark Ring) */}
+          <polygon
+            points={benchmarkPointsStr}
+            fill="none"
+            stroke="#94A3B8"
+            strokeWidth="1.25"
+            strokeDasharray="4 3"
+          />
+
+          {/* Nhãn mốc thang điểm (20, 40, 60, 80, 100) trên trục đứng */}
+          {gridLevels.map((level) => {
+            const yPos = cy - level * R;
+            return (
+              <text
+                key={level}
+                x={cx + 5}
+                y={yPos + 3}
+                fontSize="9.5"
+                fontWeight="500"
+                fill="#94A3B8"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {Math.round(level * 100)}
+              </text>
+            );
+          })}
+
+          {/* Đa giác dữ liệu 5 kỹ năng — Đồng bộ 100% theo màu chủ đạo người dùng chọn */}
+          <polygon
+            points={polygonPointsStr}
+            className="motion-radar-polygon"
+            fill="var(--accent-soft, rgba(242, 111, 33, 0.16))"
+            stroke="var(--accent-color, #F26F21)"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+
+          {/* Điểm nút đỉnh dữ liệu kèm vòng Halo */}
+          {dataPoints.map((p, pIdx) => (
+            <g key={pIdx} className="motion-radar-polygon">
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={8}
+                fill="var(--accent-soft, rgba(242, 111, 33, 0.16))"
+              />
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={4.5}
+                fill="var(--accent-color, #F26F21)"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+              />
+            </g>
+          ))}
+
+          {/* Vòng tròn tâm hiển thị điểm trung bình */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={24}
+            fill="var(--bg-card, #FFFFFF)"
             stroke="var(--border-light, #E2E8F0)"
             strokeWidth="1.2"
           />
-        ))}
+          <text
+            x={cx}
+            y={cy - 4}
+            textAnchor="middle"
+            fontSize="8.5"
+            fontWeight="600"
+            fill="var(--text-muted, #64748B)"
+            letterSpacing="0.04em"
+          >
+            ĐIỂM TB
+          </text>
+          <text
+            x={cx}
+            y={cy + 11}
+            textAnchor="middle"
+            fontSize="13.5"
+            fontWeight="700"
+            fill="var(--accent-color, #F26F21)"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {avg}%
+          </text>
 
-        {/* Đa giác dữ liệu 5 kỹ năng (Cam FPT) */}
-        <polygon
-          points={polygonPointsStr}
-          fill="rgba(242, 112, 36, 0.18)"
-          stroke="#F27024"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
+          {/* Nhãn 5 trục kỹ năng + Điểm số */}
+          {skillMeta.map((lbl, idx) => {
+            const lx = cx + (R + 8) * Math.cos(lbl.angle) + lbl.dx;
+            const ly = cy + (R + 8) * Math.sin(lbl.angle) + lbl.dy;
+            return (
+              <g key={idx}>
+                <text
+                  x={lx}
+                  y={ly}
+                  textAnchor={lbl.align as 'middle' | 'start' | 'end'}
+                  fontSize="12.5"
+                  fontWeight="600"
+                  fill="var(--text-main, #0F172A)"
+                >
+                  {lbl.name}
+                </text>
+                <text
+                  x={lx}
+                  y={ly + 15}
+                  textAnchor={lbl.align as 'middle' | 'start' | 'end'}
+                  fontSize="12"
+                  fontWeight="700"
+                  fill="var(--accent-color, #F26F21)"
+                  style={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {lbl.score}/100
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
 
-        {/* Điểm nút đỉnh dữ liệu */}
-        {dataPoints.map((p, pIdx) => (
-          <circle
-            key={pIdx}
-            cx={p.x}
-            cy={p.y}
-            r={4}
-            fill="#F27024"
-            stroke="#FFFFFF"
-            strokeWidth="2"
+      {/* Chú giải (Legend) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          fontSize: '12px',
+          color: 'var(--text-muted, #64748B)',
+          marginBottom: '12px',
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 3,
+              backgroundColor: 'var(--accent-color, #F26F21)',
+              display: 'inline-block',
+            }}
           />
-        ))}
+          <span>Hồ sơ của bạn</span>
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <span
+            style={{
+              width: 14,
+              height: 0,
+              borderTop: '1.5px dashed #94A3B8',
+              display: 'inline-block',
+            }}
+          />
+          <span>Chuẩn cân bằng (60%)</span>
+        </span>
+      </div>
 
-        {/* Vòng tròn tâm hiển thị điểm trung bình */}
-        <circle cx={cx} cy={cy} r={24} fill="var(--bg-card, #FFFFFF)" stroke="var(--border-light, #E2E8F0)" strokeWidth="1" />
-        <text
-          x={cx}
-          y={cy - 3}
-          textAnchor="middle"
-          fontSize="8.5"
-          fontWeight="700"
-          fill="var(--text-muted, #64748B)"
-          letterSpacing="0.05em"
+      {/* 3-Column Mini Insights Footer */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '8px',
+          paddingTop: '12px',
+          borderTop: '1px solid var(--border-light, #E2E8F0)',
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderRadius: 10,
+            padding: '8px 11px',
+          }}
         >
-          ĐIỂM TB
-        </text>
-        <text
-          x={cx}
-          y={cy + 13}
-          textAnchor="middle"
-          fontSize="14"
-          fontWeight="800"
-          fill="#F27024"
-          fontFamily="monospace"
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748B)' }}>Thế mạnh mũi nhọn</div>
+          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-main, #0F172A)', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+            {topSkill.name} ({topSkill.score}đ)
+          </div>
+        </div>
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderRadius: 10,
+            padding: '8px 11px',
+          }}
         >
-          {avg}%
-        </text>
-
-        {/* Nhãn 5 trục kỹ năng */}
-        {skillLabels.map((lbl, idx) => {
-          const lx = cx + (R + 6) * Math.cos(lbl.angle) + lbl.dx;
-          const ly = cy + (R + 6) * Math.sin(lbl.angle) + lbl.dy;
-          return (
-            <g key={idx}>
-              <text
-                x={lx}
-                y={ly}
-                textAnchor={lbl.align as any}
-                fontSize="11"
-                fontWeight="700"
-                fill="var(--text-main, #0F172A)"
-              >
-                {lbl.name}
-              </text>
-              <text
-                x={lx}
-                y={ly + 12}
-                textAnchor={lbl.align as any}
-                fontSize="11"
-                fontWeight="800"
-                fill="#F27024"
-                fontFamily="monospace"
-              >
-                {lbl.score}%
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-
-      <div style={{ marginTop: '0.65rem', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', textAlign: 'center' }}>
-        Biểu đồ Ngũ giác Năng lực EXE (Tự động co giãn theo thời gian thực)
+          <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748B)' }}>Vai trò phù hợp</div>
+          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--accent-color, #F26F21)', marginTop: '2px' }}>
+            {suggestedRole}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -490,14 +640,15 @@ export const ProfilePage: React.FC = () => {
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '3px' }}>
                     Học kỳ đảm nhiệm
                   </label>
-                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 700, color: '#F27024' }}>
+                  <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 700, color: 'var(--accent-color, #F26F21)' }}>
                     Fall 2026 • Môn EXE101 & EXE201
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginTop: '1.25rem', padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed var(--border-medium, #CBD5E1)', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.4 }}>
-                🔒 Thông tin cán bộ được quản lý tập trung bởi Phòng Nhân sự & Ban Đào tạo Đại học FPT TP.HCM.
+              <div style={{ marginTop: '1.25rem', padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed var(--border-medium, #CBD5E1)', fontSize: '13.5px', color: 'var(--text-muted, #64748B)', lineHeight: 1.4, display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                <Lock size={14} color="#64748B" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>Thông tin cán bộ được quản lý tập trung bởi Phòng Nhân sự & Ban Đào tạo Đại học FPT TP.HCM.</span>
               </div>
             </div>
           </div>
@@ -579,7 +730,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
-                <KeyRound size={18} color="#F27024" />
+                <KeyRound size={18} color="var(--accent-color, #F26F21)" />
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Đổi mật khẩu tài khoản công vụ
                 </h3>
@@ -687,7 +838,7 @@ export const ProfilePage: React.FC = () => {
                     style={{
                       padding: '9px 20px',
                       borderRadius: 12,
-                      backgroundColor: '#F27024',
+                      backgroundColor: 'var(--accent-color, #F26F21)',
                       color: '#FFFFFF',
                       border: 'none',
                       fontSize: '15px',
@@ -709,6 +860,42 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
+      {/* ── PAGE HEADER (EdTech Breadcrumb + Title) ── */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '13.5px',
+            fontWeight: 500,
+            color: '#64748B',
+            marginBottom: '6px',
+          }}
+        >
+          <span>Cá nhân</span>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span>EXE</span>
+          <span style={{ color: '#CBD5E1' }}>/</span>
+          <span style={{ color: '#0F172A' }}>Hồ sơ 5 Kỹ năng</span>
+        </div>
+        <h1
+          style={{
+            fontSize: '28px',
+            fontWeight: 650,
+            color: '#0F172A',
+            letterSpacing: '-0.022em',
+            margin: '0 0 6px 0',
+            lineHeight: 1.2,
+          }}
+        >
+          Hồ sơ Năng lực & Học vụ Sinh viên
+        </h1>
+        <p style={{ fontSize: '15px', fontWeight: 400, color: '#64748B', margin: 0 }}>
+          Khai báo 5 chỉ số kỹ năng cốt lõi để hệ thống gợi ý phòng nhóm và hỗ trợ ghép đội liên ngành cân bằng.
+        </p>
+      </div>
+
       {/* ── BANNER NHẮC NHỞ KHI CHƯA HOÀN TẤT HỒ SƠ ── */}
       {!isProfileCompleted && (
         <div
@@ -722,7 +909,7 @@ export const ProfilePage: React.FC = () => {
             alignItems: 'center',
             gap: '12px',
             color: '#C2410C',
-            fontSize: '15.5px',
+            fontSize: '15px',
             lineHeight: 1.5,
           }}
         >
@@ -777,7 +964,7 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ── 2-COLUMN MAIN LAYOUT ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '370px 1fr', gap: '1.5rem', alignItems: 'start' }}>
         {/* ══════════════════════════════════════════════════════════════
             CỘT TRÁI: THÔNG TIN HỌC VỤ ĐỒNG BỘ TỪ FAP (READ-ONLY)
            ══════════════════════════════════════════════════════════════ */}
@@ -785,38 +972,37 @@ export const ProfilePage: React.FC = () => {
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
+            borderRadius: '16px',
             overflow: 'hidden',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
-          {/* Dải màu chuyển sắc nhẹ ở đỉnh Card */}
+          {/* Dải màu ở đỉnh Card đồng bộ theo màu chủ đạo người dùng chọn */}
           <div
             style={{
-              height: '64px',
-              background: 'linear-gradient(135deg, #FFF7ED 0%, #F1F5F9 100%)',
+              height: '60px',
+              background: 'var(--accent-soft, rgba(242, 111, 33, 0.12))',
+              borderBottom: '1px solid var(--border-light, #E2E8F0)',
             }}
           />
 
           <div style={{ padding: '0 20px 20px', textAlign: 'center' }}>
-            {/* Avatar tròn màu Pastel nổi lên trên */}
+            {/* Avatar tròn đồng bộ màu chủ đạo */}
             <div
               style={{
                 width: 68,
                 height: 68,
                 borderRadius: '50%',
-                backgroundColor: '#FFE4E6',
-                color: '#BE123C',
+                backgroundColor: 'var(--accent-color, #F26F21)',
+                color: '#FFFFFF',
                 marginTop: -34,
                 marginLeft: 'auto',
                 marginRight: 'auto',
                 border: '3px solid var(--bg-card, #FFFFFF)',
-                fontSize: '22px',
-                fontWeight: 800,
+                fontSize: '20px',
+                fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               }}
             >
               LT
@@ -841,24 +1027,24 @@ export const ProfilePage: React.FC = () => {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '7px',
                   padding: '5px 12px',
                   borderRadius: '999px',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
+                  fontSize: '13px',
+                  fontWeight: 600,
                   cursor: 'pointer',
-                  border: isProfileCompleted ? '1px solid #BBF7D0' : '1px solid #FED7AA',
-                  backgroundColor: isProfileCompleted ? '#DCFCE7' : '#FFF7ED',
-                  color: isProfileCompleted ? '#15803D' : '#C2410C',
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#334155',
                   transition: 'all 0.15s ease',
                 }}
               >
                 <span
                   style={{
-                    width: 7,
-                    height: 7,
+                    width: 6,
+                    height: 6,
                     borderRadius: '50%',
-                    backgroundColor: isProfileCompleted ? '#16A34A' : '#EA580C',
+                    backgroundColor: isProfileCompleted ? '#10B981' : 'var(--accent-color, #F26F21)',
                   }}
                 />
                 <span>{isProfileCompleted ? 'Trạng thái: Đã hoàn tất hồ sơ' : 'Trạng thái: Chưa hoàn tất hồ sơ'}</span>
@@ -993,16 +1179,20 @@ export const ProfilePage: React.FC = () => {
               {/* Ghi chú đồng bộ FAP */}
               <div
                 style={{
-                  fontSize: '13.5px',
+                  fontSize: '13px',
                   color: 'var(--text-muted, #64748B)',
-                  lineHeight: 1.45,
+                  lineHeight: 1.5,
                   backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                  border: '1px solid var(--border-subtle, #F1F5F9)',
+                  border: '1px solid var(--border-light, #E2E8F0)',
                   borderRadius: 10,
-                  padding: '8px 10px',
+                  padding: '9px 11px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
                 }}
               >
-                🔒 <em>Thông tin học vụ được đồng bộ tự động từ hệ thống FAP theo MSSV, sinh viên không thể tự chỉnh sửa.</em>
+                <Lock size={14} color="#64748B" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>Thông tin học vụ được đồng bộ tự động từ hệ thống FAP theo MSSV, sinh viên không thể tự chỉnh sửa.</span>
               </div>
             </div>
           </div>
@@ -1015,71 +1205,72 @@ export const ProfilePage: React.FC = () => {
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
+            borderRadius: '16px',
             padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
           }}
         >
-          {/* Tab Selector Header */}
+          {/* Tab Selector Header — Flat Segmented Control */}
           <div
             style={{
-              display: 'flex',
-              gap: '8px',
-              borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
-              paddingBottom: '14px',
+              display: 'inline-flex',
+              gap: '2px',
+              backgroundColor: '#F1F5F9',
+              border: '1px solid #E2E8F0',
+              padding: '3px',
+              borderRadius: '9px',
               marginBottom: '20px',
             }}
           >
             <button
               type="button"
+              className={`motion-tab-pill${activeTab === 'skills' ? ' is-active-tab' : ''}`}
               onClick={() => setActiveTab('skills')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: 700,
+                gap: '7px',
+                padding: '7px 15px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 500,
                 cursor: 'pointer',
-                border: activeTab === 'skills' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
-                backgroundColor: activeTab === 'skills' ? 'rgba(242, 112, 36, 0.12)' : 'var(--bg-card, #FFFFFF)',
-                color: activeTab === 'skills' ? '#F27024' : 'var(--text-muted, #64748B)',
-                transition: 'all 0.15s ease',
+                border: 'none',
+                backgroundColor: activeTab === 'skills' ? '#0F172A' : 'transparent',
+                color: activeTab === 'skills' ? '#FFFFFF' : '#64748B',
               }}
             >
-              <Sparkles size={16} />
+              <Sparkles size={15} />
               <span>Hồ sơ Năng lực (5 Kỹ năng)</span>
             </button>
 
             <button
               type="button"
+              className={`motion-tab-pill${activeTab === 'security' ? ' is-active-tab' : ''}`}
               onClick={() => setActiveTab('security')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: 700,
+                gap: '7px',
+                padding: '7px 15px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 500,
                 cursor: 'pointer',
-                border: activeTab === 'security' ? '1px solid #F27024' : '1px solid var(--border-light, #E2E8F0)',
-                backgroundColor: activeTab === 'security' ? 'rgba(242, 112, 36, 0.12)' : 'var(--bg-card, #FFFFFF)',
-                color: activeTab === 'security' ? '#F27024' : 'var(--text-muted, #64748B)',
-                transition: 'all 0.15s ease',
+                border: 'none',
+                backgroundColor: activeTab === 'security' ? '#0F172A' : 'transparent',
+                color: activeTab === 'security' ? '#FFFFFF' : '#64748B',
               }}
             >
-              <KeyRound size={16} />
+              <KeyRound size={15} />
               <span>Đổi mật khẩu bảo mật</span>
             </button>
           </div>
 
           {/* ── TAB 1: HỒ SƠ NĂNG LỰC 5 KỸ NĂNG & RADAR CHART ── */}
           {activeTab === 'skills' && (
-            <div>
+            <div key="tab-skills" className="motion-page-enter">
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
                   Đánh giá 5 Kỹ năng Cốt lõi
                 </h3>
                 <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
@@ -1087,13 +1278,13 @@ export const ProfilePage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Grid 2 phần nằm cạnh nhau: Sliders bên trái + Radar Chart bên phải */}
+              {/* Grid 2 phần nằm cạnh nhau: Sliders bên trái + Radar Chart rộng rãi bên phải */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 300px',
+                  gridTemplateColumns: '1fr 415px',
                   gap: '1.5rem',
-                  alignItems: 'center',
+                  alignItems: 'stretch',
                   marginBottom: '1.5rem',
                 }}
               >
@@ -1105,7 +1296,7 @@ export const ProfilePage: React.FC = () => {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         1. Tech (Kỹ thuật & Phát triển sản phẩm)
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-color, #F26F21)', fontFamily: 'monospace' }}>
                         {techScore} / 100
                       </span>
                     </div>
@@ -1115,7 +1306,7 @@ export const ProfilePage: React.FC = () => {
                       max={100}
                       value={techScore}
                       onChange={(e) => setTechScore(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                     />
                   </div>
 
@@ -1125,7 +1316,7 @@ export const ProfilePage: React.FC = () => {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         2. Management (Quản lý & Tổ chức nhóm)
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-color, #F26F21)', fontFamily: 'monospace' }}>
                         {managementScore} / 100
                       </span>
                     </div>
@@ -1135,10 +1326,10 @@ export const ProfilePage: React.FC = () => {
                       max={100}
                       value={managementScore}
                       onChange={(e) => setManagementScore(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                     />
-                    <div style={{ fontSize: '13px', color: '#0369A1', marginTop: '4px', fontStyle: 'italic' }}>
-                      ⭐ <em>Chỉ số dùng để xét chọn Trưởng nhóm khi ghép nhóm tự động cuối kỳ</em>
+                    <div style={{ fontSize: '12.5px', color: '#64748B', marginTop: '4px' }}>
+                      Chỉ số dùng để xét chọn Trưởng nhóm khi ghép nhóm tự động cuối kỳ
                     </div>
                   </div>
 
@@ -1148,7 +1339,7 @@ export const ProfilePage: React.FC = () => {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         3. Graphic Design (Thiết kế & Thẩm mỹ UI/UX)
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-color, #F26F21)', fontFamily: 'monospace' }}>
                         {graphicDesignScore} / 100
                       </span>
                     </div>
@@ -1158,7 +1349,7 @@ export const ProfilePage: React.FC = () => {
                       max={100}
                       value={graphicDesignScore}
                       onChange={(e) => setGraphicDesignScore(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                     />
                   </div>
 
@@ -1168,7 +1359,7 @@ export const ProfilePage: React.FC = () => {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         4. Marketing (Truyền thông & Nghiên cứu thị trường)
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-color, #F26F21)', fontFamily: 'monospace' }}>
                         {marketingScore} / 100
                       </span>
                     </div>
@@ -1178,7 +1369,7 @@ export const ProfilePage: React.FC = () => {
                       max={100}
                       value={marketingScore}
                       onChange={(e) => setMarketingScore(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                     />
                   </div>
 
@@ -1188,7 +1379,7 @@ export const ProfilePage: React.FC = () => {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                         5. Sale (Phát triển kinh doanh & Thuyết trình)
                       </span>
-                      <span style={{ fontSize: '15px', fontWeight: 800, color: '#F27024', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--accent-color, #F26F21)', fontFamily: 'monospace' }}>
                         {saleScore} / 100
                       </span>
                     </div>
@@ -1198,7 +1389,7 @@ export const ProfilePage: React.FC = () => {
                       max={100}
                       value={saleScore}
                       onChange={(e) => setSaleScore(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: '#F27024', cursor: 'pointer' }}
+                      style={{ width: '100%', accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                     />
                   </div>
                 </div>
@@ -1254,7 +1445,7 @@ export const ProfilePage: React.FC = () => {
                     id="commitment-checkbox"
                     checked={isCommitted}
                     onChange={(e) => setIsCommitted(e.target.checked)}
-                    style={{ marginTop: 3, width: 16, height: 16, accentColor: '#F27024', cursor: 'pointer' }}
+                    style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--accent-color, #F26F21)', cursor: 'pointer' }}
                   />
                   <label
                     htmlFor="commitment-checkbox"
@@ -1271,10 +1462,10 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <div style={{ fontSize: '14px', color: isCommitted ? '#15803D' : '#DC2626' }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: 500, color: isCommitted ? '#15803D' : '#DC2626' }}>
                     {isCommitted
-                      ? '✓ Đã xác nhận cam kết trách nhiệm'
-                      : '⚠️ Bạn phải tích chọn cam kết trước khi có thể lưu hồ sơ'}
+                      ? 'Đã xác nhận cam kết trách nhiệm'
+                      : 'Vui lòng tích chọn cam kết trước khi lưu hồ sơ'}
                   </div>
 
                   <button
@@ -1284,7 +1475,7 @@ export const ProfilePage: React.FC = () => {
                     style={{
                       padding: '10px 22px',
                       borderRadius: 12,
-                      backgroundColor: isCommitted ? '#F27024' : '#CBD5E1',
+                      backgroundColor: isCommitted ? 'var(--accent-color, #F26F21)' : '#CBD5E1',
                       border: 'none',
                       color: '#FFFFFF',
                       fontSize: '15.5px',
@@ -1419,7 +1610,7 @@ export const ProfilePage: React.FC = () => {
                   style={{
                     padding: '10px 22px',
                     borderRadius: 12,
-                    backgroundColor: '#F27024',
+                    backgroundColor: 'var(--accent-color, #F26F21)',
                     border: 'none',
                     color: '#FFFFFF',
                     fontSize: '15.5px',

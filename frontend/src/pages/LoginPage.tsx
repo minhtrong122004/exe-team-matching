@@ -7,7 +7,7 @@ import {
   Users,
   HelpCircle,
   CheckCircle2,
-} from 'lucide-react';
+} from '../utils/icons';
 import { useAuth } from '../contexts/AuthContext';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';

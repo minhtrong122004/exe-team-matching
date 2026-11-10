@@ -1,8 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Montserrat:wght@600;700;800;900&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto+Slab:wght@800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 :root {
-  --font-sans: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Be Vietnam Pro', 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* FPT Education Brand Identity */
@@ -18,6 +18,13 @@
   --primary-hover: #e05e10;
   --primary-light: #fff7ed;
   --primary-border: #fed7aa;
+
+  --accent-color: #f26f21;
+  --accent-hover: #ea580c;
+  --accent-gradient: linear-gradient(135deg, #f26f21 0%, #ea580c 100%);
+  --accent-shadow: rgba(242, 111, 33, 0.28);
+  --accent-ring: rgba(242, 111, 33, 0.16);
+  --accent-soft: rgba(242, 111, 33, 0.12);
   
   --secondary: #2563eb;
   --secondary-hover: #1d4ed8;
@@ -43,9 +50,9 @@
   --border-subtle: #f1f5f9;
   --border-medium: #cbd5e1;
 
-  --pill-active-bg: #0f172a;
+  --pill-active-bg: #f26f21;
   --pill-active-text: #ffffff;
-  --pill-active-border: #0f172a;
+  --pill-active-border: #f26f21;
   --pill-inactive-bg: #ffffff;
   --pill-inactive-text: #475569;
   --pill-inactive-border: #e2e8f0;
@@ -59,6 +66,27 @@
   --info: #06b6d4;
   --info-light: #ecfeff;
 
+  /* Standardized System-Wide Semantic Status & Progress Tokens */
+  --status-forming: #10b981;
+  --status-forming-bg: #ecfdf5;
+  --status-forming-text: #059669;
+  --status-forming-border: #a7f3d0;
+
+  --status-recruiting: #f26f21;
+  --status-recruiting-bg: #fff7ed;
+  --status-recruiting-text: #ea580c;
+  --status-recruiting-border: #fed7aa;
+
+  --status-closed: #64748b;
+  --status-closed-bg: #f1f5f9;
+  --status-closed-text: #475569;
+  --status-closed-border: #e2e8f0;
+
+  --status-progress: #7c3aed;
+  --status-progress-bg: #f5f3ff;
+  --status-progress-text: #6d28d9;
+  --status-progress-border: #ddd6fe;
+
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.07);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
@@ -70,6 +98,20 @@
 
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Linear / Vercel / Notion Precision Motion Design System ── */
+  --motion-micro: 135ms;
+  --motion-hover: 165ms;
+  --motion-component: 200ms;
+  --motion-overlay: 210ms;
+  --motion-sidebar: 270ms;
+  --motion-page: 240ms;
+  --motion-stagger: 45ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring-subtle: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root[data-theme='dark'], html[data-theme='dark'], html.dark, .dark, [data-theme='dark'] {
@@ -235,57 +277,25 @@
   color: #fb923c !important;
 }
 
-/* Soft Pastel Avatars */
-.avatar-pastel-0 {
-  background-color: #FFF7ED;
-  color: #EA580C;
-  border: 1px solid #FFEDD5;
-}
-.avatar-pastel-1 {
-  background-color: #EFF6FF;
-  color: #2563EB;
-  border: 1px solid #DBEAFE;
-}
-.avatar-pastel-2 {
-  background-color: #F5F3FF;
-  color: #7C3AED;
-  border: 1px solid #EDE9FE;
-}
-.avatar-pastel-3 {
-  background-color: #ECFDF5;
-  color: #059669;
-  border: 1px solid #A7F3D0;
-}
+/* Calm Neutral Slate Avatars */
+.avatar-pastel-0,
+.avatar-pastel-1,
+.avatar-pastel-2,
+.avatar-pastel-3,
 .avatar-pastel-4 {
-  background-color: #FFF1F2;
-  color: #E11D48;
-  border: 1px solid #FFE4E6;
+  background-color: #F1F5F9;
+  color: #334155;
+  border: 1px solid #E2E8F0;
 }
 
-[data-theme='dark'] .avatar-pastel-0 {
-  background-color: rgba(242, 111, 33, 0.18) !important;
-  color: #FB923C !important;
-  border-color: rgba(242, 111, 33, 0.35) !important;
-}
-[data-theme='dark'] .avatar-pastel-1 {
-  background-color: rgba(37, 99, 235, 0.18) !important;
-  color: #60A5FA !important;
-  border-color: rgba(37, 99, 235, 0.35) !important;
-}
-[data-theme='dark'] .avatar-pastel-2 {
-  background-color: rgba(124, 58, 237, 0.18) !important;
-  color: #A78BFA !important;
-  border-color: rgba(124, 58, 237, 0.35) !important;
-}
-[data-theme='dark'] .avatar-pastel-3 {
-  background-color: rgba(16, 185, 129, 0.18) !important;
-  color: #34D399 !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-}
+[data-theme='dark'] .avatar-pastel-0,
+[data-theme='dark'] .avatar-pastel-1,
+[data-theme='dark'] .avatar-pastel-2,
+[data-theme='dark'] .avatar-pastel-3,
 [data-theme='dark'] .avatar-pastel-4 {
-  background-color: rgba(225, 29, 72, 0.18) !important;
-  color: #FB7185 !important;
-  border-color: rgba(225, 29, 72, 0.35) !important;
+  background-color: #1E293B !important;
+  color: #E2E8F0 !important;
+  border-color: #334155 !important;
 }
 
 /* Polished Card Action Buttons */
@@ -363,8 +373,10 @@
 }
 
 body {
-  font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  font-size: 15.5px;
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: 400;
+  letter-spacing: -0.011em;
   background-color: var(--bg-main);
   color: var(--text-main);
   line-height: 1.5;
@@ -419,13 +431,13 @@ input, select, textarea {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #f26f21 0%, #ea580c 100%);
+  background: var(--accent-gradient, var(--primary));
   color: white;
-  box-shadow: 0 2px 4px rgba(242, 111, 33, 0.25);
+  box-shadow: 0 2px 6px var(--accent-shadow, rgba(242, 111, 33, 0.22));
 }
 .btn-primary:hover {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-  box-shadow: 0 4px 8px rgba(242, 111, 33, 0.35);
+  background: var(--primary-hover, #ea580c);
+  box-shadow: 0 4px 10px var(--accent-shadow, rgba(242, 111, 33, 0.3));
   transform: translateY(-1px);
 }
 
@@ -902,4 +914,445 @@ input, select, textarea {
   background-color: var(--bg-input, #0f172a) !important;
   color: var(--text-main, #f8fafc) !important;
   border-color: var(--border-medium, #334460) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   PREMIUM MOTION DESIGN & MICRO-INTERACTIONS (Linear / Vercel / Notion System)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Core Keyframes (Transform & Opacity Only — GPU Accelerated, Zero Layout Shift) */
+@keyframes motionPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motionStaggerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes motionDropdownEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes motionBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes motionModalEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.965) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes motionProgressGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes motionClearBtnIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes motionBellSwing {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(10deg); }
+  55% { transform: rotate(-8deg); }
+  80% { transform: rotate(4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes motionShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes motionSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 2. Page Content & Staggered Section/Grid Entrance */
+.motion-page-enter {
+  animation: motionPageEnter var(--motion-page) var(--ease-out) both;
+}
+
+.motion-stagger-item {
+  animation: motionStaggerEnter var(--motion-page) var(--ease-out) both;
+  animation-delay: calc(var(--stagger-index, 0) * var(--motion-stagger));
+}
+
+/* 3. Sidebar Navigation, Active Indicator & Collapsed Floating Tooltip */
+.motion-sidebar-shell {
+  transition:
+    width var(--motion-sidebar) var(--ease-spring-subtle),
+    background-color var(--motion-component) var(--ease-in-out),
+    border-color var(--motion-component) var(--ease-in-out) !important;
+}
+
+.motion-main-content-shell {
+  transition: margin-left var(--motion-sidebar) var(--ease-spring-subtle) !important;
+}
+
+.motion-sidebar-link {
+  position: relative;
+  transition:
+    background-color var(--motion-hover) var(--ease-in-out),
+    color var(--motion-hover) var(--ease-in-out),
+    transform var(--motion-micro) var(--ease-out) !important;
+}
+
+.motion-sidebar-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--accent-color, #F26F21);
+  transform: translateY(-50%) scaleY(0);
+  opacity: 0;
+  transition:
+    transform var(--motion-component) var(--ease-spring-subtle),
+    opacity var(--motion-component) var(--ease-out),
+    background-color var(--motion-component) var(--ease-in-out);
+  pointer-events: none;
+}
+
+.motion-sidebar-link.is-active-nav::before {
+  transform: translateY(-50%) scaleY(1);
+  opacity: 1;
+}
+
+.motion-sidebar-link:active {
+  transform: scale(0.985);
+}
+
+.motion-sidebar-icon {
+  transition:
+    color var(--motion-hover) var(--ease-in-out),
+    transform var(--motion-hover) var(--ease-spring-subtle) !important;
+}
+
+.motion-sidebar-link:hover .motion-sidebar-icon {
+  transform: scale(1.06);
+}
+
+/* Floating Tooltip for Collapsed Sidebar Items */
+[data-sidebar-tooltip] {
+  position: relative;
+}
+
+[data-sidebar-tooltip]::after {
+  content: attr(data-sidebar-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  background-color: #0F172A;
+  color: #F8FAFC;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 5px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition:
+    opacity var(--motion-micro) var(--ease-out),
+    transform var(--motion-micro) var(--ease-out);
+  z-index: 200;
+}
+
+[data-sidebar-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* 4. Topbar Controls, Dropdowns & Popovers */
+.motion-topbar-btn {
+  transition:
+    background-color var(--motion-hover) var(--ease-in-out),
+    color var(--motion-hover) var(--ease-in-out),
+    transform var(--motion-micro) var(--ease-out) !important;
+}
+
+.motion-topbar-btn:hover {
+  background-color: var(--bg-sidebar-hover, #F8FAFC) !important;
+  color: var(--text-main, #0F172A) !important;
+}
+
+[data-theme='dark'] .motion-topbar-btn:hover {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+.motion-topbar-btn:active {
+  transform: scale(0.94);
+}
+
+.motion-theme-btn svg {
+  transition: transform var(--motion-component) var(--ease-spring-subtle);
+}
+
+.motion-theme-btn:hover svg {
+  transform: rotate(-14deg) scale(1.06);
+}
+
+.motion-bell-btn:hover svg {
+  animation: motionBellSwing 320ms var(--ease-in-out);
+}
+
+.motion-dropdown-menu {
+  animation: motionDropdownEnter var(--motion-overlay) var(--ease-out) both !important;
+  transform-origin: top right;
+}
+
+.motion-dropdown-menu-left {
+  animation: motionDropdownEnter var(--motion-overlay) var(--ease-out) both !important;
+  transform-origin: top left;
+}
+
+.motion-dropdown-item {
+  transition:
+    background-color var(--motion-micro) var(--ease-in-out),
+    border-color var(--motion-micro) var(--ease-in-out),
+    transform var(--motion-micro) var(--ease-out) !important;
+}
+
+.motion-dropdown-item:active {
+  transform: scale(0.99);
+}
+
+/* 5. Buttons — Tactile Hover & Subtle Press Feedback */
+button:not(:disabled),
+.btn {
+  transition:
+    background-color var(--motion-hover) var(--ease-in-out),
+    border-color var(--motion-hover) var(--ease-in-out),
+    color var(--motion-hover) var(--ease-in-out),
+    box-shadow var(--motion-hover) var(--ease-out),
+    transform var(--motion-micro) var(--ease-out);
+}
+
+button:not(:disabled):active,
+.btn:not(:disabled):active {
+  transform: scale(0.98) translateY(0) !important;
+  transition-duration: 90ms !important;
+}
+
+.motion-cta-btn {
+  transition:
+    background-color var(--motion-hover) var(--ease-in-out),
+    border-color var(--motion-hover) var(--ease-in-out),
+    color var(--motion-hover) var(--ease-in-out),
+    box-shadow var(--motion-hover) var(--ease-out),
+    transform var(--motion-hover) var(--ease-spring-subtle) !important;
+}
+
+.motion-cta-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.12);
+}
+
+.motion-cta-btn .motion-arrow {
+  display: inline-block;
+  transition: transform var(--motion-hover) var(--ease-spring-subtle);
+}
+
+.motion-cta-btn:hover .motion-arrow {
+  transform: translateX(2.5px);
+}
+
+/* 6. Interactive Cards — Subtle 2–3px Hover Elevation & Border/Shadow Polish */
+.motion-card-interactive,
+.project-card-interactive {
+  transition:
+    transform var(--motion-hover) var(--ease-spring-subtle),
+    box-shadow var(--motion-hover) var(--ease-out),
+    border-color var(--motion-hover) var(--ease-in-out),
+    background-color var(--motion-hover) var(--ease-in-out) !important;
+}
+
+.motion-card-interactive:hover,
+.project-card-interactive:hover {
+  transform: translateY(-2.5px);
+  border-color: var(--border-medium, #CBD5E1) !important;
+  box-shadow:
+    0 10px 24px -6px rgba(15, 23, 42, 0.075),
+    0 4px 10px -3px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-theme='dark'] .motion-card-interactive:hover,
+[data-theme='dark'] .project-card-interactive:hover {
+  border-color: #3B4C6B !important;
+  box-shadow:
+    0 12px 28px -6px rgba(0, 0, 0, 0.42),
+    0 4px 10px -2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 7. Segmented Tabs & Filter Pills */
+.motion-tab-pill {
+  transition:
+    background-color var(--motion-component) var(--ease-in-out),
+    color var(--motion-component) var(--ease-in-out),
+    border-color var(--motion-component) var(--ease-in-out),
+    box-shadow var(--motion-component) var(--ease-out),
+    transform var(--motion-micro) var(--ease-out) !important;
+}
+
+.motion-tab-pill:hover:not(.is-active-tab) {
+  color: var(--text-main, #0F172A) !important;
+  background-color: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme='dark'] .motion-tab-pill:hover:not(.is-active-tab) {
+  color: #F8FAFC !important;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* 8. Search Input Focus Ring & Clear Button Micro-Interaction */
+.motion-search-wrap svg.motion-search-icon {
+  transition: color var(--motion-hover) var(--ease-in-out), transform var(--motion-hover) var(--ease-spring-subtle);
+}
+
+.motion-search-wrap:focus-within svg.motion-search-icon {
+  color: var(--accent-color, #F26F21) !important;
+  transform: scale(1.05);
+}
+
+.motion-search-input {
+  transition:
+    border-color var(--motion-hover) var(--ease-out),
+    box-shadow var(--motion-hover) var(--ease-out),
+    background-color var(--motion-hover) var(--ease-out) !important;
+}
+
+.motion-search-input:hover:not(:focus) {
+  border-color: var(--border-medium, #CBD5E1) !important;
+}
+
+.motion-search-input:focus {
+  background-color: var(--bg-card, #FFFFFF) !important;
+  border-color: var(--accent-color, #F26F21) !important;
+  box-shadow: 0 0 0 3px var(--accent-ring, rgba(242, 111, 33, 0.15)) !important;
+}
+
+.motion-clear-btn {
+  animation: motionClearBtnIn var(--motion-micro) var(--ease-out) both;
+  transition:
+    color var(--motion-micro) var(--ease-in-out),
+    background-color var(--motion-micro) var(--ease-in-out),
+    transform var(--motion-micro) var(--ease-out) !important;
+  border-radius: 6px;
+}
+
+.motion-clear-btn:hover {
+  color: var(--text-main, #0F172A) !important;
+  background-color: var(--bg-tag, #F1F5F9);
+}
+
+/* 9. Modals & Dialog Overlays */
+.modal-overlay,
+.motion-modal-backdrop {
+  animation: motionBackdropFadeIn var(--motion-component) var(--ease-out) both;
+}
+
+.modal-content,
+.motion-modal-dialog {
+  animation: motionModalEnter var(--motion-overlay) var(--ease-out) both !important;
+}
+
+/* 10. Progress Bars & Radar Chart Transitions */
+.motion-progress-fill {
+  transform-origin: left center;
+  animation: motionProgressGrow 320ms var(--ease-out) both;
+  transition:
+    width 240ms var(--ease-spring-subtle),
+    background-color var(--motion-component) var(--ease-in-out) !important;
+}
+
+.motion-radar-polygon {
+  transition: all 240ms var(--ease-spring-subtle);
+}
+
+/* 11. Loading States: Skeleton Shimmer & Smooth Spinner */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-subtle, #F8FAFC) 25%,
+    var(--bg-tag, #F1F5F9) 50%,
+    var(--bg-subtle, #F8FAFC) 75%
+  );
+  background-size: 200% 100%;
+  animation: motionShimmer 1.6s ease-in-out infinite;
+}
+
+.spinner-smooth {
+  animation: motionSpin 0.85s linear infinite;
+}
+
+/* 12. Accessibility: Respect User Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-card-interactive:hover,
+  .project-card-interactive:hover,
+  .motion-cta-btn:hover,
+  button:active,
+  .btn:active {
+    transform: none !important;
+  }
 }
