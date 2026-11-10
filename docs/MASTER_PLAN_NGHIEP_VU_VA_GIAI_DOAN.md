@@ -109,6 +109,10 @@ Mỗi giai đoạn dưới đây được thiết kế theo nguyên tắc **Vert
    - `PUT /api/users/me/profile-skills`: Sinh viên cập nhật 5 chỉ số kỹ năng (`Tech`, `Management`, `GraphicDesign`, `Marketing`, `Sale`), `Bio`, `DesiredRole` và bắt buộc `IsCommitted = true`.
    - **Chặn sửa `StudentCode`, `Major`, `Cohort`** trong request cập nhật của sinh viên (`BR-04`).
    - Khi lưu thành công, phát event `UserProfileUpdated` (kèm `IsProfileCompleted` và 5 điểm kỹ năng) qua Redis Streams.
+   - **Đồng bộ trạng thái Availability (`LookingForTeam` ↔ `InTeam`) qua Background Consumers**:
+     - `MemberJoinedConsumer`: Lắng nghe sự kiện `MemberJoined` từ Redis Streams $\rightarrow$ cập nhật `UserProfile.Availability = InTeam`.
+     - `MemberLeftConsumer`: Lắng nghe sự kiện `MemberLeft` $\rightarrow$ cập nhật `UserProfile.Availability = LookingForTeam`.
+     - Cả hai Consumer được xử lý Idempotent thông qua bảng `ProcessedEvents` trong `ExeUserDb`.
 
 #### 2.2. Kiểm thử trên Swagger (`http://localhost:5002/swagger`)
 - Gọi `GET /api/users/me` bằng token `Student` → Xác nhận `StudentCode`, `Major`, `Cohort` đã tự động hiển thị đúng từ dữ liệu FAP.
@@ -182,13 +186,16 @@ Mỗi giai đoạn dưới đây được thiết kế theo nguyên tắc **Vert
    - `GET /api/spaces/{spaceId}/rooms?status=&availableSlots=&search=&page=&pageSize=`: Lọc theo trạng thái (`Empty`, `Forming`, `Recruiting`, `Closed`, `Locked`) và số chỗ còn trống.
    - Với các phòng ở trạng thái `Closed` (đã đủ người hoặc đã đóng tuyển), nếu người gọi là `Student` ngoài nhóm thì **ẩn bớt danh sách chi tiết email/hồ sơ thành viên và đơn ứng tuyển** (`BR-13`). (Riêng `Moderator` và `Lecturer` luôn xem được đầy đủ 100%).
 3. **API Vào thẳng Room dưới ngưỡng (`POST /api/rooms/{roomId}/join-direct`) (`BR-14`, `BR-15`, `BR-16`, `BR-21`, `BR-26`)**:
+   - **Kiểm tra hoàn thành hồ sơ (BR-07) qua Event-driven Read Model**:
+     - Group Service bổ sung `UserProfileUpdatedConsumer` lắng nghe sự kiện `UserProfileUpdated` từ User Service và cập nhật `SpaceEnrollment.IsProfileCompleted = true`.
+     - Khi sinh viên gọi `join-direct` hoặc `Apply`, Group Service đọc trực tiếp cờ `IsProfileCompleted` trong bảng `SpaceEnrollment` nội bộ (tốc độ $< 1\text{ms}$, không Temporal Coupling với User Service). Nếu phát hiện cache miss (vừa lưu hồ sơ xong bấm phòng ngay), hệ thống tự động fallback gọi REST sang User Service 1 lần và self-heal cập nhật vào `SpaceEnrollment`.
    - Kiểm tra: Space đang `Open`, sinh viên thuộc `SpaceEnrollment`, đã hoàn thành hồ sơ 5 kỹ năng (`BR-07`), và **chưa ở trong bất kỳ Room/Group nào của môn này** (`BR-21`).
    - Kiểm tra phòng đang ở trạng thái `Empty` hoặc `Forming` (`MemberCount < GroupThreshold`, tức 0, 1 hoặc 2 người).
    - Thêm sinh viên vào phòng ngay lập tức không cần duyệt:
      - Nếu phòng đang `Empty` (0 người): Sinh viên này tự động nhận `Role = Leader`, `Room.LeaderId = studentId`, trạng thái phòng chuyển sang `Forming` (`1/5`) (`BR-15`).
      - Nếu phòng đang `Forming` (1 hoặc 2 người): Sinh viên nhận `Role = Member`.
      - **Kiểm tra chạm ngưỡng (`BR-16`)**: Sau khi thêm, nếu `MemberCount == GroupThreshold` (ví dụ đạt `3/5` người) → Tự động chuyển trạng thái phòng từ `Forming` sang **`Recruiting` (Group đang tuyển)**, khóa cổng vào thẳng!
-     - **Hủy đơn chờ khác (`BR-26`)**: Mọi đơn Apply `Pending` của sinh viên này ở các Group khác trong cùng môn tự động chuyển sang **`Cancelled`**.
+     - **Hủy đơn chờ khác (`BR-26`) qua Local Transaction nội bộ**: Mọi đơn Apply và lời mời `Pending` khác của sinh viên này trong cùng môn tự động chuyển sang **`Cancelled`** ngay trong cùng database transaction của `ExeGroupDb` (đảm bảo tính nhất quán tức thì và ngăn chặn tuyệt đối Race Condition sinh viên bị lọt vào 2 nhóm; không dùng Event-driven cho xử lý này).
 4. **Luồng Rời phòng / Rời nhóm (`POST /api/rooms/{roomId}/leave`) (`BR-17`, `BR-20`, `BR-29`)**:
    - Chỉ cho phép rời khi Space đang `Open` (chưa hết hạn đăng ký và chưa chốt sổ). Cho phép rời ngay cả khi nhóm đang ở trạng thái `Closed` (Đóng tuyển) theo `BR-29`.
    - **Nếu người rời là `Leader` (`BR-20`)**:
@@ -260,7 +267,10 @@ Mỗi giai đoạn dưới đây được thiết kế theo nguyên tắc **Vert
      - **Input**: Danh sách toàn bộ sinh viên lẻ (chưa có nhóm, kèm 5 điểm kỹ năng + `Major`), danh sách các Room đang có người nhưng chưa đủ sĩ số (`1–4 người`), danh sách các Room trống (`0 người`), cùng `MaxMembers` (5) và `GroupThreshold` (3).
      - **Thuật toán xử lý trong `Matching.Services`**:
        1. *Bước 1*: Lấp các Room đang có người nhưng chưa đủ (`1–4 người`) trước (ưu tiên cứu các Room `1–2 người` lên đủ ngưỡng `3 người`, sau đó lấp lên `5 người`), mỗi bước chọn sinh viên lẻ giúp **tối ưu độ cân bằng 5 kỹ năng và đa dạng chuyên ngành** của phòng đó; **giữ nguyên Leader hiện tại của các phòng này** (`BR-31`).
-       2. *Bước 2*: Với số sinh viên lẻ còn dư, phân bổ vào các Room trống để tạo các nhóm mới (cân đối sĩ số để không có nhóm mới nào bị lẻ 1–2 người dưới ngưỡng).
+       2. *Bước 2 (Balancing Partition)*: Với số sinh viên lẻ còn dư, phân bổ vào các Room trống để tạo các nhóm mới theo quy tắc cân đối sĩ số toán học:
+          - **Quy tắc ngưỡng bắt buộc (BR-16)**: Mọi nhóm mới tạo đều phải đạt sĩ số từ `GroupThreshold` (3 người) đến `MaxMembers` (5 người).
+          - **Nếu số sinh viên lẻ còn lại $< 3$ người**: Thuật toán **tuyệt đối không tạo nhóm mới** (không tạo nhóm 1–2 người vi phạm BR-16), giữ lại trong `TotalRemaining` để Moderator xử lý riêng.
+          - **Nếu số sinh viên lẻ $N \ge 3$**: Tự động phân rã $N$ thành các nhóm cân bằng (ví dụ: $6 \rightarrow [3, 3]$; $7 \rightarrow [4, 3]$; $8 \rightarrow [4, 4]$; $11 \rightarrow [4, 4, 3]$) để tất cả các nhóm mới đều đủ điều kiện làm đề tài.
        3. *Bước 3*: Trong mỗi nhóm mới được tạo từ Room trống, tự động chọn **sinh viên có điểm `ManagementScore` cao nhất làm `Leader`** (nếu bằng điểm thì xét tổng điểm 5 kỹ năng) (`BR-32`).
 2. **Xây dựng API Điều phối cuối kỳ cho `Moderator` trên `Group Service`**:
    - Background Job `RegistrationDeadlineJob` (hoặc API `PUT /api/spaces/{spaceId}/close-registration`): Chuyển Space sang `ClosedRegistration` khi hết hạn đăng ký, khóa việc sinh viên tự vào/rời nhóm và lọc ra danh sách SV lẻ + Room thiếu người (`BR-30`).

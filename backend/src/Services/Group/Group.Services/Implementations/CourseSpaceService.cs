@@ -295,7 +295,8 @@ public partial class CourseSpaceService(
             e.Major,
             e.Cohort,
             e.ClassCode,
-            e.EnrolledAt
+            e.EnrolledAt,
+            e.IsProfileCompleted
         )).ToList();
     }
 

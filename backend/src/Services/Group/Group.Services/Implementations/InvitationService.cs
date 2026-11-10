@@ -19,6 +19,7 @@ namespace Group.Services.Implementations;
 public class InvitationService(
     IGroupRepository groups,
     IInvitationRepository invitations,
+    ICourseSpaceRepository spaceRepo,
     IGroupUnitOfWork uow,
     GroupMembershipManager membership,
     IUserClient userClient,
@@ -100,9 +101,32 @@ public class InvitationService(
 
     public async Task<InvitationResponse> AcceptAsync(Guid id, CancellationToken ct = default)
     {
+        var studentId = currentUser.UserId;
+
         // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi tham gia nhóm
-        var profile = await userClient.GetProfileAsync(currentUser.UserId, ct);
-        if (profile == null || !profile.IsProfileCompleted)
+        // Tối ưu Event-driven: Ưu tiên đọc cờ IsProfileCompleted nội bộ từ SpaceEnrollment, fallback sang REST nếu chưa đồng bộ
+        bool isProfileCompleted = false;
+        var enrolledSpaces = await spaceRepo.GetSpacesForStudentAsync(studentId, currentUser.Email, ct);
+        if (enrolledSpaces.Count > 0)
+        {
+            var enrollment = await spaceRepo.GetEnrollmentAsync(enrolledSpaces[0].Id, studentId, ct);
+            if (enrollment != null && enrollment.IsProfileCompleted)
+            {
+                isProfileCompleted = true;
+            }
+        }
+
+        if (!isProfileCompleted)
+        {
+            var profile = await userClient.GetProfileAsync(studentId, ct);
+            if (profile != null && profile.IsProfileCompleted)
+            {
+                isProfileCompleted = true;
+                await spaceRepo.UpdateProfileCompletionAsync(studentId, true, ct);
+            }
+        }
+
+        if (!isProfileCompleted)
         {
             throw new BusinessRuleException("PROFILE_INCOMPLETE",
                 "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi chấp nhận lời mời vào nhóm (BR-07).");

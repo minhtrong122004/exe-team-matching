@@ -158,6 +158,22 @@ public class CourseSpaceRepository(GroupDbContext db) : ICourseSpaceRepository
                            (t.RequesterStudentId == studentId || t.SwapWithStudentId == studentId), ct);
     }
 
+    public async Task UpdateProfileCompletionAsync(Guid studentId, bool isCompleted, CancellationToken ct = default)
+    {
+        var enrollments = await db.SpaceEnrollments
+            .Where(e => e.StudentId == studentId)
+            .ToListAsync(ct);
+
+        if (enrollments.Count == 0) return;
+
+        foreach (var e in enrollments)
+        {
+            e.IsProfileCompleted = isCompleted;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public void Add(CourseSpace space) => db.CourseSpaces.Add(space);
 
     public void AddEnrollment(SpaceEnrollment enrollment) => db.SpaceEnrollments.Add(enrollment);

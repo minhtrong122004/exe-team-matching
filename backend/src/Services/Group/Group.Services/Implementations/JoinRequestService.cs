@@ -31,18 +31,11 @@ public class JoinRequestService(
         await createValidator.ValidateAndThrowAsync(request, ct);
         var studentId = currentUser.UserId;
 
-        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
-        var profile = await userClient.GetProfileAsync(studentId, ct);
-        if (profile == null || !profile.IsProfileCompleted)
-        {
-            throw new BusinessRuleException("PROFILE_INCOMPLETE",
-                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi nộp đơn Apply (BR-07).");
-        }
-
         var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
 
         // BR-30: Kiểm tra trạng thái Space trước tiên
         var limit = options.Value.MaxPendingJoinRequests;
+        SpaceEnrollment? currentEnrollment = null;
         if (group.SpaceId.HasValue)
         {
             var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
@@ -54,7 +47,27 @@ public class JoinRequestService(
                         "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.");
                 }
                 limit = space.MaxConcurrentApplies;
+                currentEnrollment = await spaceRepo.GetEnrollmentAsync(space.Id, studentId, ct);
             }
+        }
+
+        // BR-07: Bắt buộc hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào Room hoặc Apply
+        // Tối ưu Event-driven: Ưu tiên đọc cờ IsProfileCompleted nội bộ từ SpaceEnrollment, fallback sang REST nếu chưa đồng bộ
+        bool isProfileCompleted = currentEnrollment?.IsProfileCompleted ?? false;
+        if (!isProfileCompleted)
+        {
+            var profile = await userClient.GetProfileAsync(studentId, ct);
+            if (profile != null && profile.IsProfileCompleted)
+            {
+                isProfileCompleted = true;
+                await spaceRepo.UpdateProfileCompletionAsync(studentId, true, ct);
+            }
+        }
+
+        if (!isProfileCompleted)
+        {
+            throw new BusinessRuleException("PROFILE_INCOMPLETE",
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi nộp đơn Apply (BR-07).");
         }
 
         // BR-04: không gửi tới nhóm mình đang ở.

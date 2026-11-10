@@ -653,3 +653,24 @@ END;
 
 COMMIT;
 GO
+
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109014349_AddIsProfileCompletedToSpaceEnrollment'
+)
+BEGIN
+    ALTER TABLE [SpaceEnrollments] ADD [IsProfileCompleted] bit NOT NULL DEFAULT CAST(0 AS bit);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261109014349_AddIsProfileCompletedToSpaceEnrollment'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261109014349_AddIsProfileCompletedToSpaceEnrollment', N'10.0.12');
+END;
+
+COMMIT;
+GO

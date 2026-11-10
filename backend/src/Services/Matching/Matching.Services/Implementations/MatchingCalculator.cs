@@ -211,29 +211,16 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         }
 
         // Bước 2: Với các sinh viên lẻ còn lại, phân bổ vào các empty rooms (BR-32)
+        // Áp dụng quy tắc cân đối sĩ số (Balancing Partition) đảm bảo mọi nhóm mới đều >= threshold (BR-16)
         var emptyRooms = request.EmptyRooms.ToList();
-        while (unmatched.Count > 0 && emptyRooms.Count > 0)
+        var plannedGroupSizes = CalculateBalancedGroupSizes(unmatched.Count, threshold, maxMembers, emptyRooms.Count);
+
+        foreach (var groupSize in plannedGroupSizes)
         {
+            if (emptyRooms.Count == 0 || unmatched.Count < groupSize) break;
+
             var room = emptyRooms[0];
             emptyRooms.RemoveAt(0);
-
-            int groupSize;
-            if (unmatched.Count <= maxMembers)
-            {
-                groupSize = unmatched.Count;
-            }
-            else
-            {
-                int remainder = unmatched.Count - maxMembers;
-                if (remainder < threshold && remainder > 0)
-                {
-                    groupSize = Math.Max(threshold, unmatched.Count / 2);
-                }
-                else
-                {
-                    groupSize = maxMembers;
-                }
-            }
 
             var newMembers = new List<DistributeCandidateInput>();
             for (int i = 0; i < groupSize && unmatched.Count > 0; i++)
@@ -375,5 +362,64 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         double skillScore = (skillAvgSum / 100.0) * 60.0;
 
         return Math.Round(Math.Clamp(majorDiversity + skillScore, 10.0, 100.0), 1);
+    }
+
+    /// <summary>
+    /// Thuật toán phân rã cân đối sĩ số (Balancing Partition) cho số sinh viên lẻ còn lại (BR-31, BR-32).
+    /// Đảm bảo mọi nhóm mới đều có sĩ số >= threshold (BR-16, mặc định >= 3 người) và <= maxMembers (mặc định 5).
+    /// Nếu số sinh viên không đủ ngưỡng (nhỏ hơn threshold): Trả về danh sách rỗng để không tạo nhóm vi phạm.
+    /// </summary>
+    public static List<int> CalculateBalancedGroupSizes(int totalStudents, int threshold, int maxMembers, int maxRooms)
+    {
+        if (totalStudents < threshold || maxRooms <= 0 || threshold <= 0 || maxMembers < threshold)
+        {
+            return [];
+        }
+
+        int maxPossibleGroups = Math.Min(totalStudents / threshold, maxRooms);
+        if (maxPossibleGroups <= 0)
+        {
+            return [];
+        }
+
+        int bestG = -1;
+        int bestDistributedCount = -1;
+
+        // Ưu tiên chọn g nhóm sao cho phân phối được nhiều sinh viên nhất và cân bằng nhất
+        for (int g = maxPossibleGroups; g >= 1; g--)
+        {
+            int minCap = g * threshold;
+            int maxCap = g * maxMembers;
+
+            if (totalStudents >= minCap)
+            {
+                int distributedForG = Math.Min(totalStudents, maxCap);
+                if (distributedForG > bestDistributedCount)
+                {
+                    bestDistributedCount = distributedForG;
+                    bestG = g;
+                    if (bestDistributedCount == totalStudents)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (bestG <= 0 || bestDistributedCount < threshold)
+        {
+            return [];
+        }
+
+        int baseSize = bestDistributedCount / bestG;
+        int remainder = bestDistributedCount % bestG;
+
+        var result = new List<int>(bestG);
+        for (int i = 0; i < bestG; i++)
+        {
+            result.Add(i < remainder ? baseSize + 1 : baseSize);
+        }
+
+        return result;
     }
 }

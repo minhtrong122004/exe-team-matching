@@ -57,6 +57,7 @@ public class GroupDbContext(DbContextOptions<GroupDbContext> options) : DbContex
             entity.Property(e => e.FullName).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Major).IsRequired().HasMaxLength(20);
             entity.Property(e => e.Cohort).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.IsProfileCompleted).HasDefaultValue(false);
             entity.Property(e => e.ClassCode).HasMaxLength(50);
 
             entity.HasIndex(e => new { e.SpaceId, e.StudentId })

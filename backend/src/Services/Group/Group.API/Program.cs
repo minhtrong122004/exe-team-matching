@@ -22,8 +22,9 @@ builder.Services.AddGroupServices(builder.Configuration);
 // ── 3. Event bus (Redis Streams) — Group chỉ là producer ────────────────────
 builder.Services.AddExeEventBus(builder.Configuration);
 
-// ── 4. Background job ───────────────────────────────────────────────────────
+// ── 4. Background job & Event Consumers ─────────────────────────────────────
 builder.Services.AddHostedService<InvitationExpiryJob>();
+builder.Services.AddHostedService<UserProfileUpdatedConsumer>();
 
 // ═══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();

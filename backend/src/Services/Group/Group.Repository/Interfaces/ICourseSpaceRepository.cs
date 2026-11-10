@@ -20,6 +20,7 @@ public interface ICourseSpaceRepository
     Task<IReadOnlyList<GroupTransferRequest>> GetTransferRequestsBySpaceAsync(Guid spaceId, TransferRequestStatus? status, CancellationToken ct = default);
     Task<IReadOnlyList<GroupTransferRequest>> GetTransferRequestsByStudentAsync(Guid studentId, CancellationToken ct = default);
     Task<bool> HasPendingTransferRequestAsync(Guid spaceId, Guid studentId, CancellationToken ct = default);
+    Task UpdateProfileCompletionAsync(Guid studentId, bool isCompleted, CancellationToken ct = default);
     void Add(CourseSpace space);
     void AddEnrollment(SpaceEnrollment enrollment);
     void AddEnrollmentsRange(IEnumerable<SpaceEnrollment> enrollments);

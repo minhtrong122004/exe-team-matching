@@ -51,7 +51,8 @@ public record SpaceEnrollmentResponse(
     string Major,
     string Cohort,
     string? ClassCode,
-    DateTime EnrolledAt);
+    DateTime EnrolledAt,
+    bool IsProfileCompleted = false);
 
 public record GenerateRoomsResponse(
     Guid SpaceId,

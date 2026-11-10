@@ -63,6 +63,7 @@ export interface SpaceEnrollmentResponse {
   cohort?: string | null;
   classCode?: string | null;
   enrolledAt: string;
+  isProfileCompleted?: boolean;
 }
 
 export interface GenerateRoomsResponse {
