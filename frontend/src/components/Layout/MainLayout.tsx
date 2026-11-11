@@ -13,7 +13,7 @@ import {
 } from './AppearanceCustomizerModal';
 import { notificationsApi } from '../../api/notifications';
 import { useSelectedSpace, selectSpace } from '../../hooks/useSelectedSpace';
-import { SPACE_PHASE, SPACE_STATUS_LABEL } from '../../api/workspace';
+import { SPACE_PHASE, SPACE_STATUS_LABEL, spaceLabel } from '../../api/workspace';
 import type { UserRole, NotificationResponse } from '../../types';
 import {
   Lightbulb,
@@ -530,11 +530,12 @@ export const MainLayout: React.FC = () => {
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  {currentSpace ? `${currentSpace.subjectCode} · ${currentSpace.name}` : 'Chưa có môn học'}
+                  {currentSpace ? spaceLabel(currentSpace) : 'Chưa chọn môn học'}
                 </div>
                 <ChevronDown size={14} color="var(--text-light, #94A3B8)" style={{ flexShrink: 0 }} />
               </div>
 
+              {currentSpace && (<>
               <div
                 style={{
                   display: 'flex',
@@ -589,11 +590,12 @@ export const MainLayout: React.FC = () => {
                   />
                 ))}
               </div>
+              </>)}
             </div>
           ) : (
             <div
               onClick={() => setSpaceMenuOpen(true)}
-              data-sidebar-tooltip={currentSpace ? `${currentSpace.subjectCode} • ${currentSpace.semesterCode} (${spaceStatusLabel})` : 'Chưa có môn học'}
+              data-sidebar-tooltip={currentSpace ? `${spaceLabel(currentSpace)} • ${currentSpace.semesterCode} (${spaceStatusLabel})` : 'Chưa chọn môn học'}
               style={{
                 width: 36,
                 height: 36,
@@ -857,7 +859,7 @@ export const MainLayout: React.FC = () => {
                   color: 'var(--text-light, #94A3B8)',
                 }}
               >
-                TP. HCM
+                {user?.campus ?? ''}
               </span>
             )}
           </button>
@@ -971,11 +973,11 @@ export const MainLayout: React.FC = () => {
                     letterSpacing: '-0.01em',
                   }}
                 >
-                  {currentSpace ? `${currentSpace.subjectCode} — ${currentSpace.name}` : 'Chưa có không gian môn học'}
+                  {currentSpace ? spaceLabel(currentSpace) : 'Chưa chọn môn học'}
                 </span>
 
                 {/* Subtle status dot */}
-                <span
+                {currentSpace && <span
                   title={spaceStatusLabel}
                   style={{
                     width: 6,
@@ -984,7 +986,7 @@ export const MainLayout: React.FC = () => {
                     backgroundColor: spaceDot(currentSpace?.status),
                     flexShrink: 0,
                   }}
-                />
+                />}
 
                 <ChevronDown
                   size={14}
@@ -1042,7 +1044,7 @@ export const MainLayout: React.FC = () => {
                   {spaces.map((s) => ({
                     value: s.id,
                     code: s.subjectCode.slice(-3),
-                    title: `${s.subjectCode} — ${s.name}`,
+                    title: spaceLabel(s),
                     subtitle: `Học kỳ ${s.semesterCode} • ${s.totalStudents} SV • ${s.totalRooms} phòng`,
                     badge: SPACE_STATUS_LABEL[s.status],
                     dotColor: spaceDot(s.status),

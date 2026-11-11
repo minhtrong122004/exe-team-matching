@@ -23,6 +23,8 @@ import {
   Field,
   fieldStyle,
   useToast,
+  useConfirm,
+  InfoTip,
   ROOM_STATUS_DOT,
 } from '../../components/workspace/ui';
 
@@ -44,6 +46,7 @@ export const ModeratorTransfersPage: React.FC = () => {
   const { user } = useAuth();
   const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
   const toast = useToast();
+  const dialog = useConfirm();
 
   const [requests, setRequests] = useState<TransferRequest[]>([]);
   const [groups, setGroups] = useState<RosterGroup[]>([]);
@@ -105,15 +108,16 @@ export const ModeratorTransfersPage: React.FC = () => {
 
   const decide = async (req: TransferRequest, approved: boolean) => {
     if (!space) return;
-    const note = window.prompt(approved ? 'Ghi chú khi duyệt (không bắt buộc):' : 'Lý do từ chối:', '');
+    const note = await dialog.confirm({
+      title: approved ? `Duyệt yêu cầu của ${req.requesterStudentName}?` : `Từ chối yêu cầu của ${req.requesterStudentName}?`,
+      confirmLabel: approved ? 'Duyệt' : 'Từ chối',
+      danger: !approved,
+      input: approved ? { label: 'Ghi chú' } : { label: 'Lý do từ chối', required: true },
+    });
     if (note === null) return;
-    if (!approved && !note.trim()) {
-      toast.show('Vui lòng nhập lý do từ chối.', 'error');
-      return;
-    }
     setDecidingId(req.id);
     try {
-      await workspaceApi.decideTransferRequest(space.id, req.id, approved, note.trim());
+      await workspaceApi.decideTransferRequest(space.id, req.id, approved, note);
       toast.show(approved ? 'Đã duyệt yêu cầu. Danh sách 2 nhóm đã được cập nhật.' : 'Đã từ chối yêu cầu.');
       await load();
     } catch (err) {
@@ -154,9 +158,7 @@ export const ModeratorTransfersPage: React.FC = () => {
 
   const header = (
     <PageHeader
-      section="Điều phối & Học kỳ"
-      title="Quản lý Chuyển nhóm sau Chốt sổ"
-      description="Duyệt yêu cầu chuyển nhóm / đổi chéo của sinh viên và điều chuyển trực tiếp khi cần."
+      title="Chuyển nhóm"
       actions={
         space ? (
           <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
@@ -179,21 +181,20 @@ export const ModeratorTransfersPage: React.FC = () => {
   return (
     <PageShell>
       {toast.node}
+      {dialog.node}
       {header}
 
-      {!isLocked && (
-        <Banner tone="info">
-          Chuyển nhóm chỉ áp dụng sau khi học kỳ <b>{space.subjectCode}</b> đã chốt sổ. Hiện không gian đang ở trạng thái khác nên chưa có yêu cầu nào được xử lý.
-        </Banner>
-      )}
       {error && <Banner tone="error">{error}</Banner>}
+      {!isLocked ? (
+        <StateBox kind="empty" title="Chưa chốt sổ" message="Chuyển nhóm dùng sau khi học kỳ đã chốt sổ ở trang Điều phối." />
+      ) : (
+      <>
 
       {/* Yêu cầu từ sinh viên */}
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardTitle
           icon={<UserCheck size={18} />}
-          title="Yêu cầu chuyển nhóm từ Sinh viên"
-          subtitle="Duyệt sẽ cập nhật ngay danh sách thành viên của hai nhóm"
+          title="Yêu cầu từ sinh viên"
           right={<Pill dot={pendingCount ? '#F59E0B' : '#94A3B8'}>{pendingCount} chờ duyệt</Pill>}
         />
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -277,17 +278,18 @@ export const ModeratorTransfersPage: React.FC = () => {
 
       {/* Điều chuyển trực tiếp */}
       <Card>
-        <CardTitle icon={<ArrowLeftRight size={18} />} title="Công cụ Điều chuyển Trực tiếp" subtitle="Điều phối viên chuyển sinh viên giữa hai nhóm đã chốt sổ" />
-        <Banner tone="info">
-          Nhóm nguồn có {threshold} thành viên trở xuống thì chỉ được đổi chéo 1-1 để không rơi dưới ngưỡng; nhóm đích đã đủ người cũng chỉ đổi chéo được.
-        </Banner>
+        <CardTitle
+          icon={<ArrowLeftRight size={18} />}
+          title="Điều chuyển trực tiếp"
+          right={<InfoTip text={`Nhóm nguồn có ${threshold} người trở xuống, hoặc nhóm đích đã đủ người, thì chỉ đổi chéo 1-1 được.`} />}
+        />
 
         {groups.length === 0 ? (
           <StateBox kind="empty" message={loading ? 'Đang tải danh sách nhóm...' : 'Chưa có nhóm nào có thành viên.'} />
         ) : (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-              <Field label="1. Nhóm nguồn">
+              <Field label="Từ nhóm">
                 <select style={fieldStyle} value={sourceGroupId} disabled={!isLocked} onChange={(e) => setSourceGroupId(e.target.value)}>
                   <option value="">— Chọn nhóm —</option>
                   {groups.map((g) => (
@@ -297,7 +299,7 @@ export const ModeratorTransfersPage: React.FC = () => {
                   ))}
                 </select>
               </Field>
-              <Field label="2. Sinh viên cần chuyển">
+              <Field label="Sinh viên">
                 <select style={fieldStyle} value={studentId} disabled={!sourceGroup} onChange={(e) => setStudentId(e.target.value)}>
                   <option value="">— Chọn sinh viên —</option>
                   {sourceGroup?.members.map((m) => (
@@ -307,7 +309,7 @@ export const ModeratorTransfersPage: React.FC = () => {
                   ))}
                 </select>
               </Field>
-              <Field label="3. Hình thức">
+              <Field label="Hình thức">
                 <div style={{ display: 'flex', gap: 6 }}>
                   {(['ONE_WAY', 'SWAP'] as const).map((m) => {
                     const disabled = m === 'ONE_WAY' && (oneWayBlocked || targetFull);
@@ -337,7 +339,7 @@ export const ModeratorTransfersPage: React.FC = () => {
                   })}
                 </div>
               </Field>
-              <Field label="4. Nhóm đích">
+              <Field label="Đến nhóm">
                 <select style={fieldStyle} value={targetGroupId} disabled={!studentId} onChange={(e) => setTargetGroupId(e.target.value)}>
                   <option value="">— Chọn nhóm —</option>
                   {groups
@@ -350,7 +352,7 @@ export const ModeratorTransfersPage: React.FC = () => {
                 </select>
               </Field>
               {effectiveMode === 'SWAP' && (
-                <Field label="5. Đổi với sinh viên ở nhóm đích">
+                <Field label="Đổi với">
                   <select style={fieldStyle} value={swapStudentId} disabled={!targetGroup} onChange={(e) => setSwapStudentId(e.target.value)}>
                     <option value="">— Chọn sinh viên —</option>
                     {targetGroup?.members.map((m) => (
@@ -363,12 +365,12 @@ export const ModeratorTransfersPage: React.FC = () => {
               )}
             </div>
             <div style={{ marginTop: 14 }}>
-              <Field label="Lý do điều chuyển">
+              <Field label="Lý do">
                 <textarea
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={3}
-                  placeholder="Ví dụ: Cân bằng chuyên ngành giữa hai nhóm theo đề xuất của giảng viên."
+                  placeholder="Ví dụ: cân bằng chuyên ngành giữa hai nhóm"
                   style={{ ...fieldStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', fontFamily: 'inherit' }}
                 />
               </Field>
@@ -381,6 +383,8 @@ export const ModeratorTransfersPage: React.FC = () => {
           </>
         )}
       </Card>
+      </>
+      )}
     </PageShell>
   );
 };

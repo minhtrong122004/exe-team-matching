@@ -22,16 +22,18 @@ import {
   NoSpaceState,
   SeatBar,
   SKILL_KEYS,
+  InfoTip,
   useToast,
+  useConfirm,
 } from '../../components/workspace/ui';
 
 const StepCard: React.FC<{
   step: number;
   title: string;
-  desc: string;
+  tip: string;
   done?: boolean;
   children: React.ReactNode;
-}> = ({ step, title, desc, done, children }) => (
+}> = ({ step, title, tip, done, children }) => (
   <div
     style={{
       padding: 18,
@@ -47,11 +49,10 @@ const StepCard: React.FC<{
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontSize: 15, fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>
-          Bước {step}. {title}
+          {step}. {title} <InfoTip text={tip} />
         </span>
         {done && <CheckCircle2 size={17} color="#10B981" />}
       </div>
-      <p style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0', lineHeight: 1.5 }}>{desc}</p>
     </div>
     {children}
   </div>
@@ -82,6 +83,7 @@ export const ModeratorDistributionPage: React.FC = () => {
   const { user } = useAuth();
   const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
   const toast = useToast();
+  const dialog = useConfirm();
   const isModerator = user?.role === 'Moderator';
 
   const [summary, setSummary] = useState<UnmatchedSummary | null>(null);
@@ -126,7 +128,7 @@ export const ModeratorDistributionPage: React.FC = () => {
 
   const handleClose = () =>
     run('close', async () => {
-      if (!space || !window.confirm('Đóng đăng ký tự nguyện để bắt đầu điều phối?')) return;
+      if (!space || (await dialog.confirm({ title: 'Đóng đăng ký?', confirmLabel: 'Đóng đăng ký' })) === null) return;
       await workspaceApi.closeRegistration(space.id);
       toast.show('Đã đóng đăng ký. Có thể chạy thuật toán phân bổ.');
       reloadSpaces();
@@ -139,12 +141,12 @@ export const ModeratorDistributionPage: React.FC = () => {
       const result = await workspaceApi.previewDistribution(space.id);
       setPreview(result);
       setConfirmed(false);
-      toast.show(`Đã tính phương án: phân bổ ${result.totalDistributed}/${result.totalUnmatched} sinh viên (Matching Service qua gRPC).`);
+      toast.show(`Đã tính phương án: phân bổ ${result.totalDistributed}/${result.totalUnmatched} sinh viên .`);
     });
 
   const handleConfirm = () =>
     run('confirm', async () => {
-      if (!space || !window.confirm('Thực thi phương án phân bổ? Sinh viên sẽ được thêm vào phòng và nhận thông báo.')) return;
+      if (!space || (await dialog.confirm({ title: 'Thực thi phân bổ?', message: 'Sinh viên được thêm vào phòng theo phương án và nhận thông báo.', confirmLabel: 'Thực thi' })) === null) return;
       const result = await workspaceApi.confirmDistribution(space.id);
       setConfirmed(true);
       setPreview(null);
@@ -154,7 +156,7 @@ export const ModeratorDistributionPage: React.FC = () => {
 
   const handleFinalize = () =>
     run('finalize', async () => {
-      if (!space || !window.confirm('Chốt sổ học kỳ? Danh sách nhóm sẽ bị khóa, mọi đơn đang chờ bị từ chối. Không thể hoàn tác.')) return;
+      if (!space || (await dialog.confirm({ title: 'Chốt sổ học kỳ?', message: 'Mọi nhóm bị khóa, đơn đang chờ bị từ chối. Không thể hoàn tác.', confirmLabel: 'Chốt sổ', danger: true })) === null) return;
       const result = await workspaceApi.finalizeSpace(space.id);
       toast.show(`Đã chốt sổ: khóa ${result.lockedRoomsCount} nhóm, từ chối ${result.rejectedRequestsCount} đơn đang chờ.`);
       reloadSpaces();
@@ -163,9 +165,8 @@ export const ModeratorDistributionPage: React.FC = () => {
 
   const header = (
     <PageHeader
-      section="Điều phối & Học kỳ"
-      title="Điều phối Sinh viên lẻ & Chốt sổ Học kỳ"
-      description="Phân bổ sinh viên chưa có nhóm vào các phòng còn thiếu bằng Matching Service (gRPC), sau đó chốt sổ danh sách nhóm."
+      title="Điều phối & Chốt sổ"
+      meta={space ? <Pill dot="var(--accent-color, #F26F21)">{SPACE_STATUS_LABEL[space.status]}</Pill> : undefined}
       actions={
         space ? (
           <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void loadSummary()}>
@@ -194,22 +195,18 @@ export const ModeratorDistributionPage: React.FC = () => {
   return (
     <PageShell>
       {toast.node}
+      {dialog.node}
       {header}
 
-      <div style={{ marginBottom: '1rem' }}>
-        <Pill dot="var(--accent-color, #F26F21)">
-          {space.semesterCode} • {space.subjectCode} — {SPACE_STATUS_LABEL[status]}
-        </Pill>
-      </div>
 
       {isLocked && (
         <Banner tone="success">
-          Học kỳ đã chốt sổ. Danh sách nhóm đã khóa; mọi thay đổi sau đây đi qua trang Quản lý Chuyển nhóm.
+          Đã chốt sổ. Đổi nhóm sau này dùng trang Chuyển nhóm.
         </Banner>
       )}
       {status === 'Open' && (
         <Banner tone="warning">
-          Không gian đang mở đăng ký tự nguyện. Cần đóng đăng ký trước khi chạy thuật toán phân bổ.
+          Cần đóng đăng ký trước khi điều phối.
           {isModerator && (
             <div style={{ marginTop: 10 }}>
               <Button variant="dark" icon={<Lock size={15} />} loading={busy === 'close'} onClick={handleClose}>
@@ -219,16 +216,16 @@ export const ModeratorDistributionPage: React.FC = () => {
           )}
         </Banner>
       )}
-      {status === 'Draft' && <Banner tone="info">Không gian còn ở bản nháp: hãy tải danh sách FAP và tạo phòng ở trang Quản lý Học kỳ & Phòng.</Banner>}
+      {status === 'Draft' && <Banner tone="info">Chưa mở đăng ký: tải danh sách FAP và tạo phòng ở trang Học kỳ & Phòng trước.</Banner>}
       {error && <Banner tone="error">{error}</Banner>}
 
       {/* Số liệu tổng quan */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: '1.5rem' }}>
         {[
-          { label: 'Sinh viên trong danh sách', value: summary?.totalEnrolled ?? '—' },
+          { label: 'Sinh viên', value: summary?.totalEnrolled ?? '—' },
           { label: 'Đã có nhóm', value: summary?.totalMatched ?? '—' },
           { label: 'Chưa có nhóm', value: summary?.totalUnmatched ?? '—' },
-          { label: 'Phòng còn thiếu / trống', value: summary ? `${summary.incompleteRooms.length} / ${summary.emptyRooms.length}` : '—' },
+          { label: 'Phòng thiếu / trống', value: summary ? `${summary.incompleteRooms.length} / ${summary.emptyRooms.length}` : '—' },
         ].map((s) => (
           <Card key={s.label} padding={18}>
             <div style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>{s.label}</div>
@@ -240,19 +237,19 @@ export const ModeratorDistributionPage: React.FC = () => {
       {/* 3 bước điều phối */}
       {isModerator && (
         <Card style={{ marginBottom: '1.5rem' }}>
-          <CardTitle icon={<Cpu size={18} />} title="Quy trình Điều phối 3 Bước" subtitle="Xem trước → Thực thi → Chốt sổ" />
+          <CardTitle icon={<Cpu size={18} />} title="Điều phối" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-            <StepCard step={1} title="Chạy thuật toán xem trước" desc="Matching Service tính phương án lấp phòng thiếu người, gom sinh viên còn lại vào phòng trống." done={!!preview || confirmed}>
+            <StepCard step={1} title="Xem trước" tip="Tính phương án lấp phòng thiếu người trước, sinh viên còn lại được gom vào phòng trống thành nhóm mới." done={!!preview || confirmed}>
               <Button block icon={<Sparkles size={16} />} loading={busy === 'preview'} disabled={!canDistribute || unmatched.length === 0} onClick={handlePreview}>
                 Xem trước phương án
               </Button>
             </StepCard>
-            <StepCard step={2} title="Xác nhận thực thi" desc="Thêm sinh viên vào phòng theo phương án và gửi thông báo cho từng sinh viên." done={confirmed}>
+            <StepCard step={2} title="Thực thi" tip="Thêm sinh viên vào phòng theo phương án và gửi thông báo." done={confirmed}>
               <Button block variant="dark" icon={<Send size={16} />} loading={busy === 'confirm'} disabled={!canDistribute || !preview || preview.totalDistributed === 0} onClick={handleConfirm}>
                 Thực thi phân bổ
               </Button>
             </StepCard>
-            <StepCard step={3} title="Chốt sổ & khóa danh sách" desc="Khóa mọi nhóm, từ chối các đơn còn chờ. Không thể hoàn tác." done={isLocked}>
+            <StepCard step={3} title="Chốt sổ" tip="Khóa mọi nhóm, từ chối các đơn còn chờ. Không thể hoàn tác." done={isLocked}>
               <Button block variant="danger" icon={<Lock size={16} />} loading={busy === 'finalize'} disabled={!canDistribute} onClick={handleFinalize}>
                 Chốt sổ học kỳ
               </Button>
@@ -266,8 +263,8 @@ export const ModeratorDistributionPage: React.FC = () => {
         <Card style={{ marginBottom: '1.5rem' }}>
           <CardTitle
             icon={<Layers size={18} />}
-            title="Phương án Phân bổ (Matching Service)"
-            subtitle={`Phân bổ ${preview.totalDistributed}/${preview.totalUnmatched} sinh viên, còn lại ${preview.totalRemaining}`}
+            title={`Phương án: ${preview.totalDistributed}/${preview.totalUnmatched} sinh viên`}
+            subtitle={preview.totalRemaining > 0 ? `Còn ${preview.totalRemaining} chưa xếp được` : undefined}
           />
           {preview.undersizedRoomCodes && preview.undersizedRoomCodes.length > 0 && (
             <Banner tone="warning">Các phòng vẫn dưới ngưỡng sau phân bổ: {preview.undersizedRoomCodes.join(', ')}</Banner>
@@ -312,7 +309,7 @@ export const ModeratorDistributionPage: React.FC = () => {
       {/* Sinh viên lẻ & phòng còn chỗ */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(460px, 100%), 1fr))', gap: '1.5rem' }}>
         <Card>
-          <CardTitle icon={<Users size={18} />} title={`Sinh viên chưa có nhóm (${unmatched.length})`} subtitle="Kèm điểm 5 kỹ năng từ hồ sơ" />
+          <CardTitle icon={<Users size={18} />} title={`Chưa có nhóm (${unmatched.length})`} />
           {loading && !summary ? (
             <StateBox kind="loading" />
           ) : unmatched.length === 0 ? (
@@ -342,7 +339,7 @@ export const ModeratorDistributionPage: React.FC = () => {
         </Card>
 
         <Card>
-          <CardTitle icon={<Layers size={18} />} title={`Phòng còn chỗ (${openRooms.length})`} subtitle="Phòng thiếu người trước, phòng trống sau" />
+          <CardTitle icon={<Layers size={18} />} title={`Phòng còn chỗ (${openRooms.length})`} />
           {loading && !summary ? (
             <StateBox kind="loading" />
           ) : openRooms.length === 0 ? (

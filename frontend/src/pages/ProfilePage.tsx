@@ -305,7 +305,8 @@ const RadarChart5: React.FC<{
         </span>
       </div>
 
-      {/* 3-Column Mini Insights Footer */}
+      {/* Gợi ý thế mạnh chỉ hiện khi đã nhập điểm */}
+      {topSkill.score > 0 && (
       <div
         style={{
           display: 'grid',
@@ -341,7 +342,7 @@ const RadarChart5: React.FC<{
             {suggestedRole}
           </div>
         </div>
-      </div>
+      </div>)}
     </div>
   );
 };
@@ -386,9 +387,8 @@ export const ProfilePage: React.FC = () => {
 
   const extractStudentInfo = (code: string) => {
     const upper = (code || '').toUpperCase().trim();
-    let majorName = 'SE - Kỹ thuật phần mềm';
-    let cohort = 'K18';
-    let nominalClass = 'SE1801';
+    let majorName = '—';
+    let cohort = '—';
 
     if (upper.startsWith('SE')) {
       majorName = 'SE - Kỹ thuật phần mềm';
@@ -407,10 +407,10 @@ export const ProfilePage: React.FC = () => {
     const match = upper.match(/^[A-Z]+(\d{2})/);
     if (match) {
       cohort = `K${match[1]}`;
-      nominalClass = `${upper.slice(0, 2)}${match[1]}01`;
+
     }
 
-    return { majorName, cohort, nominalClass };
+    return { majorName, cohort };
   };
 
   const studentInfo = extractStudentInfo(studentCode);
@@ -980,36 +980,6 @@ export const ProfilePage: React.FC = () => {
                       boxSizing: 'border-box',
                       outline: 'none',
                       cursor: 'not-allowed',
-                    }}
-                  />
-                  <Lock size={13} color="#94A3B8" style={{ position: 'absolute', right: 10, top: 12 }} />
-                </div>
-              </div>
-
-              {/* Trường 4: Lớp danh nghĩa */}
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary, #475569)', marginBottom: '4px' }}>
-                  Lớp danh nghĩa
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={studentInfo.nominalClass}
-                    readOnly
-                    style={{
-                      width: '100%',
-                      height: '42px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-light, #E2E8F0)',
-                      backgroundColor: 'var(--bg-tag, #F1F5F9)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '14.5px',
-                      fontWeight: 700,
-                      padding: '0 32px 0 10px',
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                      cursor: 'not-allowed',
-                      fontFamily: 'monospace',
                     }}
                   />
                   <Lock size={13} color="#94A3B8" style={{ position: 'absolute', right: 10, top: 12 }} />

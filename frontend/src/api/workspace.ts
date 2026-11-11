@@ -517,6 +517,20 @@ export const SPACE_STATUS_LABEL: Record<SpaceStatus, string> = {
   Locked: 'Đã chốt sổ',
 };
 
+/**
+ * Tên hiển thị ngắn của không gian: mã môn + phần tên còn lại sau khi bỏ mã môn / mã học kỳ bị lặp.
+ * Ví dụ "EXE101 — FA26" → "EXE101"; "Trải nghiệm Khởi nghiệp 1" → "EXE101 · Trải nghiệm Khởi nghiệp 1".
+ */
+export const spaceLabel = (space: Pick<Space, 'subjectCode' | 'semesterCode' | 'name'>): string => {
+  const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rest = space.name
+    .replace(new RegExp(escape(space.subjectCode), 'gi'), '')
+    .replace(new RegExp(escape(space.semesterCode), 'gi'), '')
+    .replace(/^[\s—–\-·•|:]+|[\s—–\-·•|:]+$/g, '')
+    .trim();
+  return rest ? `${space.subjectCode} · ${rest}` : space.subjectCode;
+};
+
 export const SPACE_PHASE: Record<SpaceStatus, number> = {
   Draft: 1,
   Open: 2,

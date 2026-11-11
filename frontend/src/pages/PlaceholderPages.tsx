@@ -643,12 +643,9 @@ export const ReportsPage: React.FC = () => {
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Báo cáo Tình hình Ghép nhóm EXE
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
+            Báo cáo thống kê
           </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '1.025rem', marginTop: '0.25rem' }}>
-            Dành cho Giảng viên & Quản trị viên theo dõi tiến độ sinh viên (Report Service • Redis Streams Projection)
-          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -710,8 +707,8 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {totalStudents}
           </div>
-          <div style={{ fontSize: '0.875rem', color: '#10b981', marginTop: '0.25rem' }}>
-            100% sinh viên môn EXE
+          <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+            {totalStudents > 0 ? 'Đã đăng nhập hệ thống' : 'Chưa có dữ liệu'}
           </div>
         </div>
         <div className="card">
@@ -722,18 +719,18 @@ export const ReportsPage: React.FC = () => {
             {studentsInGroup}
           </div>
           <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
-            {inGroupPercent}% hoàn thành
+            {totalStudents > 0 ? `${inGroupPercent}% tổng số` : '—'}
           </div>
         </div>
         <div className="card">
           <div style={{ fontSize: '0.925rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             CHƯA CÓ NHÓM
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {studentsWithoutGroup}
           </div>
-          <div style={{ fontSize: '0.875rem', color: '#ef4444', marginTop: '0.25rem' }}>
-            Cần hỗ trợ ghép nhóm
+          <div style={{ fontSize: '0.875rem', color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+            {studentsWithoutGroup > 0 ? 'Cần ghép nhóm' : '—'}
           </div>
         </div>
         <div className="card">
@@ -744,7 +741,7 @@ export const ReportsPage: React.FC = () => {
             {totalGroups}
           </div>
           <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
-            {fullGroups} nhóm đã đủ quân số
+            {fullGroups} nhóm đủ người
           </div>
         </div>
       </div>

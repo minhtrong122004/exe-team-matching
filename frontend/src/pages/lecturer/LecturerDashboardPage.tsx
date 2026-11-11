@@ -8,6 +8,7 @@ import {
   formatDateTime,
   SPACE_STATUS_LABEL,
   ROOM_STATUS_LABEL,
+  spaceLabel,
   type RosterGroup,
   type SpaceRoster,
 } from '../../api/workspace';
@@ -151,9 +152,8 @@ export const LecturerDashboardPage: React.FC = () => {
 
   const header = (
     <PageHeader
-      section="Giảng viên"
-      title="Tổng quan Nhóm & Xuất báo cáo"
-      description="Theo dõi danh sách nhóm của môn học, cơ cấu chuyên ngành và năng lực 5 kỹ năng, xuất CSV để chấm điểm."
+      title="Danh sách nhóm"
+      meta={space ? <Pill dot="var(--accent-color, #F26F21)">{SPACE_STATUS_LABEL[space.status]}</Pill> : undefined}
       actions={
         space ? (
           <>
@@ -161,7 +161,7 @@ export const LecturerDashboardPage: React.FC = () => {
               <select style={{ ...fieldStyle, width: 'auto', minWidth: 240 }} value={space.id} onChange={(e) => selectSpace(e.target.value)}>
                 {spaces.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.semesterCode} • {s.subjectCode} — {s.name}
+                    {s.semesterCode} · {spaceLabel(s)}
                   </option>
                 ))}
               </select>
@@ -170,7 +170,7 @@ export const LecturerDashboardPage: React.FC = () => {
               Tải lại
             </Button>
             <Button icon={<Download size={16} />} loading={exporting} onClick={handleExport}>
-              Xuất CSV danh sách nhóm
+              Xuất CSV
             </Button>
           </>
         ) : undefined
@@ -194,22 +194,14 @@ export const LecturerDashboardPage: React.FC = () => {
       {toast.node}
       {header}
 
-      <div style={{ marginBottom: '1rem' }}>
-        <Pill dot="var(--accent-color, #F26F21)">
-          {space.semesterCode} • {space.subjectCode} — {SPACE_STATUS_LABEL[space.status]}
-        </Pill>
-      </div>
-      {space.status !== 'Locked' && (
-        <Banner tone="info">Học kỳ chưa chốt sổ nên danh sách nhóm vẫn có thể thay đổi.</Banner>
-      )}
       {error && <Banner tone="error">{error}</Banner>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: '1.5rem' }}>
         {[
-          { icon: <Users size={18} />, label: 'Sinh viên trong danh sách', value: roster?.totalStudents ?? '—' },
-          { icon: <CheckCircle2 size={18} />, label: 'Sinh viên đã có nhóm', value: roster ? groupedStudents : '—' },
-          { icon: <Layers size={18} />, label: 'Nhóm có thành viên', value: roster ? activeGroups : '—' },
-          { icon: <TrendingUp size={18} />, label: 'Nhóm đủ sĩ số / đã khóa', value: roster ? `${fullGroups} / ${roster.lockedGroups}` : '—' },
+          { icon: <Users size={18} />, label: 'Sinh viên', value: roster?.totalStudents ?? '—' },
+          { icon: <CheckCircle2 size={18} />, label: 'Đã có nhóm', value: roster ? groupedStudents : '—' },
+          { icon: <Layers size={18} />, label: 'Số nhóm', value: roster ? activeGroups : '—' },
+          { icon: <TrendingUp size={18} />, label: 'Đủ người / đã khóa', value: roster ? `${fullGroups} / ${roster.lockedGroups}` : '—' },
         ].map((s) => (
           <Card key={s.label} padding={18}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>
@@ -224,14 +216,13 @@ export const LecturerDashboardPage: React.FC = () => {
       <Card>
         <CardTitle
           icon={<Layers size={18} />}
-          title={`Danh sách nhóm (${groups.length})`}
-          subtitle="Bấm vào một nhóm để xem thành viên và biểu đồ 5 kỹ năng"
+          title={`Nhóm (${groups.length})`}
           right={
             <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>
               <Search size={15} style={{ position: 'absolute', left: 12, top: 13, color: 'var(--text-light, #94A3B8)' }} />
               <input
                 type="text"
-                placeholder="Tìm mã phòng, đề tài, sinh viên..."
+                placeholder="Tìm nhóm, sinh viên..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ ...fieldStyle, paddingLeft: '2.25rem', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}
@@ -244,7 +235,7 @@ export const LecturerDashboardPage: React.FC = () => {
         ) : groups.length === 0 ? (
           <StateBox kind="empty" message={search ? 'Không có nhóm khớp từ khóa.' : 'Chưa có nhóm nào có thành viên trong môn học này.'} />
         ) : (
-          <Table headers={['Mã phòng', 'Tên nhóm / Đề tài', 'Trưởng nhóm', 'Sĩ số', 'Cơ cấu ngành', 'Trạng thái', '']}>
+          <Table headers={['Phòng', 'Nhóm / Đề tài', 'Trưởng nhóm', 'Sĩ số', 'Ngành', 'Trạng thái', '']}>
             {groups.map((g) => (
               <tr key={g.groupId}>
                 <td style={{ ...td, fontWeight: 800, color: '#0054A6', whiteSpace: 'nowrap' }}>{g.roomCode}</td>

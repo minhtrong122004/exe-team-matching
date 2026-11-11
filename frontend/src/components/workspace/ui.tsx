@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, AlertCircle, X } from '../../utils/icons';
+import { CheckCircle2, AlertCircle, X, Info } from '../../utils/icons';
 
 /**
  * Thành phần giao diện dùng chung cho các màn hình Học kỳ / Phòng / Nhóm.
@@ -12,37 +12,40 @@ export const PageShell: React.FC<{ children: React.ReactNode }> = ({ children })
   </div>
 );
 
+/** Tiêu đề trang: chỉ tên trang + nút thao tác (vị trí hiện tại đã có ở thanh trên cùng). */
 export const PageHeader: React.FC<{
-  section: string;
   title: string;
-  description?: React.ReactNode;
+  meta?: React.ReactNode;
   actions?: React.ReactNode;
-}> = ({ section, title, description, actions }) => (
+}> = ({ title, meta, actions }) => (
   <div
     style={{
-      marginBottom: '1.5rem',
+      marginBottom: '1.25rem',
       display: 'flex',
-      alignItems: 'flex-end',
+      alignItems: 'center',
       justifyContent: 'space-between',
       gap: '1rem',
       flexWrap: 'wrap',
     }}
   >
-    <div style={{ minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'var(--text-muted, #64748B)', marginBottom: 6 }}>
-        <span>{section}</span>
-        <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-        <span style={{ color: 'var(--text-secondary, #334155)', fontWeight: 600 }}>{title}</span>
-      </div>
-      <h1 style={{ fontSize: 24, fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-        {title}
-      </h1>
-      {description && (
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: 14.5, margin: 0, lineHeight: 1.5 }}>{description}</p>
-      )}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
+      {meta}
     </div>
-    {actions && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>{actions}</div>}
+    {actions && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>{actions}</div>}
   </div>
+);
+
+/** Biểu tượng ⓘ: giải thích chỉ hiện khi di chuột / chạm vào, thay cho đoạn chữ cố định. */
+export const InfoTip: React.FC<{ text: string }> = ({ text }) => (
+  <span
+    title={text}
+    aria-label={text}
+    tabIndex={0}
+    style={{ display: 'inline-flex', color: 'var(--text-light, #94A3B8)', cursor: 'help', verticalAlign: 'middle' }}
+  >
+    <Info size={15} />
+  </span>
 );
 
 export const Card: React.FC<{
@@ -91,8 +94,8 @@ export const CardTitle: React.FC<{
         </div>
       )}
       <div style={{ minWidth: 0 }}>
-        <h3 style={{ fontSize: 17, fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>{title}</h3>
-        {subtitle && <span style={{ fontSize: 14, color: 'var(--text-muted, #64748B)' }}>{subtitle}</span>}
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.01em' }}>{title}</h3>
+        {subtitle && <span style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>{subtitle}</span>}
       </div>
     </div>
     {right}
@@ -121,19 +124,24 @@ export const Button: React.FC<
     ghost: { backgroundColor: 'transparent', color: 'var(--text-muted, #64748B)', border: '1px solid transparent' },
   };
   const isDisabled = disabled || loading;
+  // Nút bị khóa dùng màu xám để không bị nhìn nhầm là bấm được (riêng lúc đang tải vẫn giữ màu).
+  const disabledLook: React.CSSProperties =
+    disabled && !loading && variant !== 'ghost'
+      ? { background: 'var(--bg-subtle, #F1F5F9)', color: 'var(--text-light, #94A3B8)', border: '1px solid var(--border-light, #E2E8F0)', boxShadow: 'none' }
+      : {};
   return (
     <button
       type="button"
       className="motion-btn"
       disabled={isDisabled}
       style={{
-        height: 42,
+        height: 40,
         padding: '0 16px',
-        borderRadius: 12,
-        fontSize: 14.5,
+        borderRadius: 10,
+        fontSize: 14,
         fontWeight: 650,
         cursor: isDisabled ? 'not-allowed' : 'pointer',
-        opacity: isDisabled ? 0.55 : 1,
+        opacity: loading ? 0.75 : 1,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -143,6 +151,7 @@ export const Button: React.FC<
         transition: 'opacity 0.15s ease',
         ...palette[variant],
         ...style,
+        ...disabledLook,
       }}
       {...rest}
     >
@@ -387,6 +396,75 @@ export const Modal: React.FC<{
       </div>
     </div>
   );
+};
+
+interface ConfirmOptions {
+  title: string;
+  message?: React.ReactNode;
+  confirmLabel?: string;
+  danger?: boolean;
+  /** Có ô nhập (lý do, nhận xét...). required: bắt buộc nhập mới bấm được. */
+  input?: { label: string; placeholder?: string; required?: boolean };
+}
+
+/**
+ * Hộp thoại xác nhận đồng bộ giao diện, thay cho window.confirm / window.prompt.
+ * confirm() trả về chuỗi đã nhập ('' nếu không có ô nhập) khi đồng ý, null khi hủy.
+ */
+export const useConfirm = () => {
+  const [state, setState] = useState<(ConfirmOptions & { resolve: (v: string | null) => void }) | null>(null);
+  const [value, setValue] = useState('');
+
+  const confirm = useCallback(
+    (options: ConfirmOptions) =>
+      new Promise<string | null>((resolve) => {
+        setValue('');
+        setState({ ...options, resolve });
+      }),
+    []
+  );
+
+  const close = (result: string | null) => {
+    state?.resolve(result);
+    setState(null);
+  };
+
+  const blocked = !!state?.input?.required && !value.trim();
+  const node = (
+    <Modal
+      open={!!state}
+      onClose={() => close(null)}
+      width={460}
+      title={state?.title ?? ''}
+      footer={
+        <>
+          <Button variant="outline" onClick={() => close(null)}>
+            Hủy
+          </Button>
+          <Button variant={state?.danger ? 'danger' : 'primary'} disabled={blocked} onClick={() => close(value.trim())}>
+            {state?.confirmLabel ?? 'Xác nhận'}
+          </Button>
+        </>
+      }
+    >
+      {state?.message && <div style={{ fontSize: 14.5, color: 'var(--text-secondary, #334155)', lineHeight: 1.55 }}>{state.message}</div>}
+      {state?.input && (
+        <div style={{ marginTop: state.message ? 14 : 0 }}>
+          <Field label={state.input.label + (state.input.required ? '' : ' (không bắt buộc)')}>
+            <textarea
+              autoFocus
+              rows={3}
+              value={value}
+              placeholder={state.input.placeholder}
+              onChange={(e) => setValue(e.target.value)}
+              style={{ ...fieldStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          </Field>
+        </div>
+      )}
+    </Modal>
+  );
+  return { confirm, node };
 };
 
 export const fieldStyle: React.CSSProperties = {

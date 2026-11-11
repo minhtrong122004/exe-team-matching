@@ -36,6 +36,8 @@ import {
   SKILL_KEYS,
   averageSkills,
   useToast,
+  useConfirm,
+  InfoTip,
   ROOM_STATUS_DOT,
 } from '../components/workspace/ui';
 import {
@@ -76,7 +78,7 @@ const ProfileHint: React.FC = () => (
   <span>
     {' '}
     <Link to="/profile" style={{ color: 'var(--accent-color, #F26F21)', fontWeight: 700 }}>
-      Mở Hồ sơ cá nhân
+      Mở hồ sơ
     </Link>
   </span>
 );
@@ -84,6 +86,14 @@ const ProfileHint: React.FC = () => (
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. DANH SÁCH PHÒNG NHÓM (/groups)
 // ══════════════════════════════════════════════════════════════════════════════
+
+/** Tên phòng do hệ thống đặt sẵn (vd. "EXE101 - Phòng 01") — không phải tên đề tài do nhóm đặt. */
+const isDefaultRoomName = (name: string) => /phòng\s*\d+\s*$/i.test(name.trim());
+
+const hasCustomName = (room: RoomSummary, detail?: GroupDetail) => !isDefaultRoomName(detail?.name ?? room.name);
+
+const roomTitle = (room: RoomSummary, detail?: GroupDetail) =>
+  hasCustomName(room, detail) ? detail?.name ?? room.name : room.roomCode ?? room.name;
 
 const ROOM_TABS = [
   { value: 'ALL', label: 'Tất cả' },
@@ -97,6 +107,7 @@ export const GroupsPage: React.FC = () => {
   const { user } = useAuth();
   const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
   const toast = useToast();
+  const dialog = useConfirm();
   const isStudent = user?.role === 'Student';
 
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
@@ -158,7 +169,12 @@ export const GroupsPage: React.FC = () => {
   };
 
   const handleDirectJoin = async (room: RoomSummary) => {
-    if (!window.confirm(`Vào thẳng phòng ${room.roomCode ?? room.name}?`)) return;
+    const ok = await dialog.confirm({
+      title: `Vào phòng ${room.roomCode ?? room.name}?`,
+      message: room.memberCount === 0 ? 'Bạn là người đầu tiên nên sẽ làm Trưởng nhóm tạm thời.' : undefined,
+      confirmLabel: 'Vào phòng',
+    });
+    if (ok === null) return;
     setJoiningId(room.id);
     try {
       const res = await workspaceApi.directJoin(room.id);
@@ -229,12 +245,11 @@ export const GroupsPage: React.FC = () => {
 
   const header = (
     <PageHeader
-      section={space ? `${space.semesterCode} • ${space.subjectCode}` : 'Phòng nhóm'}
-      title="Danh sách Phòng nhóm"
-      description={
-        isStudent
-          ? 'Vào thẳng phòng trống hoặc phòng đang lập nhóm; khi phòng đủ ngưỡng thì chỉ nhận thêm thành viên qua đơn ứng tuyển.'
-          : 'Theo dõi tình trạng các phòng nhóm trong không gian môn học.'
+      title="Phòng nhóm"
+      meta={
+        isStudent ? (
+          <InfoTip text="Phòng trống / đang lập nhóm: vào thẳng (người đầu tiên làm Trưởng nhóm tạm thời). Phòng đủ ngưỡng: chỉ nhận thêm qua đơn ứng tuyển." />
+        ) : undefined
       }
       actions={
         space ? (
@@ -261,24 +276,25 @@ export const GroupsPage: React.FC = () => {
   return (
     <PageShell>
       {toast.node}
+      {dialog.node}
       {header}
 
       {isStudent && myGroup && (
         <Banner tone="success">
-          Bạn đang ở <b>{myGroup.roomCode ?? myGroup.name}</b> ({myGroup.memberCount}/{myGroup.maxMembers}).{' '}
+          Bạn đang ở <b>{myGroup.roomCode ?? myGroup.name}</b>.{' '}
           <Link to="/my-group" style={{ color: 'inherit', fontWeight: 700 }}>
-            Mở Nhóm của tôi →
+            Xem nhóm →
           </Link>
         </Banner>
       )}
       {isStudent && !registrationOpen && (
         <Banner tone="warning">
-          Không gian đang ở trạng thái <b>{SPACE_STATUS_LABEL[space.status]}</b> nên không vào phòng hoặc nộp đơn được.
+          {SPACE_STATUS_LABEL[space.status]}: chưa vào phòng hoặc nộp đơn được.
         </Banner>
       )}
       {isStudent && user && user.isProfileCompleted === false && (
         <Banner tone="info">
-          Bạn cần hoàn tất hồ sơ 5 kỹ năng và cam kết trách nhiệm trước khi vào phòng hoặc nộp đơn.
+          Hoàn tất hồ sơ 5 kỹ năng trước khi vào phòng.
           <ProfileHint />
         </Banner>
       )}
@@ -354,12 +370,16 @@ export const GroupsPage: React.FC = () => {
                   boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted, #64748B)', fontVariantNumeric: 'tabular-nums' }}>{room.roomCode ?? '—'}</span>
-                  <Pill dot={ROOM_STATUS_DOT[room.status]}>{isMine ? 'Nhóm của bạn' : ROOM_STATUS_LABEL[room.status] ?? room.status}</Pill>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0, lineHeight: 1.3 }}>{roomTitle(room, detail)}</h3>
+                    {hasCustomName(room, detail) && room.roomCode && (
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted, #64748B)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{room.roomCode}</div>
+                    )}
+                  </div>
+                  <Pill dot={ROOM_STATUS_DOT[room.status]}>{isMine ? 'Của bạn' : ROOM_STATUS_LABEL[room.status] ?? room.status}</Pill>
                 </div>
-                <div style={{ minHeight: 52 }}>
-                  <h3 style={{ fontSize: 16.5, fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0, lineHeight: 1.3 }}>{detail?.name ?? room.name}</h3>
+                <div>
                   {detail?.description && (
                     <p style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {detail.description}
@@ -367,8 +387,8 @@ export const GroupsPage: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}>
-                    <span style={{ color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>Sĩ số</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                    <span style={{ color: 'var(--text-muted, #64748B)' }}>Sĩ số</span>
                     <span style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
                       {room.memberCount}/{room.maxMembers}
                     </span>
@@ -376,9 +396,7 @@ export const GroupsPage: React.FC = () => {
                   <SeatBar count={room.memberCount} max={room.maxMembers} />
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {room.memberCount === 0 ? (
-                    <span style={{ fontSize: 13.5, color: 'var(--text-light, #94A3B8)' }}>Chưa có thành viên — người đầu tiên vào sẽ là Trưởng nhóm tạm thời.</span>
-                  ) : detail && detail.members.length > 0 ? (
+                  {room.memberCount === 0 ? null : detail && detail.members.length > 0 ? (
                     detail.members.map((m) => (
                       <div key={m.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 14 }}>
                         <span style={{ color: 'var(--text-main, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.fullName}</span>
@@ -391,7 +409,7 @@ export const GroupsPage: React.FC = () => {
                     ))
                   ) : (
                     <span style={{ fontSize: 13.5, color: 'var(--text-light, #94A3B8)' }}>
-                      Trưởng nhóm: {room.leaderName ?? '—'} • Danh sách thành viên chỉ hiển thị cho người trong nhóm.
+                      Trưởng nhóm: {room.leaderName ?? '—'}
                     </span>
                   )}
                 </div>
@@ -414,7 +432,7 @@ export const GroupsPage: React.FC = () => {
                   ) : (
                     <>
                       {canDirectJoin && (
-                        <Button style={{ flex: 1 }} icon={<UserPlus size={15} />} loading={joiningId === room.id} disabled={!!joiningId} onClick={() => void handleDirectJoin(room)}>
+                        <Button variant={room.status === 'Empty' ? 'outline' : 'primary'} style={{ flex: 1 }} icon={<UserPlus size={15} />} loading={joiningId === room.id} disabled={!!joiningId} onClick={() => void handleDirectJoin(room)}>
                           Vào phòng
                         </Button>
                       )}
@@ -423,7 +441,7 @@ export const GroupsPage: React.FC = () => {
                           Nộp đơn
                         </Button>
                       )}
-                      {hasPending && <Pill dot="#F59E0B">Đã nộp đơn — chờ duyệt</Pill>}
+                      {hasPending && <Pill dot="#F59E0B">Đã nộp đơn</Pill>}
                       {room.memberCount > 0 && !myGroup && (
                         <Button variant="outline" style={{ flex: canDirectJoin || canApply ? undefined : 1 }} icon={<TrendingUp size={15} />} loading={score === 'loading'} onClick={() => void loadMatchScore(room.id)}>
                           Độ phù hợp
@@ -442,9 +460,9 @@ export const GroupsPage: React.FC = () => {
       )}
 
       {/* Nộp đơn */}
-      <Modal open={!!applyRoom} onClose={() => setApplyRoom(null)} title={`Nộp đơn vào ${applyRoom?.roomCode ?? applyRoom?.name ?? ''}`} subtitle="Thành viên nhóm biểu quyết, Trưởng nhóm quyết định chấp nhận hoặc từ chối.">
+      <Modal open={!!applyRoom} onClose={() => setApplyRoom(null)} title={`Nộp đơn vào ${applyRoom?.roomCode ?? applyRoom?.name ?? ''}`}>
         <form onSubmit={handleApply} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Field label="Giới thiệu bản thân" hint={`Tối đa ${space.maxConcurrentApplies} đơn chờ cùng lúc trong môn học này.`}>
+          <Field label="Giới thiệu bản thân" hint={`Tối đa ${space.maxConcurrentApplies} đơn chờ cùng lúc.`}>
             <textarea rows={5} required style={textareaStyle} value={applyMessage} onChange={(e) => setApplyMessage(e.target.value)} placeholder="Điểm mạnh, kinh nghiệm, vai trò bạn muốn đảm nhận trong nhóm..." />
           </Field>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -500,6 +518,7 @@ export const MyGroupPage: React.FC = () => {
   const { user } = useAuth();
   const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
   const toast = useToast();
+  const dialog = useConfirm();
 
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [profiles, setProfiles] = useState<Record<string, CandidateProfile>>({});
@@ -579,6 +598,16 @@ export const MyGroupPage: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [election, load]);
 
+  const voteRequest = async (req: JoinRequest, isUpvote: boolean) => {
+    const comment = await dialog.confirm({
+      title: isUpvote ? `Ủng hộ ${req.studentName}?` : `Không ủng hộ ${req.studentName}?`,
+      confirmLabel: isUpvote ? 'Ủng hộ' : 'Không ủng hộ',
+      input: { label: 'Nhận xét' },
+    });
+    if (comment === null) return;
+    await act(`vote-${req.id}`, () => workspaceApi.voteJoinRequest(req.id, isUpvote, comment || undefined), 'Đã ghi nhận biểu quyết.');
+  };
+
   const act = async (key: string, action: () => Promise<unknown>, success: string) => {
     setBusy(key);
     try {
@@ -596,9 +625,7 @@ export const MyGroupPage: React.FC = () => {
 
   const header = (
     <PageHeader
-      section={space ? `${space.semesterCode} • ${space.subjectCode}` : 'Nhóm'}
       title="Nhóm của tôi"
-      description="Quản lý đề tài, thành viên, đơn ứng tuyển và bầu Trưởng nhóm."
       actions={
         space ? (
           <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
@@ -650,6 +677,7 @@ export const MyGroupPage: React.FC = () => {
     return (
       <PageShell>
         {toast.node}
+      {dialog.node}
         {header}
         {error && <Banner tone="error">{error}</Banner>}
         {loading ? (
@@ -730,11 +758,12 @@ export const MyGroupPage: React.FC = () => {
   return (
     <PageShell>
       {toast.node}
+      {dialog.node}
       {header}
 
       {isLocked && (
         <Banner tone="info">
-          Học kỳ đã chốt sổ, danh sách nhóm đã khóa. Muốn đổi nhóm, hãy gửi yêu cầu chuyển nhóm để Điều phối viên duyệt.
+          Đã chốt sổ. Muốn đổi nhóm, gửi yêu cầu chuyển nhóm.
         </Banner>
       )}
       {error && <Banner tone="error">{error}</Banner>}
@@ -769,7 +798,7 @@ export const MyGroupPage: React.FC = () => {
               {group.description || (isLeader ? 'Chưa có mô tả đề tài. Bấm "Sửa đề tài" để cập nhật.' : 'Trưởng nhóm chưa cập nhật mô tả đề tài.')}
             </p>
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: 10 }}>Năng lực 5 kỹ năng trung bình của nhóm</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: 10 }}>Kỹ năng trung bình</div>
           <SkillBars scores={memberScores} />
         </Card>
 
@@ -807,8 +836,15 @@ export const MyGroupPage: React.FC = () => {
                 icon={<LogOut size={15} />}
                 loading={busy === 'leave'}
                 onClick={() => {
-                  if (!window.confirm(isLeader ? 'Rời nhóm? Quyền Trưởng nhóm sẽ tự chuyển cho thành viên vào sớm nhất.' : 'Bạn chắc chắn muốn rời nhóm?')) return;
-                  void act('leave', () => workspaceApi.leaveGroup(group.id), 'Bạn đã rời nhóm.');
+                  void (async () => {
+                    const ok = await dialog.confirm({
+                      title: 'Rời nhóm?',
+                      message: isLeader ? 'Quyền Trưởng nhóm sẽ tự chuyển cho thành viên vào sớm nhất.' : undefined,
+                      confirmLabel: 'Rời nhóm',
+                      danger: true,
+                    });
+                    if (ok !== null) await act('leave', () => workspaceApi.leaveGroup(group.id), 'Bạn đã rời nhóm.');
+                  })();
                 }}
               >
                 Rời nhóm
@@ -902,8 +938,8 @@ export const MyGroupPage: React.FC = () => {
         <Card>
           <CardTitle
             icon={<Sparkles size={18} />}
-            title={`Đơn ứng tuyển đang chờ (${requests.length})`}
-            subtitle="Thành viên biểu quyết, Trưởng nhóm chấp nhận hoặc từ chối"
+            title={`Đơn ứng tuyển (${requests.length})`}
+            right={<InfoTip text="Thành viên biểu quyết ủng hộ / không ủng hộ, Trưởng nhóm quyết định chấp nhận hoặc từ chối." />}
           />
           {requests.length === 0 ? (
             <StateBox kind="empty" message="Chưa có đơn ứng tuyển nào." />
@@ -953,10 +989,10 @@ export const MyGroupPage: React.FC = () => {
                         <span style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', alignSelf: 'center' }}>Bạn đã {voted.isUpvote ? 'ủng hộ' : 'không ủng hộ'}</span>
                       ) : (
                         <>
-                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsUp size={14} />} disabled={!!busy} onClick={() => void act(`up-${r.id}`, () => workspaceApi.voteJoinRequest(r.id, true, window.prompt('Nhận xét (không bắt buộc):') ?? undefined), 'Đã ghi nhận biểu quyết.')}>
+                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsUp size={14} />} disabled={!!busy} onClick={() => void voteRequest(r, true)}>
                             Ủng hộ
                           </Button>
-                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsDown size={14} />} disabled={!!busy} onClick={() => void act(`down-${r.id}`, () => workspaceApi.voteJoinRequest(r.id, false, window.prompt('Nhận xét (không bắt buộc):') ?? undefined), 'Đã ghi nhận biểu quyết.')}>
+                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsDown size={14} />} disabled={!!busy} onClick={() => void voteRequest(r, false)}>
                             Không ủng hộ
                           </Button>
                         </>
@@ -1027,7 +1063,7 @@ export const MyGroupPage: React.FC = () => {
           open: electionModalOpen,
           close: () => setElectionModalOpen(false),
           title: 'Đề cử bầu Trưởng nhóm mới',
-          subtitle: 'Các thành viên có 24 giờ để bỏ phiếu; đạt đa số thì người được đề cử trở thành Trưởng nhóm.',
+          subtitle: 'Bỏ phiếu trong 24 giờ, đạt đa số thì thành Trưởng nhóm.',
           key: 'start-election',
           submit: () => workspaceApi.startElection(group.id, selectedMemberId),
           success: 'Đã mở cuộc bầu Trưởng nhóm.',
@@ -1063,7 +1099,7 @@ export const MyGroupPage: React.FC = () => {
       ))}
 
       {/* Mời thành viên ra khỏi nhóm */}
-      <Modal open={!!removeTarget} onClose={() => setRemoveTarget(null)} title={`Mời ${removeTarget?.fullName ?? ''} ra khỏi nhóm`} subtitle="Lý do sẽ được gửi tới thành viên này.">
+      <Modal open={!!removeTarget} onClose={() => setRemoveTarget(null)} title={`Mời ${removeTarget?.fullName ?? ''} ra khỏi nhóm`}>
         <Field label="Lý do">
           <textarea rows={4} required style={textareaStyle} value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} />
         </Field>
@@ -1086,7 +1122,7 @@ export const MyGroupPage: React.FC = () => {
       </Modal>
 
       {/* Yêu cầu chuyển nhóm (sau chốt sổ) */}
-      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Yêu cầu chuyển nhóm" subtitle="Điều phối viên sẽ xem xét và duyệt yêu cầu.">
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Yêu cầu chuyển nhóm">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Field label="Nhóm muốn chuyển đến">
             <select style={fieldStyle} value={transferForm.targetGroupId} onChange={(e) => setTransferForm({ ...transferForm, targetGroupId: e.target.value, swapWithStudentId: '' })}>
@@ -1098,7 +1134,7 @@ export const MyGroupPage: React.FC = () => {
               ))}
             </select>
           </Field>
-          <Field label="Đổi chéo với (không bắt buộc)" hint="Bắt buộc chọn khi nhóm đích đã đủ người hoặc nhóm hiện tại sẽ dưới ngưỡng nếu bạn rời đi.">
+          <Field label="Đổi chéo với" hint="Bắt buộc khi nhóm đích đã đủ người.">
             <select style={fieldStyle} value={transferForm.swapWithStudentId} disabled={!transferTarget} onChange={(e) => setTransferForm({ ...transferForm, swapWithStudentId: e.target.value })}>
               <option value="">— Chuyển một chiều —</option>
               {transferTarget?.members.map((m) => (
@@ -1156,6 +1192,7 @@ const REQUEST_STATUS_LABEL: Record<string, string> = {
 export const JoinRequestsPage: React.FC = () => {
   const { space } = useSelectedSpace();
   const toast = useToast();
+  const dialog = useConfirm();
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1179,7 +1216,7 @@ export const JoinRequestsPage: React.FC = () => {
   }, [load]);
 
   const cancel = async (req: JoinRequest) => {
-    if (!window.confirm(`Rút đơn ứng tuyển vào ${req.groupName}?`)) return;
+    if ((await dialog.confirm({ title: `Rút đơn vào ${req.groupName}?`, confirmLabel: 'Rút đơn', danger: true })) === null) return;
     setCancelling(req.id);
     try {
       await workspaceApi.cancelJoinRequest(req.id);
@@ -1198,10 +1235,10 @@ export const JoinRequestsPage: React.FC = () => {
   return (
     <PageShell>
       {toast.node}
+      {dialog.node}
       <PageHeader
-        section="Nhóm"
-        title="Đơn ứng tuyển của tôi"
-        description="Theo dõi các đơn bạn đã nộp vào nhóm đang tuyển. Khi bạn vào một nhóm, các đơn còn chờ khác sẽ tự hủy."
+        title="Đơn ứng tuyển"
+        meta={<InfoTip text="Khi bạn vào một nhóm, các đơn còn chờ khác tự hủy." />}
         actions={
           <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
             Tải lại
