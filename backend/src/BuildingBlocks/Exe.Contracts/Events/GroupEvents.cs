@@ -94,4 +94,44 @@ public record MemberTransferredPostLock(
     string Reason,
     DateTime TransferredAt);
 
+/// <summary>
+/// Sinh viên gửi yêu cầu chuyển nhóm sau khi đã Chốt sổ (BR-35, BR-36).
+/// Nhận: Notification (báo cho Moderator), Report.
+/// </summary>
+public record TransferRequestCreated(
+    Guid RequestId,
+    Guid SpaceId,
+    Guid StudentId,
+    string StudentName,
+    string StudentCode,
+    Guid FromGroupId,
+    string FromGroupCode,
+    Guid TargetGroupId,
+    string TargetGroupCode,
+    Guid? SwapWithStudentId,
+    string? SwapWithStudentName,
+    string Reason,
+    DateTime CreatedAt);
+
+/// <summary>
+/// Sinh viên chủ động rút/hủy yêu cầu chuyển nhóm đang chờ duyệt.
+/// </summary>
+public record TransferRequestCancelled(
+    Guid RequestId,
+    Guid SpaceId,
+    Guid StudentId,
+    DateTime CancelledAt);
+
+/// <summary>
+/// Moderator từ chối yêu cầu chuyển nhóm của sinh viên.
+/// </summary>
+public record TransferRequestRejected(
+    Guid RequestId,
+    Guid SpaceId,
+    Guid StudentId,
+    string StudentName,
+    string Reason,
+    DateTime DecidedAt);
+
+
 

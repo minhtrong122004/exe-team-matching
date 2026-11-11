@@ -85,6 +85,17 @@ export const ModeratorTransfersPage: React.FC = () => {
     void load();
   }, [load]);
 
+  // Cập nhật danh sách yêu cầu chuyển nhóm thời gian thực
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:transfer-updated', handleRealtime);
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:transfer-updated', handleRealtime);
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+    };
+  }, [load]);
+
   // Dữ liệu thật → đúng dạng mà giao diện đang hiển thị
   const requests: StudentTransferRequest[] = useMemo(() => {
     const groupById = new Map(groups.map((g) => [g.groupId, g]));
@@ -280,6 +291,9 @@ export const ModeratorTransfersPage: React.FC = () => {
         </div>
       )}
       {dialog.node}
+
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
 
       {!isLocked && (
         <div style={{ padding: '12px 16px', borderRadius: 10, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', marginBottom: '1.5rem', fontSize: '14px', color: '#475569' }}>

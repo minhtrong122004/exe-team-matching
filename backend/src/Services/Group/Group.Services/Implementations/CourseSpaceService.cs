@@ -1259,6 +1259,21 @@ public partial class CourseSpaceService(
         spaceRepo.AddTransferRequest(entity);
         await uow.SaveChangesAsync(ct);
 
+        await eventPublisher.PublishAsync(new TransferRequestCreated(
+            entity.Id,
+            spaceId,
+            studentId,
+            entity.RequesterStudentName,
+            entity.RequesterStudentCode,
+            entity.FromGroupId,
+            entity.FromGroupCode,
+            entity.TargetGroupId,
+            entity.TargetGroupCode,
+            entity.SwapWithStudentId,
+            entity.SwapWithStudentName,
+            entity.Reason,
+            entity.CreatedAt), ct);
+
         logger.LogInformation("Student {StudentCode} submitted transfer request {ReqId} in space {SpaceId}",
             studentEnrollment.StudentCode, entity.Id, spaceId);
 
@@ -1301,6 +1316,11 @@ public partial class CourseSpaceService(
         transferReq.DecisionReason = "Sinh viên đã chủ động hủy yêu cầu chuyển nhóm.";
 
         await uow.SaveChangesAsync(ct);
+        await eventPublisher.PublishAsync(new TransferRequestCancelled(
+            transferReq.Id,
+            transferReq.SpaceId,
+            studentId,
+            DateTime.UtcNow), ct);
         logger.LogInformation("Student {StudentId} cancelled transfer request {ReqId}", studentId, requestId);
 
         return MapTransferRequestResponse(transferReq);
@@ -1331,6 +1351,14 @@ public partial class CourseSpaceService(
             transferReq.DecisionReason = request.DecisionReason?.Trim() ?? "Moderator từ chối yêu cầu chuyển nhóm.";
 
             await uow.SaveChangesAsync(ct);
+            await eventPublisher.PublishAsync(new TransferRequestRejected(
+                transferReq.Id,
+                transferReq.SpaceId,
+                transferReq.RequesterStudentId,
+                transferReq.RequesterStudentName,
+                transferReq.DecisionReason,
+                DateTime.UtcNow), ct);
+
             logger.LogInformation("Moderator {ModId} REJECTED transfer request {ReqId}: {Reason}",
                 moderatorId, requestId, transferReq.DecisionReason);
 

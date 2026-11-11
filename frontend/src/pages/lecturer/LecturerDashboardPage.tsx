@@ -138,6 +138,19 @@ export const LecturerDashboardPage: React.FC = () => {
     void load();
   }, [load]);
 
+  // Đồng bộ thời gian thực bảng theo dõi tiến độ nhóm của giảng viên
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    window.addEventListener('realtime:group-updated', handleRealtime);
+    window.addEventListener('realtime:member-transferred', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+      window.removeEventListener('realtime:group-updated', handleRealtime);
+      window.removeEventListener('realtime:member-transferred', handleRealtime);
+    };
+  }, [load]);
+
   const LECTURER_GROUPS = useMemo(() => toLecturerGroups(roster), [roster]);
 
   // Số liệu thống kê
@@ -188,6 +201,9 @@ export const LecturerDashboardPage: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 3rem 0', maxWidth: 1560, margin: '0 auto' }}>
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
       {/* Header */}
       <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

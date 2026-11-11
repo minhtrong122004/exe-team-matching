@@ -45,6 +45,7 @@ export interface SpaceConfigPayload {
   bufferRatio: number;
   maxConcurrentApplies: number;
   registrationDeadline: string;
+  status?: SpaceStatus | null;
 }
 
 export interface FapStudent {
