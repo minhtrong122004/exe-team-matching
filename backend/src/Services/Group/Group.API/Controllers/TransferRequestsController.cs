@@ -76,7 +76,7 @@ public class TransferRequestsController(
         if (existing is null)
             return NotFound(new ProblemDetails { Title = "Not Found", Detail = $"Không tìm thấy yêu cầu chuyển nhóm '{id}'." });
 
-        var decision = new DecideTransferRequest(true, body?.DecisionReason ?? "Moderator đã duyệt yêu cầu chuyển nhóm (BR-36).");
+        var decision = new DecideTransferRequest(true, body?.DecisionReason ?? "Moderator đã duyệt yêu cầu chuyển nhóm.");
         return Ok(await spaceService.DecideTransferRequestAsync(existing.SpaceId, id, decision, currentUser.UserId.Value, ct));
     }
 

@@ -37,27 +37,27 @@ public class UpdateProfileSkillsRequestValidator : AbstractValidator<UpdateProfi
     public UpdateProfileSkillsRequestValidator()
     {
         RuleFor(x => x.TechScore)
-            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Tech (BR-05).")
-            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100 (BR-05).");
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Tech.")
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Tech phải từ 0 đến 100.");
 
         RuleFor(x => x.ManagementScore)
-            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Management (BR-05).")
-            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Management phải từ 0 đến 100 (BR-05).");
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Management.")
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Management phải từ 0 đến 100.");
 
         RuleFor(x => x.GraphicDesignScore)
-            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Graphic Design (BR-05).")
-            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100 (BR-05).");
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Graphic Design.")
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Graphic Design phải từ 0 đến 100.");
 
         RuleFor(x => x.MarketingScore)
-            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Marketing (BR-05).")
-            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100 (BR-05).");
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Marketing.")
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Marketing phải từ 0 đến 100.");
 
         RuleFor(x => x.SaleScore)
-            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Sale (BR-05).")
-            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100 (BR-05).");
+            .NotNull().WithMessage("Vui lòng nhập điểm kỹ năng Sale.")
+            .InclusiveBetween(0, 100).WithMessage("Điểm kỹ năng Sale phải từ 0 đến 100.");
 
         RuleFor(x => x.IsCommitted)
-            .Equal(true).WithMessage("Bạn phải tích cam kết chịu trách nhiệm với thông tin kỹ năng đã khai báo (BR-06).");
+            .Equal(true).WithMessage("Bạn phải tích cam kết chịu trách nhiệm với thông tin kỹ năng đã khai báo.");
 
         RuleFor(x => x.Bio)
             .MaximumLength(1000).WithMessage("Tiểu sử không được vượt quá 1000 ký tự.");

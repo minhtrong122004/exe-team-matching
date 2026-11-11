@@ -20,6 +20,7 @@ import {
   FileText,
   Bell,
   User,
+  Shield,
   LogOut,
   Compass,
   UserPlus,
@@ -88,96 +89,6 @@ const getNotificationTypeConfig = (type: string) => {
   }
 };
 
-const STUDENT_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-stu-02',
-    recipientId: 'curr-user',
-    type: 'GROUP_REQUEST',
-    title: 'Có ứng viên mới nộp đơn vào nhóm FA26EXE101-02',
-    message: 'Sinh viên Nguyễn Minh Trọng (SE185103 • AI) vừa nộp đơn ứng tuyển vào nhóm với vai trò Kỹ thuật & AI.',
-    isRead: false,
-    createdAt: '2026-11-09T09:15:00Z',
-  },
-  {
-    id: 'notif-stu-03',
-    recipientId: 'curr-user',
-    type: 'ELECTION_OPEN',
-    title: 'Mở đợt biểu quyết bầu Trưởng nhóm mới (24h)',
-    message: 'Thành viên trong nhóm FA26EXE101-02 đã khởi xướng cuộc bỏ phiếu tín nhiệm bầu chọn Trưởng nhóm mới.',
-    isRead: false,
-    createdAt: '2026-11-09T10:30:00Z',
-  },
-  {
-    id: 'notif-stu-04',
-    recipientId: 'curr-user',
-    type: 'GROUP_ACCEPTED',
-    title: 'Kết quả đơn ứng tuyển phòng FA26EXE101-02',
-    message: 'Chúc mừng bạn! Trưởng nhóm FA26EXE101-02 đã đồng ý duyệt bạn vào nhóm chính thức cho đề tài EcoCampus.',
-    isRead: false,
-    createdAt: '2026-11-09T11:45:00Z',
-  },
-  {
-    id: 'notif-stu-01',
-    recipientId: 'curr-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Khởi tạo tài khoản & Cấp quyền học kỳ Fall 2026',
-    message: 'Tài khoản của bạn đã được đồng bộ tự động từ danh sách FAP cho học phần EXE101.',
-    isRead: true,
-    createdAt: '2026-11-08T08:00:00Z',
-  },
-];
-
-const MODERATOR_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-mod-02',
-    recipientId: 'mod-user',
-    type: 'GROUP_REQUEST',
-    title: 'Có 3 yêu cầu xin chuyển nhóm / đổi chéo mới chờ duyệt',
-    message: 'Sinh viên từ các nhóm đã nộp 3 đơn chuyển nhóm kèm lý do đổi chéo đề tài đang chờ phê duyệt.',
-    isRead: false,
-    createdAt: '2026-11-09T09:30:00Z',
-  },
-  {
-    id: 'notif-mod-03',
-    recipientId: 'mod-user',
-    type: 'SYSTEM',
-    title: 'Cảnh báo: Còn 8 sinh viên chưa có nhóm trước hạn đóng',
-    message: 'Thời hạn đăng ký tự nguyện sắp kết thúc. Còn 8 sinh viên chưa tham gia phòng nào.',
-    isRead: false,
-    createdAt: '2026-11-09T10:45:00Z',
-  },
-  {
-    id: 'notif-mod-04',
-    recipientId: 'mod-user',
-    type: 'GROUP_ACCEPTED',
-    title: 'Phòng FA26EXE101-02 vừa chạm ngưỡng 3 thành viên',
-    message: 'Phòng FA26EXE101-02 vừa tiếp nhận thành viên thứ 3 và tự động chuyển sang chế độ Nhóm đang tuyển.',
-    isRead: false,
-    createdAt: '2026-11-09T11:15:00Z',
-  },
-  {
-    id: 'notif-mod-01',
-    recipientId: 'mod-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Đồng bộ thành công 50 sinh viên từ FAP cho EXE101',
-    message: 'Hệ thống đã nạp danh sách 50 sinh viên đủ điều kiện từ FAP kỳ Fall 2026.',
-    isRead: true,
-    createdAt: '2026-11-08T08:30:00Z',
-  },
-];
-
-const LECTURER_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-lec-01',
-    recipientId: 'lec-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Danh sách 10 nhóm EXE101 đã được chốt sổ chính thức',
-    message: 'Điều phối viên đã khóa sổ 10 nhóm môn EXE101. Giảng viên có thể tải file CSV để theo dõi và chấm điểm.',
-    isRead: false,
-    createdAt: '2026-11-09T12:00:00Z',
-  },
-];
-
 export const MainLayout: React.FC = () => {
   const { user, logout, acceptTerms } = useAuth();
   const navigate = useNavigate();
@@ -204,12 +115,6 @@ export const MainLayout: React.FC = () => {
 
   const activeAccent = getAccentOption(appearance.accentId);
 
-  const getRoleFallbackNotifications = useCallback(() => {
-    if (user?.role === 'Moderator') return MODERATOR_NOTIFICATIONS;
-    if (user?.role === 'Lecturer') return LECTURER_NOTIFICATIONS;
-    return STUDENT_NOTIFICATIONS;
-  }, [user?.role]);
-
   const loadNotifications = useCallback(async () => {
     if (!user) return;
     try {
@@ -217,20 +122,14 @@ export const MainLayout: React.FC = () => {
         notificationsApi.getMyNotifications({ page: 1, pageSize: 12 }),
         notificationsApi.getUnreadCount(),
       ]);
-      if (pagedRes.items && pagedRes.items.length > 0) {
-        setNotifItems(pagedRes.items);
-        setUnreadCount(unreadRes.unreadCount ?? pagedRes.items.filter((n) => !n.isRead).length);
-      } else {
-        const fb = getRoleFallbackNotifications();
-        setNotifItems(fb);
-        setUnreadCount(fb.filter((n) => !n.isRead).length);
-      }
+      const items = pagedRes.items || [];
+      setNotifItems(items);
+      setUnreadCount(unreadRes.unreadCount ?? items.filter((n) => !n.isRead).length);
     } catch {
-      const fb = getRoleFallbackNotifications();
-      setNotifItems(fb);
-      setUnreadCount(fb.filter((n) => !n.isRead).length);
+      setNotifItems([]);
+      setUnreadCount(0);
     }
-  }, [user, getRoleFallbackNotifications]);
+  }, [user]);
 
   useEffect(() => {
     void loadNotifications();
@@ -355,11 +254,11 @@ export const MainLayout: React.FC = () => {
     if (role === 'Moderator') {
       return [
         {
-          title: 'Điều phối & Học kỳ',
+          title: 'Quản trị & Điều phối học kỳ',
           items: [
             {
-              to: '/moderator/spaces',
-              label: 'Quản lý Học kỳ & Phòng',
+              to: '/spaces',
+              label: 'Không gian học phần (FAP)',
               icon: <Layers size={20} />,
               roles: ['Moderator'],
             },
@@ -376,31 +275,54 @@ export const MainLayout: React.FC = () => {
               roles: ['Moderator'],
             },
             {
-              to: '/groups',
-              label: 'Danh sách Phòng & Nhóm',
-              icon: <Compass size={20} />,
+              to: '/admin/accounts',
+              label: 'Quản lý TK & Đồng bộ FAP',
+              icon: <Shield size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/reports',
-              label: 'Tổng quan & Xuất báo cáo',
+              label: 'Báo cáo & Thống kê ghép nhóm',
               icon: <FileText size={20} />,
               roles: ['Moderator'],
             },
           ],
         },
         {
-          title: 'Hệ thống',
+          title: 'Giám sát học vụ & Đề tài',
+          items: [
+            {
+              to: '/groups',
+              label: 'Giám sát nhóm & Room',
+              icon: <Compass size={20} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={20} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/projects',
+              label: 'Ý tưởng dự án (EXE)',
+              icon: <Lightbulb size={20} />,
+              roles: ['Moderator'],
+            },
+          ],
+        },
+        {
+          title: 'Cá nhân & Hệ thống',
           items: [
             {
               to: '/profile',
-              label: 'Hồ sơ cá nhân',
+              label: 'Hồ sơ điều phối viên',
               icon: <User size={20} />,
               roles: ['Moderator'],
             },
             {
               to: '/notifications',
-              label: 'Thông báo',
+              label: 'Thông báo hệ thống',
               icon: <Bell size={20} />,
               roles: ['Moderator'],
             },
@@ -415,31 +337,43 @@ export const MainLayout: React.FC = () => {
           title: 'Giảng dạy & Cố vấn EXE',
           items: [
             {
-              to: '/lecturer/dashboard',
-              label: 'Tổng quan & Xuất báo cáo',
+              to: '/spaces',
+              label: 'Không gian học phần',
+              icon: <Layers size={20} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo & Danh sách nhóm',
               icon: <FileText size={20} />,
               roles: ['Lecturer'],
             },
             {
               to: '/groups',
-              label: 'Danh sách Phòng & Nhóm',
+              label: 'Các nhóm sinh viên',
               icon: <Compass size={20} />,
               roles: ['Lecturer'],
             },
             {
               to: '/projects',
-              label: 'Kho Đề tài dự kiến',
+              label: 'Ý tưởng dự án (EXE)',
               icon: <Lightbulb size={20} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/candidates',
+              label: 'Danh bạ sinh viên',
+              icon: <Users size={20} />,
               roles: ['Lecturer'],
             },
           ],
         },
         {
-          title: 'Hệ thống',
+          title: 'Cá nhân',
           items: [
             {
               to: '/profile',
-              label: 'Hồ sơ cá nhân',
+              label: 'Hồ sơ giảng viên',
               icon: <User size={20} />,
               roles: ['Lecturer'],
             },
@@ -457,12 +391,12 @@ export const MainLayout: React.FC = () => {
     // Default for Student
     return [
       {
-        title: 'Ghép đội & Học phần EXE',
+        title: 'Không gian & Ghép đội EXE',
         items: [
           {
-            to: '/groups',
-            label: 'Khám phá Phòng & Nhóm',
-            icon: <Compass size={20} />,
+            to: '/spaces',
+            label: 'Không gian học phần của tôi',
+            icon: <Layers size={20} />,
             roles: ['Student'],
           },
           {
@@ -473,7 +407,7 @@ export const MainLayout: React.FC = () => {
           },
           {
             to: '/join-requests',
-            label: 'Đơn ứng tuyển của tôi',
+            label: 'Yêu cầu tham gia',
             icon: <UserPlus size={20} />,
             roles: ['Student'],
           },
@@ -484,8 +418,20 @@ export const MainLayout: React.FC = () => {
         items: [
           {
             to: '/projects',
-            label: 'Kho Đề tài dự kiến',
+            label: 'Ý tưởng dự án (EXE)',
             icon: <Lightbulb size={20} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/groups',
+            label: 'Khám phá nhóm',
+            icon: <Compass size={20} />,
+            roles: ['Student'],
+          },
+          {
+            to: '/candidates',
+            label: 'Tìm bạn ghép đội (Ứng viên)',
+            icon: <Sparkles size={20} />,
             roles: ['Student'],
           },
         ],
@@ -747,15 +693,9 @@ export const MainLayout: React.FC = () => {
                           return `motion-sidebar-link${activeState ? ' is-active-nav' : ''}`;
                         }}
                         data-sidebar-tooltip={isCollapsed ? item.label : undefined}
-                        onClick={(e) => {
-                          if (isNotifItem) {
-                            e.preventDefault();
-                            setSidebarOpen(false);
-                            setNotifOpen((prev) => !prev);
-                          } else {
-                            setSidebarOpen(false);
-                            setNotifOpen(false);
-                          }
+                        onClick={() => {
+                          setSidebarOpen(false);
+                          setNotifOpen(false);
                         }}
                         style={({ isActive }) => {
                           const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;

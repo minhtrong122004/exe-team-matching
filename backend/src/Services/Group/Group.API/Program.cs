@@ -24,6 +24,7 @@ builder.Services.AddExeEventBus(builder.Configuration);
 
 // ── 4. Background job & Event Consumers ─────────────────────────────────────
 builder.Services.AddHostedService<UserProfileUpdatedConsumer>();
+builder.Services.AddHostedService<RegistrationDeadlineWorker>();
 // ═══════════════════════════════════════════════════════════════════════════
 var app = builder.Build();
 

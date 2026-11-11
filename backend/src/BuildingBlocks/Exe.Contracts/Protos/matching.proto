@@ -9,6 +9,7 @@ service MatchingService {
   rpc RankGroups (RankGroupsRequest) returns (RankGroupsResponse);
   rpc RankCandidates (RankCandidatesRequest) returns (RankCandidatesResponse);
   rpc DistributeUnmatchedStudents (DistributeRequest) returns (DistributeResponse);
+  rpc AnalyzeGroupWithAI (AnalyzeGroupRequest) returns (AnalyzeGroupResponse);
 }
 
 message StudentProfile {
@@ -31,6 +32,11 @@ message GroupNeed {
   repeated string required_majors = 2;
   repeated string required_skills = 3;
   string project_domain = 4;
+  int32 avg_tech_score = 5;
+  int32 avg_management_score = 6;
+  int32 avg_graphic_design_score = 7;
+  int32 avg_marketing_score = 8;
+  int32 avg_sale_score = 9;
 }
 
 message MatchRequest { StudentProfile student = 1; GroupNeed group = 2; }
@@ -123,4 +129,47 @@ message DistributeResponse {
   int32 total_distributed = 3;
   int32 total_remaining = 4;
   repeated DistributedRoomPlan room_plans = 5;
+}
+
+// ── Tier 2: AI Mentor Inference (Google Gemini) ─────────────────────────
+
+message AnalyzeGroupMember {
+  string user_id = 1;
+  string full_name = 2;
+  string student_code = 3;
+  string major = 4;
+  bool is_leader = 5;
+  int32 tech_score = 6;
+  int32 management_score = 7;
+  int32 graphic_design_score = 8;
+  int32 marketing_score = 9;
+  int32 sale_score = 10;
+}
+
+message AnalyzeGroupRequest {
+  string group_id = 1;
+  string group_code = 2;
+  string group_name = 3;
+  string project_domain = 4;
+  string project_topic = 5;
+  repeated AnalyzeGroupMember members = 6;
+}
+
+message AiRecommendedTopic {
+  string title = 1;
+  string description = 2;
+  string target_market = 3;
+  string business_model = 4;
+}
+
+message AnalyzeGroupResponse {
+  string group_id = 1;
+  string overall_assessment = 2;
+  repeated string strengths = 3;
+  repeated string blind_spots = 4;
+  repeated AiRecommendedTopic recommended_topics = 5;
+  repeated string first_month_roadmap = 6;
+  double synergy_score = 7;
+  bool is_ai_generated = 8;
+  string model_name = 9;
 }

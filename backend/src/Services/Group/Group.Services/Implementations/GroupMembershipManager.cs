@@ -76,7 +76,7 @@ public sealed class GroupMembershipManager(
             throw new BusinessRuleException(GroupErrorCodes.AlreadyMember, "Bạn đã là thành viên của phòng này rồi.");
 
         if (await groups.IsUserInActiveGroupAsync(userId, group.SpaceId, ct))
-            throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Bạn hiện đang ở một nhóm/phòng khác. Mỗi sinh viên chỉ ở 1 phòng trong 1 môn (BR-21).");
+            throw new BusinessRuleException(GroupErrorCodes.AlreadyInGroup, "Bạn hiện đang ở một nhóm/phòng khác. Mỗi sinh viên chỉ ở 1 phòng trong 1 môn.");
 
         if (group.Members.Count >= group.MaxMembers)
             throw new BusinessRuleException("GROUP_FULL", "Phòng đã đủ sĩ số tối đa.");
@@ -84,7 +84,7 @@ public sealed class GroupMembershipManager(
         if (group.Status != GroupStatus.Empty && group.Status != GroupStatus.Forming)
         {
             throw new BusinessRuleException("ROOM_REACHED_THRESHOLD",
-                $"Phòng đã đạt ngưỡng {groupThreshold} thành viên và chuyển thành Group chính thức (BR-16). Vui lòng nộp đơn Apply để tham gia.");
+                $"Phòng đã đạt ngưỡng {groupThreshold} thành viên và chuyển thành Group chính thức. Vui lòng nộp đơn Apply để tham gia.");
         }
 
         var isFirst = group.Members.Count == 0 || group.Status == GroupStatus.Empty;

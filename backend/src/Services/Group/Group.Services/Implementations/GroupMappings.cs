@@ -45,7 +45,16 @@ internal static class GroupMappings
         Members:       hideMembers ? [] : g.Members
                            .OrderBy(m => m.Role == MemberRole.Leader ? 0 : 1)
                            .ThenBy(m => m.JoinedAt)
-                           .Select(m => new MemberResponse(m.UserId, m.FullName, m.Role.ToString(), m.SlotId, m.JoinedAt))
+                           .Select(m => new MemberResponse(
+                               m.UserId,
+                               m.FullName,
+                               m.Role.ToString(),
+                               m.SlotId,
+                               m.JoinedAt,
+                               m.Email,
+                               !string.IsNullOrWhiteSpace(m.Email) && m.Email.Contains('@')
+                                   ? m.Email.Split('@')[0].ToUpper()
+                                   : null))
                            .ToList(),
         Slots:         g.Slots.Select(ToResponse).ToList(),
         CreatedAt:     g.CreatedAt,

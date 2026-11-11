@@ -1,3263 +1,3503 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/client';
+import { groupsApi } from '../api/groups';
+import { spacesApi } from '../api/spaces';
 import { useAuth } from '../contexts/AuthContext';
+import { AiMentorCard } from '../components/AiMentorCard';
+import { AnimatedModal, ConfirmDialog } from '../components/AnimatedModal';
+import type { TransferRequestResponse, RoomSummaryResponse } from '../types/space';
+import type {
+  GroupResponse,
+  GroupMemberResponse,
+  GroupSummaryResponse,
+  UpdateGroupRequest,
+  RecruitmentSlotResponse,
+  JoinRequestResponse,
+  MatchScoreResponse,
+  SuggestedGroupResponse,
+  RankedCandidateResponse,
+  CandidateProfileResponse,
+  LeaderElectionResponse,
+  ProjectItem,
+  Major,
+  ProjectDomain,
+} from '../types';
 import {
+  Compass,
+  Users,
   Sparkles,
   Search,
+  RefreshCw,
+  Check,
   X,
   Crown,
+  UserMinus,
   LogOut,
+  Trash2,
   Edit3,
+  Send,
+  Mail,
+  AlertCircle,
   CheckCircle2,
   Clock,
+  Briefcase,
   Layers,
+  Award,
+  ChevronLeft,
+  ChevronRight,
   Vote,
   ThumbsUp,
   ThumbsDown,
+  Zap,
   Lock,
   Unlock,
   ArrowLeftRight,
-  ShieldAlert,
-  Send,
-  TrendingUp,
-  UserPlus,
-  Users,
 } from '../utils/icons';
 
-// ══════════════════════════════════════════════════════════════════════════════
-// TYPES & MOCK DATA
-// ══════════════════════════════════════════════════════════════════════════════
-
-export interface RoomMember {
-  id: string;
-  name: string;
-  studentCode: string;
-  classCode: string; // SE1801, GD1802...
-  major: string;
-  role: 'Leader' | 'Member';
-  avatarBg: string;
-  avatarText: string;
-  joinedAt: string;
-}
-
-export interface RoomItem {
-  id: string;
-  code: string; // FA26EXE101-01 to FA26EXE101-06
-  name: string;
-  topic?: string;
-  topicDesc?: string;
-  status: 'Empty' | 'Forming' | 'Recruiting' | 'Closed' | 'Locked';
-  currentMembers: number;
-  maxMembers: number;
-  members: RoomMember[];
-  skillBalance?: number;
-  neededSkills?: string[];
-  isEarlyClosed?: boolean;
-}
-
-const INITIAL_ROOMS: RoomItem[] = [
-  {
-    id: 'room-01',
-    code: 'FA26EXE101-01',
-    name: 'Phòng nhóm khởi nghiệp 01',
-    status: 'Empty',
-    currentMembers: 0,
-    maxMembers: 5,
-    members: [],
-  },
-  {
-    id: 'room-02',
-    code: 'FA26EXE101-02',
-    name: 'Phòng nhóm khởi nghiệp 02',
-    status: 'Forming',
-    currentMembers: 2,
-    maxMembers: 5,
-    members: [
-      {
-        id: 'user-02a',
-        name: 'Trần Minh Quân',
-        studentCode: 'SE185108',
-        classCode: 'SE1801',
-        major: 'Kỹ thuật phần mềm (SE)',
-        role: 'Leader',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '08:30 • 08/11/2026',
-      },
-      {
-        id: 'user-02b',
-        name: 'Lê Hoàng Yến',
-        studentCode: 'GD180215',
-        classCode: 'GD1802',
-        major: 'Thiết kế mỹ thuật số (GD)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '14:15 • 08/11/2026',
-      },
-    ],
-  },
-  {
-    id: 'room-03',
-    code: 'FA26EXE101-03',
-    name: 'Phòng nhóm khởi nghiệp 03',
-    topic: 'EcoCampus - Hệ thống Phân loại Rác Thông minh AI',
-    topicDesc: 'Ứng dụng Computer Vision tự động phân loại rác thải tại nguồn cho các khu campus đại học và tòa nhà thông minh.',
-    status: 'Recruiting',
-    currentMembers: 3,
-    maxMembers: 5,
-    skillBalance: 94,
-    neededSkills: ['Marketing', 'Sale'],
-    members: [
-      {
-        id: 'user-03a',
-        name: 'Nguyễn Đức Anh',
-        studentCode: 'SE180201',
-        classCode: 'SE1802',
-        major: 'Kỹ thuật phần mềm (SE)',
-        role: 'Leader',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '09:00 • 07/11/2026',
-      },
-      {
-        id: 'user-03b',
-        name: 'Phạm Bảo Trân',
-        studentCode: 'SE180145',
-        classCode: 'SE1801',
-        major: 'Trí tuệ nhân tạo (AI)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '10:30 • 07/11/2026',
-      },
-      {
-        id: 'user-03c',
-        name: 'Võ Trọng Tín',
-        studentCode: 'MKT18012',
-        classCode: 'MKT1801',
-        major: 'Digital Marketing (MKT)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '16:00 • 08/11/2026',
-      },
-    ],
-  },
-  {
-    id: 'room-04',
-    code: 'FA26EXE101-04',
-    name: 'Phòng nhóm khởi nghiệp 04',
-    topic: 'FinWise - Nền tảng Quản lý Tài chính Sinh viên',
-    topicDesc: 'Trợ lý tài chính cá nhân tích hợp AI lập kế hoạch chi tiêu thông minh, hỗ trợ thanh toán học phí và tiết kiệm vi mô.',
-    status: 'Recruiting',
-    currentMembers: 4,
-    maxMembers: 5,
-    skillBalance: 88,
-    neededSkills: ['Tech (Backend / Cloud)'],
-    members: [
-      {
-        id: 'user-04a',
-        name: 'Đặng Gia Huy',
-        studentCode: 'IA180104',
-        classCode: 'IA1801',
-        major: 'An toàn thông tin (IA)',
-        role: 'Leader',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '11:00 • 06/11/2026',
-      },
-      {
-        id: 'user-04b',
-        name: 'Bùi Phương Thảo',
-        studentCode: 'SE180312',
-        classCode: 'SE1803',
-        major: 'Kỹ thuật phần mềm (SE)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '13:45 • 06/11/2026',
-      },
-      {
-        id: 'user-04c',
-        name: 'Trương Mỹ Linh',
-        studentCode: 'IB180220',
-        classCode: 'IB1802',
-        major: 'Kinh doanh quốc tế (IB)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '15:20 • 07/11/2026',
-      },
-      {
-        id: 'user-04d',
-        name: 'Ngô Quốc Tuấn',
-        studentCode: 'GD180155',
-        classCode: 'GD1801',
-        major: 'Thiết kế mỹ thuật số (GD)',
-        role: 'Member',
-        avatarBg: '#F1F5F9',
-        avatarText: '#334155',
-        joinedAt: '18:10 • 08/11/2026',
-      },
-    ],
-  },
-  {
-    id: 'room-05',
-    code: 'FA26EXE101-05',
-    name: 'Phòng nhóm khởi nghiệp 05',
-    topic: 'SafeRide - Nền tảng Đi chung xe Campus FPTU',
-    topicDesc: 'Kết nối sinh viên có xe và sinh viên cần đi nhờ theo tuyến đường cố định đến campus, tối ưu chi phí và bảo đảm an toàn sinh viên.',
-    status: 'Closed',
-    currentMembers: 5,
-    maxMembers: 5,
-    members: [
-      { id: 'u5a', name: 'Nguyễn Văn A', studentCode: 'SE180111', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
-      { id: 'u5b', name: 'Trần Thị B', studentCode: 'GD180222', classCode: 'GD1802', major: 'GD', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
-      { id: 'u5c', name: 'Lê Văn C', studentCode: 'MKT18033', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '06/11/2026' },
-      { id: 'u5d', name: 'Phạm Thị D', studentCode: 'IB18044', classCode: 'IB1804', major: 'IB', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '06/11/2026' },
-      { id: 'u5e', name: 'Hoàng Văn E', studentCode: 'AI18055', classCode: 'AI1805', major: 'AI', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '07/11/2026' },
-    ],
-  },
-  {
-    id: 'room-06',
-    code: 'FA26EXE101-06',
-    name: 'Phòng nhóm khởi nghiệp 06',
-    topic: 'AgriTrust - Chuỗi cung ứng Nông sản sạch Blockchain',
-    topicDesc: 'Giải pháp truy xuất nguồn gốc nông sản an toàn từ trang trại đến bàn ăn thông qua mã QR và hợp đồng thông minh.',
-    status: 'Locked',
-    currentMembers: 4,
-    maxMembers: 5,
-    members: [
-      { id: 'u6a', name: 'Vũ Đức Thành', studentCode: 'SE180101', classCode: 'SE1801', major: 'SE', role: 'Leader', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '04/11/2026' },
-      { id: 'u6b', name: 'Đỗ Thu Hà', studentCode: 'IB180202', classCode: 'IB1802', major: 'IB', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '04/11/2026' },
-      { id: 'u6c', name: 'Phan Minh Khang', studentCode: 'MKT180303', classCode: 'MKT1803', major: 'MKT', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
-      { id: 'u6d', name: 'Lâm Gia Tuệ', studentCode: 'SE180404', classCode: 'SE1804', major: 'SE', role: 'Member', avatarBg: '#F1F5F9', avatarText: '#334155', joinedAt: '05/11/2026' },
-    ],
-  },
+const MAJOR_LIST: { value: Major; label: string }[] = [
+  { value: 'SE', label: 'SE - Kỹ thuật phần mềm' },
+  { value: 'AI', label: 'AI - Trí tuệ nhân tạo' },
+  { value: 'IA', label: 'IA - An toàn thông tin' },
+  { value: 'GD', label: 'GD - Thiết kế đồ họa' },
+  { value: 'MKT', label: 'MKT - Digital Marketing' },
+  { value: 'IB', label: 'IB - Kinh doanh quốc tế' },
+  { value: 'Other', label: 'Other - Khác' },
 ];
 
+const DOMAIN_LIST: { value: ProjectDomain; label: string }[] = [
+  { value: 'EdTech', label: 'EdTech (Giáo dục)' },
+  { value: 'FinTech', label: 'FinTech (Tài chính)' },
+  { value: 'ECommerce', label: 'E-Commerce (Thương mại)' },
+  { value: 'FnB', label: 'F&B (Ẩm thực)' },
+  { value: 'Health', label: 'HealthTech (Y tế)' },
+  { value: 'Tourism', label: 'Tourism (Du lịch)' },
+  { value: 'Other', label: 'Other (Khác)' },
+];
+
+function formatDateTime(iso?: string | null): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function getScoreBadgeStyle(score: number): React.CSSProperties {
+  if (score >= 70) {
+    return {
+      background: '#dcfce7',
+      color: '#15803d',
+      border: '1px solid #86efac',
+      padding: '0.25rem 0.65rem',
+      borderRadius: 9999,
+      fontWeight: 700,
+      fontSize: '0.78rem',
+    };
+  }
+  if (score >= 40) {
+    return {
+      background: '#fef3c7',
+      color: '#b45309',
+      border: '1px solid #fcd34d',
+      padding: '0.25rem 0.65rem',
+      borderRadius: 9999,
+      fontWeight: 700,
+      fontSize: '0.78rem',
+    };
+  }
+  return {
+    background: '#f1f5f9',
+    color: '#475569',
+    border: '1px solid #cbd5e1',
+    padding: '0.25rem 0.65rem',
+    borderRadius: 9999,
+    fontWeight: 700,
+    fontSize: '0.78rem',
+  };
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
-// 1. GROUPS PAGE (/groups)
+// 1. GROUPS PAGE (/groups) — Khám phá Nhóm + Gợi ý AI/gRPC + Tạo Nhóm
 // ══════════════════════════════════════════════════════════════════════════════
 export const GroupsPage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const [rooms, setRooms] = useState<RoomItem[]>(INITIAL_ROOMS);
-  const [filterTab, setFilterTab] = useState<string>('ALL');
-  const [slotFilter, setSlotFilter] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'browse' | 'suggestions'>('browse');
+  const [groups, setGroups] = useState<GroupSummaryResponse[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
 
-  // Apply Modal state
-  const [applyModalRoom, setApplyModalRoom] = useState<RoomItem | null>(null);
-  const [applyIntro, setApplyIntro] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Recruiting');
+  const [domainFilter, setDomainFilter] = useState<string>('');
+  const [majorFilter, setMajorFilter] = useState<string>('');
 
-  // Staff Inspection Modal state (Moderator / Lecturer)
-  const [inspectRoomModal, setInspectRoomModal] = useState<RoomItem | null>(null);
+  const [suggestions, setSuggestions] = useState<SuggestedGroupResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const isStaff = user?.role === 'Moderator' || user?.role === 'Lecturer';
+  // Detail modal state
+  const [selectedGroup, setSelectedGroup] = useState<GroupResponse | null>(null);
+  const [selectedGroupScore, setSelectedGroupScore] = useState<MatchScoreResponse | null>(null);
+  const [selectedGroupProject, setSelectedGroupProject] = useState<ProjectItem | null>(null);
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, CandidateProfileResponse>>({});
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 4000);
-  };
+  // Join Request form inside detail modal
+  const [joinSlotId, setJoinSlotId] = useState<string>('');
+  const [joinMessage, setJoinMessage] = useState<string>('');
+  const [joinSubmitting, setJoinSubmitting] = useState(false);
 
-  // Tương tác trực tiếp: Tham gia ngay (Vào thẳng)
-  const handleDirectJoin = (roomCode: string) => {
-    setRooms((prev) =>
-      prev.map((r) => {
-        if (r.code !== roomCode) return r;
-
-        const currentCount = r.members.length;
-        const studentName = user?.fullName || 'Lữ Thành Tú';
-        const studentCode = user?.studentCode || 'SE185102';
-        const classCode = 'SE1801';
-        const major = 'Kỹ thuật phần mềm (SE)';
-
-        // Nếu phòng 0/5: làm Leader
-        if (currentCount === 0) {
-          const newMember: RoomMember = {
-            id: 'current-user',
-            name: studentName,
-            studentCode,
-            classCode,
-            major,
-            role: 'Leader',
-            avatarBg: '#F1F5F9',
-            avatarText: '#334155',
-            joinedAt: 'Vừa xong',
-          };
-          showToast(`Chúc mừng! Bạn đã vào phòng ${r.code} và trở thành Nhóm trưởng (Leader)!`);
-          return {
-            ...r,
-            currentMembers: 1,
-            status: 'Forming',
-            members: [newMember],
-          };
-        }
-
-        // Nếu phòng 2/5 -> vào thẳng lên 3/5 và tự động chuyển sang "Nhóm đang tuyển (3/5)", khóa cổng vào thẳng!
-        if (currentCount === 2) {
-          const newMember: RoomMember = {
-            id: 'current-user',
-            name: studentName,
-            studentCode,
-            classCode,
-            major,
-            role: 'Member',
-            avatarBg: '#F1F5F9',
-            avatarText: '#334155',
-            joinedAt: 'Vừa xong',
-          };
-          showToast(`Bạn đã vào phòng ${r.code}! Sĩ số đạt 3/5: Phòng chính thức chuyển sang chế độ "Nhóm đang tuyển" và khóa cổng vào thẳng.`);
-          return {
-            ...r,
-            currentMembers: 3,
-            status: 'Recruiting',
-            skillBalance: 92,
-            neededSkills: ['Marketing', 'Sale'],
-            members: [...r.members, newMember],
-          };
-        }
-
-        // Phòng 1/5 -> lên 2/5
-        const newMember: RoomMember = {
-          id: 'current-user',
-          name: studentName,
-          studentCode,
-          classCode,
-          major,
-          role: 'Member',
-          avatarBg: '#F1F5F9',
-          avatarText: '#334155',
-          joinedAt: 'Vừa xong',
-        };
-        showToast(`Bạn đã tham gia thành công phòng ${r.code}!`);
-        return {
-          ...r,
-          currentMembers: currentCount + 1,
-          members: [...r.members, newMember],
-        };
-      })
-    );
-  };
-
-  // Nộp đơn ứng tuyển
-  const handleConfirmApply = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!applyModalRoom) return;
-    showToast(`Đã nộp đơn ứng tuyển vào nhóm ${applyModalRoom.code} thành công! Nhóm trưởng và thành viên sẽ tiến hành biểu quyết xét duyệt.`);
-    setApplyModalRoom(null);
-    setApplyIntro('');
-  };
-
-  // Bộ lọc danh sách phòng
-  const filteredRooms = rooms.filter((r) => {
-    // Tab filter
-    if (filterTab === 'EMPTY' && r.status !== 'Empty') return false;
-    if (filterTab === 'FORMING' && r.status !== 'Forming') return false;
-    if (filterTab === 'RECRUITING' && r.status !== 'Recruiting') return false;
-    if (filterTab === 'CLOSED' && r.status !== 'Closed') return false;
-    if (filterTab === 'LOCKED' && r.status !== 'Locked') return false;
-
-    // Slot filter
-    const remaining = r.maxMembers - r.currentMembers;
-    if (slotFilter === '1' && remaining !== 1) return false;
-    if (slotFilter === '2-3' && (remaining < 2 || remaining > 3)) return false;
-    if (slotFilter === '4-5' && remaining < 4) return false;
-
-    // Search query
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const matchCode = r.code.toLowerCase().includes(q);
-      const matchName = r.name.toLowerCase().includes(q);
-      const matchTopic = (r.topic || '').toLowerCase().includes(q);
-      if (!matchCode && !matchName && !matchTopic) return false;
+  const loadBrowseGroups = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await groupsApi.getGroups({
+        search: search.trim() || undefined,
+        status: statusFilter || undefined,
+        domain: domainFilter || undefined,
+        major: majorFilter || undefined,
+        page,
+        pageSize: 9,
+      });
+      setGroups(res.items || []);
+      setTotalCount(res.totalCount || 0);
+      setTotalPages(Math.max(1, res.totalPages || 1));
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể tải danh sách nhóm đề tài.');
+    } finally {
+      setLoading(false);
     }
+  }, [search, statusFilter, domainFilter, majorFilter, page]);
 
-    return true;
-  });
+  const loadSuggestedGroups = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await groupsApi.getSuggestedGroups(10);
+      setSuggestions(res || []);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          'Không thể tải gợi ý nhóm từ Matching Service (gRPC).'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'browse') {
+      void loadBrowseGroups();
+    } else {
+      void loadSuggestedGroups();
+    }
+  }, [activeTab, loadBrowseGroups, loadSuggestedGroups]);
+
+  // Open Group Detail modal + fetch Match Score + Member Profiles + Project
+  const handleOpenGroupDetail = async (groupId: string) => {
+    setDetailLoading(true);
+    setSelectedGroup(null);
+    setSelectedGroupScore(null);
+    setSelectedGroupProject(null);
+    setJoinSlotId('');
+    setJoinMessage('');
+    try {
+      const detail = await groupsApi.getGroupById(groupId);
+      setSelectedGroup(detail);
+      if (detail.slots && detail.slots.length > 0) {
+        setJoinSlotId(detail.slots[0].id);
+      }
+
+      // Fetch match score if student
+      if (user?.role === 'Student') {
+        groupsApi
+          .getMatchScore(groupId)
+          .then((sc) => setSelectedGroupScore(sc))
+          .catch(() => null);
+      }
+
+      // Fetch project details if linked
+      if (detail.projectId) {
+        apiClient
+          .get<ProjectItem>(`/projects/${detail.projectId}`)
+          .then((r) => setSelectedGroupProject(r.data))
+          .catch(() => null);
+      }
+
+      // Batch fetch member profiles
+      const uids = detail.members.map((m) => m.userId);
+      if (uids.length > 0) {
+        apiClient
+          .post<CandidateProfileResponse[]>('/users/batch', { userIds: uids })
+          .then((r) => {
+            const map: Record<string, CandidateProfileResponse> = {};
+            (r.data || []).forEach((p) => {
+              map[p.userId] = p;
+            });
+            setMemberProfiles(map);
+          })
+          .catch(() => null);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể tải chi tiết nhóm.');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleSubmitJoinRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedGroup) return;
+    if (user?.role === 'Student' && !user?.isProfileCompleted) {
+      setError(
+        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn xin gia nhập nhóm.'
+      );
+      setSelectedGroup(null);
+      navigate('/profile');
+      return;
+    }
+    setJoinSubmitting(true);
+    setError(null);
+    try {
+      await groupsApi.createJoinRequest(selectedGroup.id, {
+        slotId: joinSlotId || null,
+        message: joinMessage.trim() || undefined,
+      });
+      setFeedback(`Đã gửi đơn xin gia nhập nhóm "${selectedGroup.name}" thành công!`);
+      setSelectedGroup(null);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+          err?.response?.data?.title ||
+          'Không thể gửi yêu cầu gia nhập nhóm.'
+      );
+    } finally {
+      setJoinSubmitting(false);
+    }
+  };
 
   return (
-    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 24,
-            right: 24,
-            zIndex: 9999,
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            padding: '12px 20px',
-            borderRadius: 12,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          <CheckCircle2 size={18} color="#22C55E" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* C. Page Header — EdTech Product Structure: Breadcrumb + Large Title + Concise Description */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '12.5px',
-            fontWeight: 450,
-            color: 'var(--text-muted, #64748B)',
-            marginBottom: '0.45rem',
-          }}
-        >
-          <span>Học phần</span>
-          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-          <span>EXE</span>
-          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-          <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Phòng nhóm</span>
-        </div>
-
-        <h1
-          style={{
-            fontSize: '1.75rem',
-            fontWeight: 650,
-            color: 'var(--text-main, #0F172A)',
-            margin: '0 0 0.35rem 0',
-            letterSpacing: '-0.022em',
-            lineHeight: 1.25,
-          }}
-        >
-          Phòng & Nhóm Học Phần EXE
-        </h1>
-        <p
-          style={{
-            color: 'var(--text-muted, #64748B)',
-            fontSize: '0.95rem',
-            fontWeight: 400,
-            margin: 0,
-            lineHeight: 1.5,
-          }}
-        >
-          Tìm kiếm đồng đội liên ngành, tham gia các phòng khởi nghiệp đang mở hoặc ứng tuyển vào nhóm phù hợp.
-        </p>
-      </div>
-
-      {/* D. Filter & Search Toolbar — Flat Segmented Control (clear active state, no shadow/gradient) + Secondary Search & Filter */}
+    <div>
+      {/* Header */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '1rem',
+          alignItems: 'flex-start',
           flexWrap: 'wrap',
-          marginBottom: '1.5rem',
-          paddingBottom: '1rem',
-          borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
+          gap: '1rem',
+          marginBottom: '1.75rem',
         }}
       >
-        {/* 1. Primary Component: Flat Segmented Control with High-Contrast Active State (No shadow, no gradient) */}
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
+            Khám phá Nhóm Đề tài EXE
+          </h1>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Tìm kiếm nhóm đang tuyển thành viên hoặc xem gợi ý nhóm tương thích từ Matching Service (gRPC)
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={() =>
+              activeTab === 'browse' ? void loadBrowseGroups() : void loadSuggestedGroups()
+            }
+          >
+            <RefreshCw size={16} />
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {/* Alerts */}
+      {feedback && (
         <div
+          className="card"
           style={{
-            display: 'inline-flex',
-            flexWrap: 'wrap',
-            gap: '3px',
-            padding: '4px',
-            borderRadius: 10,
-            backgroundColor: '#F1F5F9',
-            border: '1px solid #E2E8F0',
+            marginBottom: '1.25rem',
+            padding: '0.9rem 1.15rem',
+            borderLeft: '4px solid #10b981',
+            background: '#ecfdf5',
+            color: '#065f46',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          {[
-            { key: 'ALL', label: 'Tất cả', count: rooms.length },
-            { key: 'EMPTY', label: 'Phòng trống', count: rooms.filter((r) => r.status === 'Empty').length },
-            { key: 'FORMING', label: 'Đang lập nhóm', count: rooms.filter((r) => r.status === 'Forming').length },
-            { key: 'RECRUITING', label: 'Đang tuyển', count: rooms.filter((r) => r.status === 'Recruiting').length },
-            { key: 'CLOSED', label: 'Đã đóng tuyển', count: rooms.filter((r) => r.status === 'Closed').length },
-            { key: 'LOCKED', label: 'Đã chốt sổ', count: rooms.filter((r) => r.status === 'Locked').length },
-          ].map((tab) => {
-            const active = filterTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                className={`motion-tab-pill${active ? ' is-active-tab' : ''}`}
-                onClick={() => setFilterTab(tab.key)}
-                style={{
-                  padding: '6px 13px',
-                  borderRadius: 7,
-                  fontSize: '13.5px',
-                  fontWeight: active ? 500 : 450,
-                  cursor: 'pointer',
-                  border: 'none',
-                  backgroundColor: active ? '#0F172A' : 'transparent',
-                  color: active ? '#FFFFFF' : '#475569',
-                  boxShadow: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span>{tab.label}</span>
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    padding: '1px 6.5px',
-                    borderRadius: 999,
-                    backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : '#E2E8F0',
-                    color: active ? '#FFFFFF' : '#64748B',
-                    fontVariantNumeric: 'tabular-nums',
-                    transition: 'background-color 180ms ease, color 180ms ease',
-                  }}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <CheckCircle2 size={18} />
+            {feedback}
+          </span>
+          <button onClick={() => setFeedback(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
         </div>
+      )}
 
-        {/* 2. Secondary Search + 3. Advanced Slot Filter (Aligned on 38px height baseline) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div className="motion-search-wrap" style={{ position: 'relative', width: 256 }}>
-            <Search size={15} className="motion-search-icon" style={{ position: 'absolute', left: 12, top: 11.5, color: '#94A3B8' }} />
-            <input
-              type="text"
-              className="motion-search-input"
-              placeholder="Tìm mã phòng, tên, đề tài..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                height: 38,
-                paddingLeft: '2.15rem',
-                paddingRight: '0.85rem',
-                borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
-                fontSize: '13.5px',
-                fontWeight: 400,
-                color: '#0F172A',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <select
-            value={slotFilter}
-            onChange={(e) => setSlotFilter(e.target.value)}
-            title="Bộ lọc nâng cao theo số chỗ trống"
-            style={{
-              height: 38,
-              padding: '0 12px',
-              borderRadius: 8,
-              border: '1px solid #E2E8F0',
-              backgroundColor: '#FFFFFF',
-              fontSize: '13.5px',
-              fontWeight: 450,
-              color: '#475569',
-              outline: 'none',
-              cursor: 'pointer',
-              transition: 'border-color 165ms ease, box-shadow 165ms ease',
-            }}
-          >
-            <option value="ALL">Chỗ trống: Tất cả</option>
-            <option value="1">Còn 1 vị trí</option>
-            <option value="2-3">Còn 2–3 vị trí</option>
-            <option value="4-5">Còn 4–5 vị trí</option>
-          </select>
-        </div>
-      </div>
-
-      {/* A. 4-Column Room Cards Grid — Equal Row Height (No Staircase), Balanced Zones & Readable SaaS Scale */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '1.15rem',
-          alignItems: 'stretch',
-        }}
-      >
-        {filteredRooms.map((room, idx) => {
-          const isDirectJoin = room.status === 'Empty' || room.status === 'Forming';
-          const isRecruiting = room.status === 'Recruiting';
-          const isClosed = room.status === 'Closed';
-          const isLocked = room.status === 'Locked';
-          const remainingSlots = Math.max(0, room.maxMembers - room.currentMembers);
-
-          return (
-            <div
-              key={room.id}
-              className="motion-card-interactive motion-stagger-item"
-              style={
-                {
-                  '--stagger-index': Math.min(idx, 7),
-                  backgroundColor: 'var(--bg-card, #FFFFFF)',
-                  border: '1px solid var(--border-light, #E2E8F0)',
-                  borderRadius: '14px',
-                  padding: '20px 22px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  height: '100%',
-                } as React.CSSProperties
-              }
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                {/* ZONE 1: Low-Priority Room Code + Medium-Priority Semantic Status Badge */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span
-                    style={{
-                      fontVariantNumeric: 'tabular-nums',
-                      fontWeight: 400,
-                      fontSize: '13px',
-                      color: '#64748B',
-                    }}
-                  >
-                    {room.code}
-                  </span>
-
-                  {room.status === 'Forming' && (
-                    <span
-                      style={{
-                        fontSize: '12.5px',
-                        fontWeight: 500,
-                        color: '#334155',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        padding: '3px 9px',
-                        borderRadius: 6,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '-0.005em',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          backgroundColor: '#10B981',
-                          boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.18)',
-                          flexShrink: 0,
-                        }}
-                      />
-                      Đang lập nhóm
-                    </span>
-                  )}
-                  {room.status === 'Recruiting' && (
-                    <span
-                      style={{
-                        fontSize: '12.5px',
-                        fontWeight: 500,
-                        color: '#334155',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        padding: '3px 9px',
-                        borderRadius: 6,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '-0.005em',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          backgroundColor: '#F59E0B',
-                          boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
-                          flexShrink: 0,
-                        }}
-                      />
-                      Đang tuyển
-                    </span>
-                  )}
-                  {(room.status === 'Empty' || room.status === 'Closed' || room.status === 'Locked') && (
-                    <span
-                      style={{
-                        fontSize: '12.5px',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        padding: '3px 9px',
-                        borderRadius: 6,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        whiteSpace: 'nowrap',
-                        letterSpacing: '-0.005em',
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          backgroundColor: '#94A3B8',
-                          flexShrink: 0,
-                        }}
-                      />
-                      {room.status === 'Empty'
-                        ? 'Phòng trống'
-                        : room.status === 'Closed'
-                        ? 'Đã đóng tuyển'
-                        : 'Đã chốt sổ'}
-                    </span>
-                  )}
-                </div>
-
-                {/* ZONE 2: High-Priority Room Name & Standardized Project Topic Zone (Fixed min-height so divider lines align across row) */}
-                <h3
-                  style={{
-                    fontSize: '17.5px',
-                    fontWeight: 600,
-                    color: '#0F172A',
-                    margin: '0 0 8px 0',
-                    letterSpacing: '-0.015em',
-                  }}
-                >
-                  {room.name}
-                </h3>
-
-                <div style={{ minHeight: 64, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                  {room.topic ? (
-                    <div>
-                      {/* High-Priority Project Topic Title */}
-                      <div
-                        style={{
-                          fontSize: '14.5px',
-                          fontWeight: 600,
-                          color: '#1E293B',
-                          lineHeight: 1.38,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                        title={room.topic}
-                      >
-                        {room.topic}
-                      </div>
-                      {/* Low-Priority Secondary Description (1-line clamp to prevent crowding) */}
-                      {room.topicDesc && (
-                        <div
-                          style={{
-                            fontSize: '13px',
-                            fontWeight: 400,
-                            color: '#64748B',
-                            marginTop: '3px',
-                            lineHeight: 1.4,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                          title={room.topicDesc}
-                        >
-                          {room.topicDesc}
-                        </div>
-                      )}
-                      {/* Quiet Neutral Metadata for Recruiting Needs */}
-                      {isRecruiting && (room.neededSkills?.length || room.skillBalance) && (
-                        <div
-                          style={{
-                            fontSize: '12.5px',
-                            fontWeight: 400,
-                            color: '#64748B',
-                            marginTop: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          {room.neededSkills && room.neededSkills.length > 0 && (
-                            <span>
-                              Cần thêm: <span style={{ color: '#0F172A', fontWeight: 500 }}>{room.neededSkills.join(', ')}</span>
-                            </span>
-                          )}
-                          {room.skillBalance && (
-                            <>
-                              <span style={{ color: '#CBD5E1' }}>·</span>
-                              <span style={{ fontVariantNumeric: 'tabular-nums' }}>Cân bằng {room.skillBalance}%</span>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : room.status === 'Empty' ? (
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#475569', lineHeight: 1.38 }}>
-                        Chưa đăng ký đề tài dự án
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 400, color: '#94A3B8', marginTop: '3px' }}>
-                        Mở tự do cho nhóm mới định hướng ý tưởng
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#334155', lineHeight: 1.38 }}>
-                        Đang thảo luận ý tưởng khởi nghiệp
-                      </div>
-                      <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px' }}>
-                        Chốt đề tài chính thức khi đủ 3 thành viên
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Clear Divider between Project Info and Member Roster */}
-                <div
-                  style={{
-                    height: 1,
-                    backgroundColor: '#F1F5F9',
-                    margin: '14px 0',
-                  }}
-                />
-
-                {/* ZONE 3: Member Roster + Controlled Progress Bar (Flex-1 so all cards in a row share equal bottom baseline) */}
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '7px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: '#475569',
-                      }}
-                    >
-                      Thành viên
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: '#64748B',
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {room.currentMembers} / {room.maxMembers}
-                    </span>
-                  </div>
-
-                  {/* 5-Segment Progress Bar (Synced with user's chosen accent/progress color) */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: `repeat(${room.maxMembers}, 1fr)`,
-                      gap: '5px',
-                      marginBottom: '14px',
-                    }}
-                  >
-                    {Array.from({ length: room.maxMembers }).map((_, idx) => {
-                      const isFilled = idx < room.currentMembers;
-                      return (
-                        <div
-                          key={idx}
-                          className={isFilled ? 'motion-progress-fill' : undefined}
-                          style={{
-                            height: 4,
-                            borderRadius: 999,
-                            backgroundColor: isFilled
-                              ? 'var(--status-progress, #7C3AED)'
-                              : '#E2E8F0',
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* Member Rows or Proportional Empty/Privacy State */}
-                  {(isClosed || isLocked) && !isStaff ? (
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: '14px',
-                        borderRadius: 10,
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #F1F5F9',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
-                        <Lock size={14} color="#64748B" style={{ flexShrink: 0 }} />
-                        <span>Danh sách thành viên được bảo mật</span>
-                      </div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '22px', lineHeight: 1.45 }}>
-                        Phòng đã hoàn tất ghép đội hoặc khóa sổ học kỳ.
-                      </div>
-                    </div>
-                  ) : room.members.length === 0 ? (
-                    /* Proportional Empty State for Card 01 (Fills roster zone naturally so Card 01 aligns with Row 1) */
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: '14px',
-                        borderRadius: 10,
-                        backgroundColor: '#F8FAFC',
-                        border: '1px dashed #E2E8F0',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        gap: '5px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
-                        <UserPlus size={15} color="#64748B" style={{ flexShrink: 0 }} />
-                        <span>Chưa có thành viên tham gia</span>
-                      </div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '23px', lineHeight: 1.45 }}>
-                        Sinh viên vào đầu tiên giữ vai trò Nhóm trưởng. Cổng vào thẳng mở tự do đến 3/5.
-                      </div>
-                    </div>
-                  ) : (
-                    /* Single-line Member Rows + Remaining Open Slots Indicator at Bottom of Roster */
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, gap: '10px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                        {room.members.map((m) => {
-                          const shortMajorMatch = m.major.match(/\(([^)]+)\)/);
-                          const shortMajor = shortMajorMatch ? shortMajorMatch[1] : m.major;
-                          return (
-                            <div
-                              key={m.id}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                minHeight: 26,
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-                                <span
-                                  style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: '50%',
-                                    backgroundColor: '#F1F5F9',
-                                    color: '#334155',
-                                    border: '1px solid #E2E8F0',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: '12px',
-                                    fontWeight: 500,
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {m.name.charAt(0)}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: '14px',
-                                    fontWeight: 500,
-                                    color: '#0F172A',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {m.name}
-                                </span>
-                                {m.role === 'Leader' && (
-                                  <span
-                                    title="Trưởng nhóm"
-                                    style={{
-                                      fontSize: '11.5px',
-                                      fontWeight: 500,
-                                      color: '#475569',
-                                      backgroundColor: '#F1F5F9',
-                                      padding: '1.5px 6px',
-                                      borderRadius: 5,
-                                      flexShrink: 0,
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                  >
-                                    Leader
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Low-Priority Metadata: Major Code & Class Code (Never bolded) */}
-                              <span
-                                style={{
-                                  fontVariantNumeric: 'tabular-nums',
-                                  fontWeight: 400,
-                                  fontSize: '12.5px',
-                                  color: '#64748B',
-                                  flexShrink: 0,
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {shortMajor} · {m.classCode}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {remainingSlots > 0 && (
-                        <div
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: 7,
-                            backgroundColor: '#F8FAFC',
-                            fontSize: '12.5px',
-                            fontWeight: 400,
-                            color: '#64748B',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                          }}
-                        >
-                          <span>+ Còn {remainingSlots} vị trí trống</span>
-                          <span style={{ color: '#94A3B8' }}>{isDirectJoin ? 'Mở tự do' : 'Xét duyệt'}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ZONE 4: Card Footer — Pinned at Bottom so all 4 Cards Align Horizontally */}
-              <div
-                style={{
-                  borderTop: '1px solid #F1F5F9',
-                  paddingTop: '13px',
-                  marginTop: '16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 400,
-                    color: '#64748B',
-                  }}
-                >
-                  {isDirectJoin && `Còn ${remainingSlots} vị trí · Vào thẳng`}
-                  {isRecruiting && `Còn ${remainingSlots} vị trí · Duyệt đơn`}
-                  {isClosed && `Đủ ${room.currentMembers}/${room.maxMembers} thành viên`}
-                  {isLocked && 'Đã khóa sổ học kỳ'}
-                </span>
-
-                {isStaff ? (
-                  <button
-                    type="button"
-                    className="motion-cta-btn"
-                    onClick={() => setInspectRoomModal(room)}
-                    style={{
-                      padding: '6.5px 13px',
-                      borderRadius: 8,
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      color: '#0F172A',
-                      fontSize: '13px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span>Xem chi tiết</span>
-                    <span className="motion-arrow">→</span>
-                  </button>
-                ) : (
-                  <>
-                    {isDirectJoin && (
-                      <button
-                        type="button"
-                        className="motion-cta-btn"
-                        onClick={() => handleDirectJoin(room.code)}
-                        style={{
-                          padding: '6.5px 13px',
-                          borderRadius: 8,
-                          backgroundColor: '#F8FAFC',
-                          border: '1px solid #E2E8F0',
-                          color: '#0F172A',
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <span>Tham gia</span>
-                        <span className="motion-arrow">→</span>
-                      </button>
-                    )}
-
-                    {isRecruiting && (
-                      <button
-                        type="button"
-                        className="motion-cta-btn"
-                        onClick={() => setApplyModalRoom(room)}
-                        style={{
-                          padding: '6.5px 13px',
-                          borderRadius: 8,
-                          backgroundColor: '#0F172A',
-                          border: '1px solid #0F172A',
-                          color: '#FFFFFF',
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <span>Ứng tuyển</span>
-                        <span className="motion-arrow">→</span>
-                      </button>
-                    )}
-
-                    {(isClosed || isLocked) && (
-                      <span
-                        style={{
-                          fontSize: '12.5px',
-                          fontWeight: 400,
-                          color: '#94A3B8',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <Lock size={12} />
-                        <span>{isClosed ? 'Đã đóng' : 'Chỉ đổi chéo'}</span>
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Modal Ứng tuyển vào nhóm */}
-      {applyModalRoom && (
+      {error && (
         <div
-          className="motion-modal-backdrop"
+          className="card"
           style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.6)',
-            backdropFilter: 'blur(4px)',
+            marginBottom: '1.25rem',
+            padding: '0.9rem 1.15rem',
+            borderLeft: '4px solid #ef4444',
+            background: '#fef2f2',
+            color: '#991b1b',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertCircle size={18} />
+            {error}
+          </span>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* BR-07 Profile Incomplete Banner for Student */}
+      {user?.role === 'Student' && !user?.isProfileCompleted && (
+        <div
+          className="card"
+          style={{
+            padding: '1.15rem 1.35rem',
+            marginBottom: '1.25rem',
+            background: 'rgba(242, 111, 33, 0.06)',
+            border: '1.5px solid rgba(242, 111, 33, 0.35)',
+            borderRadius: 'var(--radius-lg, 14px)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: 16,
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap',
           }}
         >
-          <div
-            className="motion-modal-dialog"
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', maxWidth: 780 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '10px',
+                background: 'rgba(242, 111, 33, 0.12)',
+                color: 'var(--fpt-orange, #f26f21)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 800,
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '5px',
+                    background: 'var(--fpt-orange, #f26f21)',
+                    color: '#ffffff',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  YÊU CẦU BẮT BUỘC
+                </span>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-main, #0f172a)' }}>
+                  Hồ sơ 5 kỹ năng cốt lõi chưa hoàn tất
+                </strong>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5 }}>
+                Bạn cần khai báo 5 kỹ năng cốt lõi và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ để mở khóa quyền vào phòng, nộp đơn ứng tuyển hoặc tạo nhóm.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="btn btn-primary"
             style={{
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '20px',
-              padding: '24px',
-              maxWidth: 500,
-              width: '100%',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+              padding: '0.55rem 1.15rem',
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              gap: '0.35rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Send size={18} color="#0054A6" />
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-                  Nộp đơn ứng tuyển — {applyModalRoom.code}
+            <span>Khai báo 5 kỹ năng →</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mode Tabs */}
+      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem' }}>
+        <button
+          className={activeTab === 'browse' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('browse')}
+        >
+          <Compass size={16} />
+          Danh sách Nhóm ({totalCount})
+        </button>
+        {user?.role === 'Student' && (
+          <button
+            className={activeTab === 'suggestions' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+            onClick={() => setActiveTab('suggestions')}
+          >
+            <Sparkles size={16} />
+            Gợi ý Nhóm phù hợp (Matching gRPC)
+          </button>
+        )}
+      </div>
+
+      {/* Filters for Browse tab */}
+      {activeTab === 'browse' && (
+        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '0.85rem',
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Tìm theo tên nhóm, mô tả..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                style={{ paddingLeft: '2.2rem' }}
+              />
+            </div>
+
+            <select
+              className="form-control"
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="Recruiting">Đang tuyển (Recruiting)</option>
+              <option value="Closed">Đã đóng tuyển (Closed)</option>
+              <option value="Locked">Đã khóa (Locked)</option>
+            </select>
+
+            <select
+              className="form-control"
+              value={majorFilter}
+              onChange={(e) => {
+                setMajorFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Tất cả chuyên ngành cần tuyển</option>
+              {MAJOR_LIST.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="form-control"
+              value={domainFilter}
+              onChange={(e) => {
+                setDomainFilter(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">Tất cả lĩnh vực đề tài</option>
+              {DOMAIN_LIST.map((d) => (
+                <option key={d.value} value={d.value}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      {loading ? (
+        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Đang tải dữ liệu nhóm...
+        </div>
+      ) : activeTab === 'browse' ? (
+        groups.length === 0 ? (
+          <div className="card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <Compass size={42} style={{ margin: '0 auto 0.75rem auto', color: '#94a3b8' }} />
+            <h3 style={{ color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
+              Không tìm thấy nhóm đề tài nào
+            </h3>
+            <p style={{ marginTop: '0.35rem' }}>
+              Hãy thử đổi bộ lọc hoặc nhấn &quot;Thành lập Nhóm mới&quot; để khởi tạo nhóm đầu tiên!
+            </p>
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                gap: '1.25rem',
+              }}
+            >
+              {groups.map((g) => (
+                <div
+                  key={g.id}
+                  className="card"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => void handleOpenGroupDetail(g.id)}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {g.name}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {g.roomCode && (
+                          <span
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '0.78rem',
+                              fontWeight: 800,
+                              padding: '0.15rem 0.45rem',
+                              borderRadius: '6px',
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                            }}
+                          >
+                            {g.roomCode}
+                          </span>
+                        )}
+                        <span
+                          className="badge"
+                          style={{
+                            background:
+                              g.status === 'Recruiting'
+                                ? '#dcfce7'
+                                : g.status === 'Forming' || g.status === 'Empty'
+                                ? '#dbeafe'
+                                : g.status === 'Closed'
+                                ? '#fee2e2'
+                                : '#f1f5f9',
+                            color:
+                              g.status === 'Recruiting'
+                                ? '#15803d'
+                                : g.status === 'Forming' || g.status === 'Empty'
+                                ? '#1d4ed8'
+                                : g.status === 'Closed'
+                                ? '#b91c1c'
+                                : '#475569',
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {g.status} ({g.memberCount}/{g.maxMembers})
+                        </span>
+                      </div>
+                    </div>
+
+                    <p
+                      style={{
+                        fontSize: '0.875rem',
+                        color: 'var(--text-muted)',
+                        marginTop: '0.5rem',
+                        marginBottom: '0.85rem',
+                      }}
+                    >
+                      {g.description || 'Nhóm chưa cập nhật mô tả chi tiết.'}
+                    </p>
+
+                    {g.slots && g.slots.length > 0 && (
+                      <div style={{ marginBottom: '0.85rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.35rem' }}>
+                          VỊ TRÍ ĐANG TUYỂN ({g.slots.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                          {g.slots.map((s) => (
+                            <span
+                              key={s.id}
+                              style={{
+                                fontSize: '0.75rem',
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: 6,
+                                background: '#fff7ed',
+                                color: '#c2410c',
+                                border: '1px solid #fed7aa',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {s.roleName} ({s.major} • x{s.quantity})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: '1px solid #f1f5f9',
+                      paddingTop: '0.75rem',
+                      marginTop: '0.5rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.8rem',
+                      color: '#64748b',
+                    }}
+                  >
+                    <span>Tạo ngày {formatDateTime(g.createdAt)}</span>
+                    <span style={{ color: '#f26f21', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {g.memberCount < (g.groupThreshold || Math.floor((g.maxMembers || 5) / 2) + 1) ? (
+                        <>
+                          <Zap size={13} /> Vào thẳng / Chi tiết →
+                        </>
+                      ) : (
+                        'Chi tiết & Xin vào →'
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.75rem' }}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft size={15} /> Trước
+                </button>
+                <span style={{ alignSelf: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                  Trang {page} / {totalPages}
+                </span>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Sau <ChevronRight size={15} />
+                </button>
+              </div>
+            )}
+          </>
+        )
+      ) : suggestions.length === 0 ? (
+        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <Sparkles size={40} style={{ margin: '0 auto 0.75rem auto', color: '#f26f21' }} />
+          <h3 style={{ color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
+            Chưa có gợi ý nhóm phù hợp
+          </h3>
+          <p style={{ marginTop: '0.35rem' }}>
+            Hãy cập nhật Chuyên ngành và Kỹ năng trong Hồ sơ cá nhân của bạn để hệ thống tính điểm tương thích chính xác hơn.
+          </p>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+            gap: '1.25rem',
+          }}
+        >
+          {suggestions.map((item) => (
+            <div
+              key={item.group.id}
+              className="card"
+              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              onClick={() => void handleOpenGroupDetail(item.group.id)}
+            >
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {item.group.name}
+                  </h3>
+                  <span style={getScoreBadgeStyle(item.score)}>
+                    Tương thích: {item.score.toFixed(0)}%
+                  </span>
+                </div>
+
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                  {item.group.description || 'Nhóm đang tuyển thành viên.'}
+                </p>
+
+                {item.matchedSkills.length > 0 && (
+                  <div style={{ marginBottom: '0.5rem', fontSize: '0.78rem' }}>
+                    <strong style={{ color: '#15803d' }}>Kỹ năng khớp: </strong>
+                    {item.matchedSkills.join(', ')}
+                  </div>
+                )}
+                {item.missingSkills.length > 0 && (
+                  <div style={{ marginBottom: '0.5rem', fontSize: '0.78rem' }}>
+                    <strong style={{ color: '#b45309' }}>Kỹ năng nhóm cần thêm: </strong>
+                    {item.missingSkills.join(', ')}
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  borderTop: '1px solid #f1f5f9',
+                  paddingTop: '0.75rem',
+                  marginTop: '0.5rem',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '0.8rem',
+                }}
+              >
+                <span>
+                  Thành viên: {item.group.memberCount}/{item.group.maxMembers}
+                </span>
+                <span style={{ color: '#f26f21', fontWeight: 700 }}>Xem & Ứng tuyển →</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── MODAL CHI TIẾT NHÓM & GỬI JOIN REQUEST ────────────────────────── */}
+      <AnimatedModal
+        isOpen={Boolean(detailLoading || selectedGroup)}
+        onClose={() => setSelectedGroup(null)}
+        maxWidth={680}
+        ariaLabel="Chi tiết nhóm đề tài"
+      >
+        <div style={{ padding: '1.75rem' }}>
+          {detailLoading || !selectedGroup ? (
+            <div style={{ padding: '2rem', textAlign: 'center' }}>Đang tải thông tin nhóm...</div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    {selectedGroup.name}
+                  </h2>
+                  <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                    Trạng thái: <strong>{selectedGroup.status}</strong> • Quân số:{' '}
+                    <strong>
+                      {selectedGroup.members.length}/{selectedGroup.maxMembers}
+                    </strong>
+                  </div>
+                </div>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setSelectedGroup(null)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Live gRPC Match Score Banner */}
+              {selectedGroupScore && (
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    padding: '0.9rem 1.1rem',
+                    marginBottom: '1.15rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Award size={16} color="#f26f21" />
+                      Điểm tương thích hồ sơ của bạn (Matching gRPC):
+                    </span>
+                    <span style={getScoreBadgeStyle(selectedGroupScore.score)}>
+                      {selectedGroupScore.score.toFixed(1)}%
+                    </span>
+                  </div>
+                  {selectedGroupScore.matchedSkills.length > 0 && (
+                    <div style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                      ✓ Kỹ năng phù hợp: {selectedGroupScore.matchedSkills.join(', ')}
+                    </div>
+                  )}
+                  {selectedGroupScore.missingSkills.length > 0 && (
+                    <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: 2 }}>
+                      • Kỹ năng còn thiếu: {selectedGroupScore.missingSkills.join(', ')}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.55 }}>
+                {selectedGroup.description || 'Chưa có mô tả chi tiết.'}
+              </p>
+
+              {selectedGroupProject && (
+                <div
+                  style={{
+                    background: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 10,
+                    padding: '0.85rem 1rem',
+                    marginBottom: '1.15rem',
+                  }}
+                >
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8' }}>
+                    ĐỀ TÀI DỰ ÁN LIÊN KẾT ({selectedGroupProject.domain})
+                  </div>
+                  <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>
+                    {selectedGroupProject.title}
+                  </div>
+                  <div style={{ fontSize: '0.82rem', color: '#334155', marginTop: 4 }}>
+                    {selectedGroupProject.problem}
+                  </div>
+                </div>
+              )}
+
+              {/* Members */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                  Thành viên hiện tại ({selectedGroup.members.length}/{selectedGroup.maxMembers})
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  {selectedGroup.members.map((m) => {
+                    const prof = memberProfiles[m.userId];
+                    return (
+                      <div
+                        key={m.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.55rem 0.85rem',
+                          borderRadius: 8,
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        <div>
+                          <strong>{prof?.fullName || `Sinh viên (${m.userId.slice(0, 8)})`}</strong>
+                          {prof?.major && (
+                            <span style={{ marginLeft: 8, color: '#f26f21', fontWeight: 600 }}>
+                              [{prof.major}]
+                            </span>
+                          )}
+                        </div>
+                        <span className="badge badge-domain">{m.role}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Direct Join or Join Request Form */}
+              {user?.role === 'Student' &&
+                !selectedGroup.members.some((m) => m.userId === user.id) &&
+                (() => {
+                  const threshold = selectedGroup.groupThreshold || Math.floor((selectedGroup.maxMembers || 5) / 2) + 1;
+                  const isUnder = selectedGroup.members.length < threshold;
+                  const isDirectJoin = (selectedGroup.status === 'Empty' || selectedGroup.status === 'Forming') && isUnder;
+
+                  if (isDirectJoin) {
+                    return (
+                      <div
+                        style={{
+                          borderTop: '1px solid #e2e8f0',
+                          paddingTop: '1.15rem',
+                          marginTop: '1rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        <div
+                          style={{
+                            padding: '0.85rem 1rem',
+                            borderRadius: 8,
+                            background: 'rgba(0, 84, 166, 0.05)',
+                            border: '1px solid rgba(0, 84, 166, 0.2)',
+                            fontSize: '0.825rem',
+                            color: 'var(--text-main)',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          <Zap size={16} style={{ color: 'var(--fpt-blue)', flexShrink: 0, marginTop: 2 }} />
+                          <span>
+                            <strong>Phòng chờ đang dưới ngưỡng ({threshold} SV):</strong> Bạn được tham gia trực tiếp ngay mà không cần gửi đơn xét duyệt. {selectedGroup.members.length === 0 ? 'Vì phòng đang trống, bạn sẽ trở thành Trưởng nhóm!' : 'Vào nhóm ngay!'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setSelectedGroup(null)}
+                          >
+                            Đóng
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={joinSubmitting}
+                            onClick={async () => {
+                              if (user?.role === 'Student' && !user?.isProfileCompleted) {
+                                setError(
+                                  'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
+                                );
+                                setSelectedGroup(null);
+                                navigate('/profile');
+                                return;
+                              }
+                              setJoinSubmitting(true);
+                              try {
+                                const res = await groupsApi.directJoinRoom(selectedGroup.id);
+                                setFeedback(`Chúc mừng bạn đã vào phòng ${res.roomCode || res.name} thành công! (${res.role === 'Leader' ? 'Bạn là Trưởng nhóm' : 'Thành viên'})`);
+                                setSelectedGroup(null);
+                                navigate('/my-group');
+                              } catch (err: any) {
+                                setError(err?.response?.data?.detail || 'Không thể vào phòng trực tiếp.');
+                              } finally {
+                                setJoinSubmitting(false);
+                              }
+                            }}
+                          >
+                            <Zap size={15} />
+                            {joinSubmitting ? 'Đang vào...' : 'Vào phòng trực tiếp'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  if (selectedGroup.status === 'Recruiting') {
+                    return (
+                      <form
+                        onSubmit={(e) => void handleSubmitJoinRequest(e)}
+                        style={{
+                          borderTop: '1px solid #e2e8f0',
+                          paddingTop: '1.15rem',
+                          marginTop: '1rem',
+                        }}
+                      >
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+                          Ứng tuyển vào nhóm này
+                        </h4>
+
+                        {selectedGroup.slots.length > 0 && (
+                          <div style={{ marginBottom: '0.75rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
+                              Chọn vị trí ứng tuyển:
+                            </label>
+                            <select
+                              className="form-control"
+                              value={joinSlotId}
+                              onChange={(e) => setJoinSlotId(e.target.value)}
+                            >
+                              <option value="">-- Ứng tuyển chung vào nhóm --</option>
+                              {selectedGroup.slots.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.roleName} — Ngành {s.major} (Cần: {s.requiredSkills.join(', ') || 'Linh hoạt'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div style={{ marginBottom: '0.85rem' }}>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
+                            Lời nhắn gửi Trưởng nhóm:
+                          </label>
+                          <textarea
+                            className="form-control"
+                            rows={3}
+                            placeholder="Giới thiệu ngắn gọn kinh nghiệm, kỹ năng và mong muốn đóng góp của bạn..."
+                            value={joinMessage}
+                            onChange={(e) => setJoinMessage(e.target.value)}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => setSelectedGroup(null)}
+                          >
+                            Đóng
+                          </button>
+                          <button type="submit" className="btn btn-primary" disabled={joinSubmitting}>
+                            <Send size={15} />
+                            {joinSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu tham gia'}
+                          </button>
+                        </div>
+                      </form>
+                    );
+                  }
+
+                  return (
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                      Nhóm hiện tại không nhận thêm thành viên ({selectedGroup.status}).
+                    </div>
+                  );
+                })()}
+            </>
+          )}
+        </div>
+      </AnimatedModal>
+    </div>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 2. MY GROUP PAGE (/my-group) — Quản lý Nhóm, Vị trí Tuyển, Duyệt Đơn & Gợi ý Ứng viên gRPC
+// ══════════════════════════════════════════════════════════════════════════════
+export const MyGroupPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const [group, setGroup] = useState<GroupResponse | null>(null);
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, CandidateProfileResponse>>({});
+  const [joinRequests, setJoinRequests] = useState<JoinRequestResponse[]>([]);
+  const [applicantProfiles, setApplicantProfiles] = useState<Record<string, CandidateProfileResponse>>({});
+  const [candidates, setCandidates] = useState<RankedCandidateResponse[]>([]);
+
+  const [activeTab, setActiveTab] = useState<'members' | 'slots' | 'requests' | 'candidates' | 'transfers'>('members');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Phase 6: Post-lock transfer requests state (BR-36 & BR-37)
+  const [myTransfers, setMyTransfers] = useState<TransferRequestResponse[]>([]);
+  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
+  const [transferTargetGroupId, setTransferTargetGroupId] = useState<string>('');
+  const [transferIsSwap, setTransferIsSwap] = useState<boolean>(false);
+  const [transferSwapStudentId, setTransferSwapStudentId] = useState<string>('');
+  const [transferReason, setTransferReason] = useState<string>('');
+  const [submittingTransfer, setSubmittingTransfer] = useState<boolean>(false);
+  const [availableRooms, setAvailableRooms] = useState<RoomSummaryResponse[]>([]);
+  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState<boolean>(false);
+  const [targetGroupMembers, setTargetGroupMembers] = useState<GroupMemberResponse[]>([]);
+  const [loadingTargetMembers, setLoadingTargetMembers] = useState<boolean>(false);
+  const [cancellingTransferId, setCancellingTransferId] = useState<string | null>(null);
+
+  const pendingTransfer = useMemo(
+    () => myTransfers.find((t) => t.status === 'Pending') || null,
+    [myTransfers]
+  );
+
+  const approvedTransfer = useMemo(
+    () => myTransfers.find((t) => t.status === 'Approved') || null,
+    [myTransfers]
+  );
+
+  const selectedTargetRoom = useMemo(
+    () => availableRooms.find((r) => r.id === transferTargetGroupId) || null,
+    [availableRooms, transferTargetGroupId]
+  );
+
+  const isTargetFull = useMemo(
+    () => (selectedTargetRoom ? selectedTargetRoom.memberCount >= selectedTargetRoom.maxMembers : false),
+    [selectedTargetRoom]
+  );
+
+  const isSourceAtThreshold = useMemo(
+    () => (group?.members ? group.members.length <= (group.groupThreshold || 3) : false),
+    [group]
+  );
+
+  const isSwapMandatory = isTargetFull || isSourceAtThreshold;
+
+  // Phase 4: Leader election & 24h timer (BR-18, BR-19)
+  const [currentElection, setCurrentElection] = useState<LeaderElectionResponse | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
+  const [showNominateModal, setShowNominateModal] = useState<boolean>(false);
+  const [nominatedCandidateId, setNominatedCandidateId] = useState<string>('');
+  const [electionSubmitting, setElectionSubmitting] = useState<boolean>(false);
+  const [votingElection, setVotingElection] = useState<boolean>(false);
+
+  // Phase 4: Application voting with comments (BR-25)
+  const [voteCommentModal, setVoteCommentModal] = useState<{ requestId: string; isUpvote: boolean } | null>(null);
+  const [voteComment, setVoteComment] = useState<string>('');
+  const [votingApp, setVotingApp] = useState<boolean>(false);
+
+  // Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log (Phương án 3, BR-05)
+  const [kickModal, setKickModal] = useState<{ userId: string; fullName: string } | null>(null);
+  const [kickCategory, setKickCategory] = useState<string>('Mất liên lạc / Không phản hồi (>48h)');
+  const [kickReason, setKickReason] = useState<string>('');
+  const [isSubmittingKick, setIsSubmittingKick] = useState<boolean>(false);
+
+  // GSAP Custom Confirm Dialog state (replaces raw window.confirm)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    description: React.ReactNode;
+    confirmText: string;
+    variant: 'danger' | 'warning' | 'primary' | 'success';
+    icon?: React.ReactNode;
+    onConfirm: () => Promise<void> | void;
+  } | null>(null);
+  const [confirmDialogLoading, setConfirmDialogLoading] = useState<boolean>(false);
+
+  // Edit Group state
+  const [showEditGroup, setShowEditGroup] = useState(false);
+  const [editForm, setEditForm] = useState<UpdateGroupRequest>({
+    name: '',
+    description: '',
+  });
+
+  // Add/Edit Slot state
+  const [editingSlot, setEditingSlot] = useState<RecruitmentSlotResponse | null>(null);
+  const [slotRoleName, setSlotRoleName] = useState('');
+  const [slotMajor, setSlotMajor] = useState<string>('SE');
+  const [slotSkills, setSlotSkills] = useState('');
+  const [slotQty, setSlotQty] = useState(1);
+
+  const isLeader = Boolean(group && user && group.leaderId === user.id);
+
+  const loadMyTransfers = useCallback(async () => {
+    try {
+      const res = await spacesApi.getMyTransferRequests();
+      setMyTransfers(res);
+    } catch {
+      setMyTransfers([]);
+    }
+  }, []);
+
+  const openTransferModal = async () => {
+    if (!group?.spaceId) return;
+    setShowTransferModal(true);
+    setLoadingAvailableRooms(true);
+    setTransferTargetGroupId('');
+    setTransferSwapStudentId('');
+    setTransferReason('');
+    setTargetGroupMembers([]);
+
+    const atThreshold = (group.members?.length || 0) <= (group.groupThreshold || 3);
+    setTransferIsSwap(atThreshold);
+
+    try {
+      const roomsRes = await spacesApi.getSpaceRooms(group.spaceId);
+      setAvailableRooms(roomsRes.filter((r) => r.id !== group.id));
+    } catch {
+      setAvailableRooms([]);
+    } finally {
+      setLoadingAvailableRooms(false);
+    }
+  };
+
+  const handleTargetGroupChange = async (targetId: string) => {
+    setTransferTargetGroupId(targetId);
+    setTransferSwapStudentId('');
+    if (!targetId) {
+      setTargetGroupMembers([]);
+      return;
+    }
+
+    const targetRoom = availableRooms.find((r) => r.id === targetId);
+    const targetFull = targetRoom ? targetRoom.memberCount >= targetRoom.maxMembers : false;
+    const sourceThreshold = (group?.members?.length || 0) <= (group?.groupThreshold || 3);
+
+    if (targetFull || sourceThreshold) {
+      setTransferIsSwap(true);
+    }
+
+    setLoadingTargetMembers(true);
+    try {
+      const detail = await groupsApi.getGroupById(targetId);
+      setTargetGroupMembers(detail.members || []);
+    } catch {
+      setTargetGroupMembers([]);
+    } finally {
+      setLoadingTargetMembers(false);
+    }
+  };
+
+  const handleCreateTransferRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group?.spaceId) return;
+    if (!transferTargetGroupId) {
+      setError('Vui lòng chọn nhóm đích muốn chuyển đến.');
+      return;
+    }
+    if (transferIsSwap && !transferSwapStudentId) {
+      setError('Vui lòng chọn sinh viên trong nhóm đích để đổi chéo.');
+      return;
+    }
+    if (!transferReason.trim()) {
+      setError('Vui lòng nêu rõ lý do xin chuyển nhóm.');
+      return;
+    }
+    try {
+      setSubmittingTransfer(true);
+      setError(null);
+      await spacesApi.createTransferRequest(group.spaceId, {
+        targetGroupId: transferTargetGroupId,
+        swapStudentId: transferIsSwap ? transferSwapStudentId : null,
+        reason: transferReason.trim(),
+      });
+      setFeedback('Đã gửi đơn xin chuyển nhóm thành công! Trưởng phòng (Moderator) sẽ xem xét và phê duyệt.');
+      setShowTransferModal(false);
+      setTransferTargetGroupId('');
+      setTransferSwapStudentId('');
+      setTransferReason('');
+      setTransferIsSwap(false);
+      setTargetGroupMembers([]);
+      await loadMyTransfers();
+      setActiveTab('transfers');
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err?.response?.data?.title || 'Không thể gửi đơn xin chuyển nhóm.');
+    } finally {
+      setSubmittingTransfer(false);
+    }
+  };
+
+  const handleCancelTransferRequest = (requestId: string) => {
+    setConfirmDialog({
+      title: 'Hủy đơn xin chuyển nhóm',
+      description: 'Bạn có chắc chắn muốn rút lại yêu cầu xin chuyển nhóm này không? Sau khi hủy, bạn vẫn có thể tạo đơn mới nếu có nhu cầu.',
+      confirmText: 'Xác nhận hủy đơn',
+      variant: 'danger',
+      icon: <Trash2 size={24} />,
+      onConfirm: async () => {
+        setCancellingTransferId(requestId);
+        setError(null);
+        try {
+          await spacesApi.cancelTransferRequest(requestId);
+          setFeedback('Đã hủy yêu cầu xin chuyển nhóm thành công! Bạn có thể tạo đơn mới nếu có nhu cầu.');
+          await loadMyTransfers();
+        } catch (err: any) {
+          setError(err?.response?.data?.detail || 'Không thể hủy yêu cầu chuyển nhóm.');
+        } finally {
+          setCancellingTransferId(null);
+        }
+      },
+    });
+  };
+
+  const loadMyGroupData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const myGrp = await groupsApi.getMyGroup();
+      setGroup(myGrp);
+      void loadMyTransfers();
+      if (!myGrp) {
+        return;
+      }
+
+      setEditForm({
+        name: myGrp.name,
+        description: myGrp.description || '',
+      });
+
+      // Enrich member profiles
+      const memberIds = myGrp.members.map((m) => m.userId);
+      if (memberIds.length > 0) {
+        apiClient
+          .post<CandidateProfileResponse[]>('/users/batch', { userIds: memberIds })
+          .then((res) => {
+            const map: Record<string, CandidateProfileResponse> = {};
+            (res.data || []).forEach((p) => {
+              map[p.userId] = p;
+            });
+            setMemberProfiles(map);
+          })
+          .catch(() => null);
+      }
+
+      // Load join requests for ALL members (BR-25 application voting)
+      // Load ranked candidates for leader
+      // Load active election for all members (BR-18, BR-19)
+      const [reqRes, candRes, electionRes] = await Promise.all([
+        groupsApi.getGroupJoinRequests(myGrp.id, { page: 1, pageSize: 30 }).catch(() => null),
+        user && myGrp.leaderId === user.id ? groupsApi.getRankedCandidates(myGrp.id, 10).catch(() => []) : Promise.resolve([]),
+        groupsApi.getCurrentElection(myGrp.id).catch(() => null),
+      ]);
+
+      const reqItems = reqRes?.items || [];
+      setJoinRequests(reqItems);
+      setCandidates(candRes || []);
+      setCurrentElection(electionRes);
+      if (electionRes && electionRes.status === 'Active') {
+        setCountdownSeconds(Math.max(0, Math.floor(electionRes.secondsRemaining || 0)));
+      } else {
+        setCountdownSeconds(0);
+      }
+
+      const applicantIds = reqItems.map((r) => r.userId);
+      if (applicantIds.length > 0) {
+        apiClient
+          .post<CandidateProfileResponse[]>('/users/batch', { userIds: applicantIds })
+          .then((r) => {
+            const map: Record<string, CandidateProfileResponse> = {};
+            (r.data || []).forEach((p) => {
+              map[p.userId] = p;
+            });
+            setApplicantProfiles(map);
+          })
+          .catch(() => null);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể tải thông tin nhóm của bạn.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void loadMyGroupData();
+  }, [loadMyGroupData]);
+
+  // Phase 4: 24h Countdown Timer for active leader election
+  useEffect(() => {
+    if (!currentElection || currentElection.status !== 'Active' || countdownSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          void loadMyGroupData();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentElection, countdownSeconds, loadMyGroupData]);
+
+  const formatCountdown = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    const hh = h < 10 ? `0${h}` : `${h}`;
+    const mm = m < 10 ? `0${m}` : `${m}`;
+    const ss = s < 10 ? `0${s}` : `${s}`;
+    return `${hh}:${mm}:${ss}`;
+  };
+
+  const handleStartElection = async (candidateId: string) => {
+    if (!group) return;
+    setElectionSubmitting(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      await groupsApi.startElection(group.id, candidateId);
+      setShowNominateModal(false);
+      setFeedback('Đã khởi tạo cuộc bầu chọn Trưởng nhóm mới thành công! Thời hạn bỏ phiếu là 24 giờ.');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể khởi tạo cuộc bầu cử.');
+    } finally {
+      setElectionSubmitting(false);
+    }
+  };
+
+  const handleVoteElection = async (isAgree: boolean) => {
+    if (!group || !currentElection) return;
+    setVotingElection(true);
+    setError(null);
+    setFeedback(null);
+    try {
+      const res = await groupsApi.voteElection(group.id, currentElection.id, isAgree);
+      if (res.status === 'Passed') {
+        setFeedback('Chúc mừng! Cuộc bầu cử đã thông qua (> 50% tán thành). Quyền Trưởng nhóm đã chuyển giao thành công!');
+      } else {
+        setFeedback(`Đã ghi nhận phiếu bầu của bạn: ${isAgree ? 'Đồng ý' : 'Không đồng ý'}.`);
+      }
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể gửi phiếu bầu.');
+    } finally {
+      setVotingElection(false);
+    }
+  };
+
+  const handleCloseRecruitment = () => {
+    if (!group) return;
+    setConfirmDialog({
+      title: 'Xác nhận đóng tuyển dụng sớm',
+      description:
+        'Khi đóng tuyển sớm, nhóm sẽ chuyển sang trạng thái Đã đóng và tự động từ chối toàn bộ các đơn xin gia nhập còn đang chờ duyệt. Bạn có chắc chắn muốn đóng tuyển dụng sớm không?',
+      confirmText: 'Đóng tuyển sớm',
+      variant: 'danger',
+      icon: <Lock size={24} />,
+      onConfirm: async () => {
+        try {
+          await groupsApi.closeRecruitment(group.id);
+          setFeedback('Đã đóng tuyển dụng sớm thành công. Toàn bộ đơn đang chờ đã được từ chối.');
+          await loadMyGroupData();
+        } catch (err: any) {
+          setError(err?.response?.data?.detail || 'Không thể đóng tuyển dụng sớm.');
+        }
+      },
+    });
+  };
+
+  const handleReopenRecruitment = async () => {
+    if (!group) return;
+    try {
+      await groupsApi.reopenRecruitment(group.id);
+      setFeedback('Đã mở lại tuyển dụng thành công.');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể mở lại tuyển dụng.');
+    }
+  };
+
+  const handleVoteApplication = async (requestId: string, isUpvote: boolean, comment?: string) => {
+    setVotingApp(true);
+    try {
+      await groupsApi.voteApplication(requestId, isUpvote, comment);
+      setFeedback(`Đã gửi phiếu ${isUpvote ? 'Ủng hộ' : 'Phản đối'} tham khảo cho ứng viên thành công.`);
+      setVoteCommentModal(null);
+      setVoteComment('');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể bỏ phiếu cho ứng viên này.');
+    } finally {
+      setVotingApp(false);
+    }
+  };
+
+  const handleUpdateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group) return;
+    try {
+      await groupsApi.updateGroup(group.id, editForm);
+      setShowEditGroup(false);
+      setFeedback('Đã cập nhật thông tin nhóm thành công!');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể cập nhật thông tin nhóm.');
+    }
+  };
+
+  const handleLeaveGroup = () => {
+    if (!group) return;
+    if (group.status === 'Locked') {
+      setError('Nhóm đã chốt sổ học kỳ nên bạn không thể tự ý rời nhóm. Vui lòng tạo đơn xin chuyển nhóm để Trưởng phòng phê duyệt.');
+      return;
+    }
+    let msg: React.ReactNode = 'Bạn có chắc chắn muốn rời khỏi nhóm này không?';
+    if (isLeader) {
+      const otherMembers = (group.members || [])
+        .filter((m) => m.userId !== user?.id)
+        .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+      if (otherMembers.length > 0) {
+        const successor = otherMembers[0];
+        const successorName = memberProfiles[successor.userId]?.fullName || successor.fullName || 'thành viên kế tiếp';
+        msg = (
+          <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div>
+              Bạn đang là <strong>Trưởng nhóm</strong>. Nếu bạn rời phòng, quyền Trưởng nhóm sẽ <strong>tự động chuyển giao</strong> cho thành viên vào sớm nhất kế tiếp:{' '}
+              <strong style={{ color: 'var(--fpt-orange)' }}>{successorName}</strong>.
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Lưu ý: Nếu bạn muốn chỉ định một thành viên cụ thể khác, hãy dùng nút &quot;Nhượng quyền Leader&quot; trước khi rời.
+            </div>
+          </div>
+        );
+      } else {
+        msg = 'Bạn là thành viên duy nhất trong phòng. Khi bạn rời đi, phòng sẽ trở về trạng thái Trống (Empty). Bạn có chắc chắn muốn rời nhóm?';
+      }
+    }
+
+    setConfirmDialog({
+      title: 'Xác nhận rời khỏi nhóm',
+      description: msg,
+      confirmText: 'Rời khỏi nhóm',
+      variant: 'danger',
+      icon: <LogOut size={24} />,
+      onConfirm: async () => {
+        try {
+          await groupsApi.leaveGroup(group.id);
+          setGroup(null);
+          setFeedback('Bạn đã rời nhóm thành công.');
+        } catch (err: any) {
+          setError(err?.response?.data?.detail || 'Không thể rời nhóm.');
+        }
+      },
+    });
+  };
+
+  const handleTransferLeader = (newLeaderId: string) => {
+    if (!group) return;
+    const targetMember = group.members.find((m) => m.userId === newLeaderId);
+    const targetName = memberProfiles[newLeaderId]?.fullName || targetMember?.fullName || 'thành viên này';
+    setConfirmDialog({
+      title: 'Chuyển giao quyền Trưởng nhóm',
+      description: (
+        <span>
+          Bạn có chắc chắn muốn nhượng quyền <strong>Trưởng nhóm</strong> cho <strong>{targetName}</strong> không? Sau khi xác nhận, bạn sẽ trở thành Thành viên của nhóm.
+        </span>
+      ),
+      confirmText: 'Xác nhận nhượng quyền',
+      variant: 'warning',
+      icon: <Crown size={24} />,
+      onConfirm: async () => {
+        try {
+          await groupsApi.transferLeadership(group.id, { newLeaderId });
+          setFeedback('Đã chuyển quyền Trưởng nhóm thành công!');
+          await loadMyGroupData();
+        } catch (err: any) {
+          setError(err?.response?.data?.detail || 'Không thể chuyển quyền Trưởng nhóm.');
+        }
+      },
+    });
+  };
+
+  const handleConfirmKick = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group || !kickModal) return;
+    if (kickReason.trim().length < 10) {
+      setError('Vui lòng nhập lý do cụ thể tối thiểu 10 ký tự.');
+      return;
+    }
+    setIsSubmittingKick(true);
+    setError(null);
+    try {
+      await groupsApi.removeMember(group.id, kickModal.userId, {
+        category: kickCategory,
+        reason: kickReason.trim(),
+      });
+      setFeedback(`Đã mời thành viên ${kickModal.fullName} ra khỏi nhóm và gửi email thông báo thành công.`);
+      setKickModal(null);
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể mời thành viên ra khỏi nhóm.');
+    } finally {
+      setIsSubmittingKick(false);
+    }
+  };
+
+  const handleSaveSlot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group || !slotRoleName.trim()) return;
+    const skills = slotSkills
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    try {
+      if (editingSlot) {
+        await groupsApi.updateSlot(group.id, editingSlot.id, {
+          roleName: slotRoleName.trim(),
+          major: slotMajor,
+          requiredSkills: skills,
+          quantity: slotQty,
+        });
+        setFeedback('Đã cập nhật vị trí tuyển dụng.');
+      } else {
+        await groupsApi.addSlot(group.id, {
+          roleName: slotRoleName.trim(),
+          major: slotMajor,
+          requiredSkills: skills,
+          quantity: slotQty,
+        });
+        setFeedback('Đã thêm vị trí tuyển dụng mới.');
+      }
+      setEditingSlot(null);
+      setSlotRoleName('');
+      setSlotSkills('');
+      setSlotQty(1);
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể lưu vị trí tuyển dụng.');
+    }
+  };
+
+  const handleDeleteSlot = async (slotId: string) => {
+    if (!group) return;
+    try {
+      await groupsApi.deleteSlot(group.id, slotId);
+      setFeedback('Đã xóa vị trí tuyển dụng.');
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể xóa vị trí tuyển dụng.');
+    }
+  };
+
+  const handleDecideJoinRequest = async (reqId: string, accept: boolean) => {
+    try {
+      if (accept) {
+        await groupsApi.acceptJoinRequest(reqId);
+        setFeedback('Đã chấp nhận thành viên mới vào nhóm!');
+      } else {
+        await groupsApi.rejectJoinRequest(reqId);
+        setFeedback('Đã từ chối đơn xin gia nhập.');
+      }
+      await loadMyGroupData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể xử lý đơn xin gia nhập.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+        Đang tải thông tin nhóm của bạn...
+      </div>
+    );
+  }
+
+  if (!group) {
+    return (
+      <div>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
+            Nhóm Của Tôi
+          </h1>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Quản lý thành viên, vị trí tuyển dụng, duyệt đơn và mời ứng viên (Group Service)
+          </p>
+        </div>
+
+        <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem' }}>
+          <Users size={44} style={{ margin: '0 auto 1rem auto', color: '#94a3b8' }} />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            Bạn chưa tham gia nhóm đề tài nào
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 520, margin: '0 auto 1.5rem auto' }}>
+            Mỗi sinh viên chỉ thuộc tối đa 1 nhóm đang hoạt động. Hãy khám phá các nhóm đang tuyển hoặc chọn phòng tại Không gian Học phần.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+            <button className="btn btn-primary" onClick={() => navigate('/groups')}>
+              <Compass size={16} /> Khám phá & Thành lập Nhóm
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/projects')}>
+              <Layers size={16} /> Đề xuất Ý tưởng Dự án
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pendingReqCount = joinRequests.filter((r) => r.status === 'Pending').length;
+
+  return (
+    <div>
+      {/* Group Banner Header */}
+      <div
+        className="card"
+        style={{
+          marginBottom: '1.5rem',
+          padding: '1.5rem',
+          borderLeft: '5px solid #f26f21',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                {group.name}
+              </h1>
+              <span className="badge badge-recruiting">{group.status}</span>
+              <span className="badge badge-domain">
+                {group.members.length}/{group.maxMembers} thành viên
+              </span>
+            </div>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.45rem' }}>
+              {group.description || 'Chưa có mô tả chi tiết cho nhóm.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button className="btn btn-secondary btn-sm" onClick={() => void loadMyGroupData()}>
+              <RefreshCw size={15} /> Làm mới
+            </button>
+            {isLeader && (
+              <>
+                {group.status === 'Recruiting' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                    onClick={() => void handleCloseRecruitment()}
+                    title="Đóng tuyển sớm khi nhóm đã đạt số lượng mong muốn"
+                  >
+                    <Lock size={14} /> Đóng tuyển sớm
+                  </button>
+                )}
+                {group.status === 'Closed' && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#008837', borderColor: '#86efac' }}
+                    onClick={() => void handleReopenRecruitment()}
+                    title="Mở lại tuyển dụng nếu nhóm chưa đủ sĩ số tối đa"
+                  >
+                    <Unlock size={14} /> Mở lại tuyển dụng
+                  </button>
+                )}
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowEditGroup((v) => !v)}
+                >
+                  <Edit3 size={15} /> Sửa thông tin
+                </button>
+              </>
+            )}
+            {group.status !== 'Locked' && group.members.length >= 2 && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
+                onClick={() => setShowNominateModal(true)}
+                title="Tổ chức bầu chọn Trưởng nhóm mới trong vòng 24 giờ"
+              >
+                <Vote size={15} /> Bầu Leader mới
+              </button>
+            )}
+            {group.status !== 'Locked' ? (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#dc2626' }}
+                onClick={() => void handleLeaveGroup()}
+                title={isLeader ? 'Leader rời nhóm sẽ tự động chuyển giao cho thành viên gia nhập sớm nhất kế tiếp' : 'Rời nhóm'}
+              >
+                <LogOut size={15} /> Rời nhóm
+              </button>
+            ) : pendingTransfer ? (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: '#d97706', borderColor: '#fcd34d', gap: '0.35rem' }}
+                onClick={() => setActiveTab('transfers')}
+                title="Bạn đang có đơn xin chuyển nhóm đang chờ duyệt"
+              >
+                <Clock size={15} /> Đang có đơn chờ duyệt
+              </button>
+            ) : approvedTransfer ? (
+              <span className="badge badge-success" style={{ padding: '0.45rem 0.65rem' }}>
+                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
+              </span>
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
+                onClick={() => void openTransferModal()}
+                title="Tạo đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng duyệt"
+              >
+                <ArrowLeftRight size={15} /> Xin chuyển nhóm
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Inline Edit Group Form */}
+        {showEditGroup && isLeader && (
+          <form
+            onSubmit={(e) => void handleUpdateGroup(e)}
+            style={{
+              marginTop: '1.25rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid #e2e8f0',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '0.85rem',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tên nhóm</label>
+              <input
+                type="text"
+                className="form-control"
+                required
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Mô tả nhóm</label>
+              <input
+                type="text"
+                className="form-control"
+                value={editForm.description || ''}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowEditGroup(false)}
+              >
+                Hủy
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Lưu thay đổi
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Feedback / Error */}
+      {feedback && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1.15rem',
+            borderLeft: '4px solid #10b981',
+            background: '#ecfdf5',
+            color: '#065f46',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{feedback}</span>
+          <button onClick={() => setFeedback(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
+      {error && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1.15rem',
+            borderLeft: '4px solid #ef4444',
+            background: '#fef2f2',
+            color: '#991b1b',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{error}</span>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Phase 4: Active Leader Election Banner */}
+      {currentElection && currentElection.status === 'Active' && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1.25rem',
+            padding: '1.25rem 1.5rem',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, rgba(10, 25, 47, 0.04) 0%, rgba(242, 111, 33, 0.06) 100%)',
+            border: '2px solid #f26f21',
+            boxShadow: '0 4px 12px rgba(242, 111, 33, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  background: 'rgba(242, 111, 33, 0.15)',
+                  color: '#f26f21',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Vote size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  Đang diễn ra cuộc bầu chọn Trưởng nhóm mới
+                </h3>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Ứng viên được đề cử: <strong style={{ color: 'var(--text-main)' }}>{currentElection.candidateName}</strong> • Người khởi xướng: <strong>{currentElection.initiatedByName}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* 24-hour Countdown Timer */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.4rem 0.85rem',
+                borderRadius: '8px',
+                background: '#fff',
+                border: '1px solid #fed7aa',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              <Clock size={16} style={{ color: '#ea580c' }} />
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Thời hạn còn lại:</div>
+              <div
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.95rem',
+                  fontWeight: 800,
+                  color: '#ea580c',
+                  fontVariantNumeric: 'tabular-nums',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {formatCountdown(countdownSeconds)}
+              </div>
+            </div>
+          </div>
+
+          {/* Voting Progress */}
+          <div style={{ marginTop: '0.75rem', marginBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', marginBottom: '0.35rem' }}>
+              <span>
+                Tiến độ phiếu tán thành: <strong style={{ fontFamily: 'var(--font-mono)', color: '#008837' }}>{currentElection.totalAgreed}</strong> / <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentElection.requiredVotesToPass} phiếu</strong> cần thiết để đắc cử (&gt; 50% tổng số {currentElection.totalMembers} SV)
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)' }}>
+                {currentElection.totalVotes} / {currentElection.totalMembers} đã bầu
+              </span>
+            </div>
+            <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  background: currentElection.totalAgreed >= currentElection.requiredVotesToPass ? '#10b981' : '#f26f21',
+                  width: `${Math.min(100, (currentElection.totalAgreed / (currentElection.totalMembers || 1)) * 100)}%`,
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Voting Actions for User */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+            {(() => {
+              const myVote = currentElection.votes?.find((v) => v.voterId === user?.id);
+              if (myVote) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
+                    <CheckCircle2 size={16} style={{ color: myVote.isAgree ? '#10b981' : '#ef4444' }} />
+                    <span>
+                      Bạn đã bỏ phiếu: <strong>{myVote.isAgree ? 'Tán thành (Đồng ý)' : 'Không đồng ý'}</strong>
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    Bỏ phiếu của bạn:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void handleVoteElection(true)}
+                    disabled={votingElection}
+                    className="btn btn-primary btn-sm"
+                    style={{ background: '#008837', borderColor: '#008837', gap: '0.35rem' }}
+                  >
+                    <ThumbsUp size={14} />
+                    <span>Đồng ý</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleVoteElection(false)}
+                    disabled={votingElection}
+                    className="btn btn-secondary btn-sm"
+                    style={{ color: '#dc2626', gap: '0.35rem' }}
+                  >
+                    <ThumbsDown size={14} />
+                    <span>Không đồng ý</span>
+                  </button>
+                </div>
+              );
+            })()}
+
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Ngay khi số phiếu đồng ý đạt &gt; 50% ({currentElection.requiredVotesToPass} phiếu), quyền Trưởng nhóm được chuyển giao lập tức.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 6: Post-Lock Alert Banner */}
+      {group.status === 'Locked' && (
+        <div
+          style={{
+            padding: '0.85rem 1.25rem',
+            background: 'rgba(239, 68, 68, 0.06)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: 'var(--radius-md, 10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            marginBottom: '1.25rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Lock size={18} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.9rem' }}>
+                Nhóm đã Khóa cứng sau Chốt sổ học kỳ (Locked)
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.15rem' }}>
+                Đội ngũ chính thức đã được chốt sổ. Thành viên không thể tự rời nhóm. Nếu cần thay đổi, hãy tạo đơn gửi Trưởng phòng xét duyệt.
+              </div>
+            </div>
+          </div>
+          {pendingTransfer ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setActiveTab('transfers')}
+              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700, color: '#d97706', borderColor: '#fcd34d' }}
+            >
+              <Clock size={14} /> Xem đơn đang chờ duyệt
+            </button>
+          ) : approvedTransfer ? (
+            <div style={{ flexShrink: 0, color: '#059669', fontWeight: 700, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <CheckCircle2 size={16} /> Đã hoàn tất điều chuyển
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => void openTransferModal()}
+              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700 }}
+            >
+              <ArrowLeftRight size={14} /> Xin chuyển nhóm / Đổi chéo
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Tier 2: Gemini AI Startup Mentor Card */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <AiMentorCard groupId={group.id} groupName={group.name} />
+      </div>
+
+      {/* Sub-navigation Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <button
+          className={activeTab === 'members' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('members')}
+        >
+          <Users size={15} /> Thành viên ({group.members.length}/{group.maxMembers})
+        </button>
+        <button
+          className={activeTab === 'slots' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('slots')}
+        >
+          <Briefcase size={15} /> Vị trí Tuyển dụng ({group.slots.length})
+        </button>
+        <button
+          className={activeTab === 'requests' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('requests')}
+        >
+          <Mail size={15} /> Đơn xin vào nhóm ({pendingReqCount} chờ duyệt)
+        </button>
+        {isLeader && (
+          <button
+            className={activeTab === 'candidates' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+            onClick={() => setActiveTab('candidates')}
+          >
+            <Sparkles size={15} /> Gợi ý Ứng viên phù hợp (gRPC)
+          </button>
+        )}
+        <button
+          className={activeTab === 'transfers' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
+          onClick={() => setActiveTab('transfers')}
+          style={{ gap: '0.35rem' }}
+        >
+          <ArrowLeftRight size={15} /> Đơn chuyển nhóm
+          {myTransfers.length > 0 && (
+            <span
+              style={{
+                padding: '0.05rem 0.45rem',
+                borderRadius: '9999px',
+                fontSize: '0.7rem',
+                fontFamily: 'var(--font-mono)',
+                background: 'rgba(255, 255, 255, 0.25)',
+                fontVariantNumeric: 'tabular-nums',
+                fontWeight: 700,
+              }}
+            >
+              {myTransfers.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* TAB A: MEMBERS */}
+      {activeTab === 'members' && (
+        <div className="card">
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>
+            Danh sách Thành viên Nhóm
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {group.members.map((m) => {
+              const prof = memberProfiles[m.userId];
+              const displayName = prof?.fullName || m.fullName || `Thành viên (${m.userId.slice(0, 8)})`;
+              const displayMajor = prof?.major || m.major;
+              return (
+                <div
+                  key={m.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 10,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.95rem' }}>
+                        {displayName}
+                      </strong>
+                      {m.studentCode && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 700, color: '#0054a6' }}>
+                          {m.studentCode}
+                        </span>
+                      )}
+                      {m.role === 'Leader' ? (
+                        <span
+                          className="badge"
+                          style={{ background: '#fef3c7', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Crown size={12} /> Trưởng nhóm
+                        </span>
+                      ) : (
+                        <span className="badge badge-domain">Thành viên</span>
+                      )}
+                      {displayMajor && (
+                        <span className="badge badge-recruiting">Ngành {displayMajor}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 4 }}>
+                      {prof?.desiredRole || m.email || 'Thành viên dự án'} • Gia nhập: {formatDateTime(m.joinedAt)}
+                    </div>
+                  </div>
+
+                  {isLeader && m.userId !== user?.id && (
+                    <div style={{ display: 'flex', gap: '0.45rem' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => void handleTransferLeader(m.userId)}
+                        title="Chuyển quyền Trưởng nhóm"
+                      >
+                        <Crown size={14} /> Nhượng quyền Leader
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#dc2626' }}
+                        onClick={() => {
+                          setKickModal({ userId: m.userId, fullName: displayName });
+                          setKickCategory('Mất liên lạc / Không phản hồi (>48h)');
+                          setKickReason('');
+                        }}
+                        title="Mời thành viên ra khỏi nhóm kèm lý do và thông báo email"
+                      >
+                        <UserMinus size={14} /> Mời rời nhóm
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB B: RECRUITMENT SLOTS */}
+      {activeTab === 'slots' && (
+        <div className="card">
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>
+            Vị trí Tuyển dụng của Nhóm
+          </h3>
+
+          {group.slots.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Nhóm chưa đăng ký vị trí tuyển dụng nào.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
+              {group.slots.map((s) => (
+                <div
+                  key={s.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 10,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div>
+                    <strong style={{ fontSize: '0.95rem' }}>{s.roleName}</strong>
+                    <span className="badge badge-domain" style={{ marginLeft: 8 }}>
+                      Ngành {s.major} • Số lượng: {s.quantity}
+                    </span>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 4 }}>
+                      Kỹ năng yêu cầu: {s.requiredSkills.length > 0 ? s.requiredSkills.join(', ') : 'Linh hoạt'}
+                    </div>
+                  </div>
+                  {isLeader && (
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setEditingSlot(s);
+                          setSlotRoleName(s.roleName);
+                          setSlotMajor(s.major);
+                          setSlotSkills(s.requiredSkills.join(', '));
+                          setSlotQty(s.quantity);
+                        }}
+                      >
+                        <Edit3 size={14} /> Sửa
+                      </button>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ color: '#dc2626' }}
+                        onClick={() => void handleDeleteSlot(s.id)}
+                      >
+                        <Trash2 size={14} /> Xóa
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isLeader && (
+            <form
+              onSubmit={(e) => void handleSaveSlot(e)}
+              style={{
+                borderTop: '1px solid #e2e8f0',
+                paddingTop: '1rem',
+                display: 'grid',
+                gridTemplateColumns: '2fr 1fr 2fr 0.8fr auto',
+                gap: '0.6rem',
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                  {editingSlot ? 'Cập nhật tên vị trí' : 'Thêm vị trí mới'}
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  required
+                  placeholder="VD: AI Engineer / Marketer"
+                  value={slotRoleName}
+                  onChange={(e) => setSlotRoleName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Chuyên ngành</label>
+                <select
+                  className="form-control"
+                  value={slotMajor}
+                  onChange={(e) => setSlotMajor(e.target.value)}
+                >
+                  {MAJOR_LIST.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.value}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Kỹ năng (phẩy)</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="C# / .NET, React / TypeScript"
+                  value={slotSkills}
+                  onChange={(e) => setSlotSkills(e.target.value)}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Số lượng</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min={1}
+                  max={5}
+                  value={slotQty}
+                  onChange={(e) => setSlotQty(Number(e.target.value))}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <button type="submit" className="btn btn-primary btn-sm">
+                  {editingSlot ? 'Lưu' : 'Thêm'}
+                </button>
+                {editingSlot && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setEditingSlot(null);
+                      setSlotRoleName('');
+                      setSlotSkills('');
+                    }}
+                  >
+                    Hủy
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+        </div>
+      )}
+
+      {/* TAB C: INCOMING JOIN REQUESTS */}
+      {activeTab === 'requests' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                Đơn xin gia nhập nhóm ({joinRequests.length})
+              </h3>
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+                {isLeader
+                  ? 'Trưởng nhóm xem xét và quyết định chấp thuận/từ chối. Thành viên nhóm bỏ phiếu tham khảo.'
+                  : 'Mọi thành viên trong nhóm đều có quyền bỏ phiếu Ủng hộ / Phản đối kèm nhận xét tham khảo.'}
+              </p>
+            </div>
+            <span
+              style={{
+                fontSize: '0.78rem',
+                padding: '0.25rem 0.65rem',
+                borderRadius: '6px',
+                background: 'rgba(0, 84, 166, 0.08)',
+                color: 'var(--fpt-blue)',
+                fontWeight: 600,
+                border: '1px solid rgba(0, 84, 166, 0.2)',
+              }}
+            >
+              Cơ chế bỏ phiếu nội bộ
+            </span>
+          </div>
+
+          {joinRequests.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>Chưa có sinh viên nào gửi đơn xin gia nhập nhóm.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {joinRequests.map((req) => {
+                const prof = applicantProfiles[req.userId];
+                const upvotes = req.upvotes || 0;
+                const downvotes = req.downvotes || 0;
+                const hasVoted = req.votes?.some((v) => v.voterId === user?.id);
+
+                return (
+                  <div
+                    key={req.id}
+                    style={{
+                      padding: '1.15rem',
+                      borderRadius: 10,
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.85rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
+                            {req.studentName || prof?.fullName || `Ứng viên (${req.userId.slice(0, 8)})`}
+                          </strong>
+                          {prof?.major && <span className="badge badge-domain">Ngành {prof.major}</span>}
+                          <span
+                            className="badge"
+                            style={{
+                              background: req.status === 'Accepted' ? '#dcfce7' : req.status === 'Pending' ? '#fff7ed' : '#fee2e2',
+                              color: req.status === 'Accepted' ? '#15803d' : req.status === 'Pending' ? '#c2410c' : '#b91c1c',
+                              border: `1px solid ${req.status === 'Accepted' ? '#86efac' : req.status === 'Pending' ? '#fed7aa' : '#fca5a5'}`,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {req.status === 'Pending' ? 'Đang chờ duyệt' : req.status === 'Accepted' ? 'Đã chấp nhận' : req.status === 'Cancelled' ? 'Tự động hủy' : 'Đã từ chối'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.875rem', color: '#334155', marginTop: 6, fontStyle: 'italic' }}>
+                          &quot;{req.message || 'Mong muốn tham gia cùng nhóm phát triển đề tài.'}&quot;
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+                          Gửi lúc: {formatDateTime(req.createdAt)}
+                        </div>
+                      </div>
+
+                      {/* Vote Score Badges */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.3rem 0.65rem',
+                            borderRadius: '6px',
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            border: '1px solid #86efac',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          <ThumbsUp size={13} /> {upvotes} Ủng hộ
+                        </span>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            padding: '0.3rem 0.65rem',
+                            borderRadius: '6px',
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: '1px solid #fca5a5',
+                            fontSize: '0.8rem',
+                            fontWeight: 700,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          <ThumbsDown size={13} /> {downvotes} Phản đối
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Member votes and comments breakdown */}
+                    {req.votes && req.votes.length > 0 && (
+                      <div style={{ padding: '0.75rem 0.85rem', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
+                          Ý kiến tham khảo của thành viên ({req.votes.length}):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                          {req.votes.map((v, idx) => (
+                            <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, color: v.isUpvote ? '#15803d' : '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                                {v.isUpvote ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
+                                {v.isUpvote ? 'Ủng hộ' : 'Phản đối'}
+                              </span>
+                              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{v.voterName}:</span>
+                              <span style={{ color: '#475569' }}>{v.comment || '(Không có nhận xét)'}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>({formatDateTime(v.votedAt)})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Actions Row (Member Vote + Leader Decide) */}
+                    {req.status === 'Pending' && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
+                        {/* Member Reference Vote Buttons */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            {hasVoted ? 'Bạn đã bỏ phiếu tham khảo:' : 'Bỏ phiếu tham khảo:'}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#15803d', borderColor: '#86efac', gap: '0.3rem' }}
+                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: true })}
+                          >
+                            <ThumbsUp size={13} />
+                            <span>Ủng hộ</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#b91c1c', borderColor: '#fca5a5', gap: '0.3rem' }}
+                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: false })}
+                          >
+                            <ThumbsDown size={13} />
+                            <span>Phản đối</span>
+                          </button>
+                        </div>
+
+                        {/* Leader Decision Buttons */}
+                        {isLeader && (
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              style={{ background: '#008837', borderColor: '#008837' }}
+                              onClick={() => void handleDecideJoinRequest(req.id, true)}
+                            >
+                              <Check size={14} /> Chấp thuận (Duyệt)
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ color: '#dc2626' }}
+                              onClick={() => void handleDecideJoinRequest(req.id, false)}
+                            >
+                              <X size={14} /> Từ chối
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB D: RANKED CANDIDATES (gRPC Matching) */}
+      {activeTab === 'candidates' && isLeader && (
+        <div className="card">
+          <div style={{ marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
+              Ứng viên tiềm năng được xếp hạng bởi Matching Service (gRPC)
+            </h3>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+              Xếp hạng dựa trên kỹ năng, chuyên ngành bổ trợ (đa ngành) và định hướng vị trí của ứng viên đang tìm nhóm.
+            </p>
+          </div>
+
+          {candidates.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>
+              Chưa tìm thấy ứng viên phù hợp hoặc nhóm chưa khai báo vị trí cần tuyển.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {candidates.map((c) => (
+                <div
+                  key={c.userId}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    padding: '0.95rem 1.1rem',
+                    borderRadius: 10,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <strong style={{ fontSize: '0.95rem' }}>{c.fullName}</strong>
+                      {c.major && <span className="badge badge-domain">Ngành {c.major}</span>}
+                      {c.desiredRole && (
+                        <span style={{ fontSize: '0.8rem', color: '#475569' }}>• {c.desiredRole}</span>
+                      )}
+                      <span style={getScoreBadgeStyle(c.score)}>
+                        Điểm phù hợp: {c.score.toFixed(0)}%
+                      </span>
+                    </div>
+                    {c.matchedSkills.length > 0 && (
+                      <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: 4 }}>
+                        ✓ Kỹ năng khớp: {c.matchedSkills.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB E: TRANSFER REQUESTS */}
+      {activeTab === 'transfers' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                Đơn xin chuyển nhóm Hậu Chốt sổ của tôi
+              </h3>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Theo dõi tiến độ xét duyệt đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng (Moderator).
+              </p>
+            </div>
+            {pendingTransfer ? (
+              <span className="badge badge-warning" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <Clock size={14} /> Đang có đơn chờ xét duyệt
+              </span>
+            ) : approvedTransfer ? (
+              <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => void openTransferModal()}
+                style={{ gap: '0.35rem', fontWeight: 700 }}
+              >
+                <ArrowLeftRight size={14} /> Tạo đơn mới
+              </button>
+            )}
+          </div>
+
+          {myTransfers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.65rem auto' }}>
+                <ArrowLeftRight size={20} />
+              </div>
+              <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                Bạn chưa gửi đơn xin chuyển nhóm nào
+              </div>
+              <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                Nếu có nhu cầu chuyển sang nhóm khác hoặc đổi chéo với thành viên nhóm bạn, hãy bấm "Tạo đơn mới".
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {myTransfers.map((t) => (
+                <div
+                  key={t.id}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: 8,
+                    background: 'var(--bg-main)',
+                    border: '1px solid var(--border-light)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--fpt-blue)' }}>{t.fromGroupCode}</span>
+                      <span>→</span>
+                      <span style={{ fontWeight: 700, color: 'var(--fpt-orange)' }}>{t.targetGroupCode}</span>
+                      {t.swapStudentId && (
+                        <span className="badge" style={{ fontSize: '0.7rem', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+                          Đổi chéo: {t.swapStudentName} ({t.swapStudentCode})
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {t.status === 'Pending' && (
+                        <>
+                          <span className="badge badge-warning">Đang chờ duyệt</span>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ color: '#dc2626', borderColor: '#fca5a5', padding: '0.2rem 0.55rem', fontSize: '0.75rem', gap: '0.25rem' }}
+                            onClick={() => void handleCancelTransferRequest(t.id)}
+                            disabled={cancellingTransferId === t.id}
+                            title="Hủy đơn xin chuyển nhóm này"
+                          >
+                            <X size={13} /> {cancellingTransferId === t.id ? 'Đang hủy...' : 'Hủy đơn'}
+                          </button>
+                        </>
+                      )}
+                      {t.status === 'Approved' && <span className="badge badge-success">Đã chấp thuận</span>}
+                      {t.status === 'Rejected' && <span className="badge badge-danger">Đã từ chối</span>}
+                      {t.status === 'Cancelled' && <span className="badge badge-secondary">Đã hủy</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.825rem', color: 'var(--text-main)' }}>
+                    <strong>Lý do của bạn:</strong> {t.reason}
+                  </div>
+
+                  {t.decisionReason && (
+                    <div style={{ fontSize: '0.8rem', color: t.status === 'Approved' ? '#059669' : '#dc2626', background: 'var(--bg-card)', padding: '0.45rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-light)' }}>
+                      <strong>Phản hồi từ Trưởng phòng:</strong> {t.decisionReason}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                    Gửi lúc: {new Date(t.requestedAt).toLocaleString('vi-VN')}
+                    {t.decidedAt && ` • Phản hồi lúc: ${new Date(t.decidedAt).toLocaleString('vi-VN')}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Phase 4: Modal Đề cử Trưởng nhóm mới */}
+      <AnimatedModal
+        isOpen={showNominateModal}
+        onClose={() => setShowNominateModal(false)}
+        maxWidth={480}
+        ariaLabel="Bầu chọn Trưởng nhóm mới"
+      >
+        <div style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Vote size={20} style={{ color: 'var(--fpt-orange)' }} />
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+                Bầu chọn Trưởng nhóm mới
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNominateModal(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (nominatedCandidateId) void handleStartElection(nominatedCandidateId);
+            }}
+            style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+          >
+            <div
+              style={{
+                padding: '0.8rem 0.95rem',
+                borderRadius: 8,
+                background: 'rgba(242, 111, 33, 0.06)',
+                border: '1px solid rgba(242, 111, 33, 0.25)',
+                fontSize: '0.825rem',
+                lineHeight: 1.5,
+                color: 'var(--text-main)',
+              }}
+            >
+              <strong>Quy chế bầu cử:</strong> Cuộc bầu chọn kéo dài tối đa <strong>24 giờ</strong>. Toàn bộ thành viên có quyền bỏ phiếu. Khi số phiếu đồng ý đạt <strong>&gt; 50%</strong> tổng sĩ số nhóm, quyền Trưởng nhóm sẽ được chuyển giao lập tức.
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.825rem', fontWeight: 700, marginBottom: '0.45rem', display: 'block' }}>
+                Chọn thành viên bạn muốn đề cử làm Trưởng nhóm mới:
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
+                {group.members
+                  .filter((m) => m.userId !== group.leaderId)
+                  .map((m) => {
+                    const prof = memberProfiles[m.userId];
+                    const isSelected = nominatedCandidateId === m.userId;
+                    const displayName = prof?.fullName || m.fullName || m.userId;
+                    return (
+                      <div
+                        key={m.userId}
+                        onClick={() => setNominatedCandidateId(m.userId)}
+                        style={{
+                          padding: '0.65rem 0.85rem',
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #f26f21' : '1px solid #e2e8f0',
+                          background: isSelected ? 'rgba(242, 111, 33, 0.05)' : '#fff',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>
+                            {displayName} {m.userId === user?.id ? '(Tự ứng cử - Bạn)' : ''}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            {m.studentCode ? `${m.studentCode} • ` : ''}Tham gia từ: {formatDateTime(m.joinedAt)}
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="candidateNominee"
+                          checked={isSelected}
+                          onChange={() => setNominatedCandidateId(m.userId)}
+                        />
+                      </div>
+                    );
+                  })}
+              </div>
+              {group.members.filter((m) => m.userId !== group.leaderId).length === 0 && (
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.5rem 0 0 0' }}>
+                  Không có thành viên nào khác để đề cử.
+                </p>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowNominateModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={!nominatedCandidateId || electionSubmitting}
+                className="btn btn-primary btn-sm"
+                style={{ gap: '0.35rem', fontWeight: 700 }}
+              >
+                <Vote size={14} />
+                <span>{electionSubmitting ? 'Đang khởi tạo...' : 'Bắt đầu cuộc bầu chọn (24h)'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </AnimatedModal>
+
+      {/* Phase 4: Modal Bỏ phiếu tham khảo ứng viên kèm nhận xét */}
+      <AnimatedModal
+        isOpen={Boolean(voteCommentModal)}
+        onClose={() => setVoteCommentModal(null)}
+        maxWidth={440}
+        ariaLabel="Bỏ phiếu tham khảo ứng viên"
+      >
+        {voteCommentModal && (
+          <div style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                {voteCommentModal.isUpvote ? (
+                  <ThumbsUp size={18} style={{ color: '#15803d' }} />
+                ) : (
+                  <ThumbsDown size={18} style={{ color: '#b91c1c' }} />
+                )}
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                  Bỏ phiếu {voteCommentModal.isUpvote ? 'Ủng hộ' : 'Phản đối'}
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setApplyModalRoom(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted, #64748B)', cursor: 'pointer' }}
+                onClick={() => setVoteCommentModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5, marginTop: 0, marginBottom: '1.25rem' }}>
-              Đơn của bạn sẽ được gửi đến Trưởng nhóm và toàn bộ thành viên phòng <strong>{applyModalRoom.name}</strong> để mở biểu quyết nội bộ.
-            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleVoteApplication(voteCommentModal.requestId, voteCommentModal.isUpvote, voteComment);
+              }}
+              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+            >
+              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                Phiếu vote và nhận xét của bạn sẽ được hiển thị cho toàn đội và Trưởng nhóm tham khảo trước khi ra quyết định duyệt.
+              </p>
 
-            <form onSubmit={handleConfirmApply}>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>
-                  Lời giới thiệu & Kỹ năng bạn có thể đóng góp cho nhóm:
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
+                  Ý kiến / Nhận xét của bạn (không bắt buộc):
                 </label>
                 <textarea
-                  rows={4}
-                  required
-                  placeholder="Ví dụ: Mình học chuyên ngành Kỹ thuật phần mềm, có thế mạnh về React và backend API. Rất mong muốn được tham gia để cùng hoàn thiện dự án..."
-                  value={applyIntro}
-                  onChange={(e) => setApplyIntro(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 12,
-                    border: '1px solid var(--border-medium, #CBD5E1)',
-                    fontSize: '15px',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontFamily: 'inherit',
-                  }}
+                  rows={3}
+                  className="form-control"
+                  placeholder="Ví dụ: Em thấy bạn này rất hợp vai trò Backend, kỹ năng khá tốt..."
+                  value={voteComment}
+                  onChange={(e) => setVoteComment(e.target.value)}
+                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
                 <button
                   type="button"
-                  onClick={() => setApplyModalRoom(null)}
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setVoteCommentModal(null)}
+                  disabled={votingApp}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={votingApp}
+                  className="btn btn-primary btn-sm"
                   style={{
-                    padding: '9px 16px',
-                    borderRadius: 12,
-                    backgroundColor: 'var(--bg-tag, #F1F5F9)',
-                    border: '1px solid var(--border-light, #E2E8F0)',
-                    color: 'var(--text-secondary, #475569)',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                    background: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
+                    borderColor: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
+                    gap: '0.35rem',
+                    fontWeight: 700,
                   }}
+                >
+                  {voteCommentModal.isUpvote ? <ThumbsUp size={14} /> : <ThumbsDown size={14} />}
+                  <span>{votingApp ? 'Đang gửi...' : 'Xác nhận bỏ phiếu'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </AnimatedModal>
+
+      {/* Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log */}
+      <AnimatedModal
+        isOpen={Boolean(kickModal)}
+        onClose={() => !isSubmittingKick && setKickModal(null)}
+        maxWidth={480}
+        ariaLabel="Mời thành viên ra khỏi nhóm"
+      >
+        {kickModal && (
+          <div style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserMinus size={18} style={{ color: '#b91c1c' }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
+                    Mời thành viên ra khỏi nhóm
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Thành viên: <strong style={{ color: 'var(--text-main)' }}>{kickModal.fullName}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isSubmittingKick && setKickModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => void handleConfirmKick(e)}
+              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
+            >
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 12px', fontSize: '0.8rem', color: '#991b1b', lineHeight: 1.5 }}>
+                <strong>Lưu ý quan trọng:</strong> Hành động này sẽ được ghi vào <strong>Nhật ký hệ thống (Audit Log)</strong>. Đồng thời một <strong>email thông báo chính thức kèm lý do</strong> sẽ được gửi tự động đến hòm thư sinh viên.
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
+                  Phân loại lý do <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <select
+                  className="form-control"
+                  value={kickCategory}
+                  onChange={(e) => setKickCategory(e.target.value)}
+                  style={{ fontSize: '0.825rem' }}
+                >
+                  <option value="Mất liên lạc / Không phản hồi (>48h)">Mất liên lạc / Không phản hồi (&gt;48h)</option>
+                  <option value="Không hoàn thành nhiệm vụ / Bỏ bê dự án">Không hoàn thành nhiệm vụ / Bỏ bê dự án</option>
+                  <option value="Không phù hợp định hướng đề tài / phong cách làm việc">Không phù hợp định hướng đề tài / phong cách làm việc</option>
+                  <option value="Lý do cá nhân / Khác">Lý do cá nhân / Khác</option>
+                </select>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>
+                    Giải trình lý do chi tiết <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <span style={{ fontSize: '0.725rem', color: kickReason.trim().length < 10 ? '#dc2626' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    {kickReason.trim().length}/1000 (tối thiểu 10 ký tự)
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  className="form-control"
+                  placeholder="Nhập giải trình rõ ràng, lịch sự để gửi đến sinh viên (ví dụ: Thành viên không tham gia họp nhóm 3 buổi liên tiếp và không phản hồi tin nhắn phân chia task...)"
+                  value={kickReason}
+                  onChange={(e) => setKickReason(e.target.value)}
+                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setKickModal(null)}
+                  disabled={isSubmittingKick}
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  style={{
-                    padding: '9px 20px',
-                    borderRadius: 12,
-                    backgroundColor: '#0054A6',
-                    border: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '15px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+                  disabled={isSubmittingKick || kickReason.trim().length < 10}
                 >
-                  <Send size={14} />
-                  <span>Xác nhận nộp đơn</span>
+                  {isSubmittingKick ? 'Đang gửi thông báo...' : 'Xác nhận mời ra khỏi nhóm'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatedModal>
 
-      {/* ── MODAL GIÁM SÁT PHÒNG NHÓM (DÀNH CHO MODERATOR & LECTURER) ── */}
-      {inspectRoomModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '1.25rem',
-            backdropFilter: 'blur(3px)',
-          }}
-          onClick={() => setInspectRoomModal(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '20px',
-              padding: '24px',
-              maxWidth: 640,
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
-            }}
-          >
-            {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '14px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '17px', color: '#0054A6', backgroundColor: 'rgba(0, 84, 166, 0.12)', padding: '3px 10px', borderRadius: 10 }}>
-                    {inspectRoomModal.code}
-                  </span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, padding: '3px 10px', borderRadius: 999, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669' }}>
-                    Sĩ số: {inspectRoomModal.currentMembers}/{inspectRoomModal.maxMembers} thành viên
-                  </span>
-                </div>
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-                  {inspectRoomModal.name}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setInspectRoomModal(null)}
-                style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)', backgroundColor: 'var(--bg-card, #FFFFFF)', color: 'var(--text-muted, #64748B)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Topic Info */}
-            <div style={{ padding: '14px 16px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', marginBottom: '16px' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                Đề tài dự kiến đăng ký:
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
-                {inspectRoomModal.topic || 'Chưa đăng ký đề tài chính thức'}
-              </div>
-              {inspectRoomModal.topicDesc && (
-                <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: '6px 0 0', lineHeight: 1.5 }}>
-                  {inspectRoomModal.topicDesc}
-                </p>
-              )}
-            </div>
-
-            {/* Member List - 100% full view for staff */}
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Users size={16} color="var(--accent-color, #F26F21)" />
-                  Danh sách thành viên chính thức ({inspectRoomModal.members.length}/{inspectRoomModal.maxMembers})
-                </span>
-                <span style={{ fontSize: '13.5px', color: '#059669', fontWeight: 600 }}>
-                  ✓ Toàn quyền giám sát
-                </span>
-              </div>
-
-              {inspectRoomModal.members.length === 0 ? (
-                <div style={{ padding: '16px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px dashed var(--border-medium, #CBD5E1)', textAlign: 'center', fontSize: '15px', color: 'var(--text-muted, #64748B)' }}>
-                  Phòng đang trống (0/5). Chưa có sinh viên nào tham gia.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {inspectRoomModal.members.map((m) => (
-                    <div
-                      key={m.id}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: 12,
-                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                        border: '1px solid var(--border-light, #E2E8F0)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            backgroundColor: m.avatarBg,
-                            color: m.avatarText,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 800,
-                            fontSize: '14px',
-                          }}
-                        >
-                          {m.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span>{m.name}</span>
-                            {m.role === 'Leader' && (
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', padding: '1px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
-                                Trưởng nhóm
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>
-                            MSSV: <strong style={{ color: '#0054A6' }}>{m.studentCode}</strong> • Chuyên ngành: {m.major} • Lớp FAP: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{m.classCode}</strong>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '13.5px', color: 'var(--text-light, #94A3B8)', textAlign: 'right' }}>
-                        {m.joinedAt}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Monitoring Action Footer */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
-              <button
-                type="button"
-                onClick={() => setInspectRoomModal(null)}
-                style={{
-                  padding: '9px 20px',
-                  borderRadius: 12,
-                  backgroundColor: '#0F172A',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Đóng cửa sổ giám sát
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 2. MY GROUP PAGE (/my-group)
-// ══════════════════════════════════════════════════════════════════════════════
-export const MyGroupPage: React.FC = () => {
-
-  // Test mode switcher: Đang mở đăng ký vs Đã chốt sổ
-  const [isLockedSemester, setIsLockedSemester] = useState<boolean>(false);
-
-  // Group State
-  const [isEarlyClosed, setIsEarlyClosed] = useState<boolean>(false);
-  const [topic, setTopic] = useState('EcoCampus - Phân loại rác AI');
-  const [topicDesc, setTopicDesc] = useState('Hệ thống Computer Vision tự động phân loại rác thải tại các tòa nhà campus.');
-  const [showEditTopicModal, setShowEditTopicModal] = useState(false);
-  const [editTopicTitle, setEditTopicTitle] = useState(topic);
-  const [editTopicDesc, setEditTopicDesc] = useState(topicDesc);
-
-  // Members in my group
-  const [members, setMembers] = useState<RoomMember[]>([
-    {
-      id: 'current-user',
-      name: 'Lữ Thành Tú',
-      studentCode: 'SE185102',
-      classCode: 'SE1801',
-      major: 'Kỹ thuật phần mềm (SE)',
-      role: 'Leader',
-      avatarBg: '#F1F5F9',
-      avatarText: '#334155',
-      joinedAt: '08:00 • 07/11/2026',
-    },
-    {
-      id: 'member-2',
-      name: 'Trần Minh Quân',
-      studentCode: 'SE185108',
-      classCode: 'SE1801',
-      major: 'Kỹ thuật phần mềm (SE)',
-      role: 'Member',
-      avatarBg: '#F1F5F9',
-      avatarText: '#334155',
-      joinedAt: '08:30 • 07/11/2026',
-    },
-    {
-      id: 'member-3',
-      name: 'Lê Hoàng Yến',
-      studentCode: 'GD180215',
-      classCode: 'GD1802',
-      major: 'Thiết kế mỹ thuật số (GD)',
-      role: 'Member',
-      avatarBg: '#F1F5F9',
-      avatarText: '#334155',
-      joinedAt: '14:15 • 07/11/2026',
-    },
-  ]);
-
-  // Leader Election State
-  const [showElectionCard, setShowElectionCard] = useState(false);
-  const [electionVotes, setElectionVotes] = useState<number>(2); // 2/3 agree
-  const [userVotedElection, setUserVotedElection] = useState(false);
-
-  // Transfer Leader Modal
-  const [showTransferLeaderModal, setShowTransferLeaderModal] = useState(false);
-  const [selectedNewLeaderId, setSelectedNewLeaderId] = useState('');
-
-  // Transfer / Swap Modal (for Locked Semester)
-  const [showTransferSwapModal, setShowTransferSwapModal] = useState(false);
-  const [transferType, setTransferType] = useState<'ONE_WAY' | 'SWAP'>('SWAP');
-  const [targetRoomCode, setTargetRoomCode] = useState('FA26EXE101-04');
-  const [swapStudentName, setSwapStudentName] = useState('Bùi Phương Thảo (SE1803)');
-  const [transferReason, setTransferReason] = useState('');
-
-  // Applicants & Voting State
-  interface Applicant {
-    id: string;
-    name: string;
-    studentCode: string;
-    classCode: string;
-    major: string;
-    scores: { tech: number; mgt: number; design: number; mkt: number; sale: number };
-    intro: string;
-    votingOpen: boolean;
-    userVote?: 'YES' | 'NO';
-    yesVotes: number;
-    noVotes: number;
-    status: 'Pending' | 'Accepted' | 'Rejected';
-  }
-
-  const [applicants, setApplicants] = useState<Applicant[]>([
-    {
-      id: 'app-01',
-      name: 'Phạm Văn Nam',
-      studentCode: 'MKT180112',
-      classCode: 'MKT1801',
-      major: 'Digital Marketing (MKT)',
-      scores: { tech: 30, mgt: 60, design: 45, mkt: 90, sale: 85 },
-      intro: 'Em có kinh nghiệm quản lý fanpage và chạy ads chiến dịch truyền thông, mong muốn vào nhóm để phụ trách phát triển thị trường.',
-      votingOpen: true,
-      userVote: 'YES',
-      yesVotes: 2,
-      noVotes: 1,
-      status: 'Pending',
-    },
-    {
-      id: 'app-02',
-      name: 'Hoàng Thu Trang',
-      studentCode: 'IB180234',
-      classCode: 'IB1802',
-      major: 'Kinh doanh quốc tế (IB)',
-      scores: { tech: 20, mgt: 70, design: 35, mkt: 80, sale: 90 },
-      intro: 'Mình có kinh nghiệm pitching gọi vốn các cuộc thi khởi nghiệp và thuyết trình tiếng Anh lưu loát.',
-      votingOpen: false,
-      yesVotes: 1,
-      noVotes: 0,
-      status: 'Pending',
-    },
-  ]);
-
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
-  const isCurrentUserLeader = members.find((m) => m.id === 'current-user')?.role === 'Leader';
-
-  // Toggle Early Close
-  const handleToggleEarlyClose = () => {
-    if (isEarlyClosed) {
-      setIsEarlyClosed(false);
-      showToast('Đã mở tuyển lại thành công! Ứng viên có thể tiếp tục nộp đơn vào nhóm.');
-    } else {
-      setIsEarlyClosed(true);
-      // Auto reject pending applicants
-      setApplicants((prev) =>
-        prev.map((a) => (a.status === 'Pending' ? { ...a, status: 'Rejected' } : a))
-      );
-      showToast('Đã đóng tuyển sớm! Toàn bộ đơn đang chờ đã được tự động chuyển sang trạng thái Từ chối.');
-    }
-  };
-
-  // Leave Group
-  const handleLeaveGroup = () => {
-    if (window.confirm('Bạn có chắc chắn muốn rời nhóm?')) {
-      const remaining = members.filter((m) => m.id !== 'current-user');
-      // If leader leaves, successor is the next earliest member
-      if (isCurrentUserLeader && remaining.length > 0) {
-        remaining[0].role = 'Leader';
-        showToast(`Bạn đã rời nhóm. Quyền Trưởng nhóm được tự động chuyển giao cho ${remaining[0].name}.`);
-      } else {
-        showToast('Bạn đã rời nhóm thành công.');
-      }
-      setMembers(remaining);
-      // If capacity drops from 3 to 2, group reverts to Forming
-      if (remaining.length <= 2) {
-        showToast('Sĩ số nhóm hiện tại dưới 3 thành viên: Nhóm tự động chuyển về trạng thái "Phòng đang lập" và mở lại cổng vào thẳng!');
-      }
-    }
-  };
-
-  // Chuyển quyền Leader
-  const handleConfirmTransferLeader = () => {
-    if (!selectedNewLeaderId) return;
-    const target = members.find((m) => m.id === selectedNewLeaderId);
-    if (!target) return;
-    setMembers((prev) =>
-      prev.map((m) => {
-        if (m.id === selectedNewLeaderId) return { ...m, role: 'Leader' };
-        if (m.id === 'current-user') return { ...m, role: 'Member' };
-        return m;
-      })
-    );
-    setShowTransferLeaderModal(false);
-    showToast(`Đã nhượng quyền Trưởng nhóm thành công cho ${target.name}!`);
-  };
-
-  // Bầu chọn Trưởng nhóm mới (Election)
-  const handleCastElectionVote = () => {
-    if (userVotedElection) return;
-    const nextVotes = electionVotes + 1;
-    setElectionVotes(nextVotes);
-    setUserVotedElection(true);
-
-    if (nextVotes >= 2) {
-      // Over 50%
-      setTimeout(() => {
-        setMembers((prev) =>
-          prev.map((m) => {
-            if (m.id === 'member-2') return { ...m, role: 'Leader' };
-            if (m.id === 'current-user') return { ...m, role: 'Member' };
-            return m;
-          })
-        );
-        setShowElectionCard(false);
-        showToast('Chúc mừng! Cuộc bầu cử đã đạt quá bán (>50%). Bạn Trần Minh Quân chính thức trở thành Trưởng nhóm mới!');
-      }, 700);
-    }
-  };
-
-  // Vote on applicant
-  const handleVoteApplicant = (applicantId: string, vote: 'YES' | 'NO') => {
-    setApplicants((prev) =>
-      prev.map((a) => {
-        if (a.id !== applicantId) return a;
-        let yes = a.yesVotes;
-        let no = a.noVotes;
-        if (a.userVote === 'YES') yes--;
-        if (a.userVote === 'NO') no--;
-
-        if (vote === 'YES') yes++;
-        if (vote === 'NO') no++;
-
-        return { ...a, userVote: vote, yesVotes: yes, noVotes: no };
-      })
-    );
-  };
-
-  // Accept applicant into group
-  const handleAcceptApplicant = (app: Applicant) => {
-    if (members.length >= 5) {
-      alert('Nhóm đã đủ sĩ số tối đa 5 thành viên!');
-      return;
-    }
-    const newMember: RoomMember = {
-      id: app.id,
-      name: app.name,
-      studentCode: app.studentCode,
-      classCode: app.classCode,
-      major: app.major,
-      role: 'Member',
-      avatarBg: '#F1F5F9',
-      avatarText: '#334155',
-      joinedAt: 'Vừa xong',
-    };
-    setMembers([...members, newMember]);
-    setApplicants((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: 'Accepted' } : a)));
-    showToast(`Đã chấp nhận ${app.name} vào nhóm thành công! Sĩ số hiện tại: ${members.length + 1}/5.`);
-  };
-
-  // Reject applicant
-  const handleRejectApplicant = (applicantId: string) => {
-    setApplicants((prev) => prev.map((a) => (a.id === applicantId ? { ...a, status: 'Rejected' } : a)));
-    showToast('Đã từ chối đơn ứng tuyển.');
-  };
-
-  return (
-    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
-      {/* Toast */}
-      {toastMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 24,
-            right: 24,
-            zIndex: 9999,
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            padding: '12px 20px',
-            borderRadius: 12,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          <CheckCircle2 size={18} color="#22C55E" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Top Header & Test Mode Switcher */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          marginBottom: '1.5rem',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
+      {/* Phase 6: Modal Tạo đơn xin chuyển nhóm */}
+      <AnimatedModal
+        isOpen={showTransferModal}
+        onClose={() => setShowTransferModal(false)}
+        maxWidth={500}
+        ariaLabel="Tạo đơn xin chuyển nhóm"
       >
-        <div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12.5px',
-              fontWeight: 450,
-              color: 'var(--text-muted, #64748B)',
-              marginBottom: '0.4rem',
-            }}
-          >
-            <span>Học phần</span>
-            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-            <span>EXE</span>
-            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Nhóm của tôi</span>
-            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>·</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, color: '#94A3B8' }}>
-              FA26EXE101-02
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.022em' }}>
-              Nhóm Khởi Nghiệp Của Tôi
-            </h1>
-            <span
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 500,
-                padding: '3px 9px',
-                borderRadius: 6,
-                backgroundColor: '#F8FAFC',
-                color: isLockedSemester || isEarlyClosed ? '#64748B' : '#334155',
-                border: '1px solid #E2E8F0',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor:
-                    isLockedSemester || isEarlyClosed
-                      ? '#94A3B8'
-                      : '#F59E0B',
-                  boxShadow:
-                    isLockedSemester || isEarlyClosed
-                      ? 'none'
-                      : '0 0 0 2px rgba(245, 158, 11, 0.2)',
-                  flexShrink: 0,
-                }}
-              />
-              {isLockedSemester
-                ? 'Đã chốt sổ học kỳ'
-                : isEarlyClosed
-                ? 'Đã đóng tuyển sớm'
-                : `Đang tuyển (${members.length}/5)`}
-            </span>
-          </div>
-        </div>
-
-        {/* Mode Switcher — Flat Segmented Control (No shadow, no gradient) */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '2px',
-            backgroundColor: '#F1F5F9',
-            border: '1px solid #E2E8F0',
-            padding: '3px',
-            borderRadius: 9,
-          }}
-        >
-          <span style={{ fontSize: '12px', fontWeight: 450, color: '#64748B', paddingLeft: 8, paddingRight: 6 }}>
-            Chế độ kiểm thử:
-          </span>
-          <button
-            type="button"
-            onClick={() => setIsLockedSemester(false)}
-            style={{
-              padding: '5px 11px',
-              borderRadius: 6,
-              fontSize: '12.5px',
-              fontWeight: !isLockedSemester ? 500 : 450,
-              cursor: 'pointer',
-              border: 'none',
-              backgroundColor: !isLockedSemester ? '#0F172A' : 'transparent',
-              color: !isLockedSemester ? '#FFFFFF' : '#475569',
-              boxShadow: 'none',
-            }}
-          >
-            Đang mở đăng ký
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsLockedSemester(true)}
-            style={{
-              padding: '5px 11px',
-              borderRadius: 6,
-              fontSize: '12.5px',
-              fontWeight: isLockedSemester ? 500 : 450,
-              cursor: 'pointer',
-              border: 'none',
-              backgroundColor: isLockedSemester ? '#0F172A' : 'transparent',
-              color: isLockedSemester ? '#FFFFFF' : '#475569',
-              boxShadow: 'none',
-            }}
-          >
-            Đã chốt sổ học kỳ
-          </button>
-        </div>
-      </div>
-
-      {/* Locked Semester Banner */}
-      {isLockedSemester && (
-        <div
-          style={{
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            borderRadius: 16,
-            padding: '14px 18px',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', flexShrink: 0 }}>
-              <Lock size={17} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '14.5px' }}>
-                Học kỳ đã chốt sổ danh sách (Locked)
+        <div style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(242, 111, 33, 0.1)', color: 'var(--fpt-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowLeftRight size={18} />
               </div>
-              <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '2px' }}>
-                Cổng đăng ký và kết nạp tự do đã đóng. Mọi điều chỉnh thành viên chỉ được thực hiện qua quy trình nộp đơn xin Chuyển nhóm / Đổi chéo để Điều phối viên phê duyệt.
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowTransferSwapModal(true)}
-            style={{
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
-              border: 'none',
-              color: '#FFFFFF',
-              fontSize: '13.5px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 4px rgba(242, 111, 33, 0.25)',
-            }}
-          >
-            <ArrowLeftRight size={14} />
-            <span>Gửi yêu cầu Chuyển nhóm / Đổi chéo</span>
-          </button>
-        </div>
-      )}
-
-      {/* Main Section: 2 Columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
-        {/* Left Column: Project Info & 5 Skills Bar Chart (shadcn Card Architecture) */}
-        <div
-          className="motion-stagger-item"
-          style={
-            {
-              '--stagger-index': 0,
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '20px',
-              padding: '28px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-            } as React.CSSProperties
-          }
-        >
-          <div>
-            {/* CardHeader: Topic Eyebrow + Action Button */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFFFFF',
-                  }}
-                >
-                  <Sparkles size={14} strokeWidth={2.2} />
-                </div>
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}
-                >
-                  Đề tài dự án khởi nghiệp
-                </span>
-              </div>
-
-              {!isLockedSemester && (
-                <button
-                  type="button"
-                  onClick={() => setShowEditTopicModal(true)}
-                  style={{
-                    padding: '7px 14px',
-                    borderRadius: 9,
-                    background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
-                    border: 'none',
-                    boxShadow: '0 2px 4px rgba(242, 111, 33, 0.25)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#FFFFFF',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <Edit3 size={13.5} color="#FFFFFF" />
-                  <span>Cập nhật đề tài</span>
-                </button>
-              )}
-            </div>
-
-            {/* Topic Callout Box (shadcn Muted Surface) */}
-            <div
-              style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: '14px',
-                padding: '16px 18px',
-                marginBottom: '22px',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: '#0F172A',
-                  letterSpacing: '-0.02em',
-                  margin: '0 0 6px 0',
-                  lineHeight: 1.3,
-                }}
-              >
-                {topic}
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
+                Tạo đơn xin chuyển nhóm
               </h3>
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: '#475569',
-                  lineHeight: 1.55,
-                  margin: 0,
-                }}
-              >
-                {topicDesc}
-              </p>
             </div>
-
-            {/* 5 Core Skills Section Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <TrendingUp size={16} color="var(--accent-color, #F26F21)" strokeWidth={2.2} />
-                <span style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
-                  Năng lực tổng hợp 5 Kỹ năng của cả nhóm
-                </span>
-              </div>
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
-                  background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
-                  padding: '3.5px 10px',
-                  borderRadius: 999,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                Trung bình: 62%
-              </span>
-            </div>
-
-            {/* 5 Core Skills Rows (Synced with user's chosen accent color + Clean Neutral Badges) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              {[
-                { name: 'Tech', sub: 'Kỹ thuật & Lập trình', score: 82, badge: 'Thế mạnh' },
-                { name: 'Management', sub: 'Quản lý dự án & Vận hành', score: 75, badge: 'Thế mạnh' },
-                { name: 'Graphic Design', sub: 'Thiết kế UI/UX & Đồ họa', score: 68, badge: 'Ổn định' },
-                { name: 'Marketing', sub: 'Truyền thông & Tăng trưởng', score: 45, badge: 'Cần bổ sung' },
-                { name: 'Sale', sub: 'Kinh doanh & Bán hàng', score: 40, badge: 'Cần bổ sung' },
-              ].map((s) => (
-                <div
-                  key={s.name}
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: '11px',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{s.name}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748B' }}>· {s.sub}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      <span
-                        style={{
-                          fontSize: '12px',
-                          fontWeight: 500,
-                          padding: '2px 8px',
-                          borderRadius: 999,
-                          backgroundColor: '#FFFFFF',
-                          color: s.score >= 65 ? '#0F172A' : '#64748B',
-                          border: '1px solid #E2E8F0',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {s.badge}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 700,
-                          color: s.score >= 65 ? 'var(--accent-color, #F26F21)' : '#0F172A',
-                          fontVariantNumeric: 'tabular-nums',
-                          minWidth: '38px',
-                          textAlign: 'right',
-                        }}
-                      >
-                        {s.score}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress bar synced with user's chosen accent color */}
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 999,
-                      backgroundColor: '#E2E8F0',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      className="motion-progress-fill"
-                      style={{
-                        width: `${s.score}%`,
-                        height: '100%',
-                        background: s.score >= 65 ? 'var(--accent-gradient, var(--accent-color, #F26F21))' : '#94A3B8',
-                        borderRadius: 999,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Control Buttons & Leader Election */}
-        <div
-          className="motion-stagger-item"
-          style={
-            {
-              '--stagger-index': 1,
-              backgroundColor: 'var(--bg-card, #FFFFFF)',
-              border: '1px solid var(--border-light, #E2E8F0)',
-              borderRadius: '20px',
-              padding: '28px',
-              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            } as React.CSSProperties
-          }
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 8,
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#334155',
-                  }}
-                >
-                  <Layers size={14} strokeWidth={2.2} />
-                </div>
-                <span
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    color: '#64748B',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}
-                >
-                  Quản trị & Điều phối nội bộ
-                </span>
-              </div>
-            </div>
-
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 18px 0' }}>
-              Bảng điều khiển & Tác vụ Nhóm
-            </h3>
-
-            {/* Action Buttons (Clean Neutral Surface Grid) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.25rem' }}>
-              {/* Đóng tuyển sớm / Mở tuyển lại */}
-              <button
-                type="button"
-                onClick={handleToggleEarlyClose}
-                disabled={isLockedSemester}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: isLockedSemester ? 'not-allowed' : 'pointer',
-                  opacity: isLockedSemester ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '10px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    color: '#334155',
-                  }}
-                >
-                  {isEarlyClosed ? <Unlock size={15} /> : <Lock size={15} />}
-                </div>
-                <span>{isEarlyClosed ? 'Mở tuyển lại' : 'Đóng tuyển sớm'}</span>
-              </button>
-
-              {/* Chuyển quyền Trưởng nhóm */}
-              <button
-                type="button"
-                onClick={() => setShowTransferLeaderModal(true)}
-                disabled={isLockedSemester || !isCurrentUserLeader}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: isLockedSemester || !isCurrentUserLeader ? 'not-allowed' : 'pointer',
-                  opacity: isLockedSemester || !isCurrentUserLeader ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '10px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Crown size={15} color="#334155" />
-                </div>
-                <span>Chuyển quyền Leader</span>
-              </button>
-
-              {/* Bầu chọn Trưởng nhóm mới */}
-              <button
-                type="button"
-                onClick={() => setShowElectionCard(true)}
-                disabled={isLockedSemester}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: isLockedSemester ? 'not-allowed' : 'pointer',
-                  opacity: isLockedSemester ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '10px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Vote size={15} color="#334155" />
-                </div>
-                <span>Bầu chọn Leader mới</span>
-              </button>
-
-              {/* Rời nhóm */}
-              <button
-                type="button"
-                onClick={handleLeaveGroup}
-                disabled={isLockedSemester}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#DC2626',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: isLockedSemester ? 'not-allowed' : 'pointer',
-                  opacity: isLockedSemester ? 0.5 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  gap: '10px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <LogOut size={15} color="#DC2626" />
-                </div>
-                <span>Rời nhóm</span>
-              </button>
-            </div>
-
-            {/* Bầu chọn Trưởng nhóm mới Card (nếu kích hoạt) */}
-            {showElectionCard && (
-              <div
-                style={{
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: 14,
-                  padding: '16px',
-                  marginBottom: '1rem',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Vote size={15} color="#334155" />
-                    <span>Bình chọn Leader mới: Trần Minh Quân</span>
-                  </div>
-                  <span style={{ fontSize: '12px', color: '#475569', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 999, fontWeight: 600 }}>
-                    Còn 23 giờ
-                  </span>
-                </div>
-                <div style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '8px' }}>
-                  Tiến độ phiếu bầu: <strong style={{ color: '#0F172A' }}>{electionVotes}/3 đồng ý (&gt;50%)</strong>
-                </div>
-                <div style={{ height: 6, borderRadius: 999, backgroundColor: '#E2E8F0', overflow: 'hidden', marginBottom: '12px' }}>
-                  <div style={{ width: `${(electionVotes / 3) * 100}%`, height: '100%', backgroundColor: '#0F172A' }} />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCastElectionVote}
-                  disabled={userVotedElection}
-                  style={{
-                    width: '100%',
-                    padding: '9px 14px',
-                    borderRadius: 9,
-                    backgroundColor: userVotedElection ? '#CBD5E1' : '#0F172A',
-                    border: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
-                    cursor: userVotedElection ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {userVotedElection ? 'Bạn đã bỏ phiếu đồng ý' : 'Bỏ phiếu Đồng ý bầu Leader mới'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* shadcn Alert / Callout Box */}
-          <div
-            style={{
-              backgroundColor: '#F8FAFC',
-              border: '1px solid #E2E8F0',
-              borderRadius: '14px',
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '12px',
-            }}
-          >
-            <ShieldAlert size={17} color="#64748B" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55 }}>
-              <strong style={{ color: '#0F172A' }}>Quy định chuyển nhóm:</strong> Khi nhóm trưởng rời nhóm, quyền Trưởng nhóm tự động trao cho thành viên vào sớm nhất kế tiếp. Nếu sĩ số giảm từ 3 xuống 2, nhóm quay về trạng thái phòng đang lập và mở lại cổng vào thẳng.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Members Section */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '26px',
-          marginBottom: '1.75rem',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-        }}
-      >
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: '0 0 1rem 0', letterSpacing: '-0.015em' }}>
-          Danh sách Thành viên Nhóm ({members.length}/5)
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
-          {members.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: 12,
-                padding: '15px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '12px',
-              }}
+            <button
+              type="button"
+              onClick={() => setShowTransferModal(false)}
+              style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#F1F5F9',
-                    color: m.role === 'Leader' ? '#FFFFFF' : '#334155',
-                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                >
-                  {m.name.charAt(0)}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
-                    {m.id === 'current-user' && (
-                      <span style={{ fontSize: '12.5px', color: 'var(--accent-color, #F26F21)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                        (Bạn)
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px', lineHeight: 1.4 }}>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{m.studentCode}</span> · {m.major}
-                  </div>
-                  <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
-                    Tham gia: {m.joinedAt}
-                  </div>
-                </div>
-              </div>
+              <X size={18} />
+            </button>
+          </div>
 
+          <form onSubmit={handleCreateTransferRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                1. Chọn Nhóm đích muốn chuyển đến <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              {loadingAvailableRooms ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Đang tải danh sách nhóm trong không gian...</div>
+              ) : (
+                <select
+                  className="form-control"
+                  value={transferTargetGroupId}
+                  onChange={(e) => handleTargetGroupChange(e.target.value)}
+                  required
+                  style={{ fontSize: '0.85rem' }}
+                >
+                  <option value="">-- Chọn nhóm đích --</option>
+                  {availableRooms.map((r) => {
+                    const isFull = r.memberCount >= r.maxMembers;
+                    return (
+                      <option key={r.id} value={r.id}>
+                        [{r.roomCode || r.name}] {r.name} ({r.memberCount}/{r.maxMembers} SV){isFull ? ' - ĐÃ ĐỦ (Cần đổi chéo)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+            </div>
+
+            {/* Thông tin nhóm đích */}
+            {selectedTargetRoom && (
               <div
                 style={{
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: '8px',
+                  background: 'var(--bg-main)',
+                  border: '1px solid var(--border-light)',
+                  fontSize: '0.8rem',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  justifyContent: 'center',
-                  gap: '6px',
-                  flexShrink: 0,
+                  gap: '0.35rem',
                 }}
               >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    fontVariantNumeric: 'tabular-nums',
-                    fontWeight: 500,
-                    fontSize: '12.5px',
-                    backgroundColor: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #E2E8F0',
-                    padding: '2.5px 9px',
-                    borderRadius: 6,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {m.classCode}
-                </span>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    fontSize: '12.5px',
-                    fontWeight: 500,
-                    padding: '3px 10px',
-                    borderRadius: 999,
-                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#FFFFFF',
-                    color: m.role === 'Leader' ? '#FFFFFF' : '#64748B',
-                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {m.role === 'Leader' ? 'Trưởng nhóm' : 'Thành viên'}
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Sĩ số nhóm đích:</span>
+                  <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: isTargetFull ? '#ef4444' : 'var(--fpt-blue)' }}>
+                    {selectedTargetRoom.memberCount}/{selectedTargetRoom.maxMembers} SV {isTargetFull ? '(Đã đủ sĩ số)' : '(Còn chỗ)'}
+                  </span>
+                </div>
+                {isTargetFull && (
+                  <div style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>Nhóm đích đã đạt sĩ số tối đa ({selectedTargetRoom.maxMembers} SV). Hệ thống tự động kích hoạt Đổi chéo 2 chiều (Swap).</span>
+                  </div>
+                )}
+                {isSourceAtThreshold && (
+                  <div style={{ color: '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                    <span>Nhóm hiện tại của bạn chỉ có {group?.members.length} SV (ngưỡng tối thiểu). Bắt buộc phải Đổi chéo 2 chiều (Swap) để bảo toàn sĩ số nhóm.</span>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            )}
 
-      {/* Section: Đơn ứng tuyển & Biểu quyết thành viên */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '26px',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
-              Đơn ứng tuyển & Biểu quyết Thành viên ({applicants.filter((a) => a.status === 'Pending').length} đang chờ)
-            </h3>
-            <p style={{ fontSize: '14px', color: '#64748B', margin: '3px 0 0 0' }}>
-              Toàn bộ thành viên có quyền biểu quyết tham khảo cho ứng viên. Trưởng nhóm sẽ là người ra quyết định chấp thuận cuối cùng.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {applicants.map((app) => (
+            {/* Swap Checkbox & Swap Student */}
             <div
-              key={app.id}
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: 16,
-                padding: '16px',
+                padding: '0.75rem 0.85rem',
+                borderRadius: '8px',
+                background: 'var(--bg-main)',
+                border: '1px solid var(--border-light)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isSwapMandatory ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={transferIsSwap}
+                  disabled={isSwapMandatory}
+                  onChange={(e) => {
+                    if (!isSwapMandatory) {
+                      setTransferIsSwap(e.target.checked);
+                      setTransferSwapStudentId('');
+                    }
+                  }}
+                  style={{ width: 16, height: 16, accentColor: 'var(--fpt-orange)' }}
+                />
+                <span>Đổi chéo 2 chiều (Swap với 1 bạn ở nhóm đích)</span>
+              </label>
+
+              {transferIsSwap && (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
-                      {app.name}
-                    </h4>
-                    <span style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)', fontVariantNumeric: 'tabular-nums', fontSize: '13px', fontWeight: 600, color: '#334155', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 6 }}>
-                      {app.studentCode} • Lớp {app.classCode}
-                    </span>
-                    <span style={{ fontSize: '13.5px', color: '#64748B' }}>
-                      ({app.major})
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#475569', marginTop: '6px', fontStyle: 'italic' }}>
-                    "{app.intro}"
-                  </div>
-                </div>
-
-                {app.status === 'Accepted' && (
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
-                    Đã chấp nhận vào nhóm
-                  </span>
-                )}
-                {app.status === 'Rejected' && (
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999 }}>
-                    Đã từ chối
-                  </span>
-                )}
-              </div>
-
-              {/* 5 Skills scores pills — Unified Neutral Slate Badges instead of 5 Rainbow Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-                {[
-                  { label: 'Tech', val: app.scores.tech },
-                  { label: 'Mgt', val: app.scores.mgt },
-                  { label: 'Design', val: app.scores.design },
-                  { label: 'Marketing', val: app.scores.mkt },
-                  { label: 'Sale', val: app.scores.sale },
-                ].map((sk) => (
-                  <span
-                    key={sk.label}
-                    style={{
-                      fontSize: '13px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#334155',
-                      border: '1px solid #E2E8F0',
-                      padding: '3px 9px',
-                      borderRadius: 6,
-                      fontWeight: 600,
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {sk.label}: <strong style={{ color: '#0F172A' }}>{sk.val}/100</strong>
-                  </span>
-                ))}
-              </div>
-
-              {/* Voting Bar & Actions */}
-              {app.status === 'Pending' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
-                  {/* Member voting buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#64748B' }}>Biểu quyết của bạn:</span>
-                    <button
-                      type="button"
-                      onClick={() => handleVoteApplicant(app.id, 'YES')}
-                      style={{
-                        padding: '5px 11px',
-                        borderRadius: 7,
-                        border: app.userVote === 'YES' ? '1px solid #0F172A' : '1px solid #E2E8F0',
-                        backgroundColor: app.userVote === 'YES' ? '#0F172A' : '#FFFFFF',
-                        color: app.userVote === 'YES' ? '#FFFFFF' : '#475569',
-                        fontSize: '13.5px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                      }}
+                  <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                    Chọn sinh viên nhóm đích để đổi chéo ngược lại <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  {loadingTargetMembers ? (
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.35rem 0' }}>Đang nạp danh sách thành viên nhóm đích...</div>
+                  ) : (
+                    <select
+                      className="form-control"
+                      value={transferSwapStudentId}
+                      onChange={(e) => setTransferSwapStudentId(e.target.value)}
+                      disabled={!transferTargetGroupId || loadingTargetMembers}
+                      required={transferIsSwap}
+                      style={{ fontSize: '0.85rem' }}
                     >
-                      <ThumbsUp size={13} />
-                      <span>Đồng ý</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleVoteApplicant(app.id, 'NO')}
-                      style={{
-                        padding: '5px 11px',
-                        borderRadius: 7,
-                        border: app.userVote === 'NO' ? '1px solid #334155' : '1px solid #E2E8F0',
-                        backgroundColor: app.userVote === 'NO' ? '#334155' : '#FFFFFF',
-                        color: app.userVote === 'NO' ? '#FFFFFF' : '#475569',
-                        fontSize: '13.5px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                      }}
-                    >
-                      <ThumbsDown size={13} />
-                      <span>Từ chối</span>
-                    </button>
-
-                    <span style={{ fontSize: '13.5px', color: '#64748B', marginLeft: '4px' }}>
-                      (Tổng kết: <strong style={{ color: '#0F172A' }}>{app.yesVotes} Đồng ý • {app.noVotes} Từ chối</strong>)
-                    </span>
-                  </div>
-
-                  {/* Leader Decision Buttons */}
-                  {isCurrentUserLeader && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleRejectApplicant(app.id)}
-                        style={{
-                          padding: '7px 13px',
-                          borderRadius: 8,
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
-                          color: '#475569',
-                          fontSize: '13.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Từ chối
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAcceptApplicant(app)}
-                        style={{
-                          padding: '7px 16px',
-                          borderRadius: 8,
-                          backgroundColor: 'var(--accent-color, #F26F21)',
-                          border: 'none',
-                          color: '#FFFFFF',
-                          fontSize: '13.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Chấp nhận vào nhóm
-                      </button>
-                    </div>
+                      <option value="">-- Chọn sinh viên đổi ngược --</option>
+                      {targetGroupMembers.map((m) => (
+                        <option key={m.userId} value={m.userId}>
+                          {m.fullName} {m.role === 'Leader' ? '(Trưởng nhóm)' : '(Thành viên)'}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
               )}
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Modal: Cập nhật đề tài */}
-      {showEditTopicModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 480, width: '100%' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
-              Cập nhật Đề tài Dự án Khởi nghiệp
-            </h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Tên đề tài</label>
-              <input
-                type="text"
-                value={editTopicTitle}
-                onChange={(e) => setEditTopicTitle(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box' }}
-              />
-            </div>
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Mô tả ngắn</label>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                2. Lý do xin chuyển nhóm <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <textarea
+                className="form-control"
                 rows={3}
-                value={editTopicDesc}
-                onChange={(e) => setEditTopicDesc(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowEditTopicModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTopic(editTopicTitle);
-                  setTopicDesc(editTopicDesc);
-                  setShowEditTopicModal(false);
-                  showToast('Đã cập nhật đề tài dự án thành công!');
-                }}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
-              >
-                Lưu thay đổi
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Chuyển quyền Leader */}
-      {showTransferLeaderModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 440, width: '100%' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
-              Chuyển quyền Trưởng nhóm
-            </h3>
-            <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', marginBottom: '1rem' }}>
-              Chọn một thành viên trong nhóm để chuyển giao trọng trách Trưởng nhóm:
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
-              {members
-                .filter((m) => m.id !== 'current-user')
-                .map((m) => (
-                  <label
-                    key={m.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      borderRadius: 12,
-                      border: selectedNewLeaderId === m.id ? '1px solid #F27024' : '1px solid #E2E8F0',
-                      backgroundColor: selectedNewLeaderId === m.id ? '#FFF7ED' : '#FFFFFF',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="newLeader"
-                      value={m.id}
-                      checked={selectedNewLeaderId === m.id}
-                      onChange={() => setSelectedNewLeaderId(m.id)}
-                    />
-                    <div>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>{m.name}</div>
-                      <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>{m.studentCode} • {m.major}</div>
-                    </div>
-                  </label>
-                ))}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowTransferLeaderModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
-              <button
-                type="button"
-                onClick={handleConfirmTransferLeader}
-                disabled={!selectedNewLeaderId}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700, cursor: selectedNewLeaderId ? 'pointer' : 'not-allowed' }}
-              >
-                Xác nhận chuyển quyền
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Gửi yêu cầu Chuyển nhóm / Đổi chéo (Hậu chốt sổ) */}
-      {showTransferSwapModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 520, width: '100%' }}>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArrowLeftRight size={18} color="#0054A6" />
-              <span>Đơn xin Chuyển nhóm / Đổi chéo Hậu Chốt sổ</span>
-            </h3>
-            <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0' }}>
-              Quy trình điều phối nhân sự đặc biệt sau khi học kỳ đã khóa danh sách chính thức.
-            </p>
-
-            {/* Constraint check: If current members <= 3 */}
-            {members.length <= 3 && (
-              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '10px 14px', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <ShieldAlert size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 2 }} />
-                <div style={{ fontSize: '14.5px', color: '#991B1B', lineHeight: 1.45 }}>
-                  <strong>Quy định bảo toàn sĩ số:</strong> Nhóm hiện tại của bạn chỉ có đúng <strong>{members.length} thành viên</strong> (ngưỡng tối thiểu môn học). Bắt buộc phải chọn hình thức <strong>Đổi chéo 2 sinh viên (Swap 1-1)</strong> để không làm nhóm thiếu người!
-                </div>
-              </div>
-            )}
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>Hình thức chuyển:</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <button
-                  type="button"
-                  disabled={members.length <= 3}
-                  onClick={() => setTransferType('ONE_WAY')}
-                  style={{
-                    padding: '10px',
-                    borderRadius: 12,
-                    border: transferType === 'ONE_WAY' ? '1px solid #0054A6' : '1px solid #E2E8F0',
-                    backgroundColor: transferType === 'ONE_WAY' ? '#EFF6FF' : '#FFFFFF',
-                    color: members.length <= 3 ? '#94A3B8' : transferType === 'ONE_WAY' ? '#0054A6' : '#334155',
-                    fontSize: '14.5px',
-                    fontWeight: 700,
-                    cursor: members.length <= 3 ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  Chuyển 1 chiều
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTransferType('SWAP')}
-                  style={{
-                    padding: '10px',
-                    borderRadius: 12,
-                    border: transferType === 'SWAP' ? '1px solid #0054A6' : '1px solid #E2E8F0',
-                    backgroundColor: transferType === 'SWAP' ? '#EFF6FF' : '#FFFFFF',
-                    color: transferType === 'SWAP' ? '#0054A6' : '#334155',
-                    fontSize: '14.5px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Đổi chéo 2 sinh viên (Swap)
-                </button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Chọn phòng nhóm muốn đến:</label>
-              <select
-                value={targetRoomCode}
-                onChange={(e) => setTargetRoomCode(e.target.value)}
-                style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px' }}
-              >
-                <option value="FA26EXE101-03">FA26EXE101-03 (EcoCampus - 3/5 SV)</option>
-                <option value="FA26EXE101-04">FA26EXE101-04 (FinWise - 4/5 SV)</option>
-                <option value="FA26EXE101-06">FA26EXE101-06 (AgriTrust - 4/5 SV)</option>
-              </select>
-            </div>
-
-            {transferType === 'SWAP' && (
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Sinh viên đối tác đồng ý đổi chéo:</label>
-                <select
-                  value={swapStudentName}
-                  onChange={(e) => setSwapStudentName(e.target.value)}
-                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px' }}
-                >
-                  <option value="Bùi Phương Thảo (SE1803)">Bùi Phương Thảo (SE180312 • Lớp SE1803)</option>
-                  <option value="Trương Mỹ Linh (IB1802)">Trương Mỹ Linh (IB180220 • Lớp IB1802)</option>
-                  <option value="Đỗ Thu Hà (IB1802)">Đỗ Thu Hà (IB180202 • Lớp IB1802)</option>
-                </select>
-              </div>
-            )}
-
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Lý do xin chuyển / đổi chéo (bắt buộc):</label>
-              <textarea
-                rows={3}
-                required
-                placeholder="Nêu rõ lý do học vụ, định hướng đề tài hoặc sự phù hợp kỹ năng để Điều phối viên xem xét..."
                 value={transferReason}
                 onChange={(e) => setTransferReason(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                placeholder="Trình bày rõ lý do điều chuyển, thỏa thuận đổi chéo (nếu có) để Trưởng phòng phê duyệt..."
+                required
+                style={{ fontSize: '0.85rem' }}
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowTransferSwapModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
-                onClick={() => {
-                  if (!transferReason.trim()) {
-                    alert('Vui lòng nhập lý do chuyển nhóm!');
-                    return;
-                  }
-                  setShowTransferSwapModal(false);
-                  showToast('Đã gửi đơn yêu cầu chuyển nhóm / đổi chéo thành công! Điều phối viên học kỳ sẽ thẩm định và gửi thông báo qua email.');
-                }}
-                style={{ padding: '8px 18px', borderRadius: 10, backgroundColor: '#0054A6', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowTransferModal(false)}
+                disabled={submittingTransfer}
               >
-                Gửi đơn điều chuyển
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={submittingTransfer || !transferTargetGroupId}
+                className="btn btn-primary btn-sm"
+                style={{ gap: '0.35rem', fontWeight: 700 }}
+              >
+                <Send size={14} />
+                <span>{submittingTransfer ? 'Đang gửi đơn...' : 'Gửi đơn xin chuyển nhóm'}</span>
               </button>
             </div>
-          </div>
+          </form>
         </div>
-      )}
+      </AnimatedModal>
+
+      {/* Reusable GSAP ConfirmDialog */}
+      <ConfirmDialog
+        isOpen={Boolean(confirmDialog)}
+        onClose={() => {
+          if (!confirmDialogLoading) setConfirmDialog(null);
+        }}
+        onConfirm={async () => {
+          if (!confirmDialog) return;
+          setConfirmDialogLoading(true);
+          try {
+            await confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          } finally {
+            setConfirmDialogLoading(false);
+          }
+        }}
+        title={confirmDialog?.title || 'Xác nhận'}
+        description={confirmDialog?.description || ''}
+        confirmText={confirmDialog?.confirmText}
+        variant={confirmDialog?.variant}
+        icon={confirmDialog?.icon}
+        loading={confirmDialogLoading}
+      />
     </div>
   );
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 3. JOIN REQUESTS PAGE (/join-requests)
+// 3. JOIN REQUESTS PAGE (/join-requests) — Quản lý Đơn xin gia nhập của Sinh viên
 // ══════════════════════════════════════════════════════════════════════════════
 export const JoinRequestsPage: React.FC = () => {
-  interface MyRequest {
-    id: string;
-    roomCode: string;
-    topic: string;
-    submittedAt: string;
-    status: 'Pending' | 'Cancelled' | 'Rejected' | 'Accepted';
-    reason?: string;
-  }
+  const [requests, setRequests] = useState<JoinRequestResponse[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
-  const [requests, setRequests] = useState<MyRequest[]>([
-    {
-      id: 'req-01',
-      roomCode: 'FA26EXE101-03',
-      topic: 'EcoCampus - Phân loại rác AI',
-      submittedAt: '09:30 • 08/11/2026',
-      status: 'Pending',
-    },
-    {
-      id: 'req-02',
-      roomCode: 'FA26EXE101-04',
-      topic: 'FinWise - Tài chính sinh viên',
-      submittedAt: '15:45 • 08/11/2026',
-      status: 'Pending',
-    },
-    {
-      id: 'req-03',
-      roomCode: 'FA26EXE101-05',
-      topic: 'SafeRide - Đi chung xe Campus',
-      submittedAt: '11:20 • 07/11/2026',
-      status: 'Cancelled',
-      reason: 'Nhóm đã đủ thành viên / đóng tuyển',
-    },
-    {
-      id: 'req-04',
-      roomCode: 'FA26EXE101-01',
-      topic: 'Phòng nhóm 01',
-      submittedAt: '10:00 • 06/11/2026',
-      status: 'Cancelled',
-      reason: 'Tự động hủy do bạn đã tham gia vào nhóm khác',
-    },
-  ]);
+  const loadMyRequests = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await groupsApi.getMyJoinRequests({
+        status: statusFilter || undefined,
+        page: 1,
+        pageSize: 30,
+      });
+      setRequests(res.items || []);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể tải danh sách yêu cầu tham gia nhóm.');
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter]);
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  useEffect(() => {
+    void loadMyRequests();
+  }, [loadMyRequests]);
+
+  const handleCancelRequest = async (id: string) => {
+    try {
+      await groupsApi.cancelJoinRequest(id);
+      setFeedback('Đã hủy yêu cầu xin gia nhập nhóm.');
+      await loadMyRequests();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Không thể hủy yêu cầu này.');
+    }
+  };
 
   const pendingCount = requests.filter((r) => r.status === 'Pending').length;
 
-  const handleWithdraw = (id: string) => {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id ? { ...r, status: 'Cancelled', reason: 'Sinh viên chủ động rút đơn' } : r
-      )
-    );
-    setToastMessage('Đã rút đơn ứng tuyển thành công!');
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   return (
-    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
-      {toastMessage && (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          marginBottom: '1.75rem',
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
+            Yêu cầu Tham gia Nhóm ({pendingCount}/5 Pending)
+          </h1>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            Theo dõi trạng thái các đơn xin gia nhập nhóm của bạn (Tối đa 5 yêu cầu Pending cùng lúc)
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <select
+            className="form-control"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ width: 180 }}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="Pending">Đang chờ duyệt (Pending)</option>
+            <option value="Accepted">Đã chấp nhận (Accepted)</option>
+            <option value="Rejected">Từ chối (Rejected)</option>
+            <option value="Cancelled">Đã hủy (Cancelled)</option>
+          </select>
+          <button className="btn btn-secondary btn-sm" onClick={() => void loadMyRequests()}>
+            <RefreshCw size={15} /> Làm mới
+          </button>
+        </div>
+      </div>
+
+      {feedback && (
         <div
+          className="card"
           style={{
-            position: 'fixed',
-            top: 24,
-            right: 24,
-            zIndex: 9999,
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            padding: '12px 20px',
-            borderRadius: 12,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: 14,
-            fontWeight: 600,
+            marginBottom: '1rem',
+            padding: '0.85rem 1.15rem',
+            borderLeft: '4px solid #10b981',
+            background: '#ecfdf5',
+            color: '#065f46',
           }}
         >
-          <CheckCircle2 size={18} color="#22C55E" />
-          <span>{toastMessage}</span>
+          {feedback}
+        </div>
+      )}
+      {error && (
+        <div
+          className="card"
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1.15rem',
+            borderLeft: '4px solid #ef4444',
+            background: '#fef2f2',
+            color: '#991b1b',
+          }}
+        >
+          {error}
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '12.5px',
-            fontWeight: 450,
-            color: 'var(--text-muted, #64748B)',
-            marginBottom: '0.45rem',
-          }}
-        >
-          <span>Học phần</span>
-          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-          <span>EXE</span>
-          <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
-          <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Đơn ứng tuyển</span>
+      {loading ? (
+        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          Đang tải danh sách yêu cầu...
         </div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0', letterSpacing: '-0.022em' }}>
-          Đơn Ứng Tuyển Của Tôi
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '0.95rem', fontWeight: 400, margin: 0 }}>
-          Theo dõi trạng thái xét duyệt các đơn ứng tuyển vào nhóm khởi nghiệp của bạn.
-        </p>
-      </div>
-
-      {/* Counter Limit Box */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '20px 26px',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
-            <Clock size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
-              Đơn đang chờ duyệt: <span style={{ fontWeight: 600, color: '#0F172A' }}>{pendingCount} / 3 đơn tối đa</span> cùng lúc
-            </div>
-            <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', marginTop: '2px' }}>
-              Quy định giới hạn tối đa 3 đơn đồng thời để đảm bảo tính cam kết và tránh gửi đơn trùng lặp.
-            </div>
-          </div>
+      ) : requests.length === 0 ? (
+        <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
+          <AlertCircle size={44} style={{ margin: '0 auto 1rem auto', color: '#94a3b8' }} />
+          <h3 style={{ color: 'var(--text-main)' }}>Bạn chưa có yêu cầu gia nhập nào</h3>
+          <p style={{ marginTop: '0.35rem' }}>
+            Hãy khám phá các nhóm đề tài tại mục &quot;Khám phá nhóm&quot; và gửi yêu cầu tham gia phù hợp.
+          </p>
         </div>
-
-        <div style={{ display: 'flex', gap: '5px' }}>
-          {[1, 2, 3].map((slot) => (
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: 900 }}>
+          {requests.map((r) => (
             <div
-              key={slot}
+              key={r.id}
+              className="card"
               style={{
-                width: 24,
-                height: 4,
-                borderRadius: 999,
-                backgroundColor: slot <= pendingCount ? 'var(--status-progress, #7C3AED)' : '#E2E8F0',
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Request List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {requests.map((req, idx) => (
-          <div
-            key={req.id}
-            className="motion-card-interactive motion-stagger-item"
-            style={
-              {
-                '--stagger-index': Math.min(idx, 6),
-                backgroundColor: 'var(--bg-card, #FFFFFF)',
-                border: '1px solid var(--border-light, #E2E8F0)',
-                borderRadius: '12px',
-                padding: '16px 20px',
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'space-between',
+                alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '12px',
-              } as React.CSSProperties
-            }
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '14.5px' }}>
-                  {req.topic}
-                </span>
-                <span style={{ color: '#CBD5E1' }}>·</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, fontSize: '12px', color: '#94A3B8' }}>
-                  {req.roomCode}
-                </span>
-              </div>
-              <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8' }}>
-                Thời điểm nộp đơn: {req.submittedAt}
-              </div>
-              {req.reason && (
-                <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px', fontWeight: 450 }}>
-                  Ghi chú: {req.reason}
-                </div>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {req.status === 'Pending' && (
-                <>
+                gap: '1rem',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                    Nhóm: {r.groupName}
+                  </strong>
                   <span
+                    className="badge"
                     style={{
-                      fontSize: '12.5px',
-                      fontWeight: 500,
-                      color: '#334155',
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      padding: '3px 9px',
-                      borderRadius: 6,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      whiteSpace: 'nowrap',
+                      background:
+                        r.status === 'Accepted'
+                          ? '#dcfce7'
+                          : r.status === 'Pending'
+                          ? '#fff7ed'
+                          : r.status === 'Cancelled'
+                          ? '#f1f5f9'
+                          : '#fee2e2',
+                      color:
+                        r.status === 'Accepted'
+                          ? '#15803d'
+                          : r.status === 'Pending'
+                          ? '#c2410c'
+                          : r.status === 'Cancelled'
+                          ? '#475569'
+                          : '#b91c1c',
+                      border: `1px solid ${
+                        r.status === 'Accepted'
+                          ? '#86efac'
+                          : r.status === 'Pending'
+                          ? '#fed7aa'
+                          : r.status === 'Cancelled'
+                          ? '#cbd5e1'
+                          : '#fca5a5'
+                      }`,
+                      fontWeight: 700,
                     }}
                   >
+                    {r.status === 'Pending'
+                      ? 'Đang chờ duyệt'
+                      : r.status === 'Accepted'
+                      ? 'Đã chấp nhận'
+                      : r.status === 'Cancelled'
+                      ? 'Tự động hủy do đã có nhóm'
+                      : 'Đã từ chối'}
+                  </span>
+
+                  {((r.upvotes || 0) > 0 || (r.downvotes || 0) > 0) && (
                     <span
                       style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        backgroundColor: '#F59E0B',
-                        boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
-                        flexShrink: 0,
+                        fontSize: '0.75rem',
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: '#64748b',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: 4,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
                       }}
-                    />
-                    Đang chờ duyệt
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleWithdraw(req.id)}
-                    style={{
-                      padding: '5px 12px',
-                      borderRadius: 8,
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E2E8F0',
-                      color: '#475569',
-                      fontSize: '12.5px',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Rút đơn ứng tuyển
-                  </button>
-                </>
-              )}
-              {req.status === 'Cancelled' && (
-                <span
-                  style={{
-                    fontSize: '12.5px',
-                    fontWeight: 500,
-                    color: '#64748B',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    padding: '3px 9px',
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    whiteSpace: 'nowrap',
-                  }}
+                    >
+                      <ThumbsUp size={12} style={{ color: '#15803d' }} /> {r.upvotes || 0} • <ThumbsDown size={12} style={{ color: '#b91c1c' }} /> {r.downvotes || 0}
+                    </span>
+                  )}
+                </div>
+                {r.message && (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                    Lời nhắn: &quot;{r.message}&quot;
+                  </p>
+                )}
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Gửi lúc: {formatDateTime(r.createdAt)}
+                  {r.decidedAt && ` • Phản hồi lúc: ${formatDateTime(r.decidedAt)}`}
+                </div>
+              </div>
+
+              {r.status === 'Pending' && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: '#dc2626' }}
+                  onClick={() => void handleCancelRequest(r.id)}
                 >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#94A3B8', flexShrink: 0 }} />
-                  Đã hủy
-                </span>
-              )}
-              {req.status === 'Accepted' && (
-                <span
-                  style={{
-                    fontSize: '12.5px',
-                    fontWeight: 500,
-                    color: '#334155',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    padding: '3px 9px',
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      backgroundColor: '#10B981',
-                      boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.18)',
-                      flexShrink: 0,
-                    }}
-                  />
-                  Đã chấp thuận
-                </span>
+                  <X size={15} /> Hủy yêu cầu
+                </button>
               )}
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ══════════════════════════════════════════════════════════════════════════════
-// 4. INVITATIONS PAGE (/invitations)
-// ══════════════════════════════════════════════════════════════════════════════
-export const InvitationsPage: React.FC = () => {
-  return (
-    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0' }}>
-          Lời Mời Tham Gia Nhóm
-        </h1>
-        <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', margin: 0 }}>
-          Các lời mời từ Trưởng nhóm gửi trực tiếp đến bạn để kết nạp vào đề tài học kỳ.
-        </p>
-      </div>
-
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card, #FFFFFF)',
-          border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '24px',
-          textAlign: 'center',
-          color: 'var(--text-muted, #64748B)',
-          fontSize: '15px',
-        }}
-      >
-        Hiện tại bạn không có lời mời gia nhập nào đang chờ phản hồi.
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -53,4 +53,7 @@ public interface IGroupMatchingService
     Task<MatchScoreResponse> GetMatchScoreAsync(Guid groupId, CancellationToken ct = default);
     Task<IReadOnlyList<GroupSuggestionResponse>> GetSuggestionsAsync(int top, CancellationToken ct = default);
     Task<IReadOnlyList<CandidateResponse>> GetCandidatesAsync(Guid groupId, int top, CancellationToken ct = default);
+
+    /// <summary>Phân tích nhóm chuyên sâu bằng AI Mentor (Gemini API / Fallback Heuristic).</summary>
+    Task<AiMentorResponse> GetAiMentorInsightsAsync(Guid groupId, CancellationToken ct = default);
 }

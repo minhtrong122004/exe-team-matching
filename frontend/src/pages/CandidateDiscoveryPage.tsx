@@ -43,6 +43,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
   const [candidates, setCandidates] = useState<CandidateProfileResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(9); // 3x3 grid
@@ -509,7 +510,35 @@ export const CandidateDiscoveryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Notice */}
+      {/* Feedback / Error Notice */}
+      {feedback && (
+        <div
+          style={{
+            background: '#ecfdf5',
+            border: '1px solid #86efac',
+            color: '#065f46',
+            padding: '1rem 1.25rem',
+            borderRadius: 12,
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.6rem',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+            <UserCheck size={18} style={{ color: '#059669' }} />
+            {feedback}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065f46' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
       {error && (
         <div
           style={{
@@ -1256,7 +1285,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  alert(`Đã gửi lời mời tham gia nhóm tới ứng viên ${selectedCandidate.fullName}!`);
+                  setFeedback(`Đã gửi lời mời tham gia nhóm tới ứng viên ${selectedCandidate.fullName}!`);
                   setSelectedCandidate(null);
                 }}
                 style={{
