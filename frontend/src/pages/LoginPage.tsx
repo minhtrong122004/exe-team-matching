@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
-  ShieldCheck,
-  GraduationCap,
-  Users,
   HelpCircle,
   CheckCircle2,
 } from '../utils/icons';
@@ -19,7 +16,7 @@ const BODY_FONT = '"Plus Jakarta Sans", "Nunito Sans", "Be Vietnam Pro", sans-se
 export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showProcessTooltip, setShowProcessTooltip] = useState<boolean>(false);
-  const { loginWithGoogle, loginDemo } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleCredential = async (idToken: string) => {
@@ -314,155 +311,6 @@ export const LoginPage: React.FC = () => {
               onCredential={handleCredential}
               onError={(msg) => setError(msg)}
             />
-
-            {/* Cụm nút Demo xếp dọc chuẩn bố cục Devfolio */}
-            {loginDemo && (
-              <>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                    margin: '22px 0',
-                  }}
-                >
-                  <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
-                  <span
-                    style={{
-                      fontFamily: HEADING_FONT,
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#94A3B8',
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    HOẶC TRẢI NGHIỆM NHANH
-                  </span>
-                  <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
-                </div>
-
-                {/* 3 Nút bo góc 12px xếp dọc đầy đặn như ảnh mẫu Devfolio */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Nút 1: Student */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      loginDemo('Student');
-                      navigate('/groups');
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      padding: '0 20px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#1E293B',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '12px',
-                      fontFamily: BODY_FONT,
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#F27024';
-                      e.currentTarget.style.backgroundColor = '#FFFBF7';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
-                      e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <Users size={19} color="#F27024" style={{ flexShrink: 0 }} />
-                    <span>Tiếp tục với vai trò Student (Tú)</span>
-                  </button>
-
-                  {/* Nút 2: Moderator */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      loginDemo('Moderator');
-                      navigate('/moderator/spaces');
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      padding: '0 20px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#1E293B',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '12px',
-                      fontFamily: BODY_FONT,
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#2563EB';
-                      e.currentTarget.style.backgroundColor = '#F8FAFF';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
-                      e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <ShieldCheck size={19} color="#2563EB" style={{ flexShrink: 0 }} />
-                    <span>Tiếp tục với vai trò Moderator</span>
-                  </button>
-
-                  {/* Nút 3: Lecturer */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      loginDemo('Lecturer');
-                      navigate('/lecturer/dashboard');
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '14px',
-                      padding: '0 20px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#1E293B',
-                      border: '1px solid #E2E8F0',
-                      borderRadius: '12px',
-                      fontFamily: BODY_FONT,
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      transition: 'all 0.18s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#059669';
-                      e.currentTarget.style.backgroundColor = '#F6FEF9';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
-                      e.currentTarget.style.backgroundColor = '#FFFFFF';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <GraduationCap size={19} color="#059669" style={{ flexShrink: 0 }} />
-                    <span>Tiếp tục với vai trò Lecturer</span>
-                  </button>
-                </div>
-              </>
-            )}
 
             {/* Dòng chú thích ngắn gọn ở đáy card */}
             <p

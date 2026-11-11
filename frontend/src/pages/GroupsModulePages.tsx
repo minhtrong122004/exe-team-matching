@@ -1,3503 +1,1310 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import apiClient from '../api/client';
-import { groupsApi } from '../api/groups';
-import { spacesApi } from '../api/spaces';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSelectedSpace } from '../hooks/useSelectedSpace';
 import { AiMentorCard } from '../components/AiMentorCard';
-import { AnimatedModal, ConfirmDialog } from '../components/AnimatedModal';
-import type { TransferRequestResponse, RoomSummaryResponse } from '../types/space';
-import type {
-  GroupResponse,
-  GroupMemberResponse,
-  GroupSummaryResponse,
-  UpdateGroupRequest,
-  RecruitmentSlotResponse,
-  JoinRequestResponse,
-  MatchScoreResponse,
-  SuggestedGroupResponse,
-  RankedCandidateResponse,
-  CandidateProfileResponse,
-  LeaderElectionResponse,
-  ProjectItem,
-  Major,
-  ProjectDomain,
-} from '../types';
 import {
-  Compass,
-  Users,
+  workspaceApi,
+  errorMessage,
+  errorCode,
+  formatDateTime,
+  ROOM_STATUS_LABEL,
+  SPACE_STATUS_LABEL,
+  type CandidateProfile,
+  type GroupDetail,
+  type JoinRequest,
+  type LeaderElection,
+  type MatchScore,
+  type RoomSummary,
+  type RosterGroup,
+  type TransferRequest,
+} from '../api/workspace';
+import {
+  PageShell,
+  PageHeader,
+  Card,
+  CardTitle,
+  Button,
+  Pill,
+  Banner,
+  StateBox,
+  NoSpaceState,
+  Modal,
+  Field,
+  fieldStyle,
+  SeatBar,
+  SkillBars,
+  SKILL_KEYS,
+  averageSkills,
+  useToast,
+  useConfirm,
+  InfoTip,
+  ROOM_STATUS_DOT,
+} from '../components/workspace/ui';
+import {
   Sparkles,
   Search,
-  RefreshCw,
-  Check,
-  X,
   Crown,
-  UserMinus,
   LogOut,
-  Trash2,
   Edit3,
-  Send,
-  Mail,
-  AlertCircle,
-  CheckCircle2,
   Clock,
-  Briefcase,
   Layers,
-  Award,
-  ChevronLeft,
-  ChevronRight,
   Vote,
   ThumbsUp,
   ThumbsDown,
-  Zap,
   Lock,
   Unlock,
   ArrowLeftRight,
+  Send,
+  TrendingUp,
+  UserPlus,
+  Users,
+  Eye,
+  RefreshCw,
+  UserX,
+  CheckCircle2,
+  XCircle,
 } from '../utils/icons';
 
-const MAJOR_LIST: { value: Major; label: string }[] = [
-  { value: 'SE', label: 'SE - Kỹ thuật phần mềm' },
-  { value: 'AI', label: 'AI - Trí tuệ nhân tạo' },
-  { value: 'IA', label: 'IA - An toàn thông tin' },
-  { value: 'GD', label: 'GD - Thiết kế đồ họa' },
-  { value: 'MKT', label: 'MKT - Digital Marketing' },
-  { value: 'IB', label: 'IB - Kinh doanh quốc tế' },
-  { value: 'Other', label: 'Other - Khác' },
-];
+const textareaStyle: React.CSSProperties = {
+  ...fieldStyle,
+  height: 'auto',
+  padding: '10px 12px',
+  resize: 'vertical',
+  fontFamily: 'inherit',
+  lineHeight: 1.5,
+};
 
-const DOMAIN_LIST: { value: ProjectDomain; label: string }[] = [
-  { value: 'EdTech', label: 'EdTech (Giáo dục)' },
-  { value: 'FinTech', label: 'FinTech (Tài chính)' },
-  { value: 'ECommerce', label: 'E-Commerce (Thương mại)' },
-  { value: 'FnB', label: 'F&B (Ẩm thực)' },
-  { value: 'Health', label: 'HealthTech (Y tế)' },
-  { value: 'Tourism', label: 'Tourism (Du lịch)' },
-  { value: 'Other', label: 'Other (Khác)' },
-];
-
-function formatDateTime(iso?: string | null): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('vi-VN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function getScoreBadgeStyle(score: number): React.CSSProperties {
-  if (score >= 70) {
-    return {
-      background: '#dcfce7',
-      color: '#15803d',
-      border: '1px solid #86efac',
-      padding: '0.25rem 0.65rem',
-      borderRadius: 9999,
-      fontWeight: 700,
-      fontSize: '0.78rem',
-    };
-  }
-  if (score >= 40) {
-    return {
-      background: '#fef3c7',
-      color: '#b45309',
-      border: '1px solid #fcd34d',
-      padding: '0.25rem 0.65rem',
-      borderRadius: 9999,
-      fontWeight: 700,
-      fontSize: '0.78rem',
-    };
-  }
-  return {
-    background: '#f1f5f9',
-    color: '#475569',
-    border: '1px solid #cbd5e1',
-    padding: '0.25rem 0.65rem',
-    borderRadius: 9999,
-    fontWeight: 700,
-    fontSize: '0.78rem',
-  };
-}
+const ProfileHint: React.FC = () => (
+  <span>
+    {' '}
+    <Link to="/profile" style={{ color: 'var(--accent-color, #F26F21)', fontWeight: 700 }}>
+      Mở hồ sơ
+    </Link>
+  </span>
+);
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 1. GROUPS PAGE (/groups) — Khám phá Nhóm + Gợi ý AI/gRPC + Tạo Nhóm
+// 1. DANH SÁCH PHÒNG NHÓM (/groups)
 // ══════════════════════════════════════════════════════════════════════════════
+
+/** Tên phòng do hệ thống đặt sẵn (vd. "EXE101 - Phòng 01") — không phải tên đề tài do nhóm đặt. */
+const isDefaultRoomName = (name: string) => /phòng\s*\d+\s*$/i.test(name.trim());
+
+const hasCustomName = (room: RoomSummary, detail?: GroupDetail) => !isDefaultRoomName(detail?.name ?? room.name);
+
+const roomTitle = (room: RoomSummary, detail?: GroupDetail) =>
+  hasCustomName(room, detail) ? detail?.name ?? room.name : room.roomCode ?? room.name;
+
+const ROOM_TABS = [
+  { value: 'ALL', label: 'Tất cả' },
+  { value: 'Empty', label: 'Phòng trống' },
+  { value: 'Forming', label: 'Đang lập nhóm' },
+  { value: 'Recruiting', label: 'Đang tuyển' },
+  { value: 'Closed', label: 'Đã đóng / khóa' },
+];
+
 export const GroupsPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
+  const toast = useToast();
+  const dialog = useConfirm();
+  const isStudent = user?.role === 'Student';
 
-  const [activeTab, setActiveTab] = useState<'browse' | 'suggestions'>('browse');
-  const [groups, setGroups] = useState<GroupSummaryResponse[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [page, setPage] = useState(1);
-
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Recruiting');
-  const [domainFilter, setDomainFilter] = useState<string>('');
-  const [majorFilter, setMajorFilter] = useState<string>('');
-
-  const [suggestions, setSuggestions] = useState<SuggestedGroupResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState<RoomSummary[]>([]);
+  const [details, setDetails] = useState<Record<string, GroupDetail>>({});
+  const [myGroup, setMyGroup] = useState<GroupDetail | null>(null);
+  const [myPendingGroupIds, setMyPendingGroupIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [tab, setTab] = useState('ALL');
+  const [search, setSearch] = useState('');
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [applyRoom, setApplyRoom] = useState<RoomSummary | null>(null);
+  const [applyMessage, setApplyMessage] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [inspectRoom, setInspectRoom] = useState<RoomSummary | null>(null);
+  const [matchScores, setMatchScores] = useState<Record<string, MatchScore | 'loading' | 'error'>>({});
 
-  // Detail modal state
-  const [selectedGroup, setSelectedGroup] = useState<GroupResponse | null>(null);
-  const [selectedGroupScore, setSelectedGroupScore] = useState<MatchScoreResponse | null>(null);
-  const [selectedGroupProject, setSelectedGroupProject] = useState<ProjectItem | null>(null);
-  const [memberProfiles, setMemberProfiles] = useState<Record<string, CandidateProfileResponse>>({});
-  const [detailLoading, setDetailLoading] = useState(false);
+  const spaceId = space?.id;
 
-  // Join Request form inside detail modal
-  const [joinSlotId, setJoinSlotId] = useState<string>('');
-  const [joinMessage, setJoinMessage] = useState<string>('');
-  const [joinSubmitting, setJoinSubmitting] = useState(false);
-
-  const loadBrowseGroups = useCallback(async () => {
+  const load = useCallback(async () => {
+    if (!spaceId) return;
     setLoading(true);
-    setError(null);
     try {
-      const res = await groupsApi.getGroups({
-        search: search.trim() || undefined,
-        status: statusFilter || undefined,
-        domain: domainFilter || undefined,
-        major: majorFilter || undefined,
-        page,
-        pageSize: 9,
-      });
-      setGroups(res.items || []);
-      setTotalCount(res.totalCount || 0);
-      setTotalPages(Math.max(1, res.totalPages || 1));
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể tải danh sách nhóm đề tài.');
+      const list = await workspaceApi.listRooms(spaceId);
+      setRooms(list.filter((r) => r.status !== 'Disbanded'));
+      // Chi tiết thành viên của các phòng đã có người (API ẩn thành viên của nhóm đã đóng với sinh viên ngoài nhóm).
+      const occupied = list.filter((r) => r.memberCount > 0);
+      const detailList = await Promise.all(occupied.map((r) => workspaceApi.getGroup(r.id).catch(() => null)));
+      const map: Record<string, GroupDetail> = {};
+      detailList.forEach((d) => d && (map[d.id] = d));
+      setDetails(map);
+      if (isStudent) {
+        const [mine, requests] = await Promise.all([
+          workspaceApi.getMyGroup(spaceId).catch(() => null),
+          workspaceApi.listMyJoinRequests().catch(() => [] as JoinRequest[]),
+        ]);
+        setMyGroup(mine);
+        setMyPendingGroupIds(new Set(requests.filter((r) => r.status === 'Pending').map((r) => r.groupId)));
+      }
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err, 'Không tải được danh sách phòng.'));
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, domainFilter, majorFilter, page]);
-
-  const loadSuggestedGroups = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await groupsApi.getSuggestedGroups(10);
-      setSuggestions(res || []);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          'Không thể tải gợi ý nhóm từ Matching Service (gRPC).'
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [spaceId, isStudent]);
 
   useEffect(() => {
-    if (activeTab === 'browse') {
-      void loadBrowseGroups();
-    } else {
-      void loadSuggestedGroups();
-    }
-  }, [activeTab, loadBrowseGroups, loadSuggestedGroups]);
+    setRooms([]);
+    setDetails({});
+    setMyGroup(null);
+    setMatchScores({});
+    void load();
+  }, [load]);
 
-  // Open Group Detail modal + fetch Match Score + Member Profiles + Project
-  const handleOpenGroupDetail = async (groupId: string) => {
-    setDetailLoading(true);
-    setSelectedGroup(null);
-    setSelectedGroupScore(null);
-    setSelectedGroupProject(null);
-    setJoinSlotId('');
-    setJoinMessage('');
+  const showError = (err: unknown) => {
+    const message = errorMessage(err);
+    toast.show(errorCode(err) === 'PROFILE_INCOMPLETE' ? `${message} Vào trang Hồ sơ cá nhân để hoàn tất.` : message, 'error');
+  };
+
+  const handleDirectJoin = async (room: RoomSummary) => {
+    const ok = await dialog.confirm({
+      title: `Vào phòng ${room.roomCode ?? room.name}?`,
+      message: room.memberCount === 0 ? 'Bạn là người đầu tiên nên sẽ làm Trưởng nhóm tạm thời.' : undefined,
+      confirmLabel: 'Vào phòng',
+    });
+    if (ok === null) return;
+    setJoiningId(room.id);
     try {
-      const detail = await groupsApi.getGroupById(groupId);
-      setSelectedGroup(detail);
-      if (detail.slots && detail.slots.length > 0) {
-        setJoinSlotId(detail.slots[0].id);
-      }
-
-      // Fetch match score if student
-      if (user?.role === 'Student') {
-        groupsApi
-          .getMatchScore(groupId)
-          .then((sc) => setSelectedGroupScore(sc))
-          .catch(() => null);
-      }
-
-      // Fetch project details if linked
-      if (detail.projectId) {
-        apiClient
-          .get<ProjectItem>(`/projects/${detail.projectId}`)
-          .then((r) => setSelectedGroupProject(r.data))
-          .catch(() => null);
-      }
-
-      // Batch fetch member profiles
-      const uids = detail.members.map((m) => m.userId);
-      if (uids.length > 0) {
-        apiClient
-          .post<CandidateProfileResponse[]>('/users/batch', { userIds: uids })
-          .then((r) => {
-            const map: Record<string, CandidateProfileResponse> = {};
-            (r.data || []).forEach((p) => {
-              map[p.userId] = p;
-            });
-            setMemberProfiles(map);
-          })
-          .catch(() => null);
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể tải chi tiết nhóm.');
+      const res = await workspaceApi.directJoin(room.id);
+      toast.show(res.message);
+      await load();
+    } catch (err) {
+      showError(err);
     } finally {
-      setDetailLoading(false);
+      setJoiningId(null);
     }
   };
 
-  const handleSubmitJoinRequest = async (e: React.FormEvent) => {
+  const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGroup) return;
-    if (user?.role === 'Student' && !user?.isProfileCompleted) {
-      setError(
-        'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi nộp đơn xin gia nhập nhóm.'
-      );
-      setSelectedGroup(null);
-      navigate('/profile');
-      return;
-    }
-    setJoinSubmitting(true);
-    setError(null);
+    if (!applyRoom) return;
+    setApplying(true);
     try {
-      await groupsApi.createJoinRequest(selectedGroup.id, {
-        slotId: joinSlotId || null,
-        message: joinMessage.trim() || undefined,
-      });
-      setFeedback(`Đã gửi đơn xin gia nhập nhóm "${selectedGroup.name}" thành công!`);
-      setSelectedGroup(null);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          err?.response?.data?.title ||
-          'Không thể gửi yêu cầu gia nhập nhóm.'
-      );
+      await workspaceApi.createJoinRequest(applyRoom.id, applyMessage.trim());
+      toast.show(`Đã nộp đơn vào ${applyRoom.roomCode ?? applyRoom.name}. Thành viên nhóm sẽ biểu quyết và Trưởng nhóm quyết định.`);
+      setApplyRoom(null);
+      setApplyMessage('');
+      await load();
+    } catch (err) {
+      showError(err);
     } finally {
-      setJoinSubmitting(false);
+      setApplying(false);
     }
   };
+
+  const loadMatchScore = async (roomId: string) => {
+    setMatchScores((prev) => ({ ...prev, [roomId]: 'loading' }));
+    try {
+      const score = await workspaceApi.getMatchScore(roomId);
+      setMatchScores((prev) => ({ ...prev, [roomId]: score }));
+    } catch (err) {
+      setMatchScores((prev) => ({ ...prev, [roomId]: 'error' }));
+      showError(err);
+    }
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rooms
+      .filter((r) => {
+        if (tab === 'ALL') return true;
+        if (tab === 'Closed') return r.status === 'Closed' || r.status === 'Locked';
+        return r.status === tab;
+      })
+      .filter((r) => {
+        if (!q) return true;
+        const d = details[r.id];
+        return [r.roomCode ?? '', r.name, r.leaderName ?? '', d?.description ?? '', ...(d?.members.map((m) => m.fullName) ?? [])]
+          .join(' ')
+          .toLowerCase()
+          .includes(q);
+      })
+      .sort((a, b) => (a.roomCode ?? a.name).localeCompare(b.roomCode ?? b.name));
+  }, [rooms, details, tab, search]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { ALL: rooms.length, Empty: 0, Forming: 0, Recruiting: 0, Closed: 0 };
+    rooms.forEach((r) => {
+      if (r.status === 'Locked' || r.status === 'Closed') c.Closed += 1;
+      else if (r.status in c) c[r.status] += 1;
+    });
+    return c;
+  }, [rooms]);
+
+  const header = (
+    <PageHeader
+      title="Phòng nhóm"
+      meta={
+        isStudent ? (
+          <InfoTip text="Phòng trống / đang lập nhóm: vào thẳng (người đầu tiên làm Trưởng nhóm tạm thời). Phòng đủ ngưỡng: chỉ nhận thêm qua đơn ứng tuyển." />
+        ) : undefined
+      }
+      actions={
+        space ? (
+          <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
+            Tải lại
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+
+  if (!space) {
+    return (
+      <PageShell>
+        {header}
+        <NoSpaceState loading={spacesLoading} error={spacesError} role={user?.role} />
+      </PageShell>
+    );
+  }
+
+  const registrationOpen = space.status === 'Open';
+  const inspectDetail = inspectRoom ? details[inspectRoom.id] : undefined;
 
   return (
-    <div>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Khám phá Nhóm Đề tài EXE
-          </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Tìm kiếm nhóm đang tuyển thành viên hoặc xem gợi ý nhóm tương thích từ Matching Service (gRPC)
-          </p>
-        </div>
+    <PageShell>
+      {toast.node}
+      {dialog.node}
+      {header}
 
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() =>
-              activeTab === 'browse' ? void loadBrowseGroups() : void loadSuggestedGroups()
-            }
-          >
-            <RefreshCw size={16} />
-            Làm mới
-          </button>
-        </div>
-      </div>
-
-      {/* Alerts */}
-      {feedback && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1.25rem',
-            padding: '0.9rem 1.15rem',
-            borderLeft: '4px solid #10b981',
-            background: '#ecfdf5',
-            color: '#065f46',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <CheckCircle2 size={18} />
-            {feedback}
-          </span>
-          <button onClick={() => setFeedback(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={16} />
-          </button>
-        </div>
+      {isStudent && myGroup && (
+        <Banner tone="success">
+          Bạn đang ở <b>{myGroup.roomCode ?? myGroup.name}</b>.{' '}
+          <Link to="/my-group" style={{ color: 'inherit', fontWeight: 700 }}>
+            Xem nhóm →
+          </Link>
+        </Banner>
       )}
-
-      {error && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1.25rem',
-            padding: '0.9rem 1.15rem',
-            borderLeft: '4px solid #ef4444',
-            background: '#fef2f2',
-            color: '#991b1b',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertCircle size={18} />
-            {error}
-          </span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={16} />
-          </button>
-        </div>
+      {isStudent && !registrationOpen && (
+        <Banner tone="warning">
+          {SPACE_STATUS_LABEL[space.status]}: chưa vào phòng hoặc nộp đơn được.
+        </Banner>
       )}
-
-      {/* BR-07 Profile Incomplete Banner for Student */}
-      {user?.role === 'Student' && !user?.isProfileCompleted && (
-        <div
-          className="card"
-          style={{
-            padding: '1.15rem 1.35rem',
-            marginBottom: '1.25rem',
-            background: 'rgba(242, 111, 33, 0.06)',
-            border: '1.5px solid rgba(242, 111, 33, 0.35)',
-            borderRadius: 'var(--radius-lg, 14px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem', maxWidth: 780 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '10px',
-                background: 'rgba(242, 111, 33, 0.12)',
-                color: 'var(--fpt-orange, #f26f21)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <AlertCircle size={20} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                <span
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 800,
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '5px',
-                    background: 'var(--fpt-orange, #f26f21)',
-                    color: '#ffffff',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  YÊU CẦU BẮT BUỘC
-                </span>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-main, #0f172a)' }}>
-                  Hồ sơ 5 kỹ năng cốt lõi chưa hoàn tất
-                </strong>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-muted, #64748b)', lineHeight: 1.5 }}>
-                Bạn cần khai báo 5 kỹ năng cốt lõi và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ để mở khóa quyền vào phòng, nộp đơn ứng tuyển hoặc tạo nhóm.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate('/profile')}
-            className="btn btn-primary"
-            style={{
-              padding: '0.55rem 1.15rem',
-              fontSize: '0.825rem',
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              gap: '0.35rem',
-            }}
-          >
-            <span>Khai báo 5 kỹ năng →</span>
-          </button>
-        </div>
+      {isStudent && user && user.isProfileCompleted === false && (
+        <Banner tone="info">
+          Hoàn tất hồ sơ 5 kỹ năng trước khi vào phòng.
+          <ProfileHint />
+        </Banner>
       )}
+      {error && <Banner tone="error">{error}</Banner>}
 
-      {/* Mode Tabs */}
-      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem' }}>
-        <button
-          className={activeTab === 'browse' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          onClick={() => setActiveTab('browse')}
-        >
-          <Compass size={16} />
-          Danh sách Nhóm ({totalCount})
-        </button>
-        {user?.role === 'Student' && (
-          <button
-            className={activeTab === 'suggestions' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-            onClick={() => setActiveTab('suggestions')}
-          >
-            <Sparkles size={16} />
-            Gợi ý Nhóm phù hợp (Matching gRPC)
-          </button>
-        )}
-      </div>
-
-      {/* Filters for Browse tab */}
-      {activeTab === 'browse' && (
-        <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '0.85rem',
-            }}
-          >
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Tìm theo tên nhóm, mô tả..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                style={{ paddingLeft: '2.2rem' }}
-              />
-            </div>
-
-            <select
-              className="form-control"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Tất cả trạng thái</option>
-              <option value="Recruiting">Đang tuyển (Recruiting)</option>
-              <option value="Closed">Đã đóng tuyển (Closed)</option>
-              <option value="Locked">Đã khóa (Locked)</option>
-            </select>
-
-            <select
-              className="form-control"
-              value={majorFilter}
-              onChange={(e) => {
-                setMajorFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Tất cả chuyên ngành cần tuyển</option>
-              {MAJOR_LIST.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="form-control"
-              value={domainFilter}
-              onChange={(e) => {
-                setDomainFilter(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">Tất cả lĩnh vực đề tài</option>
-              {DOMAIN_LIST.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
-
-      {/* Content */}
-      {loading ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Đang tải dữ liệu nhóm...
-        </div>
-      ) : activeTab === 'browse' ? (
-        groups.length === 0 ? (
-          <div className="card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <Compass size={42} style={{ margin: '0 auto 0.75rem auto', color: '#94a3b8' }} />
-            <h3 style={{ color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
-              Không tìm thấy nhóm đề tài nào
-            </h3>
-            <p style={{ marginTop: '0.35rem' }}>
-              Hãy thử đổi bộ lọc hoặc nhấn &quot;Thành lập Nhóm mới&quot; để khởi tạo nhóm đầu tiên!
-            </p>
-          </div>
-        ) : (
-          <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-                gap: '1.25rem',
-              }}
-            >
-              {groups.map((g) => (
-                <div
-                  key={g.id}
-                  className="card"
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => void handleOpenGroupDetail(g.id)}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                        {g.name}
-                      </h3>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        {g.roomCode && (
-                          <span
-                            style={{
-                              fontFamily: 'var(--font-mono)',
-                              fontSize: '0.78rem',
-                              fontWeight: 800,
-                              padding: '0.15rem 0.45rem',
-                              borderRadius: '6px',
-                              background: '#f1f5f9',
-                              border: '1px solid #e2e8f0',
-                            }}
-                          >
-                            {g.roomCode}
-                          </span>
-                        )}
-                        <span
-                          className="badge"
-                          style={{
-                            background:
-                              g.status === 'Recruiting'
-                                ? '#dcfce7'
-                                : g.status === 'Forming' || g.status === 'Empty'
-                                ? '#dbeafe'
-                                : g.status === 'Closed'
-                                ? '#fee2e2'
-                                : '#f1f5f9',
-                            color:
-                              g.status === 'Recruiting'
-                                ? '#15803d'
-                                : g.status === 'Forming' || g.status === 'Empty'
-                                ? '#1d4ed8'
-                                : g.status === 'Closed'
-                                ? '#b91c1c'
-                                : '#475569',
-                            fontFamily: 'var(--font-mono)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          {g.status} ({g.memberCount}/{g.maxMembers})
-                        </span>
-                      </div>
-                    </div>
-
-                    <p
-                      style={{
-                        fontSize: '0.875rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '0.5rem',
-                        marginBottom: '0.85rem',
-                      }}
-                    >
-                      {g.description || 'Nhóm chưa cập nhật mô tả chi tiết.'}
-                    </p>
-
-                    {g.slots && g.slots.length > 0 && (
-                      <div style={{ marginBottom: '0.85rem' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', marginBottom: '0.35rem' }}>
-                          VỊ TRÍ ĐANG TUYỂN ({g.slots.length}):
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                          {g.slots.map((s) => (
-                            <span
-                              key={s.id}
-                              style={{
-                                fontSize: '0.75rem',
-                                padding: '0.2rem 0.55rem',
-                                borderRadius: 6,
-                                background: '#fff7ed',
-                                color: '#c2410c',
-                                border: '1px solid #fed7aa',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {s.roleName} ({s.major} • x{s.quantity})
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: '1px solid #f1f5f9',
-                      paddingTop: '0.75rem',
-                      marginTop: '0.5rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.8rem',
-                      color: '#64748b',
-                    }}
-                  >
-                    <span>Tạo ngày {formatDateTime(g.createdAt)}</span>
-                    <span style={{ color: '#f26f21', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      {g.memberCount < (g.groupThreshold || Math.floor((g.maxMembers || 5) / 2) + 1) ? (
-                        <>
-                          <Zap size={13} /> Vào thẳng / Chi tiết →
-                        </>
-                      ) : (
-                        'Chi tiết & Xin vào →'
-                      )}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '1.75rem' }}>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft size={15} /> Trước
-                </button>
-                <span style={{ alignSelf: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                  Trang {page} / {totalPages}
-                </span>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Sau <ChevronRight size={15} />
-                </button>
-              </div>
-            )}
-          </>
-        )
-      ) : suggestions.length === 0 ? (
-        <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <Sparkles size={40} style={{ margin: '0 auto 0.75rem auto', color: '#f26f21' }} />
-          <h3 style={{ color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: 700 }}>
-            Chưa có gợi ý nhóm phù hợp
-          </h3>
-          <p style={{ marginTop: '0.35rem' }}>
-            Hãy cập nhật Chuyên ngành và Kỹ năng trong Hồ sơ cá nhân của bạn để hệ thống tính điểm tương thích chính xác hơn.
-          </p>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-            gap: '1.25rem',
-          }}
-        >
-          {suggestions.map((item) => (
-            <div
-              key={item.group.id}
-              className="card"
-              style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-              onClick={() => void handleOpenGroupDetail(item.group.id)}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                    {item.group.name}
-                  </h3>
-                  <span style={getScoreBadgeStyle(item.score)}>
-                    Tương thích: {item.score.toFixed(0)}%
-                  </span>
-                </div>
-
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                  {item.group.description || 'Nhóm đang tuyển thành viên.'}
-                </p>
-
-                {item.matchedSkills.length > 0 && (
-                  <div style={{ marginBottom: '0.5rem', fontSize: '0.78rem' }}>
-                    <strong style={{ color: '#15803d' }}>Kỹ năng khớp: </strong>
-                    {item.matchedSkills.join(', ')}
-                  </div>
-                )}
-                {item.missingSkills.length > 0 && (
-                  <div style={{ marginBottom: '0.5rem', fontSize: '0.78rem' }}>
-                    <strong style={{ color: '#b45309' }}>Kỹ năng nhóm cần thêm: </strong>
-                    {item.missingSkills.join(', ')}
-                  </div>
-                )}
-              </div>
-
-              <div
+      {/* Bộ lọc */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', flexWrap: 'wrap' }}>
+          {ROOM_TABS.map((t) => {
+            const active = tab === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTab(t.value)}
                 style={{
-                  borderTop: '1px solid #f1f5f9',
-                  paddingTop: '0.75rem',
-                  marginTop: '0.5rem',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '0.8rem',
+                  height: 34,
+                  padding: '0 14px',
+                  borderRadius: 9,
+                  border: 'none',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  backgroundColor: active ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                  color: active ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
+                  boxShadow: active ? '0 1px 2px rgba(15,23,42,0.08)' : 'none',
                 }}
               >
-                <span>
-                  Thành viên: {item.group.memberCount}/{item.group.maxMembers}
-                </span>
-                <span style={{ color: '#f26f21', fontWeight: 700 }}>Xem & Ứng tuyển →</span>
+                {t.label} <span style={{ color: 'var(--text-light, #94A3B8)', fontVariantNumeric: 'tabular-nums' }}>{counts[t.value] ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ position: 'relative', width: 'min(320px, 100%)' }}>
+          <Search size={15} style={{ position: 'absolute', left: 12, top: 13, color: 'var(--text-light, #94A3B8)' }} />
+          <input
+            type="text"
+            placeholder="Tìm mã phòng, đề tài, thành viên..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ ...fieldStyle, paddingLeft: '2.25rem' }}
+          />
+        </div>
+      </div>
+
+      {loading && rooms.length === 0 ? (
+        <StateBox kind="loading" message="Đang tải danh sách phòng..." />
+      ) : rooms.length === 0 ? (
+        <StateBox kind="empty" title="Chưa có phòng nào" message="Điều phối viên chưa tạo phòng cho môn học này." />
+      ) : filtered.length === 0 ? (
+        <StateBox kind="empty" message="Không có phòng khớp bộ lọc." />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(290px, 100%), 1fr))', gap: 16 }}>
+          {filtered.map((room) => {
+            const detail = details[room.id];
+            const isMine = myGroup?.id === room.id;
+            const hasPending = myPendingGroupIds.has(room.id);
+            const canDirectJoin = isStudent && registrationOpen && !myGroup && (room.status === 'Empty' || room.status === 'Forming');
+            const canApply =
+              isStudent && registrationOpen && !myGroup && !hasPending && room.status === 'Recruiting' && room.memberCount < room.maxMembers && !detail?.isClosedByLeader;
+            const score = matchScores[room.id];
+            return (
+              <div
+                key={room.id}
+                style={{
+                  backgroundColor: 'var(--bg-card, #FFFFFF)',
+                  border: isMine ? '2px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                  borderRadius: 18,
+                  padding: 18,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0, lineHeight: 1.3 }}>{roomTitle(room, detail)}</h3>
+                    {hasCustomName(room, detail) && room.roomCode && (
+                      <div style={{ fontSize: 12.5, color: 'var(--text-muted, #64748B)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{room.roomCode}</div>
+                    )}
+                  </div>
+                  <Pill dot={ROOM_STATUS_DOT[room.status]}>{isMine ? 'Của bạn' : ROOM_STATUS_LABEL[room.status] ?? room.status}</Pill>
+                </div>
+                <div>
+                  {detail?.description && (
+                    <p style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {detail.description}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
+                    <span style={{ color: 'var(--text-muted, #64748B)' }}>Sĩ số</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
+                      {room.memberCount}/{room.maxMembers}
+                    </span>
+                  </div>
+                  <SeatBar count={room.memberCount} max={room.maxMembers} />
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {room.memberCount === 0 ? null : detail && detail.members.length > 0 ? (
+                    detail.members.map((m) => (
+                      <div key={m.userId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 14 }}>
+                        <span style={{ color: 'var(--text-main, #0F172A)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.fullName}</span>
+                        {m.role === 'Leader' && (
+                          <span title="Trưởng nhóm" style={{ color: 'var(--accent-color, #F26F21)', display: 'flex' }}>
+                            <Crown size={14} />
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: 13.5, color: 'var(--text-light, #94A3B8)' }}>
+                      Trưởng nhóm: {room.leaderName ?? '—'}
+                    </span>
+                  )}
+                </div>
+                {score && score !== 'loading' && score !== 'error' && (
+                  <div style={{ padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: 13.5 }}>
+                    <div style={{ fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>Độ phù hợp: {score.score}/100</div>
+                    {score.matchedSkills.length > 0 && <div style={{ color: '#047857' }}>Khớp: {score.matchedSkills.join(', ')}</div>}
+                    {score.missingSkills.length > 0 && <div style={{ color: 'var(--text-muted, #64748B)' }}>Còn thiếu: {score.missingSkills.join(', ')}</div>}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-subtle, #F1F5F9)' }}>
+                  {!isStudent ? (
+                    <Button variant="outline" block icon={<Eye size={15} />} onClick={() => setInspectRoom(room)}>
+                      Xem chi tiết
+                    </Button>
+                  ) : isMine ? (
+                    <Link to="/my-group" style={{ flex: 1, textDecoration: 'none' }}>
+                      <Button block icon={<Users size={15} />}>Vào Nhóm của tôi</Button>
+                    </Link>
+                  ) : (
+                    <>
+                      {canDirectJoin && (
+                        <Button variant={room.status === 'Empty' ? 'outline' : 'primary'} style={{ flex: 1 }} icon={<UserPlus size={15} />} loading={joiningId === room.id} disabled={!!joiningId} onClick={() => void handleDirectJoin(room)}>
+                          Vào phòng
+                        </Button>
+                      )}
+                      {canApply && (
+                        <Button style={{ flex: 1 }} icon={<Send size={15} />} onClick={() => setApplyRoom(room)}>
+                          Nộp đơn
+                        </Button>
+                      )}
+                      {hasPending && <Pill dot="#F59E0B">Đã nộp đơn</Pill>}
+                      {room.memberCount > 0 && !myGroup && (
+                        <Button variant="outline" style={{ flex: canDirectJoin || canApply ? undefined : 1 }} icon={<TrendingUp size={15} />} loading={score === 'loading'} onClick={() => void loadMatchScore(room.id)}>
+                          Độ phù hợp
+                        </Button>
+                      )}
+                      {!canDirectJoin && !canApply && !hasPending && room.memberCount === 0 && (
+                        <span style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)' }}>{myGroup ? 'Bạn đã có nhóm.' : 'Chưa mở đăng ký.'}</span>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* ── MODAL CHI TIẾT NHÓM & GỬI JOIN REQUEST ────────────────────────── */}
-      <AnimatedModal
-        isOpen={Boolean(detailLoading || selectedGroup)}
-        onClose={() => setSelectedGroup(null)}
-        maxWidth={680}
-        ariaLabel="Chi tiết nhóm đề tài"
-      >
-        <div style={{ padding: '1.75rem' }}>
-          {detailLoading || !selectedGroup ? (
-            <div style={{ padding: '2rem', textAlign: 'center' }}>Đang tải thông tin nhóm...</div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    {selectedGroup.name}
-                  </h2>
-                  <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                    Trạng thái: <strong>{selectedGroup.status}</strong> • Quân số:{' '}
-                    <strong>
-                      {selectedGroup.members.length}/{selectedGroup.maxMembers}
-                    </strong>
-                  </div>
+      {/* Nộp đơn */}
+      <Modal open={!!applyRoom} onClose={() => setApplyRoom(null)} title={`Nộp đơn vào ${applyRoom?.roomCode ?? applyRoom?.name ?? ''}`}>
+        <form onSubmit={handleApply} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Field label="Giới thiệu bản thân" hint={`Tối đa ${space.maxConcurrentApplies} đơn chờ cùng lúc.`}>
+            <textarea rows={5} required style={textareaStyle} value={applyMessage} onChange={(e) => setApplyMessage(e.target.value)} placeholder="Điểm mạnh, kinh nghiệm, vai trò bạn muốn đảm nhận trong nhóm..." />
+          </Field>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <Button variant="outline" onClick={() => setApplyRoom(null)}>
+              Hủy
+            </Button>
+            <Button type="submit" icon={<Send size={15} />} loading={applying}>
+              Gửi đơn
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Xem chi tiết (Điều phối viên / Giảng viên) */}
+      <Modal open={!!inspectRoom} onClose={() => setInspectRoom(null)} width={640} title={inspectRoom?.roomCode ?? inspectRoom?.name ?? ''} subtitle={inspectRoom ? `${ROOM_STATUS_LABEL[inspectRoom.status]} • ${inspectRoom.memberCount}/${inspectRoom.maxMembers} thành viên` : undefined}>
+        {inspectRoom && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>{inspectDetail?.name ?? inspectRoom.name}</div>
+              {inspectDetail?.description && <p style={{ margin: '4px 0 0 0', color: 'var(--text-muted, #64748B)' }}>{inspectDetail.description}</p>}
+            </div>
+            {!inspectDetail || inspectDetail.members.length === 0 ? (
+              <StateBox kind="empty" message="Phòng chưa có thành viên." />
+            ) : (
+              inspectDetail.members.map((m) => (
+                <div key={m.userId} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)' }}>
+                  <span style={{ fontWeight: 650 }}>{m.fullName}</span>
+                  <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13.5, color: 'var(--text-muted, #64748B)' }}>
+                    {m.role === 'Leader' && <Pill tone="accent">Trưởng nhóm</Pill>}
+                    {formatDateTime(m.joinedAt)}
+                  </span>
                 </div>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setSelectedGroup(null)}
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Live gRPC Match Score Banner */}
-              {selectedGroupScore && (
-                <div
-                  style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 12,
-                    padding: '0.9rem 1.1rem',
-                    marginBottom: '1.15rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Award size={16} color="#f26f21" />
-                      Điểm tương thích hồ sơ của bạn (Matching gRPC):
-                    </span>
-                    <span style={getScoreBadgeStyle(selectedGroupScore.score)}>
-                      {selectedGroupScore.score.toFixed(1)}%
-                    </span>
-                  </div>
-                  {selectedGroupScore.matchedSkills.length > 0 && (
-                    <div style={{ fontSize: '0.8rem', color: '#15803d' }}>
-                      ✓ Kỹ năng phù hợp: {selectedGroupScore.matchedSkills.join(', ')}
-                    </div>
-                  )}
-                  {selectedGroupScore.missingSkills.length > 0 && (
-                    <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: 2 }}>
-                      • Kỹ năng còn thiếu: {selectedGroupScore.missingSkills.join(', ')}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <p style={{ fontSize: '0.92rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.55 }}>
-                {selectedGroup.description || 'Chưa có mô tả chi tiết.'}
-              </p>
-
-              {selectedGroupProject && (
-                <div
-                  style={{
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: 10,
-                    padding: '0.85rem 1rem',
-                    marginBottom: '1.15rem',
-                  }}
-                >
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1d4ed8' }}>
-                    ĐỀ TÀI DỰ ÁN LIÊN KẾT ({selectedGroupProject.domain})
-                  </div>
-                  <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 2 }}>
-                    {selectedGroupProject.title}
-                  </div>
-                  <div style={{ fontSize: '0.82rem', color: '#334155', marginTop: 4 }}>
-                    {selectedGroupProject.problem}
-                  </div>
-                </div>
-              )}
-
-              {/* Members */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                  Thành viên hiện tại ({selectedGroup.members.length}/{selectedGroup.maxMembers})
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  {selectedGroup.members.map((m) => {
-                    const prof = memberProfiles[m.userId];
-                    return (
-                      <div
-                        key={m.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '0.55rem 0.85rem',
-                          borderRadius: 8,
-                          background: '#f8fafc',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '0.85rem',
-                        }}
-                      >
-                        <div>
-                          <strong>{prof?.fullName || `Sinh viên (${m.userId.slice(0, 8)})`}</strong>
-                          {prof?.major && (
-                            <span style={{ marginLeft: 8, color: '#f26f21', fontWeight: 600 }}>
-                              [{prof.major}]
-                            </span>
-                          )}
-                        </div>
-                        <span className="badge badge-domain">{m.role}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Direct Join or Join Request Form */}
-              {user?.role === 'Student' &&
-                !selectedGroup.members.some((m) => m.userId === user.id) &&
-                (() => {
-                  const threshold = selectedGroup.groupThreshold || Math.floor((selectedGroup.maxMembers || 5) / 2) + 1;
-                  const isUnder = selectedGroup.members.length < threshold;
-                  const isDirectJoin = (selectedGroup.status === 'Empty' || selectedGroup.status === 'Forming') && isUnder;
-
-                  if (isDirectJoin) {
-                    return (
-                      <div
-                        style={{
-                          borderTop: '1px solid #e2e8f0',
-                          paddingTop: '1.15rem',
-                          marginTop: '1rem',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.75rem',
-                        }}
-                      >
-                        <div
-                          style={{
-                            padding: '0.85rem 1rem',
-                            borderRadius: 8,
-                            background: 'rgba(0, 84, 166, 0.05)',
-                            border: '1px solid rgba(0, 84, 166, 0.2)',
-                            fontSize: '0.825rem',
-                            color: 'var(--text-main)',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '0.5rem',
-                          }}
-                        >
-                          <Zap size={16} style={{ color: 'var(--fpt-blue)', flexShrink: 0, marginTop: 2 }} />
-                          <span>
-                            <strong>Phòng chờ đang dưới ngưỡng ({threshold} SV):</strong> Bạn được tham gia trực tiếp ngay mà không cần gửi đơn xét duyệt. {selectedGroup.members.length === 0 ? 'Vì phòng đang trống, bạn sẽ trở thành Trưởng nhóm!' : 'Vào nhóm ngay!'}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => setSelectedGroup(null)}
-                          >
-                            Đóng
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            disabled={joinSubmitting}
-                            onClick={async () => {
-                              if (user?.role === 'Student' && !user?.isProfileCompleted) {
-                                setError(
-                                  'Bạn chưa hoàn tất hồ sơ 5 kỹ năng cốt lõi. Vui lòng cập nhật điểm 5 kỹ năng và tích cam kết trách nhiệm cá nhân tại trang Hồ sơ trước khi tham gia Room.'
-                                );
-                                setSelectedGroup(null);
-                                navigate('/profile');
-                                return;
-                              }
-                              setJoinSubmitting(true);
-                              try {
-                                const res = await groupsApi.directJoinRoom(selectedGroup.id);
-                                setFeedback(`Chúc mừng bạn đã vào phòng ${res.roomCode || res.name} thành công! (${res.role === 'Leader' ? 'Bạn là Trưởng nhóm' : 'Thành viên'})`);
-                                setSelectedGroup(null);
-                                navigate('/my-group');
-                              } catch (err: any) {
-                                setError(err?.response?.data?.detail || 'Không thể vào phòng trực tiếp.');
-                              } finally {
-                                setJoinSubmitting(false);
-                              }
-                            }}
-                          >
-                            <Zap size={15} />
-                            {joinSubmitting ? 'Đang vào...' : 'Vào phòng trực tiếp'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (selectedGroup.status === 'Recruiting') {
-                    return (
-                      <form
-                        onSubmit={(e) => void handleSubmitJoinRequest(e)}
-                        style={{
-                          borderTop: '1px solid #e2e8f0',
-                          paddingTop: '1.15rem',
-                          marginTop: '1rem',
-                        }}
-                      >
-                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-                          Ứng tuyển vào nhóm này
-                        </h4>
-
-                        {selectedGroup.slots.length > 0 && (
-                          <div style={{ marginBottom: '0.75rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
-                              Chọn vị trí ứng tuyển:
-                            </label>
-                            <select
-                              className="form-control"
-                              value={joinSlotId}
-                              onChange={(e) => setJoinSlotId(e.target.value)}
-                            >
-                              <option value="">-- Ứng tuyển chung vào nhóm --</option>
-                              {selectedGroup.slots.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                  {s.roleName} — Ngành {s.major} (Cần: {s.requiredSkills.join(', ') || 'Linh hoạt'})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        <div style={{ marginBottom: '0.85rem' }}>
-                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: 4 }}>
-                            Lời nhắn gửi Trưởng nhóm:
-                          </label>
-                          <textarea
-                            className="form-control"
-                            rows={3}
-                            placeholder="Giới thiệu ngắn gọn kinh nghiệm, kỹ năng và mong muốn đóng góp của bạn..."
-                            value={joinMessage}
-                            onChange={(e) => setJoinMessage(e.target.value)}
-                          />
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={() => setSelectedGroup(null)}
-                          >
-                            Đóng
-                          </button>
-                          <button type="submit" className="btn btn-primary" disabled={joinSubmitting}>
-                            <Send size={15} />
-                            {joinSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu tham gia'}
-                          </button>
-                        </div>
-                      </form>
-                    );
-                  }
-
-                  return (
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', marginTop: '1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                      Nhóm hiện tại không nhận thêm thành viên ({selectedGroup.status}).
-                    </div>
-                  );
-                })()}
-            </>
-          )}
-        </div>
-      </AnimatedModal>
-    </div>
+              ))
+            )}
+          </div>
+        )}
+      </Modal>
+    </PageShell>
   );
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 2. MY GROUP PAGE (/my-group) — Quản lý Nhóm, Vị trí Tuyển, Duyệt Đơn & Gợi ý Ứng viên gRPC
+// 2. NHÓM CỦA TÔI (/my-group)
 // ══════════════════════════════════════════════════════════════════════════════
+
+const formatCountdown = (secs: number) => {
+  const s = Math.max(0, Math.floor(secs));
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+};
+
 export const MyGroupPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
+  const toast = useToast();
+  const dialog = useConfirm();
 
-  const [group, setGroup] = useState<GroupResponse | null>(null);
-  const [memberProfiles, setMemberProfiles] = useState<Record<string, CandidateProfileResponse>>({});
-  const [joinRequests, setJoinRequests] = useState<JoinRequestResponse[]>([]);
-  const [applicantProfiles, setApplicantProfiles] = useState<Record<string, CandidateProfileResponse>>({});
-  const [candidates, setCandidates] = useState<RankedCandidateResponse[]>([]);
-
-  const [activeTab, setActiveTab] = useState<'members' | 'slots' | 'requests' | 'candidates' | 'transfers'>('members');
-  const [loading, setLoading] = useState(true);
+  const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [profiles, setProfiles] = useState<Record<string, CandidateProfile>>({});
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [election, setElection] = useState<LeaderElection | null>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [myTransfers, setMyTransfers] = useState<TransferRequest[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  // Phase 6: Post-lock transfer requests state (BR-36 & BR-37)
-  const [myTransfers, setMyTransfers] = useState<TransferRequestResponse[]>([]);
-  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
-  const [transferTargetGroupId, setTransferTargetGroupId] = useState<string>('');
-  const [transferIsSwap, setTransferIsSwap] = useState<boolean>(false);
-  const [transferSwapStudentId, setTransferSwapStudentId] = useState<string>('');
-  const [transferReason, setTransferReason] = useState<string>('');
-  const [submittingTransfer, setSubmittingTransfer] = useState<boolean>(false);
-  const [availableRooms, setAvailableRooms] = useState<RoomSummaryResponse[]>([]);
-  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState<boolean>(false);
-  const [targetGroupMembers, setTargetGroupMembers] = useState<GroupMemberResponse[]>([]);
-  const [loadingTargetMembers, setLoadingTargetMembers] = useState<boolean>(false);
-  const [cancellingTransferId, setCancellingTransferId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', description: '' });
+  const [leaderModalOpen, setLeaderModalOpen] = useState(false);
+  const [electionModalOpen, setElectionModalOpen] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<{ userId: string; fullName: string } | null>(null);
+  const [removeReason, setRemoveReason] = useState('');
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferGroups, setTransferGroups] = useState<RosterGroup[]>([]);
+  const [transferForm, setTransferForm] = useState({ targetGroupId: '', swapWithStudentId: '', reason: '' });
 
-  const pendingTransfer = useMemo(
-    () => myTransfers.find((t) => t.status === 'Pending') || null,
-    [myTransfers]
-  );
+  const spaceId = space?.id;
 
-  const approvedTransfer = useMemo(
-    () => myTransfers.find((t) => t.status === 'Approved') || null,
-    [myTransfers]
-  );
-
-  const selectedTargetRoom = useMemo(
-    () => availableRooms.find((r) => r.id === transferTargetGroupId) || null,
-    [availableRooms, transferTargetGroupId]
-  );
-
-  const isTargetFull = useMemo(
-    () => (selectedTargetRoom ? selectedTargetRoom.memberCount >= selectedTargetRoom.maxMembers : false),
-    [selectedTargetRoom]
-  );
-
-  const isSourceAtThreshold = useMemo(
-    () => (group?.members ? group.members.length <= (group.groupThreshold || 3) : false),
-    [group]
-  );
-
-  const isSwapMandatory = isTargetFull || isSourceAtThreshold;
-
-  // Phase 4: Leader election & 24h timer (BR-18, BR-19)
-  const [currentElection, setCurrentElection] = useState<LeaderElectionResponse | null>(null);
-  const [countdownSeconds, setCountdownSeconds] = useState<number>(0);
-  const [showNominateModal, setShowNominateModal] = useState<boolean>(false);
-  const [nominatedCandidateId, setNominatedCandidateId] = useState<string>('');
-  const [electionSubmitting, setElectionSubmitting] = useState<boolean>(false);
-  const [votingElection, setVotingElection] = useState<boolean>(false);
-
-  // Phase 4: Application voting with comments (BR-25)
-  const [voteCommentModal, setVoteCommentModal] = useState<{ requestId: string; isUpvote: boolean } | null>(null);
-  const [voteComment, setVoteComment] = useState<string>('');
-  const [votingApp, setVotingApp] = useState<boolean>(false);
-
-  // Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log (Phương án 3, BR-05)
-  const [kickModal, setKickModal] = useState<{ userId: string; fullName: string } | null>(null);
-  const [kickCategory, setKickCategory] = useState<string>('Mất liên lạc / Không phản hồi (>48h)');
-  const [kickReason, setKickReason] = useState<string>('');
-  const [isSubmittingKick, setIsSubmittingKick] = useState<boolean>(false);
-
-  // GSAP Custom Confirm Dialog state (replaces raw window.confirm)
-  const [confirmDialog, setConfirmDialog] = useState<{
-    title: string;
-    description: React.ReactNode;
-    confirmText: string;
-    variant: 'danger' | 'warning' | 'primary' | 'success';
-    icon?: React.ReactNode;
-    onConfirm: () => Promise<void> | void;
-  } | null>(null);
-  const [confirmDialogLoading, setConfirmDialogLoading] = useState<boolean>(false);
-
-  // Edit Group state
-  const [showEditGroup, setShowEditGroup] = useState(false);
-  const [editForm, setEditForm] = useState<UpdateGroupRequest>({
-    name: '',
-    description: '',
-  });
-
-  // Add/Edit Slot state
-  const [editingSlot, setEditingSlot] = useState<RecruitmentSlotResponse | null>(null);
-  const [slotRoleName, setSlotRoleName] = useState('');
-  const [slotMajor, setSlotMajor] = useState<string>('SE');
-  const [slotSkills, setSlotSkills] = useState('');
-  const [slotQty, setSlotQty] = useState(1);
-
-  const isLeader = Boolean(group && user && group.leaderId === user.id);
-
-  const loadMyTransfers = useCallback(async () => {
-    try {
-      const res = await spacesApi.getMyTransferRequests();
-      setMyTransfers(res);
-    } catch {
-      setMyTransfers([]);
-    }
-  }, []);
-
-  const openTransferModal = async () => {
-    if (!group?.spaceId) return;
-    setShowTransferModal(true);
-    setLoadingAvailableRooms(true);
-    setTransferTargetGroupId('');
-    setTransferSwapStudentId('');
-    setTransferReason('');
-    setTargetGroupMembers([]);
-
-    const atThreshold = (group.members?.length || 0) <= (group.groupThreshold || 3);
-    setTransferIsSwap(atThreshold);
-
-    try {
-      const roomsRes = await spacesApi.getSpaceRooms(group.spaceId);
-      setAvailableRooms(roomsRes.filter((r) => r.id !== group.id));
-    } catch {
-      setAvailableRooms([]);
-    } finally {
-      setLoadingAvailableRooms(false);
-    }
-  };
-
-  const handleTargetGroupChange = async (targetId: string) => {
-    setTransferTargetGroupId(targetId);
-    setTransferSwapStudentId('');
-    if (!targetId) {
-      setTargetGroupMembers([]);
-      return;
-    }
-
-    const targetRoom = availableRooms.find((r) => r.id === targetId);
-    const targetFull = targetRoom ? targetRoom.memberCount >= targetRoom.maxMembers : false;
-    const sourceThreshold = (group?.members?.length || 0) <= (group?.groupThreshold || 3);
-
-    if (targetFull || sourceThreshold) {
-      setTransferIsSwap(true);
-    }
-
-    setLoadingTargetMembers(true);
-    try {
-      const detail = await groupsApi.getGroupById(targetId);
-      setTargetGroupMembers(detail.members || []);
-    } catch {
-      setTargetGroupMembers([]);
-    } finally {
-      setLoadingTargetMembers(false);
-    }
-  };
-
-  const handleCreateTransferRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group?.spaceId) return;
-    if (!transferTargetGroupId) {
-      setError('Vui lòng chọn nhóm đích muốn chuyển đến.');
-      return;
-    }
-    if (transferIsSwap && !transferSwapStudentId) {
-      setError('Vui lòng chọn sinh viên trong nhóm đích để đổi chéo.');
-      return;
-    }
-    if (!transferReason.trim()) {
-      setError('Vui lòng nêu rõ lý do xin chuyển nhóm.');
-      return;
-    }
-    try {
-      setSubmittingTransfer(true);
-      setError(null);
-      await spacesApi.createTransferRequest(group.spaceId, {
-        targetGroupId: transferTargetGroupId,
-        swapStudentId: transferIsSwap ? transferSwapStudentId : null,
-        reason: transferReason.trim(),
-      });
-      setFeedback('Đã gửi đơn xin chuyển nhóm thành công! Trưởng phòng (Moderator) sẽ xem xét và phê duyệt.');
-      setShowTransferModal(false);
-      setTransferTargetGroupId('');
-      setTransferSwapStudentId('');
-      setTransferReason('');
-      setTransferIsSwap(false);
-      setTargetGroupMembers([]);
-      await loadMyTransfers();
-      setActiveTab('transfers');
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.response?.data?.title || 'Không thể gửi đơn xin chuyển nhóm.');
-    } finally {
-      setSubmittingTransfer(false);
-    }
-  };
-
-  const handleCancelTransferRequest = (requestId: string) => {
-    setConfirmDialog({
-      title: 'Hủy đơn xin chuyển nhóm',
-      description: 'Bạn có chắc chắn muốn rút lại yêu cầu xin chuyển nhóm này không? Sau khi hủy, bạn vẫn có thể tạo đơn mới nếu có nhu cầu.',
-      confirmText: 'Xác nhận hủy đơn',
-      variant: 'danger',
-      icon: <Trash2 size={24} />,
-      onConfirm: async () => {
-        setCancellingTransferId(requestId);
-        setError(null);
-        try {
-          await spacesApi.cancelTransferRequest(requestId);
-          setFeedback('Đã hủy yêu cầu xin chuyển nhóm thành công! Bạn có thể tạo đơn mới nếu có nhu cầu.');
-          await loadMyTransfers();
-        } catch (err: any) {
-          setError(err?.response?.data?.detail || 'Không thể hủy yêu cầu chuyển nhóm.');
-        } finally {
-          setCancellingTransferId(null);
-        }
-      },
-    });
-  };
-
-  const loadMyGroupData = useCallback(async () => {
+  const load = useCallback(async () => {
+    if (!spaceId) return;
     setLoading(true);
-    setError(null);
     try {
-      const myGrp = await groupsApi.getMyGroup();
-      setGroup(myGrp);
-      void loadMyTransfers();
-      if (!myGrp) {
+      const mine = await workspaceApi.getMyGroup(spaceId);
+      setGroup(mine);
+      workspaceApi
+        .listMyTransferRequests()
+        .then((list) => setMyTransfers(list.filter((t) => t.spaceId === spaceId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))))
+        .catch(() => setMyTransfers([]));
+      if (!mine) {
+        setRequests([]);
+        setElection(null);
+        setError(null);
         return;
       }
-
-      setEditForm({
-        name: myGrp.name,
-        description: myGrp.description || '',
-      });
-
-      // Enrich member profiles
-      const memberIds = myGrp.members.map((m) => m.userId);
-      if (memberIds.length > 0) {
-        apiClient
-          .post<CandidateProfileResponse[]>('/users/batch', { userIds: memberIds })
-          .then((res) => {
-            const map: Record<string, CandidateProfileResponse> = {};
-            (res.data || []).forEach((p) => {
-              map[p.userId] = p;
-            });
-            setMemberProfiles(map);
-          })
-          .catch(() => null);
-      }
-
-      // Load join requests for ALL members (BR-25 application voting)
-      // Load ranked candidates for leader
-      // Load active election for all members (BR-18, BR-19)
-      const [reqRes, candRes, electionRes] = await Promise.all([
-        groupsApi.getGroupJoinRequests(myGrp.id, { page: 1, pageSize: 30 }).catch(() => null),
-        user && myGrp.leaderId === user.id ? groupsApi.getRankedCandidates(myGrp.id, 10).catch(() => []) : Promise.resolve([]),
-        groupsApi.getCurrentElection(myGrp.id).catch(() => null),
+      const [reqs, current] = await Promise.all([
+        workspaceApi.listGroupJoinRequests(mine.id).catch(() => [] as JoinRequest[]),
+        workspaceApi.getCurrentElection(mine.id).catch(() => null),
       ]);
-
-      const reqItems = reqRes?.items || [];
-      setJoinRequests(reqItems);
-      setCandidates(candRes || []);
-      setCurrentElection(electionRes);
-      if (electionRes && electionRes.status === 'Active') {
-        setCountdownSeconds(Math.max(0, Math.floor(electionRes.secondsRemaining || 0)));
-      } else {
-        setCountdownSeconds(0);
-      }
-
-      const applicantIds = reqItems.map((r) => r.userId);
-      if (applicantIds.length > 0) {
-        apiClient
-          .post<CandidateProfileResponse[]>('/users/batch', { userIds: applicantIds })
-          .then((r) => {
-            const map: Record<string, CandidateProfileResponse> = {};
-            (r.data || []).forEach((p) => {
-              map[p.userId] = p;
-            });
-            setApplicantProfiles(map);
-          })
-          .catch(() => null);
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể tải thông tin nhóm của bạn.');
+      setRequests(reqs);
+      setElection(current);
+      setCountdown(current?.status === 'Active' ? current.secondsRemaining : 0);
+      const ids = [...new Set([...mine.members.map((m) => m.userId), ...reqs.map((r) => r.studentId)])];
+      const list = await workspaceApi.getProfiles(ids).catch(() => [] as CandidateProfile[]);
+      setProfiles(Object.fromEntries(list.map((p) => [p.userId, p])));
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err, 'Không tải được thông tin nhóm.'));
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [spaceId]);
 
   useEffect(() => {
-    void loadMyGroupData();
-  }, [loadMyGroupData]);
+    setGroup(null);
+    void load();
+  }, [load]);
 
-  // Phase 4: 24h Countdown Timer for active leader election
+  // Đếm ngược thời hạn bầu Trưởng nhóm; hết giờ thì tải lại kết quả.
   useEffect(() => {
-    if (!currentElection || currentElection.status !== 'Active' || countdownSeconds <= 0) return;
-    const interval = setInterval(() => {
-      setCountdownSeconds((prev) => {
+    if (!election || election.status !== 'Active') return;
+    const timer = window.setInterval(() => {
+      setCountdown((prev) => {
         if (prev <= 1) {
-          clearInterval(interval);
-          void loadMyGroupData();
+          window.clearInterval(timer);
+          void load();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
-  }, [currentElection, countdownSeconds, loadMyGroupData]);
+    return () => window.clearInterval(timer);
+  }, [election, load]);
 
-  const formatCountdown = (secs: number) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    const hh = h < 10 ? `0${h}` : `${h}`;
-    const mm = m < 10 ? `0${m}` : `${m}`;
-    const ss = s < 10 ? `0${s}` : `${s}`;
-    return `${hh}:${mm}:${ss}`;
-  };
-
-  const handleStartElection = async (candidateId: string) => {
-    if (!group) return;
-    setElectionSubmitting(true);
-    setError(null);
-    setFeedback(null);
-    try {
-      await groupsApi.startElection(group.id, candidateId);
-      setShowNominateModal(false);
-      setFeedback('Đã khởi tạo cuộc bầu chọn Trưởng nhóm mới thành công! Thời hạn bỏ phiếu là 24 giờ.');
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể khởi tạo cuộc bầu cử.');
-    } finally {
-      setElectionSubmitting(false);
-    }
-  };
-
-  const handleVoteElection = async (isAgree: boolean) => {
-    if (!group || !currentElection) return;
-    setVotingElection(true);
-    setError(null);
-    setFeedback(null);
-    try {
-      const res = await groupsApi.voteElection(group.id, currentElection.id, isAgree);
-      if (res.status === 'Passed') {
-        setFeedback('Chúc mừng! Cuộc bầu cử đã thông qua (> 50% tán thành). Quyền Trưởng nhóm đã chuyển giao thành công!');
-      } else {
-        setFeedback(`Đã ghi nhận phiếu bầu của bạn: ${isAgree ? 'Đồng ý' : 'Không đồng ý'}.`);
-      }
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể gửi phiếu bầu.');
-    } finally {
-      setVotingElection(false);
-    }
-  };
-
-  const handleCloseRecruitment = () => {
-    if (!group) return;
-    setConfirmDialog({
-      title: 'Xác nhận đóng tuyển dụng sớm',
-      description:
-        'Khi đóng tuyển sớm, nhóm sẽ chuyển sang trạng thái Đã đóng và tự động từ chối toàn bộ các đơn xin gia nhập còn đang chờ duyệt. Bạn có chắc chắn muốn đóng tuyển dụng sớm không?',
-      confirmText: 'Đóng tuyển sớm',
-      variant: 'danger',
-      icon: <Lock size={24} />,
-      onConfirm: async () => {
-        try {
-          await groupsApi.closeRecruitment(group.id);
-          setFeedback('Đã đóng tuyển dụng sớm thành công. Toàn bộ đơn đang chờ đã được từ chối.');
-          await loadMyGroupData();
-        } catch (err: any) {
-          setError(err?.response?.data?.detail || 'Không thể đóng tuyển dụng sớm.');
-        }
-      },
+  const voteRequest = async (req: JoinRequest, isUpvote: boolean) => {
+    const comment = await dialog.confirm({
+      title: isUpvote ? `Ủng hộ ${req.studentName}?` : `Không ủng hộ ${req.studentName}?`,
+      confirmLabel: isUpvote ? 'Ủng hộ' : 'Không ủng hộ',
+      input: { label: 'Nhận xét' },
     });
+    if (comment === null) return;
+    await act(`vote-${req.id}`, () => workspaceApi.voteJoinRequest(req.id, isUpvote, comment || undefined), 'Đã ghi nhận biểu quyết.');
   };
 
-  const handleReopenRecruitment = async () => {
-    if (!group) return;
+  const act = async (key: string, action: () => Promise<unknown>, success: string) => {
+    setBusy(key);
     try {
-      await groupsApi.reopenRecruitment(group.id);
-      setFeedback('Đã mở lại tuyển dụng thành công.');
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể mở lại tuyển dụng.');
-    }
-  };
-
-  const handleVoteApplication = async (requestId: string, isUpvote: boolean, comment?: string) => {
-    setVotingApp(true);
-    try {
-      await groupsApi.voteApplication(requestId, isUpvote, comment);
-      setFeedback(`Đã gửi phiếu ${isUpvote ? 'Ủng hộ' : 'Phản đối'} tham khảo cho ứng viên thành công.`);
-      setVoteCommentModal(null);
-      setVoteComment('');
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể bỏ phiếu cho ứng viên này.');
+      await action();
+      toast.show(success);
+      await load();
+      return true;
+    } catch (err) {
+      toast.show(errorMessage(err), 'error');
+      return false;
     } finally {
-      setVotingApp(false);
+      setBusy(null);
     }
   };
 
-  const handleUpdateGroup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group) return;
-    try {
-      await groupsApi.updateGroup(group.id, editForm);
-      setShowEditGroup(false);
-      setFeedback('Đã cập nhật thông tin nhóm thành công!');
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể cập nhật thông tin nhóm.');
-    }
-  };
-
-  const handleLeaveGroup = () => {
-    if (!group) return;
-    if (group.status === 'Locked') {
-      setError('Nhóm đã chốt sổ học kỳ nên bạn không thể tự ý rời nhóm. Vui lòng tạo đơn xin chuyển nhóm để Trưởng phòng phê duyệt.');
-      return;
-    }
-    let msg: React.ReactNode = 'Bạn có chắc chắn muốn rời khỏi nhóm này không?';
-    if (isLeader) {
-      const otherMembers = (group.members || [])
-        .filter((m) => m.userId !== user?.id)
-        .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
-      if (otherMembers.length > 0) {
-        const successor = otherMembers[0];
-        const successorName = memberProfiles[successor.userId]?.fullName || successor.fullName || 'thành viên kế tiếp';
-        msg = (
-          <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            <div>
-              Bạn đang là <strong>Trưởng nhóm</strong>. Nếu bạn rời phòng, quyền Trưởng nhóm sẽ <strong>tự động chuyển giao</strong> cho thành viên vào sớm nhất kế tiếp:{' '}
-              <strong style={{ color: 'var(--fpt-orange)' }}>{successorName}</strong>.
-            </div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Lưu ý: Nếu bạn muốn chỉ định một thành viên cụ thể khác, hãy dùng nút &quot;Nhượng quyền Leader&quot; trước khi rời.
-            </div>
-          </div>
-        );
-      } else {
-        msg = 'Bạn là thành viên duy nhất trong phòng. Khi bạn rời đi, phòng sẽ trở về trạng thái Trống (Empty). Bạn có chắc chắn muốn rời nhóm?';
+  const header = (
+    <PageHeader
+      title="Nhóm của tôi"
+      actions={
+        space ? (
+          <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
+            Tải lại
+          </Button>
+        ) : undefined
       }
-    }
+    />
+  );
 
-    setConfirmDialog({
-      title: 'Xác nhận rời khỏi nhóm',
-      description: msg,
-      confirmText: 'Rời khỏi nhóm',
-      variant: 'danger',
-      icon: <LogOut size={24} />,
-      onConfirm: async () => {
-        try {
-          await groupsApi.leaveGroup(group.id);
-          setGroup(null);
-          setFeedback('Bạn đã rời nhóm thành công.');
-        } catch (err: any) {
-          setError(err?.response?.data?.detail || 'Không thể rời nhóm.');
-        }
-      },
-    });
-  };
-
-  const handleTransferLeader = (newLeaderId: string) => {
-    if (!group) return;
-    const targetMember = group.members.find((m) => m.userId === newLeaderId);
-    const targetName = memberProfiles[newLeaderId]?.fullName || targetMember?.fullName || 'thành viên này';
-    setConfirmDialog({
-      title: 'Chuyển giao quyền Trưởng nhóm',
-      description: (
-        <span>
-          Bạn có chắc chắn muốn nhượng quyền <strong>Trưởng nhóm</strong> cho <strong>{targetName}</strong> không? Sau khi xác nhận, bạn sẽ trở thành Thành viên của nhóm.
-        </span>
-      ),
-      confirmText: 'Xác nhận nhượng quyền',
-      variant: 'warning',
-      icon: <Crown size={24} />,
-      onConfirm: async () => {
-        try {
-          await groupsApi.transferLeadership(group.id, { newLeaderId });
-          setFeedback('Đã chuyển quyền Trưởng nhóm thành công!');
-          await loadMyGroupData();
-        } catch (err: any) {
-          setError(err?.response?.data?.detail || 'Không thể chuyển quyền Trưởng nhóm.');
-        }
-      },
-    });
-  };
-
-  const handleConfirmKick = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group || !kickModal) return;
-    if (kickReason.trim().length < 10) {
-      setError('Vui lòng nhập lý do cụ thể tối thiểu 10 ký tự.');
-      return;
-    }
-    setIsSubmittingKick(true);
-    setError(null);
-    try {
-      await groupsApi.removeMember(group.id, kickModal.userId, {
-        category: kickCategory,
-        reason: kickReason.trim(),
-      });
-      setFeedback(`Đã mời thành viên ${kickModal.fullName} ra khỏi nhóm và gửi email thông báo thành công.`);
-      setKickModal(null);
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể mời thành viên ra khỏi nhóm.');
-    } finally {
-      setIsSubmittingKick(false);
-    }
-  };
-
-  const handleSaveSlot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!group || !slotRoleName.trim()) return;
-    const skills = slotSkills
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    try {
-      if (editingSlot) {
-        await groupsApi.updateSlot(group.id, editingSlot.id, {
-          roleName: slotRoleName.trim(),
-          major: slotMajor,
-          requiredSkills: skills,
-          quantity: slotQty,
-        });
-        setFeedback('Đã cập nhật vị trí tuyển dụng.');
-      } else {
-        await groupsApi.addSlot(group.id, {
-          roleName: slotRoleName.trim(),
-          major: slotMajor,
-          requiredSkills: skills,
-          quantity: slotQty,
-        });
-        setFeedback('Đã thêm vị trí tuyển dụng mới.');
-      }
-      setEditingSlot(null);
-      setSlotRoleName('');
-      setSlotSkills('');
-      setSlotQty(1);
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể lưu vị trí tuyển dụng.');
-    }
-  };
-
-  const handleDeleteSlot = async (slotId: string) => {
-    if (!group) return;
-    try {
-      await groupsApi.deleteSlot(group.id, slotId);
-      setFeedback('Đã xóa vị trí tuyển dụng.');
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể xóa vị trí tuyển dụng.');
-    }
-  };
-
-  const handleDecideJoinRequest = async (reqId: string, accept: boolean) => {
-    try {
-      if (accept) {
-        await groupsApi.acceptJoinRequest(reqId);
-        setFeedback('Đã chấp nhận thành viên mới vào nhóm!');
-      } else {
-        await groupsApi.rejectJoinRequest(reqId);
-        setFeedback('Đã từ chối đơn xin gia nhập.');
-      }
-      await loadMyGroupData();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể xử lý đơn xin gia nhập.');
-    }
-  };
-
-  if (loading) {
+  if (!space) {
     return (
-      <div className="card" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-        Đang tải thông tin nhóm của bạn...
-      </div>
+      <PageShell>
+        {header}
+        <NoSpaceState loading={spacesLoading} error={spacesError} role={user?.role} />
+      </PageShell>
     );
   }
+
+  const transferList = myTransfers.length > 0 && (
+    <Card style={{ marginTop: '1.5rem' }}>
+      <CardTitle icon={<ArrowLeftRight size={18} />} title="Yêu cầu chuyển nhóm của tôi" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {myTransfers.map((t) => (
+          <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '12px 14px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
+            <div style={{ fontSize: 14 }}>
+              <b>{t.fromGroupCode}</b> → <b>{t.targetGroupCode}</b>
+              {t.swapWithStudentName && <span style={{ color: 'var(--text-muted, #64748B)' }}> (đổi với {t.swapWithStudentName})</span>}
+              <div style={{ color: 'var(--text-muted, #64748B)', fontSize: 13 }}>
+                {formatDateTime(t.createdAt)}
+                {t.decisionReason ? ` • ${t.decisionReason}` : ''}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Pill dot={ROOM_STATUS_DOT[t.status]}>{{ Pending: 'Chờ duyệt', Approved: 'Đã duyệt', Rejected: 'Bị từ chối', Cancelled: 'Đã hủy' }[t.status]}</Pill>
+              {t.status === 'Pending' && (
+                <Button variant="outline" style={{ height: 34 }} loading={busy === `cancel-transfer-${t.id}`} onClick={() => void act(`cancel-transfer-${t.id}`, () => workspaceApi.cancelTransferRequest(t.id), 'Đã hủy yêu cầu chuyển nhóm.')}>
+                  Hủy
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 
   if (!group) {
     return (
-      <div>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Nhóm Của Tôi
-          </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Quản lý thành viên, vị trí tuyển dụng, duyệt đơn và mời ứng viên (Group Service)
-          </p>
-        </div>
-
-        <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem' }}>
-          <Users size={44} style={{ margin: '0 auto 1rem auto', color: '#94a3b8' }} />
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            Bạn chưa tham gia nhóm đề tài nào
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 520, margin: '0 auto 1.5rem auto' }}>
-            Mỗi sinh viên chỉ thuộc tối đa 1 nhóm đang hoạt động. Hãy khám phá các nhóm đang tuyển hoặc chọn phòng tại Không gian Học phần.
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-            <button className="btn btn-primary" onClick={() => navigate('/groups')}>
-              <Compass size={16} /> Khám phá & Thành lập Nhóm
-            </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/projects')}>
-              <Layers size={16} /> Đề xuất Ý tưởng Dự án
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        {toast.node}
+      {dialog.node}
+        {header}
+        {error && <Banner tone="error">{error}</Banner>}
+        {loading ? (
+          <StateBox kind="loading" message="Đang tải nhóm của bạn..." />
+        ) : (
+          <StateBox
+            kind="empty"
+            title="Bạn chưa có nhóm"
+            message={
+              space.status === 'Open'
+                ? 'Vào thẳng một phòng trống / đang lập nhóm, hoặc nộp đơn vào nhóm đang tuyển.'
+                : 'Đăng ký tự nguyện đã đóng. Điều phối viên sẽ phân bổ bạn vào một nhóm.'
+            }
+            action={
+              <Link to="/groups" style={{ textDecoration: 'none' }}>
+                <Button icon={<Layers size={15} />}>Xem danh sách phòng</Button>
+              </Link>
+            }
+          />
+        )}
+        {transferList}
+      </PageShell>
     );
   }
 
-  const pendingReqCount = joinRequests.filter((r) => r.status === 'Pending').length;
+  const isLeader = !!user && group.leaderId === user.id;
+  const isLocked = group.status === 'Locked' || space.status === 'Locked';
+  const isFull = group.memberCount >= group.maxMembers;
+  const memberScores = averageSkills(group.members.map((m) => profiles[m.userId]).filter(Boolean) as CandidateProfile[]);
+  const otherMembers = group.members.filter((m) => m.userId !== user?.id);
+  const myVote = election?.votes.find((v) => v.voterId === user?.id);
+  const pendingTransfer = myTransfers.some((t) => t.status === 'Pending');
+
+  const openTransfer = async () => {
+    setTransferForm({ targetGroupId: '', swapWithStudentId: '', reason: '' });
+    setTransferOpen(true);
+    try {
+      // Danh sách nhóm đích lấy từ các phòng của môn học; chi tiết thành viên dùng để chọn người đổi chéo.
+      const roomList = await workspaceApi.listRooms(space.id);
+      const others = roomList.filter((r) => r.id !== group.id && r.memberCount > 0);
+      const detailList = await Promise.all(others.map((r) => workspaceApi.getGroup(r.id).catch(() => null)));
+      setTransferGroups(
+        detailList
+          .filter((d): d is GroupDetail => !!d)
+          .map((d) => ({
+            groupId: d.id,
+            roomCode: d.roomCode ?? d.name,
+            groupName: d.name,
+            status: d.status,
+            memberCount: d.memberCount,
+            maxMembers: d.maxMembers,
+            leaderId: d.leaderId,
+            leaderName: d.leaderName,
+            members: d.members.map((m) => ({
+              studentId: m.userId,
+              studentCode: '',
+              fullName: m.fullName,
+              email: '',
+              major: '',
+              cohort: '',
+              role: m.role,
+              techScore: 0,
+              managementScore: 0,
+              graphicDesignScore: 0,
+              marketingScore: 0,
+              saleScore: 0,
+              joinedAt: m.joinedAt,
+            })),
+          }))
+          .sort((a, b) => a.roomCode.localeCompare(b.roomCode))
+      );
+    } catch (err) {
+      toast.show(errorMessage(err), 'error');
+    }
+  };
+  const transferTarget = transferGroups.find((g) => g.groupId === transferForm.targetGroupId);
 
   return (
-    <div>
-      {/* Group Banner Header */}
-      <div
-        className="card"
-        style={{
-          marginBottom: '1.5rem',
-          padding: '1.5rem',
-          borderLeft: '5px solid #f26f21',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                {group.name}
-              </h1>
-              <span className="badge badge-recruiting">{group.status}</span>
-              <span className="badge badge-domain">
-                {group.members.length}/{group.maxMembers} thành viên
-              </span>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.45rem' }}>
-              {group.description || 'Chưa có mô tả chi tiết cho nhóm.'}
+    <PageShell>
+      {toast.node}
+      {dialog.node}
+      {header}
+
+      {isLocked && (
+        <Banner tone="info">
+          Đã chốt sổ. Muốn đổi nhóm, gửi yêu cầu chuyển nhóm.
+        </Banner>
+      )}
+      {error && <Banner tone="error">{error}</Banner>}
+
+      {/* Tổng quan nhóm */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(440px, 100%), 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <Card>
+          <CardTitle
+            icon={<Layers size={18} />}
+            title={group.roomCode ?? group.name}
+            subtitle={`${ROOM_STATUS_LABEL[group.status] ?? group.status} • ${group.memberCount}/${group.maxMembers} thành viên${group.isClosedByLeader ? ' • Trưởng nhóm đã đóng tuyển' : ''}`}
+            right={
+              isLeader && !isLocked ? (
+                <Button
+                  variant="outline"
+                  style={{ height: 36 }}
+                  icon={<Edit3 size={15} />}
+                  onClick={() => {
+                    setEditForm({ name: group.name, description: group.description ?? '' });
+                    setEditOpen(true);
+                  }}
+                >
+                  Sửa đề tài
+                </Button>
+              ) : undefined
+            }
+          />
+          <div style={{ padding: '14px 16px', borderRadius: 12, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', marginBottom: 18 }}>
+            <div style={{ fontSize: 12, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted, #64748B)', marginBottom: 4 }}>Tên nhóm / Đề tài</div>
+            <div style={{ fontSize: 17, fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>{group.name}</div>
+            <p style={{ margin: '4px 0 0 0', fontSize: 14.5, color: 'var(--text-muted, #64748B)', lineHeight: 1.5 }}>
+              {group.description || (isLeader ? 'Chưa có mô tả đề tài. Bấm "Sửa đề tài" để cập nhật.' : 'Trưởng nhóm chưa cập nhật mô tả đề tài.')}
             </p>
           </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: 10 }}>Kỹ năng trung bình</div>
+          <SkillBars scores={memberScores} />
+        </Card>
 
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => void loadMyGroupData()}>
-              <RefreshCw size={15} /> Làm mới
-            </button>
-            {isLeader && (
-              <>
-                {group.status === 'Recruiting' && (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#dc2626', borderColor: '#fca5a5' }}
-                    onClick={() => void handleCloseRecruitment()}
-                    title="Đóng tuyển sớm khi nhóm đã đạt số lượng mong muốn"
-                  >
-                    <Lock size={14} /> Đóng tuyển sớm
-                  </button>
-                )}
-                {group.status === 'Closed' && (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#008837', borderColor: '#86efac' }}
-                    onClick={() => void handleReopenRecruitment()}
-                    title="Mở lại tuyển dụng nếu nhóm chưa đủ sĩ số tối đa"
-                  >
-                    <Unlock size={14} /> Mở lại tuyển dụng
-                  </button>
-                )}
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowEditGroup((v) => !v)}
-                >
-                  <Edit3 size={15} /> Sửa thông tin
-                </button>
-              </>
+        <Card>
+          <CardTitle icon={<Crown size={18} />} title="Điều hành nhóm" subtitle={isLeader ? 'Bạn là Trưởng nhóm' : `Trưởng nhóm: ${group.leaderName ?? '—'}`} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+            {isLeader && !isLocked && (group.status === 'Recruiting' || group.status === 'Closed') && (
+              group.isClosedByLeader ? (
+                <Button variant="outline" icon={<Unlock size={15} />} loading={busy === 'reopen'} onClick={() => void act('reopen', () => workspaceApi.reopenRecruitment(group.id), 'Đã mở tuyển lại.')}>
+                  Mở tuyển lại
+                </Button>
+              ) : (
+                <Button variant="outline" icon={<Lock size={15} />} loading={busy === 'close'} disabled={isFull} onClick={() => void act('close', () => workspaceApi.closeRecruitment(group.id), 'Đã đóng tuyển sớm.')}>
+                  Đóng tuyển sớm
+                </Button>
+              )
             )}
-            {group.status !== 'Locked' && group.members.length >= 2 && (
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
-                onClick={() => setShowNominateModal(true)}
-                title="Tổ chức bầu chọn Trưởng nhóm mới trong vòng 24 giờ"
-              >
-                <Vote size={15} /> Bầu Leader mới
-              </button>
+            {isLeader && !isLocked && otherMembers.length > 0 && (
+              <Button variant="outline" icon={<Crown size={15} />} onClick={() => { setSelectedMemberId(''); setLeaderModalOpen(true); }}>
+                Chuyển quyền Trưởng nhóm
+              </Button>
             )}
-            {group.status !== 'Locked' ? (
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ color: '#dc2626' }}
-                onClick={() => void handleLeaveGroup()}
-                title={isLeader ? 'Leader rời nhóm sẽ tự động chuyển giao cho thành viên gia nhập sớm nhất kế tiếp' : 'Rời nhóm'}
-              >
-                <LogOut size={15} /> Rời nhóm
-              </button>
-            ) : pendingTransfer ? (
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ color: '#d97706', borderColor: '#fcd34d', gap: '0.35rem' }}
-                onClick={() => setActiveTab('transfers')}
-                title="Bạn đang có đơn xin chuyển nhóm đang chờ duyệt"
-              >
-                <Clock size={15} /> Đang có đơn chờ duyệt
-              </button>
-            ) : approvedTransfer ? (
-              <span className="badge badge-success" style={{ padding: '0.45rem 0.65rem' }}>
-                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
-              </span>
+            {!isLocked && !election && group.members.length > 1 && (
+              <Button variant="outline" icon={<Vote size={15} />} onClick={() => { setSelectedMemberId(''); setElectionModalOpen(true); }}>
+                Đề cử bầu Trưởng nhóm
+              </Button>
+            )}
+            {isLocked ? (
+              <Button variant="outline" icon={<ArrowLeftRight size={15} />} disabled={pendingTransfer} onClick={() => void openTransfer()}>
+                {pendingTransfer ? 'Đang chờ duyệt chuyển nhóm' : 'Yêu cầu chuyển nhóm'}
+              </Button>
             ) : (
-              <button
-                className="btn btn-secondary btn-sm"
-                style={{ color: 'var(--fpt-orange)', borderColor: '#fed7aa' }}
-                onClick={() => void openTransferModal()}
-                title="Tạo đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng duyệt"
+              <Button
+                variant="danger"
+                icon={<LogOut size={15} />}
+                loading={busy === 'leave'}
+                onClick={() => {
+                  void (async () => {
+                    const ok = await dialog.confirm({
+                      title: 'Rời nhóm?',
+                      message: isLeader ? 'Quyền Trưởng nhóm sẽ tự chuyển cho thành viên vào sớm nhất.' : undefined,
+                      confirmLabel: 'Rời nhóm',
+                      danger: true,
+                    });
+                    if (ok !== null) await act('leave', () => workspaceApi.leaveGroup(group.id), 'Bạn đã rời nhóm.');
+                  })();
+                }}
               >
-                <ArrowLeftRight size={15} /> Xin chuyển nhóm
-              </button>
+                Rời nhóm
+              </Button>
             )}
           </div>
-        </div>
 
-        {/* Inline Edit Group Form */}
-        {showEditGroup && isLeader && (
-          <form
-            onSubmit={(e) => void handleUpdateGroup(e)}
-            style={{
-              marginTop: '1.25rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid #e2e8f0',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: '0.85rem',
-            }}
-          >
-            <div>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Tên nhóm</label>
-              <input
-                type="text"
-                className="form-control"
-                required
-                value={editForm.name}
-                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              />
+          {/* Bầu Trưởng nhóm đang diễn ra */}
+          {election && (
+            <div style={{ marginTop: 18, padding: 16, borderRadius: 14, border: '1px solid var(--border-light, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                <span style={{ fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>
+                  <Vote size={15} /> Bầu <b>{election.candidateName}</b> làm Trưởng nhóm
+                </span>
+                {election.status === 'Active' ? (
+                  <Pill dot="#F59E0B">
+                    <Clock size={13} /> {formatCountdown(countdown)}
+                  </Pill>
+                ) : (
+                  <Pill dot={election.status === 'Passed' ? '#10B981' : '#EF4444'}>{election.status}</Pill>
+                )}
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', marginBottom: 10 }}>
+                Đề cử bởi {election.initiatedByName} • Đồng ý {election.totalAgreed} / cần {election.requiredVotesToPass} • Phản đối {election.totalDisagreed} • Đã bỏ phiếu {election.totalVotes}/{election.totalMembers}
+              </div>
+              <SeatBar count={election.totalAgreed} max={Math.max(election.requiredVotesToPass, 1)} />
+              {election.status === 'Active' && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  {myVote ? (
+                    <span style={{ fontSize: 14, color: 'var(--text-muted, #64748B)' }}>Bạn đã bỏ phiếu: {myVote.isAgree ? 'Đồng ý' : 'Phản đối'}</span>
+                  ) : (
+                    <>
+                      <Button style={{ flex: 1 }} icon={<ThumbsUp size={15} />} loading={busy === 'vote-yes'} disabled={!!busy} onClick={() => void act('vote-yes', () => workspaceApi.voteElection(group.id, election.id, true), 'Đã bỏ phiếu đồng ý.')}>
+                        Đồng ý
+                      </Button>
+                      <Button style={{ flex: 1 }} variant="outline" icon={<ThumbsDown size={15} />} loading={busy === 'vote-no'} disabled={!!busy} onClick={() => void act('vote-no', () => workspaceApi.voteElection(group.id, election.id, false), 'Đã bỏ phiếu phản đối.')}>
+                        Phản đối
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Mô tả nhóm</label>
-              <input
-                type="text"
-                className="form-control"
-                value={editForm.description || ''}
-                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-              />
-            </div>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowEditGroup(false)}
-              >
-                Hủy
-              </button>
-              <button type="submit" className="btn btn-primary btn-sm">
-                Lưu thay đổi
-              </button>
-            </div>
-          </form>
-        )}
+          )}
+        </Card>
       </div>
 
-      {/* Feedback / Error */}
-      {feedback && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #10b981',
-            background: '#ecfdf5',
-            color: '#065f46',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>{feedback}</span>
-          <button onClick={() => setFeedback(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
-      {error && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #ef4444',
-            background: '#fef2f2',
-            color: '#991b1b',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={15} />
-          </button>
-        </div>
-      )}
-
-      {/* Phase 4: Active Leader Election Banner */}
-      {currentElection && currentElection.status === 'Active' && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1.25rem',
-            padding: '1.25rem 1.5rem',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, rgba(10, 25, 47, 0.04) 0%, rgba(242, 111, 33, 0.06) 100%)',
-            border: '2px solid #f26f21',
-            boxShadow: '0 4px 12px rgba(242, 111, 33, 0.08)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  background: 'rgba(242, 111, 33, 0.15)',
-                  color: '#f26f21',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Vote size={22} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Đang diễn ra cuộc bầu chọn Trưởng nhóm mới
-                </h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Ứng viên được đề cử: <strong style={{ color: 'var(--text-main)' }}>{currentElection.candidateName}</strong> • Người khởi xướng: <strong>{currentElection.initiatedByName}</strong>
-                </p>
-              </div>
-            </div>
-
-            {/* 24-hour Countdown Timer */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                padding: '0.4rem 0.85rem',
-                borderRadius: '8px',
-                background: '#fff',
-                border: '1px solid #fed7aa',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              }}
-            >
-              <Clock size={16} style={{ color: '#ea580c' }} />
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Thời hạn còn lại:</div>
-              <div
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '0.95rem',
-                  fontWeight: 800,
-                  color: '#ea580c',
-                  fontVariantNumeric: 'tabular-nums',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {formatCountdown(countdownSeconds)}
-              </div>
-            </div>
-          </div>
-
-          {/* Voting Progress */}
-          <div style={{ marginTop: '0.75rem', marginBottom: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.825rem', marginBottom: '0.35rem' }}>
-              <span>
-                Tiến độ phiếu tán thành: <strong style={{ fontFamily: 'var(--font-mono)', color: '#008837' }}>{currentElection.totalAgreed}</strong> / <strong style={{ fontFamily: 'var(--font-mono)' }}>{currentElection.requiredVotesToPass} phiếu</strong> cần thiết để đắc cử (&gt; 50% tổng số {currentElection.totalMembers} SV)
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-muted)' }}>
-                {currentElection.totalVotes} / {currentElection.totalMembers} đã bầu
-              </span>
-            </div>
-            <div style={{ height: 8, width: '100%', background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden' }}>
-              <div
-                style={{
-                  height: '100%',
-                  background: currentElection.totalAgreed >= currentElection.requiredVotesToPass ? '#10b981' : '#f26f21',
-                  width: `${Math.min(100, (currentElection.totalAgreed / (currentElection.totalMembers || 1)) * 100)}%`,
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Voting Actions for User */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-            {(() => {
-              const myVote = currentElection.votes?.find((v) => v.voterId === user?.id);
-              if (myVote) {
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                    <CheckCircle2 size={16} style={{ color: myVote.isAgree ? '#10b981' : '#ef4444' }} />
-                    <span>
-                      Bạn đã bỏ phiếu: <strong>{myVote.isAgree ? 'Tán thành (Đồng ý)' : 'Không đồng ý'}</strong>
-                    </span>
-                  </div>
-                );
-              }
-              return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                    Bỏ phiếu của bạn:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleVoteElection(true)}
-                    disabled={votingElection}
-                    className="btn btn-primary btn-sm"
-                    style={{ background: '#008837', borderColor: '#008837', gap: '0.35rem' }}
-                  >
-                    <ThumbsUp size={14} />
-                    <span>Đồng ý</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleVoteElection(false)}
-                    disabled={votingElection}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: '#dc2626', gap: '0.35rem' }}
-                  >
-                    <ThumbsDown size={14} />
-                    <span>Không đồng ý</span>
-                  </button>
-                </div>
-              );
-            })()}
-
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Ngay khi số phiếu đồng ý đạt &gt; 50% ({currentElection.requiredVotesToPass} phiếu), quyền Trưởng nhóm được chuyển giao lập tức.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Phase 6: Post-Lock Alert Banner */}
-      {group.status === 'Locked' && (
-        <div
-          style={{
-            padding: '0.85rem 1.25rem',
-            background: 'rgba(239, 68, 68, 0.06)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
-            borderRadius: 'var(--radius-md, 10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            marginBottom: '1.25rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                color: '#dc2626',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Lock size={18} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, color: '#b91c1c', fontSize: '0.9rem' }}>
-                Nhóm đã Khóa cứng sau Chốt sổ học kỳ (Locked)
-              </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.15rem' }}>
-                Đội ngũ chính thức đã được chốt sổ. Thành viên không thể tự rời nhóm. Nếu cần thay đổi, hãy tạo đơn gửi Trưởng phòng xét duyệt.
-              </div>
-            </div>
-          </div>
-          {pendingTransfer ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setActiveTab('transfers')}
-              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700, color: '#d97706', borderColor: '#fcd34d' }}
-            >
-              <Clock size={14} /> Xem đơn đang chờ duyệt
-            </button>
-          ) : approvedTransfer ? (
-            <div style={{ flexShrink: 0, color: '#059669', fontWeight: 700, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <CheckCircle2 size={16} /> Đã hoàn tất điều chuyển
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => void openTransferModal()}
-              style={{ flexShrink: 0, gap: '0.4rem', fontWeight: 700 }}
-            >
-              <ArrowLeftRight size={14} /> Xin chuyển nhóm / Đổi chéo
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Tier 2: Gemini AI Startup Mentor Card */}
-      <div style={{ marginBottom: '1.25rem' }}>
+      {/* AI Mentor (PR #26): phân tích nhóm, gợi ý đề tài và lộ trình */}
+      <div style={{ marginBottom: '1.5rem' }}>
         <AiMentorCard groupId={group.id} groupName={group.name} />
       </div>
 
-      {/* Sub-navigation Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        <button
-          className={activeTab === 'members' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          onClick={() => setActiveTab('members')}
-        >
-          <Users size={15} /> Thành viên ({group.members.length}/{group.maxMembers})
-        </button>
-        <button
-          className={activeTab === 'slots' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          onClick={() => setActiveTab('slots')}
-        >
-          <Briefcase size={15} /> Vị trí Tuyển dụng ({group.slots.length})
-        </button>
-        <button
-          className={activeTab === 'requests' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          onClick={() => setActiveTab('requests')}
-        >
-          <Mail size={15} /> Đơn xin vào nhóm ({pendingReqCount} chờ duyệt)
-        </button>
-        {isLeader && (
-          <button
-            className={activeTab === 'candidates' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-            onClick={() => setActiveTab('candidates')}
-          >
-            <Sparkles size={15} /> Gợi ý Ứng viên phù hợp (gRPC)
-          </button>
-        )}
-        <button
-          className={activeTab === 'transfers' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
-          onClick={() => setActiveTab('transfers')}
-          style={{ gap: '0.35rem' }}
-        >
-          <ArrowLeftRight size={15} /> Đơn chuyển nhóm
-          {myTransfers.length > 0 && (
-            <span
-              style={{
-                padding: '0.05rem 0.45rem',
-                borderRadius: '9999px',
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-mono)',
-                background: 'rgba(255, 255, 255, 0.25)',
-                fontVariantNumeric: 'tabular-nums',
-                fontWeight: 700,
-              }}
-            >
-              {myTransfers.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* TAB A: MEMBERS */}
-      {activeTab === 'members' && (
-        <div className="card">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>
-            Danh sách Thành viên Nhóm
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {group.members.map((m) => {
-              const prof = memberProfiles[m.userId];
-              const displayName = prof?.fullName || m.fullName || `Thành viên (${m.userId.slice(0, 8)})`;
-              const displayMajor = prof?.major || m.major;
-              return (
-                <div
-                  key={m.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '0.75rem',
-                    padding: '0.85rem 1rem',
-                    borderRadius: 10,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
+      {/* Thành viên */}
+      <Card style={{ marginBottom: '1.5rem' }}>
+        <CardTitle icon={<Users size={18} />} title={`Thành viên (${group.memberCount}/${group.maxMembers})`} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 12 }}>
+          {group.members.map((m) => {
+            const p = profiles[m.userId];
+            return (
+              <div key={m.userId} style={{ padding: 14, borderRadius: 14, border: '1px solid var(--border-light, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: '0.95rem' }}>
-                        {displayName}
-                      </strong>
-                      {m.studentCode && (
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.78rem', fontWeight: 700, color: '#0054a6' }}>
-                          {m.studentCode}
-                        </span>
-                      )}
-                      {m.role === 'Leader' ? (
-                        <span
-                          className="badge"
-                          style={{ background: '#fef3c7', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <Crown size={12} /> Trưởng nhóm
-                        </span>
-                      ) : (
-                        <span className="badge badge-domain">Thành viên</span>
-                      )}
-                      {displayMajor && (
-                        <span className="badge badge-recruiting">Ngành {displayMajor}</span>
-                      )}
+                    <div style={{ fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>
+                      {m.fullName} {m.userId === user?.id && <span style={{ color: 'var(--text-muted, #64748B)', fontWeight: 500 }}>(bạn)</span>}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 4 }}>
-                      {prof?.desiredRole || m.email || 'Thành viên dự án'} • Gia nhập: {formatDateTime(m.joinedAt)}
+                    <div style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>
+                      {p?.major ?? '—'} • Vào nhóm {formatDateTime(m.joinedAt)}
                     </div>
                   </div>
-
-                  {isLeader && m.userId !== user?.id && (
-                    <div style={{ display: 'flex', gap: '0.45rem' }}>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => void handleTransferLeader(m.userId)}
-                        title="Chuyển quyền Trưởng nhóm"
-                      >
-                        <Crown size={14} /> Nhượng quyền Leader
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{ color: '#dc2626' }}
-                        onClick={() => {
-                          setKickModal({ userId: m.userId, fullName: displayName });
-                          setKickCategory('Mất liên lạc / Không phản hồi (>48h)');
-                          setKickReason('');
-                        }}
-                        title="Mời thành viên ra khỏi nhóm kèm lý do và thông báo email"
-                      >
-                        <UserMinus size={14} /> Mời rời nhóm
-                      </button>
-                    </div>
-                  )}
+                  {m.role === 'Leader' ? <Pill tone="accent">Trưởng nhóm</Pill> : <Pill>Thành viên</Pill>}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* TAB B: RECRUITMENT SLOTS */}
-      {activeTab === 'slots' && (
-        <div className="card">
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem' }}>
-            Vị trí Tuyển dụng của Nhóm
-          </h3>
-
-          {group.slots.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Nhóm chưa đăng ký vị trí tuyển dụng nào.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginBottom: '1.5rem' }}>
-              {group.slots.map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '0.85rem 1rem',
-                    borderRadius: 10,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: '0.95rem' }}>{s.roleName}</strong>
-                    <span className="badge badge-domain" style={{ marginLeft: 8 }}>
-                      Ngành {s.major} • Số lượng: {s.quantity}
-                    </span>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 4 }}>
-                      Kỹ năng yêu cầu: {s.requiredSkills.length > 0 ? s.requiredSkills.join(', ') : 'Linh hoạt'}
-                    </div>
+                {p && (
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
+                    {SKILL_KEYS.map(({ key, label }) => (
+                      <Pill key={key}>
+                        {label} {p[key]}
+                      </Pill>
+                    ))}
                   </div>
-                  {isLeader && (
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setEditingSlot(s);
-                          setSlotRoleName(s.roleName);
-                          setSlotMajor(s.major);
-                          setSlotSkills(s.requiredSkills.join(', '));
-                          setSlotQty(s.quantity);
-                        }}
-                      >
-                        <Edit3 size={14} /> Sửa
-                      </button>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        style={{ color: '#dc2626' }}
-                        onClick={() => void handleDeleteSlot(s.id)}
-                      >
-                        <Trash2 size={14} /> Xóa
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {isLeader && (
-            <form
-              onSubmit={(e) => void handleSaveSlot(e)}
-              style={{
-                borderTop: '1px solid #e2e8f0',
-                paddingTop: '1rem',
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 2fr 0.8fr auto',
-                gap: '0.6rem',
-                alignItems: 'end',
-              }}
-            >
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>
-                  {editingSlot ? 'Cập nhật tên vị trí' : 'Thêm vị trí mới'}
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  required
-                  placeholder="VD: AI Engineer / Marketer"
-                  value={slotRoleName}
-                  onChange={(e) => setSlotRoleName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Chuyên ngành</label>
-                <select
-                  className="form-control"
-                  value={slotMajor}
-                  onChange={(e) => setSlotMajor(e.target.value)}
-                >
-                  {MAJOR_LIST.map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Kỹ năng (phẩy)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="C# / .NET, React / TypeScript"
-                  value={slotSkills}
-                  onChange={(e) => setSlotSkills(e.target.value)}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600 }}>Số lượng</label>
-                <input
-                  type="number"
-                  className="form-control"
-                  min={1}
-                  max={5}
-                  value={slotQty}
-                  onChange={(e) => setSlotQty(Number(e.target.value))}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  {editingSlot ? 'Lưu' : 'Thêm'}
-                </button>
-                {editingSlot && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      setEditingSlot(null);
-                      setSlotRoleName('');
-                      setSlotSkills('');
-                    }}
-                  >
-                    Hủy
-                  </button>
+                )}
+                {isLeader && !isLocked && m.userId !== user?.id && (
+                  <div style={{ marginTop: 10 }}>
+                    <Button variant="ghost" style={{ height: 32, padding: '0 8px', color: '#B91C1C' }} icon={<UserX size={14} />} onClick={() => { setRemoveReason(''); setRemoveTarget({ userId: m.userId, fullName: m.fullName }); }}>
+                      Mời ra khỏi nhóm
+                    </Button>
+                  </div>
                 )}
               </div>
-            </form>
-          )}
+            );
+          })}
         </div>
-      )}
+      </Card>
 
-      {/* TAB C: INCOMING JOIN REQUESTS */}
-      {activeTab === 'requests' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-                Đơn xin gia nhập nhóm ({joinRequests.length})
-              </h3>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-                {isLeader
-                  ? 'Trưởng nhóm xem xét và quyết định chấp thuận/từ chối. Thành viên nhóm bỏ phiếu tham khảo.'
-                  : 'Mọi thành viên trong nhóm đều có quyền bỏ phiếu Ủng hộ / Phản đối kèm nhận xét tham khảo.'}
-              </p>
-            </div>
-            <span
-              style={{
-                fontSize: '0.78rem',
-                padding: '0.25rem 0.65rem',
-                borderRadius: '6px',
-                background: 'rgba(0, 84, 166, 0.08)',
-                color: 'var(--fpt-blue)',
-                fontWeight: 600,
-                border: '1px solid rgba(0, 84, 166, 0.2)',
-              }}
-            >
-              Cơ chế bỏ phiếu nội bộ
-            </span>
-          </div>
-
-          {joinRequests.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>Chưa có sinh viên nào gửi đơn xin gia nhập nhóm.</p>
+      {/* Đơn ứng tuyển */}
+      {!isLocked && (
+        <Card>
+          <CardTitle
+            icon={<Sparkles size={18} />}
+            title={`Đơn ứng tuyển (${requests.length})`}
+            right={<InfoTip text="Thành viên biểu quyết ủng hộ / không ủng hộ, Trưởng nhóm quyết định chấp nhận hoặc từ chối." />}
+          />
+          {requests.length === 0 ? (
+            <StateBox kind="empty" message="Chưa có đơn ứng tuyển nào." />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {joinRequests.map((req) => {
-                const prof = applicantProfiles[req.userId];
-                const upvotes = req.upvotes || 0;
-                const downvotes = req.downvotes || 0;
-                const hasVoted = req.votes?.some((v) => v.voterId === user?.id);
-
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(420px, 100%), 1fr))', gap: 12 }}>
+              {requests.map((r) => {
+                const p = profiles[r.studentId];
+                const voted = r.votes?.find((v) => v.voterId === user?.id);
                 return (
-                  <div
-                    key={req.id}
-                    style={{
-                      padding: '1.15rem',
-                      borderRadius: 10,
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.85rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div key={r.id} style={{ padding: 16, borderRadius: 14, border: '1px solid var(--border-light, #E2E8F0)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>
-                            {req.studentName || prof?.fullName || `Ứng viên (${req.userId.slice(0, 8)})`}
-                          </strong>
-                          {prof?.major && <span className="badge badge-domain">Ngành {prof.major}</span>}
-                          <span
-                            className="badge"
-                            style={{
-                              background: req.status === 'Accepted' ? '#dcfce7' : req.status === 'Pending' ? '#fff7ed' : '#fee2e2',
-                              color: req.status === 'Accepted' ? '#15803d' : req.status === 'Pending' ? '#c2410c' : '#b91c1c',
-                              border: `1px solid ${req.status === 'Accepted' ? '#86efac' : req.status === 'Pending' ? '#fed7aa' : '#fca5a5'}`,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {req.status === 'Pending' ? 'Đang chờ duyệt' : req.status === 'Accepted' ? 'Đã chấp nhận' : req.status === 'Cancelled' ? 'Tự động hủy' : 'Đã từ chối'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.875rem', color: '#334155', marginTop: 6, fontStyle: 'italic' }}>
-                          &quot;{req.message || 'Mong muốn tham gia cùng nhóm phát triển đề tài.'}&quot;
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 4, fontFamily: 'var(--font-mono)' }}>
-                          Gửi lúc: {formatDateTime(req.createdAt)}
+                        <div style={{ fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>{r.studentName}</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>
+                          {p?.major ?? '—'} • {formatDateTime(r.createdAt)}
                         </div>
                       </div>
-
-                      {/* Vote Score Badges */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '6px',
-                            background: '#dcfce7',
-                            color: '#15803d',
-                            border: '1px solid #86efac',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          <ThumbsUp size={13} /> {upvotes} Ủng hộ
-                        </span>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                            padding: '0.3rem 0.65rem',
-                            borderRadius: '6px',
-                            background: '#fee2e2',
-                            color: '#b91c1c',
-                            border: '1px solid #fca5a5',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            fontFamily: 'var(--font-mono)',
-                            fontVariantNumeric: 'tabular-nums',
-                          }}
-                        >
-                          <ThumbsDown size={13} /> {downvotes} Phản đối
-                        </span>
-                      </div>
+                      <Pill>
+                        <ThumbsUp size={12} /> {r.upvotes} • <ThumbsDown size={12} /> {r.downvotes}
+                      </Pill>
                     </div>
-
-                    {/* Member votes and comments breakdown */}
-                    {req.votes && req.votes.length > 0 && (
-                      <div style={{ padding: '0.75rem 0.85rem', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#64748b', marginBottom: '0.4rem', textTransform: 'uppercase' }}>
-                          Ý kiến tham khảo của thành viên ({req.votes.length}):
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          {req.votes.map((v, idx) => (
-                            <div key={idx} style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: 700, color: v.isUpvote ? '#15803d' : '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                                {v.isUpvote ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
-                                {v.isUpvote ? 'Ủng hộ' : 'Phản đối'}
-                              </span>
-                              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{v.voterName}:</span>
-                              <span style={{ color: '#475569' }}>{v.comment || '(Không có nhận xét)'}</span>
-                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>({formatDateTime(v.votedAt)})</span>
+                    {p && (
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        {SKILL_KEYS.map(({ key, label }) => (
+                          <Pill key={key}>
+                            {label} {p[key]}
+                          </Pill>
+                        ))}
+                      </div>
+                    )}
+                    {r.message && (
+                      <div style={{ fontSize: 14, color: 'var(--text-secondary, #334155)', padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }}>{r.message}</div>
+                    )}
+                    {r.votes && r.votes.some((v) => v.comment) && (
+                      <div style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>
+                        {r.votes
+                          .filter((v) => v.comment)
+                          .map((v) => (
+                            <div key={v.voterId}>
+                              <b>{v.voterName}</b>: {v.comment}
                             </div>
                           ))}
-                        </div>
                       </div>
                     )}
-
-                    {/* Actions Row (Member Vote + Leader Decide) */}
-                    {req.status === 'Pending' && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.65rem', borderTop: '1px solid #e2e8f0' }}>
-                        {/* Member Reference Vote Buttons */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            {hasVoted ? 'Bạn đã bỏ phiếu tham khảo:' : 'Bỏ phiếu tham khảo:'}
-                          </span>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#15803d', borderColor: '#86efac', gap: '0.3rem' }}
-                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: true })}
-                          >
-                            <ThumbsUp size={13} />
-                            <span>Ủng hộ</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: '#b91c1c', borderColor: '#fca5a5', gap: '0.3rem' }}
-                            onClick={() => setVoteCommentModal({ requestId: req.id, isUpvote: false })}
-                          >
-                            <ThumbsDown size={13} />
-                            <span>Phản đối</span>
-                          </button>
-                        </div>
-
-                        {/* Leader Decision Buttons */}
-                        {isLeader && (
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button
-                              type="button"
-                              className="btn btn-primary btn-sm"
-                              style={{ background: '#008837', borderColor: '#008837' }}
-                              onClick={() => void handleDecideJoinRequest(req.id, true)}
-                            >
-                              <Check size={14} /> Chấp thuận (Duyệt)
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              style={{ color: '#dc2626' }}
-                              onClick={() => void handleDecideJoinRequest(req.id, false)}
-                            >
-                              <X size={14} /> Từ chối
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {voted ? (
+                        <span style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', alignSelf: 'center' }}>Bạn đã {voted.isUpvote ? 'ủng hộ' : 'không ủng hộ'}</span>
+                      ) : (
+                        <>
+                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsUp size={14} />} disabled={!!busy} onClick={() => void voteRequest(r, true)}>
+                            Ủng hộ
+                          </Button>
+                          <Button variant="outline" style={{ height: 34 }} icon={<ThumbsDown size={14} />} disabled={!!busy} onClick={() => void voteRequest(r, false)}>
+                            Không ủng hộ
+                          </Button>
+                        </>
+                      )}
+                      {isLeader && (
+                        <>
+                          <span style={{ flex: 1 }} />
+                          <Button style={{ height: 34 }} icon={<CheckCircle2 size={14} />} loading={busy === `accept-${r.id}`} disabled={!!busy || isFull} onClick={() => void act(`accept-${r.id}`, () => workspaceApi.acceptJoinRequest(r.id), `Đã nhận ${r.studentName} vào nhóm.`)}>
+                            Chấp nhận
+                          </Button>
+                          <Button variant="danger" style={{ height: 34 }} icon={<XCircle size={14} />} loading={busy === `reject-${r.id}`} disabled={!!busy} onClick={() => void act(`reject-${r.id}`, () => workspaceApi.rejectJoinRequest(r.id), 'Đã từ chối đơn.')}>
+                            Từ chối
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
-      {/* TAB D: RANKED CANDIDATES (gRPC Matching) */}
-      {activeTab === 'candidates' && isLeader && (
-        <div className="card">
-          <div style={{ marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>
-              Ứng viên tiềm năng được xếp hạng bởi Matching Service (gRPC)
-            </h3>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-              Xếp hạng dựa trên kỹ năng, chuyên ngành bổ trợ (đa ngành) và định hướng vị trí của ứng viên đang tìm nhóm.
-            </p>
+      {transferList}
+
+      {/* Sửa đề tài */}
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Cập nhật tên nhóm / đề tài">
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const ok = await act('edit', () => workspaceApi.updateGroup(group.id, { name: editForm.name.trim(), description: editForm.description.trim() || null }), 'Đã cập nhật đề tài.');
+            if (ok) setEditOpen(false);
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
+          <Field label="Tên nhóm / tên đề tài">
+            <input required style={fieldStyle} value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+          </Field>
+          <Field label="Mô tả đề tài">
+            <textarea rows={5} style={textareaStyle} value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+          </Field>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Hủy
+            </Button>
+            <Button type="submit" loading={busy === 'edit'}>
+              Lưu
+            </Button>
           </div>
+        </form>
+      </Modal>
 
-          {candidates.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>
-              Chưa tìm thấy ứng viên phù hợp hoặc nhóm chưa khai báo vị trí cần tuyển.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {candidates.map((c) => (
-                <div
-                  key={c.userId}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '0.75rem',
-                    padding: '0.95rem 1.1rem',
-                    borderRadius: 10,
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: '0.95rem' }}>{c.fullName}</strong>
-                      {c.major && <span className="badge badge-domain">Ngành {c.major}</span>}
-                      {c.desiredRole && (
-                        <span style={{ fontSize: '0.8rem', color: '#475569' }}>• {c.desiredRole}</span>
-                      )}
-                      <span style={getScoreBadgeStyle(c.score)}>
-                        Điểm phù hợp: {c.score.toFixed(0)}%
-                      </span>
-                    </div>
-                    {c.matchedSkills.length > 0 && (
-                      <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: 4 }}>
-                        ✓ Kỹ năng khớp: {c.matchedSkills.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB E: TRANSFER REQUESTS */}
-      {activeTab === 'transfers' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
-                Đơn xin chuyển nhóm Hậu Chốt sổ của tôi
-              </h3>
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Theo dõi tiến độ xét duyệt đơn xin chuyển nhóm hoặc đổi chéo gửi Trưởng phòng (Moderator).
-              </p>
-            </div>
-            {pendingTransfer ? (
-              <span className="badge badge-warning" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <Clock size={14} /> Đang có đơn chờ xét duyệt
-              </span>
-            ) : approvedTransfer ? (
-              <span className="badge badge-success" style={{ fontSize: '0.8rem', padding: '0.45rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <CheckCircle2 size={14} /> Đã hoàn tất điều chuyển
-              </span>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => void openTransferModal()}
-                style={{ gap: '0.35rem', fontWeight: 700 }}
-              >
-                <ArrowLeftRight size={14} /> Tạo đơn mới
-              </button>
-            )}
+      {/* Chuyển quyền / Đề cử bầu Trưởng nhóm */}
+      {[
+        {
+          open: leaderModalOpen,
+          close: () => setLeaderModalOpen(false),
+          title: 'Chuyển quyền Trưởng nhóm',
+          subtitle: 'Bạn sẽ trở thành thành viên thường.',
+          key: 'transfer-leader',
+          submit: () => workspaceApi.transferLeader(group.id, selectedMemberId),
+          success: 'Đã chuyển quyền Trưởng nhóm.',
+          label: 'Chuyển quyền',
+          candidates: otherMembers,
+        },
+        {
+          open: electionModalOpen,
+          close: () => setElectionModalOpen(false),
+          title: 'Đề cử bầu Trưởng nhóm mới',
+          subtitle: 'Bỏ phiếu trong 24 giờ, đạt đa số thì thành Trưởng nhóm.',
+          key: 'start-election',
+          submit: () => workspaceApi.startElection(group.id, selectedMemberId),
+          success: 'Đã mở cuộc bầu Trưởng nhóm.',
+          label: 'Mở bầu chọn',
+          candidates: group.members.filter((m) => m.userId !== group.leaderId),
+        },
+      ].map((cfg) => (
+        <Modal key={cfg.key} open={cfg.open} onClose={cfg.close} title={cfg.title} subtitle={cfg.subtitle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {cfg.candidates.map((m) => (
+              <label key={m.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: selectedMemberId === m.userId ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)' }}>
+                <input type="radio" name={cfg.key} checked={selectedMemberId === m.userId} onChange={() => setSelectedMemberId(m.userId)} />
+                <span style={{ fontWeight: 650 }}>{m.fullName}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>{profiles[m.userId]?.major ?? ''}</span>
+              </label>
+            ))}
           </div>
-
-          {myTransfers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.65rem auto' }}>
-                <ArrowLeftRight size={20} />
-              </div>
-              <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
-                Bạn chưa gửi đơn xin chuyển nhóm nào
-              </div>
-              <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                Nếu có nhu cầu chuyển sang nhóm khác hoặc đổi chéo với thành viên nhóm bạn, hãy bấm "Tạo đơn mới".
-              </div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {myTransfers.map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    padding: '1rem',
-                    borderRadius: 8,
-                    background: 'var(--bg-main)',
-                    border: '1px solid var(--border-light)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--fpt-blue)' }}>{t.fromGroupCode}</span>
-                      <span>→</span>
-                      <span style={{ fontWeight: 700, color: 'var(--fpt-orange)' }}>{t.targetGroupCode}</span>
-                      {t.swapStudentId && (
-                        <span className="badge" style={{ fontSize: '0.7rem', background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-                          Đổi chéo: {t.swapStudentName} ({t.swapStudentCode})
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {t.status === 'Pending' && (
-                        <>
-                          <span className="badge badge-warning">Đang chờ duyệt</span>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{ color: '#dc2626', borderColor: '#fca5a5', padding: '0.2rem 0.55rem', fontSize: '0.75rem', gap: '0.25rem' }}
-                            onClick={() => void handleCancelTransferRequest(t.id)}
-                            disabled={cancellingTransferId === t.id}
-                            title="Hủy đơn xin chuyển nhóm này"
-                          >
-                            <X size={13} /> {cancellingTransferId === t.id ? 'Đang hủy...' : 'Hủy đơn'}
-                          </button>
-                        </>
-                      )}
-                      {t.status === 'Approved' && <span className="badge badge-success">Đã chấp thuận</span>}
-                      {t.status === 'Rejected' && <span className="badge badge-danger">Đã từ chối</span>}
-                      {t.status === 'Cancelled' && <span className="badge badge-secondary">Đã hủy</span>}
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: '0.825rem', color: 'var(--text-main)' }}>
-                    <strong>Lý do của bạn:</strong> {t.reason}
-                  </div>
-
-                  {t.decisionReason && (
-                    <div style={{ fontSize: '0.8rem', color: t.status === 'Approved' ? '#059669' : '#dc2626', background: 'var(--bg-card)', padding: '0.45rem 0.65rem', borderRadius: 6, border: '1px solid var(--border-light)' }}>
-                      <strong>Phản hồi từ Trưởng phòng:</strong> {t.decisionReason}
-                    </div>
-                  )}
-
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-                    Gửi lúc: {new Date(t.requestedAt).toLocaleString('vi-VN')}
-                    {t.decidedAt && ` • Phản hồi lúc: ${new Date(t.decidedAt).toLocaleString('vi-VN')}`}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Phase 4: Modal Đề cử Trưởng nhóm mới */}
-      <AnimatedModal
-        isOpen={showNominateModal}
-        onClose={() => setShowNominateModal(false)}
-        maxWidth={480}
-        ariaLabel="Bầu chọn Trưởng nhóm mới"
-      >
-        <div style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid var(--border-light)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Vote size={20} style={{ color: 'var(--fpt-orange)' }} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
-                Bầu chọn Trưởng nhóm mới
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNominateModal(false)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
+            <Button variant="outline" onClick={cfg.close}>
+              Hủy
+            </Button>
+            <Button
+              loading={busy === cfg.key}
+              disabled={!selectedMemberId}
+              onClick={async () => {
+                if (await act(cfg.key, cfg.submit, cfg.success)) cfg.close();
+              }}
             >
-              <X size={18} />
-            </button>
+              {cfg.label}
+            </Button>
           </div>
+        </Modal>
+      ))}
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (nominatedCandidateId) void handleStartElection(nominatedCandidateId);
+      {/* Mời thành viên ra khỏi nhóm */}
+      <Modal open={!!removeTarget} onClose={() => setRemoveTarget(null)} title={`Mời ${removeTarget?.fullName ?? ''} ra khỏi nhóm`}>
+        <Field label="Lý do">
+          <textarea rows={4} required style={textareaStyle} value={removeReason} onChange={(e) => setRemoveReason(e.target.value)} />
+        </Field>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+          <Button variant="outline" onClick={() => setRemoveTarget(null)}>
+            Hủy
+          </Button>
+          <Button
+            variant="danger"
+            loading={busy === 'remove'}
+            disabled={!removeReason.trim()}
+            onClick={async () => {
+              if (!removeTarget) return;
+              if (await act('remove', () => workspaceApi.removeMember(group.id, removeTarget.userId, removeReason.trim()), `Đã mời ${removeTarget.fullName} ra khỏi nhóm.`)) setRemoveTarget(null);
             }}
-            style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}
           >
-            <div
-              style={{
-                padding: '0.8rem 0.95rem',
-                borderRadius: 8,
-                background: 'rgba(242, 111, 33, 0.06)',
-                border: '1px solid rgba(242, 111, 33, 0.25)',
-                fontSize: '0.825rem',
-                lineHeight: 1.5,
-                color: 'var(--text-main)',
-              }}
-            >
-              <strong>Quy chế bầu cử:</strong> Cuộc bầu chọn kéo dài tối đa <strong>24 giờ</strong>. Toàn bộ thành viên có quyền bỏ phiếu. Khi số phiếu đồng ý đạt <strong>&gt; 50%</strong> tổng sĩ số nhóm, quyền Trưởng nhóm sẽ được chuyển giao lập tức.
-            </div>
-
-            <div>
-              <label style={{ fontSize: '0.825rem', fontWeight: 700, marginBottom: '0.45rem', display: 'block' }}>
-                Chọn thành viên bạn muốn đề cử làm Trưởng nhóm mới:
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 220, overflowY: 'auto' }}>
-                {group.members
-                  .filter((m) => m.userId !== group.leaderId)
-                  .map((m) => {
-                    const prof = memberProfiles[m.userId];
-                    const isSelected = nominatedCandidateId === m.userId;
-                    const displayName = prof?.fullName || m.fullName || m.userId;
-                    return (
-                      <div
-                        key={m.userId}
-                        onClick={() => setNominatedCandidateId(m.userId)}
-                        style={{
-                          padding: '0.65rem 0.85rem',
-                          borderRadius: 8,
-                          border: isSelected ? '2px solid #f26f21' : '1px solid #e2e8f0',
-                          background: isSelected ? 'rgba(242, 111, 33, 0.05)' : '#fff',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>
-                            {displayName} {m.userId === user?.id ? '(Tự ứng cử - Bạn)' : ''}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            {m.studentCode ? `${m.studentCode} • ` : ''}Tham gia từ: {formatDateTime(m.joinedAt)}
-                          </div>
-                        </div>
-                        <input
-                          type="radio"
-                          name="candidateNominee"
-                          checked={isSelected}
-                          onChange={() => setNominatedCandidateId(m.userId)}
-                        />
-                      </div>
-                    );
-                  })}
-              </div>
-              {group.members.filter((m) => m.userId !== group.leaderId).length === 0 && (
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: '0.5rem 0 0 0' }}>
-                  Không có thành viên nào khác để đề cử.
-                </p>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowNominateModal(false)}
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                disabled={!nominatedCandidateId || electionSubmitting}
-                className="btn btn-primary btn-sm"
-                style={{ gap: '0.35rem', fontWeight: 700 }}
-              >
-                <Vote size={14} />
-                <span>{electionSubmitting ? 'Đang khởi tạo...' : 'Bắt đầu cuộc bầu chọn (24h)'}</span>
-              </button>
-            </div>
-          </form>
+            Xác nhận
+          </Button>
         </div>
-      </AnimatedModal>
+      </Modal>
 
-      {/* Phase 4: Modal Bỏ phiếu tham khảo ứng viên kèm nhận xét */}
-      <AnimatedModal
-        isOpen={Boolean(voteCommentModal)}
-        onClose={() => setVoteCommentModal(null)}
-        maxWidth={440}
-        ariaLabel="Bỏ phiếu tham khảo ứng viên"
-      >
-        {voteCommentModal && (
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                {voteCommentModal.isUpvote ? (
-                  <ThumbsUp size={18} style={{ color: '#15803d' }} />
-                ) : (
-                  <ThumbsDown size={18} style={{ color: '#b91c1c' }} />
-                )}
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
-                  Bỏ phiếu {voteCommentModal.isUpvote ? 'Ủng hộ' : 'Phản đối'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setVoteCommentModal(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void handleVoteApplication(voteCommentModal.requestId, voteCommentModal.isUpvote, voteComment);
-              }}
-              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-            >
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Phiếu vote và nhận xét của bạn sẽ được hiển thị cho toàn đội và Trưởng nhóm tham khảo trước khi ra quyết định duyệt.
-              </p>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
-                  Ý kiến / Nhận xét của bạn (không bắt buộc):
-                </label>
-                <textarea
-                  rows={3}
-                  className="form-control"
-                  placeholder="Ví dụ: Em thấy bạn này rất hợp vai trò Backend, kỹ năng khá tốt..."
-                  value={voteComment}
-                  onChange={(e) => setVoteComment(e.target.value)}
-                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setVoteCommentModal(null)}
-                  disabled={votingApp}
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={votingApp}
-                  className="btn btn-primary btn-sm"
-                  style={{
-                    background: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
-                    borderColor: voteCommentModal.isUpvote ? '#008837' : '#dc2626',
-                    gap: '0.35rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  {voteCommentModal.isUpvote ? <ThumbsUp size={14} /> : <ThumbsDown size={14} />}
-                  <span>{votingApp ? 'Đang gửi...' : 'Xác nhận bỏ phiếu'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </AnimatedModal>
-
-      {/* Phase 4: Modal Mời ra khỏi nhóm kèm lý do bắt buộc & Audit Log */}
-      <AnimatedModal
-        isOpen={Boolean(kickModal)}
-        onClose={() => !isSubmittingKick && setKickModal(null)}
-        maxWidth={480}
-        ariaLabel="Mời thành viên ra khỏi nhóm"
-      >
-        {kickModal && (
-          <div style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <UserMinus size={18} style={{ color: '#b91c1c' }} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>
-                    Mời thành viên ra khỏi nhóm
-                  </h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Thành viên: <strong style={{ color: 'var(--text-main)' }}>{kickModal.fullName}</strong>
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => !isSubmittingKick && setKickModal(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => void handleConfirmKick(e)}
-              style={{ paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}
-            >
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 12px', fontSize: '0.8rem', color: '#991b1b', lineHeight: 1.5 }}>
-                <strong>Lưu ý quan trọng:</strong> Hành động này sẽ được ghi vào <strong>Nhật ký hệ thống (Audit Log)</strong>. Đồng thời một <strong>email thông báo chính thức kèm lý do</strong> sẽ được gửi tự động đến hòm thư sinh viên.
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.35rem', display: 'block' }}>
-                  Phân loại lý do <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <select
-                  className="form-control"
-                  value={kickCategory}
-                  onChange={(e) => setKickCategory(e.target.value)}
-                  style={{ fontSize: '0.825rem' }}
-                >
-                  <option value="Mất liên lạc / Không phản hồi (>48h)">Mất liên lạc / Không phản hồi (&gt;48h)</option>
-                  <option value="Không hoàn thành nhiệm vụ / Bỏ bê dự án">Không hoàn thành nhiệm vụ / Bỏ bê dự án</option>
-                  <option value="Không phù hợp định hướng đề tài / phong cách làm việc">Không phù hợp định hướng đề tài / phong cách làm việc</option>
-                  <option value="Lý do cá nhân / Khác">Lý do cá nhân / Khác</option>
-                </select>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 700, margin: 0 }}>
-                    Giải trình lý do chi tiết <span style={{ color: '#dc2626' }}>*</span>
-                  </label>
-                  <span style={{ fontSize: '0.725rem', color: kickReason.trim().length < 10 ? '#dc2626' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {kickReason.trim().length}/1000 (tối thiểu 10 ký tự)
-                  </span>
-                </div>
-                <textarea
-                  rows={4}
-                  className="form-control"
-                  placeholder="Nhập giải trình rõ ràng, lịch sự để gửi đến sinh viên (ví dụ: Thành viên không tham gia họp nhóm 3 buổi liên tiếp và không phản hồi tin nhắn phân chia task...)"
-                  value={kickReason}
-                  onChange={(e) => setKickReason(e.target.value)}
-                  style={{ fontSize: '0.825rem', resize: 'vertical' }}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setKickModal(null)}
-                  disabled={isSubmittingKick}
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm"
-                  style={{ background: '#dc2626', borderColor: '#b91c1c' }}
-                  disabled={isSubmittingKick || kickReason.trim().length < 10}
-                >
-                  {isSubmittingKick ? 'Đang gửi thông báo...' : 'Xác nhận mời ra khỏi nhóm'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-      </AnimatedModal>
-
-      {/* Phase 6: Modal Tạo đơn xin chuyển nhóm */}
-      <AnimatedModal
-        isOpen={showTransferModal}
-        onClose={() => setShowTransferModal(false)}
-        maxWidth={500}
-        ariaLabel="Tạo đơn xin chuyển nhóm"
-      >
-        <div style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.85rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(242, 111, 33, 0.1)', color: 'var(--fpt-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowLeftRight size={18} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>
-                Tạo đơn xin chuyển nhóm
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowTransferModal(false)}
-              style={{ color: 'var(--text-muted)', padding: '0.25rem', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <form onSubmit={handleCreateTransferRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
-            <div>
-              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                1. Chọn Nhóm đích muốn chuyển đến <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              {loadingAvailableRooms ? (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Đang tải danh sách nhóm trong không gian...</div>
-              ) : (
-                <select
-                  className="form-control"
-                  value={transferTargetGroupId}
-                  onChange={(e) => handleTargetGroupChange(e.target.value)}
-                  required
-                  style={{ fontSize: '0.85rem' }}
-                >
-                  <option value="">-- Chọn nhóm đích --</option>
-                  {availableRooms.map((r) => {
-                    const isFull = r.memberCount >= r.maxMembers;
-                    return (
-                      <option key={r.id} value={r.id}>
-                        [{r.roomCode || r.name}] {r.name} ({r.memberCount}/{r.maxMembers} SV){isFull ? ' - ĐÃ ĐỦ (Cần đổi chéo)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
-            </div>
-
-            {/* Thông tin nhóm đích */}
-            {selectedTargetRoom && (
-              <div
-                style={{
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: '8px',
-                  background: 'var(--bg-main)',
-                  border: '1px solid var(--border-light)',
-                  fontSize: '0.8rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.35rem',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Sĩ số nhóm đích:</span>
-                  <span style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: isTargetFull ? '#ef4444' : 'var(--fpt-blue)' }}>
-                    {selectedTargetRoom.memberCount}/{selectedTargetRoom.maxMembers} SV {isTargetFull ? '(Đã đủ sĩ số)' : '(Còn chỗ)'}
-                  </span>
-                </div>
-                {isTargetFull && (
-                  <div style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                    <span>Nhóm đích đã đạt sĩ số tối đa ({selectedTargetRoom.maxMembers} SV). Hệ thống tự động kích hoạt Đổi chéo 2 chiều (Swap).</span>
-                  </div>
-                )}
-                {isSourceAtThreshold && (
-                  <div style={{ color: '#b91c1c', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', lineHeight: 1.4 }}>
-                    <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                    <span>Nhóm hiện tại của bạn chỉ có {group?.members.length} SV (ngưỡng tối thiểu). Bắt buộc phải Đổi chéo 2 chiều (Swap) để bảo toàn sĩ số nhóm.</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Swap Checkbox & Swap Student */}
-            <div
-              style={{
-                padding: '0.75rem 0.85rem',
-                borderRadius: '8px',
-                background: 'var(--bg-main)',
-                border: '1px solid var(--border-light)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.65rem',
-              }}
-            >
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: isSwapMandatory ? 'not-allowed' : 'pointer', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={transferIsSwap}
-                  disabled={isSwapMandatory}
-                  onChange={(e) => {
-                    if (!isSwapMandatory) {
-                      setTransferIsSwap(e.target.checked);
-                      setTransferSwapStudentId('');
-                    }
-                  }}
-                  style={{ width: 16, height: 16, accentColor: 'var(--fpt-orange)' }}
-                />
-                <span>Đổi chéo 2 chiều (Swap với 1 bạn ở nhóm đích)</span>
-              </label>
-
-              {transferIsSwap && (
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                    Chọn sinh viên nhóm đích để đổi chéo ngược lại <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  {loadingTargetMembers ? (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', padding: '0.35rem 0' }}>Đang nạp danh sách thành viên nhóm đích...</div>
-                  ) : (
-                    <select
-                      className="form-control"
-                      value={transferSwapStudentId}
-                      onChange={(e) => setTransferSwapStudentId(e.target.value)}
-                      disabled={!transferTargetGroupId || loadingTargetMembers}
-                      required={transferIsSwap}
-                      style={{ fontSize: '0.85rem' }}
-                    >
-                      <option value="">-- Chọn sinh viên đổi ngược --</option>
-                      {targetGroupMembers.map((m) => (
-                        <option key={m.userId} value={m.userId}>
-                          {m.fullName} {m.role === 'Leader' ? '(Trưởng nhóm)' : '(Thành viên)'}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                2. Lý do xin chuyển nhóm <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={transferReason}
-                onChange={(e) => setTransferReason(e.target.value)}
-                placeholder="Trình bày rõ lý do điều chuyển, thỏa thuận đổi chéo (nếu có) để Trưởng phòng phê duyệt..."
-                required
-                style={{ fontSize: '0.85rem' }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #e2e8f0' }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowTransferModal(false)}
-                disabled={submittingTransfer}
-              >
-                Hủy
-              </button>
-              <button
-                type="submit"
-                disabled={submittingTransfer || !transferTargetGroupId}
-                className="btn btn-primary btn-sm"
-                style={{ gap: '0.35rem', fontWeight: 700 }}
-              >
-                <Send size={14} />
-                <span>{submittingTransfer ? 'Đang gửi đơn...' : 'Gửi đơn xin chuyển nhóm'}</span>
-              </button>
-            </div>
-          </form>
+      {/* Yêu cầu chuyển nhóm (sau chốt sổ) */}
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Yêu cầu chuyển nhóm">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Field label="Nhóm muốn chuyển đến">
+            <select style={fieldStyle} value={transferForm.targetGroupId} onChange={(e) => setTransferForm({ ...transferForm, targetGroupId: e.target.value, swapWithStudentId: '' })}>
+              <option value="">— Chọn nhóm —</option>
+              {transferGroups.map((g) => (
+                <option key={g.groupId} value={g.groupId}>
+                  {g.roomCode} — {g.groupName} ({g.memberCount}/{g.maxMembers})
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Đổi chéo với" hint="Bắt buộc khi nhóm đích đã đủ người.">
+            <select style={fieldStyle} value={transferForm.swapWithStudentId} disabled={!transferTarget} onChange={(e) => setTransferForm({ ...transferForm, swapWithStudentId: e.target.value })}>
+              <option value="">— Chuyển một chiều —</option>
+              {transferTarget?.members.map((m) => (
+                <option key={m.studentId} value={m.studentId}>
+                  {m.fullName}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Lý do">
+            <textarea rows={4} style={textareaStyle} value={transferForm.reason} onChange={(e) => setTransferForm({ ...transferForm, reason: e.target.value })} />
+          </Field>
         </div>
-      </AnimatedModal>
-
-      {/* Reusable GSAP ConfirmDialog */}
-      <ConfirmDialog
-        isOpen={Boolean(confirmDialog)}
-        onClose={() => {
-          if (!confirmDialogLoading) setConfirmDialog(null);
-        }}
-        onConfirm={async () => {
-          if (!confirmDialog) return;
-          setConfirmDialogLoading(true);
-          try {
-            await confirmDialog.onConfirm();
-            setConfirmDialog(null);
-          } finally {
-            setConfirmDialogLoading(false);
-          }
-        }}
-        title={confirmDialog?.title || 'Xác nhận'}
-        description={confirmDialog?.description || ''}
-        confirmText={confirmDialog?.confirmText}
-        variant={confirmDialog?.variant}
-        icon={confirmDialog?.icon}
-        loading={confirmDialogLoading}
-      />
-    </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+          <Button variant="outline" onClick={() => setTransferOpen(false)}>
+            Hủy
+          </Button>
+          <Button
+            icon={<Send size={15} />}
+            loading={busy === 'transfer'}
+            disabled={!transferForm.targetGroupId || !transferForm.reason.trim()}
+            onClick={async () => {
+              const ok = await act(
+                'transfer',
+                () =>
+                  workspaceApi.createTransferRequest(space.id, {
+                    targetGroupId: transferForm.targetGroupId,
+                    swapWithStudentId: transferForm.swapWithStudentId || null,
+                    reason: transferForm.reason.trim(),
+                  }),
+                'Đã gửi yêu cầu chuyển nhóm.'
+              );
+              if (ok) setTransferOpen(false);
+            }}
+          >
+            Gửi yêu cầu
+          </Button>
+        </div>
+      </Modal>
+    </PageShell>
   );
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 3. JOIN REQUESTS PAGE (/join-requests) — Quản lý Đơn xin gia nhập của Sinh viên
+// 3. ĐƠN ỨNG TUYỂN CỦA TÔI (/join-requests)
 // ══════════════════════════════════════════════════════════════════════════════
+
+const REQUEST_STATUS_LABEL: Record<string, string> = {
+  Pending: 'Đang chờ',
+  Accepted: 'Được chấp nhận',
+  Rejected: 'Bị từ chối',
+  Cancelled: 'Đã hủy',
+};
+
 export const JoinRequestsPage: React.FC = () => {
-  const [requests, setRequests] = useState<JoinRequestResponse[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const { space } = useSelectedSpace();
+  const toast = useToast();
+  const dialog = useConfirm();
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
-  const loadMyRequests = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const res = await groupsApi.getMyJoinRequests({
-        status: statusFilter || undefined,
-        page: 1,
-        pageSize: 30,
-      });
-      setRequests(res.items || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể tải danh sách yêu cầu tham gia nhóm.');
+      const list = await workspaceApi.listMyJoinRequests();
+      setRequests([...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err, 'Không tải được đơn ứng tuyển.'));
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
-    void loadMyRequests();
-  }, [loadMyRequests]);
+    void load();
+  }, [load]);
 
-  const handleCancelRequest = async (id: string) => {
+  const cancel = async (req: JoinRequest) => {
+    if ((await dialog.confirm({ title: `Rút đơn vào ${req.groupName}?`, confirmLabel: 'Rút đơn', danger: true })) === null) return;
+    setCancelling(req.id);
     try {
-      await groupsApi.cancelJoinRequest(id);
-      setFeedback('Đã hủy yêu cầu xin gia nhập nhóm.');
-      await loadMyRequests();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Không thể hủy yêu cầu này.');
+      await workspaceApi.cancelJoinRequest(req.id);
+      toast.show('Đã rút đơn.');
+      await load();
+    } catch (err) {
+      toast.show(errorMessage(err), 'error');
+    } finally {
+      setCancelling(null);
     }
   };
 
-  const pendingCount = requests.filter((r) => r.status === 'Pending').length;
+  const pending = requests.filter((r) => r.status === 'Pending').length;
+  const limit = space?.maxConcurrentApplies;
 
   return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-          marginBottom: '1.75rem',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Yêu cầu Tham gia Nhóm ({pendingCount}/5 Pending)
-          </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Theo dõi trạng thái các đơn xin gia nhập nhóm của bạn (Tối đa 5 yêu cầu Pending cùng lúc)
-          </p>
-        </div>
+    <PageShell>
+      {toast.node}
+      {dialog.node}
+      <PageHeader
+        title="Đơn ứng tuyển"
+        meta={<InfoTip text="Khi bạn vào một nhóm, các đơn còn chờ khác tự hủy." />}
+        actions={
+          <Button variant="ghost" icon={<RefreshCw size={15} />} onClick={() => void load()}>
+            Tải lại
+          </Button>
+        }
+      />
 
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <select
-            className="form-control"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ width: 180 }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="Pending">Đang chờ duyệt (Pending)</option>
-            <option value="Accepted">Đã chấp nhận (Accepted)</option>
-            <option value="Rejected">Từ chối (Rejected)</option>
-            <option value="Cancelled">Đã hủy (Cancelled)</option>
-          </select>
-          <button className="btn btn-secondary btn-sm" onClick={() => void loadMyRequests()}>
-            <RefreshCw size={15} /> Làm mới
-          </button>
+      <Card style={{ marginBottom: '1.5rem' }} padding={18}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', fontWeight: 600 }}>Đơn đang chờ</div>
+            <div style={{ fontSize: 26, fontWeight: 750, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
+              {pending}
+              {limit ? <span style={{ fontSize: 16, color: 'var(--text-muted, #64748B)' }}> / {limit}</span> : null}
+            </div>
+          </div>
+          {limit ? <div style={{ width: 'min(260px, 100%)' }}><SeatBar count={pending} max={limit} /></div> : null}
         </div>
-      </div>
+      </Card>
 
-      {feedback && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #10b981',
-            background: '#ecfdf5',
-            color: '#065f46',
-          }}
-        >
-          {feedback}
-        </div>
-      )}
-      {error && (
-        <div
-          className="card"
-          style={{
-            marginBottom: '1rem',
-            padding: '0.85rem 1.15rem',
-            borderLeft: '4px solid #ef4444',
-            background: '#fef2f2',
-            color: '#991b1b',
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <Banner tone="error">{error}</Banner>}
 
-      {loading ? (
-        <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          Đang tải danh sách yêu cầu...
-        </div>
+      {loading && requests.length === 0 ? (
+        <StateBox kind="loading" />
       ) : requests.length === 0 ? (
-        <div className="card" style={{ maxWidth: 800, textAlign: 'center', padding: '3.5rem', color: 'var(--text-muted)' }}>
-          <AlertCircle size={44} style={{ margin: '0 auto 1rem auto', color: '#94a3b8' }} />
-          <h3 style={{ color: 'var(--text-main)' }}>Bạn chưa có yêu cầu gia nhập nào</h3>
-          <p style={{ marginTop: '0.35rem' }}>
-            Hãy khám phá các nhóm đề tài tại mục &quot;Khám phá nhóm&quot; và gửi yêu cầu tham gia phù hợp.
-          </p>
-        </div>
+        <StateBox
+          kind="empty"
+          title="Bạn chưa nộp đơn nào"
+          action={
+            <Link to="/groups" style={{ textDecoration: 'none' }}>
+              <Button icon={<Layers size={15} />}>Tìm nhóm đang tuyển</Button>
+            </Link>
+          }
+        />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxWidth: 900 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {requests.map((r) => (
-            <div
-              key={r.id}
-              className="card"
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <strong style={{ fontSize: '1.05rem', color: 'var(--text-main)' }}>
-                    Nhóm: {r.groupName}
-                  </strong>
-                  <span
-                    className="badge"
-                    style={{
-                      background:
-                        r.status === 'Accepted'
-                          ? '#dcfce7'
-                          : r.status === 'Pending'
-                          ? '#fff7ed'
-                          : r.status === 'Cancelled'
-                          ? '#f1f5f9'
-                          : '#fee2e2',
-                      color:
-                        r.status === 'Accepted'
-                          ? '#15803d'
-                          : r.status === 'Pending'
-                          ? '#c2410c'
-                          : r.status === 'Cancelled'
-                          ? '#475569'
-                          : '#b91c1c',
-                      border: `1px solid ${
-                        r.status === 'Accepted'
-                          ? '#86efac'
-                          : r.status === 'Pending'
-                          ? '#fed7aa'
-                          : r.status === 'Cancelled'
-                          ? '#cbd5e1'
-                          : '#fca5a5'
-                      }`,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {r.status === 'Pending'
-                      ? 'Đang chờ duyệt'
-                      : r.status === 'Accepted'
-                      ? 'Đã chấp nhận'
-                      : r.status === 'Cancelled'
-                      ? 'Tự động hủy do đã có nhóm'
-                      : 'Đã từ chối'}
-                  </span>
-
-                  {((r.upvotes || 0) > 0 || (r.downvotes || 0) > 0) && (
-                    <span
-                      style={{
-                        fontSize: '0.75rem',
-                        fontFamily: 'var(--font-mono)',
-                        fontVariantNumeric: 'tabular-nums',
-                        color: '#64748b',
-                        padding: '0.15rem 0.45rem',
-                        borderRadius: 4,
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.3rem',
-                      }}
-                    >
-                      <ThumbsUp size={12} style={{ color: '#15803d' }} /> {r.upvotes || 0} • <ThumbsDown size={12} style={{ color: '#b91c1c' }} /> {r.downvotes || 0}
-                    </span>
+            <Card key={r.id} padding={18}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 750, color: 'var(--text-main, #0F172A)' }}>{r.groupName}</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--text-muted, #64748B)', marginTop: 2 }}>
+                    Nộp lúc {formatDateTime(r.createdAt)}
+                    {r.decidedAt ? ` • Xử lý lúc ${formatDateTime(r.decidedAt)}` : ''} • <ThumbsUp size={12} /> {r.upvotes} <ThumbsDown size={12} /> {r.downvotes}
+                  </div>
+                  {r.message && <p style={{ margin: '8px 0 0 0', fontSize: 14.5, color: 'var(--text-secondary, #334155)' }}>{r.message}</p>}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Pill dot={ROOM_STATUS_DOT[r.status]}>{REQUEST_STATUS_LABEL[r.status] ?? r.status}</Pill>
+                  {r.status === 'Pending' && (
+                    <Button variant="outline" style={{ height: 34 }} loading={cancelling === r.id} onClick={() => void cancel(r)}>
+                      Rút đơn
+                    </Button>
                   )}
                 </div>
-                {r.message && (
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                    Lời nhắn: &quot;{r.message}&quot;
-                  </p>
-                )}
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                  Gửi lúc: {formatDateTime(r.createdAt)}
-                  {r.decidedAt && ` • Phản hồi lúc: ${formatDateTime(r.decidedAt)}`}
-                </div>
               </div>
-
-              {r.status === 'Pending' && (
-                <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ color: '#dc2626' }}
-                  onClick={() => void handleCancelRequest(r.id)}
-                >
-                  <X size={15} /> Hủy yêu cầu
-                </button>
-              )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };

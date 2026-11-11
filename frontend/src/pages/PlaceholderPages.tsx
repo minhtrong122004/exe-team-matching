@@ -16,7 +16,8 @@ import {
 import { notificationsApi } from '../api/notifications';
 import { reportsApi } from '../api/reports';
 import { spacesApi } from '../api/spaces';
-import type { CourseSpaceResponse, SpaceRosterResponse } from '../types/space';
+import type { CourseSpaceResponse } from '../types/space';
+import { workspaceApi, type SpaceRoster } from '../api/workspace';
 import type {
   GroupReportItemResponse,
   GroupStatStatus,
@@ -450,7 +451,7 @@ export const ReportsPage: React.FC = () => {
   // Phase 6: Space Roster for Lecturer & Admin (BR-38)
   const [spaces, setSpaces] = useState<CourseSpaceResponse[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>('');
-  const [roster, setRoster] = useState<SpaceRosterResponse | null>(null);
+  const [roster, setRoster] = useState<SpaceRoster | null>(null);
   const [loadingRoster, setLoadingRoster] = useState<boolean>(false);
   const [rosterSearch, setRosterSearch] = useState<string>('');
   const [exportingRosterCsv, setExportingRosterCsv] = useState<boolean>(false);
@@ -467,7 +468,7 @@ export const ReportsPage: React.FC = () => {
   const loadSpaceRoster = useCallback(async (spaceId: string) => {
     setLoadingRoster(true);
     try {
-      const res = await spacesApi.getSpaceRoster(spaceId);
+      const res = await workspaceApi.getRoster(spaceId);
       setRoster(res);
     } catch {
       setRoster(null);
@@ -608,12 +609,9 @@ export const ReportsPage: React.FC = () => {
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
-            Báo cáo Tình hình Ghép nhóm EXE
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
+            Báo cáo thống kê
           </h1>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Dành cho Giảng viên & Quản trị viên theo dõi tiến độ sinh viên (Report Service • Redis Streams Projection)
-          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -675,8 +673,8 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {totalStudents}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.25rem' }}>
-            100% sinh viên môn EXE
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+            {totalStudents > 0 ? 'Đã đăng nhập hệ thống' : 'Chưa có dữ liệu'}
           </div>
         </div>
         <div className="card">
@@ -687,18 +685,18 @@ export const ReportsPage: React.FC = () => {
             {studentsInGroup}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
-            {inGroupPercent}% hoàn thành
+            {totalStudents > 0 ? `${inGroupPercent}% tổng số` : '—'}
           </div>
         </div>
         <div className="card">
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             CHƯA CÓ NHÓM
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ef4444', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {studentsWithoutGroup}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '0.25rem' }}>
-            Cần hỗ trợ ghép nhóm
+          <div style={{ fontSize: '0.75rem', color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+            {studentsWithoutGroup > 0 ? 'Cần ghép nhóm' : '—'}
           </div>
         </div>
         <div className="card">
@@ -709,7 +707,7 @@ export const ReportsPage: React.FC = () => {
             {totalGroups}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
-            {fullGroups} nhóm đã đủ quân số
+            {fullGroups} nhóm đủ người
           </div>
         </div>
       </div>
@@ -1047,19 +1045,19 @@ export const ReportsPage: React.FC = () => {
                   .filter((g) => {
                     if (!rosterSearch.trim()) return true;
                     const q = rosterSearch.trim().toLowerCase();
-                    return g.groupCode.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) || g.members.some(m => m.fullName.toLowerCase().includes(q) || m.studentCode.toLowerCase().includes(q));
+                    return g.roomCode.toLowerCase().includes(q) || g.groupName.toLowerCase().includes(q) || g.members.some(m => m.fullName.toLowerCase().includes(q) || m.studentCode.toLowerCase().includes(q));
                   })
                   .map((grp) => (
                     <div key={grp.groupId} style={{ border: '1px solid var(--border-light)', borderRadius: 8, padding: '1rem', background: 'var(--bg-main)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--fpt-blue)', fontSize: '0.85rem' }}>
-                            {grp.groupCode}
+                            {grp.roomCode}
                           </span>
-                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{grp.name}</strong>
-                          {grp.projectIdeaTitle && (
+                          <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{grp.groupName}</strong>
+                          {grp.projectTitle && (
                             <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
-                              Đề tài: {grp.projectIdeaTitle}
+                              Đề tài: {grp.projectTitle}
                             </span>
                           )}
                         </div>
@@ -1095,7 +1093,7 @@ export const ReportsPage: React.FC = () => {
                                 </span>
                               </td>
                               <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>
-                                {m.isLeader ? (
+                                {m.role === 'Leader' ? (
                                   <span className="badge badge-warning" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 700 }}>
                                     <Crown size={11} /> Leader
                                   </span>
@@ -1110,7 +1108,7 @@ export const ReportsPage: React.FC = () => {
                                 {m.managementScore}%
                               </td>
                               <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
-                                {m.designScore}%
+                                {m.graphicDesignScore}%
                               </td>
                               <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
                                 {m.marketingScore}%

@@ -398,7 +398,8 @@ const RadarChart5: React.FC<{
         </span>
       </div>
 
-      {/* 2-Column Mini Insights Footer */}
+      {/* Gợi ý thế mạnh chỉ hiện khi đã nhập điểm */}
+      {topSkill.score > 0 && (
       <div
         style={{
           display: 'grid',
@@ -434,7 +435,7 @@ const RadarChart5: React.FC<{
             {suggestedRole}
           </div>
         </div>
-      </div>
+      </div>)}
     </div>
   );
 };
