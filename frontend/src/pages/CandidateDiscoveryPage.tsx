@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useId } from 'react';
+import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import apiClient from '../api/client';
 import type {
   CandidateProfileResponse,
@@ -21,7 +21,12 @@ import {
   RotateCcw,
   UserCheck,
   UserX,
+  Eye,
+  AlertCircle,
+  Sparkles,
 } from '../utils/icons';
+import { useAuth } from '../contexts/AuthContext';
+import gsap from 'gsap';
 
 const MAJOR_OPTIONS: { value: Major; label: string }[] = [
   { value: 'SE', label: 'SE - Kỹ thuật phần mềm' },
@@ -34,10 +39,18 @@ const MAJOR_OPTIONS: { value: Major; label: string }[] = [
 ];
 
 export const CandidateDiscoveryPage: React.FC = () => {
+  const { user } = useAuth();
+  const isModerator = user?.role === 'Moderator';
+  const isLecturer = user?.role === 'Lecturer';
+  const isStaff = isModerator || isLecturer;
+
   const searchInputId = useId();
   const majorSelectId = useId();
   const skillSelectId = useId();
   const availabilitySelectId = useId();
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Danh sách ứng viên & phân trang
   const [candidates, setCandidates] = useState<CandidateProfileResponse[]>([]);
@@ -62,6 +75,36 @@ export const CandidateDiscoveryPage: React.FC = () => {
 
   // Modal xem chi tiết ứng viên
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateProfileResponse | null>(null);
+
+  // Auto dismiss feedback toast
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
+  // GSAP animation for grid cards
+  useEffect(() => {
+    if (gridRef.current && candidates.length > 0) {
+      gsap.fromTo(
+        gridRef.current.children,
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.28, stagger: 0.035, ease: 'power2.out' }
+      );
+    }
+  }, [candidates]);
+
+  // GSAP animation for modal popup
+  useEffect(() => {
+    if (modalRef.current && selectedCandidate) {
+      gsap.fromTo(
+        modalRef.current,
+        { opacity: 0, scale: 0.96, y: 10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+      );
+    }
+  }, [selectedCandidate]);
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -256,10 +299,47 @@ export const CandidateDiscoveryPage: React.FC = () => {
     }
   };
 
+  const lookingCount = candidates.filter((c) => c.availability === 'LookingForTeam').length;
+  const inTeamCount = candidates.filter((c) => c.availability === 'InTeam').length;
+  const completedSkillsCount = candidates.filter((c) => c.isProfileCompleted).length;
+  const completedRate = candidates.length > 0 ? Math.round((completedSkillsCount / candidates.length) * 100) : 0;
+
   return (
     <div style={{ padding: '0 0 3rem' }}>
       {/* ── Page Header (Flat directly on background) ── */}
       <div style={{ marginBottom: '1.75rem' }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            padding: '0.25rem 0.75rem',
+            borderRadius: 9999,
+            background: isStaff ? 'rgba(0, 84, 166, 0.08)' : 'rgba(242, 111, 33, 0.08)',
+            border: `1px solid ${isStaff ? 'rgba(0, 84, 166, 0.2)' : 'rgba(242, 111, 33, 0.2)'}`,
+            marginBottom: '0.65rem',
+          }}
+        >
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: isStaff ? 'var(--fpt-blue, #0054a6)' : 'var(--fpt-orange, #f26f21)',
+            }}
+          />
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              color: isStaff ? 'var(--fpt-blue, #0054a6)' : 'var(--fpt-orange, #f26f21)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {isStaff ? 'QUẢN TRỊ & GIÁM SÁT HỌC VIÊN • FPT EDUCATION' : 'TÌM BẠN GHÉP ĐỘI KHỞI NGHIỆP • EXE101'}
+          </span>
+        </div>
+
         <h1
           style={{
             fontSize: '28px',
@@ -269,13 +349,236 @@ export const CandidateDiscoveryPage: React.FC = () => {
             margin: 0,
           }}
         >
-          Danh bạ Ứng viên & Thành viên EXE
+          {isStaff ? 'Danh bạ Sinh viên Môn EXE' : 'Tìm bạn ghép đội Khởi nghiệp EXE'}
         </h1>
 
-        <p style={{ fontSize: '16px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: 740, lineHeight: 1.5, margin: '4px 0 0 0' }}>
-          Tìm kiếm đồng đội phù hợp với dự án khởi nghiệp của bạn. Kết nối sinh viên đa ngành (Kỹ thuật phần mềm, Trí tuệ nhân tạo, An toàn thông tin, Thiết kế đồ họa, Digital Marketing, Kinh doanh quốc tế) và chiêu mộ thành viên.
+        <p
+          style={{
+            fontSize: '15.5px',
+            color: 'var(--text-muted)',
+            marginTop: '6px',
+            maxWidth: 820,
+            lineHeight: 1.55,
+            margin: '6px 0 0 0',
+          }}
+        >
+          {isStaff
+            ? 'Tra cứu và giám sát danh sách sinh viên học phần EXE101. Theo dõi thông tin chuyên ngành, điểm 5 kỹ năng cốt lõi và hiện trạng ghép nhóm (Đang tìm nhóm, Đã có nhóm) phục vụ công tác điều phối học kỳ.'
+            : 'Tìm kiếm đồng đội phù hợp với dự án khởi nghiệp của bạn. Kết nối sinh viên đa ngành (Kỹ thuật phần mềm, Trí tuệ nhân tạo, An toàn thông tin, Thiết kế đồ họa, Digital Marketing, Kinh doanh quốc tế) và chiêu mộ thành viên.'}
         </p>
       </div>
+
+      {/* ── KPI STATS OVERVIEW (Dành cho Moderator & Lecturer) ── */}
+      {isStaff && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '1rem',
+            marginBottom: '1.75rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '1.15rem 1.25rem',
+              border: '1px solid var(--border-light)',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.9rem',
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                background: 'rgba(0, 84, 166, 0.1)',
+                color: 'var(--fpt-blue, #0054a6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Users size={22} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Tổng ứng viên / SV</div>
+              <div
+                style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: 'var(--text-main)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1.2,
+                }}
+              >
+                {totalCount}
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Học phần EXE101
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '1.15rem 1.25rem',
+              border: '1px solid var(--border-light)',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.9rem',
+              cursor: 'pointer',
+              borderColor: onlyLookingForTeam ? 'var(--fpt-green, #008837)' : 'var(--border-light)',
+            }}
+            onClick={() => {
+              setOnlyLookingForTeam(true);
+              setPage(1);
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                background: 'rgba(0, 136, 55, 0.1)',
+                color: 'var(--fpt-green, #008837)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Sparkles size={22} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Đang tìm nhóm</div>
+              <div
+                style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: '#15803d',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1.2,
+                }}
+              >
+                {lookingCount}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#16a34a', marginTop: '2px', fontWeight: 600 }}>
+                Cần ghép đội (LookingForTeam)
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '1.15rem 1.25rem',
+              border: '1px solid var(--border-light)',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.9rem',
+              cursor: 'pointer',
+              borderColor: !onlyLookingForTeam ? 'var(--fpt-blue, #0054a6)' : 'var(--border-light)',
+            }}
+            onClick={() => {
+              setOnlyLookingForTeam(false);
+              setPage(1);
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                background: 'rgba(2, 132, 199, 0.1)',
+                color: '#0284c7',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <UserCheck size={22} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Đã có nhóm</div>
+              <div
+                style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: '#0369a1',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1.2,
+                }}
+              >
+                {inTeamCount}
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#0284c7', marginTop: '2px', fontWeight: 600 }}>
+                Đã vào phòng / nhóm
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              padding: '1.15rem 1.25rem',
+              border: '1px solid var(--border-light)',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.9rem',
+            }}
+          >
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '12px',
+                background: 'rgba(242, 111, 33, 0.1)',
+                color: 'var(--fpt-orange, #f26f21)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheck size={22} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Hoàn tất 5 kỹ năng</div>
+              <div
+                style={{
+                  fontSize: '22px',
+                  fontWeight: 800,
+                  color: 'var(--fpt-orange, #f26f21)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  lineHeight: 1.2,
+                }}
+              >
+                {completedRate}%
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {completedSkillsCount}/{candidates.length} SV đã cam kết
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           FILTER CONTROLS BAR
@@ -641,6 +944,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         </div>
       ) : (
         <div
+          ref={gridRef}
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fill, minmax(390px, 1fr))',
@@ -856,56 +1160,162 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   {c.interests && c.interests.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
                       {c.interests.slice(0, 3).map((item, idx) => (
-                        <span key={idx} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        <span key={idx} style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
                           #{item}
                         </span>
                       ))}
                     </div>
                   )}
+
+                  {/* 5-Core Skills Mini Strip on Card */}
+                  {c.isProfileCompleted ? (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(5, 1fr)',
+                        gap: '4px',
+                        background: 'var(--bg-subtle)',
+                        borderRadius: '8px',
+                        padding: '7px 8px',
+                        marginBottom: '12px',
+                        border: '1px solid var(--border-subtle)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Tech</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--fpt-orange, #f26f21)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                          {c.techScore ?? 0}%
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Mgmt</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                          {c.managementScore ?? 0}%
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Design</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                          {c.graphicDesignScore ?? 0}%
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Mkt</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                          {c.marketingScore ?? 0}%
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Sale</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                          {c.saleScore ?? 0}%
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        background: 'var(--bg-subtle)',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        marginBottom: '12px',
+                        border: '1px dashed var(--border-medium)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '5px',
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <AlertCircle size={13} color="#f59e0b" />
+                      <span>Chưa hoàn tất khảo sát 5 kỹ năng</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Card Action */}
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: '4px', display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    className="btn-card-secondary"
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      fontSize: '14px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedCandidate(c);
-                    }}
-                  >
-                    <span>Xem chi tiết</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-card-action"
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      fontSize: '14px',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedCandidate(c);
-                    }}
-                  >
-                    <span>Mời vào nhóm</span>
-                  </button>
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginTop: 'auto' }}>
+                  {isStaff ? (
+                    <button
+                      type="button"
+                      style={{
+                        width: '100%',
+                        padding: '9px 14px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-medium)',
+                        color: 'var(--text-main)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCandidate(c);
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--fpt-blue, #0054a6)';
+                        e.currentTarget.style.color = 'var(--fpt-blue, #0054a6)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-medium)';
+                        e.currentTarget.style.color = 'var(--text-main)';
+                      }}
+                    >
+                      <Eye size={16} />
+                      <span>Xem chi tiết hồ sơ</span>
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        className="btn-card-secondary"
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          fontSize: '14px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCandidate(c);
+                        }}
+                      >
+                        <span>Xem chi tiết</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-card-action"
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          fontSize: '14px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCandidate(c);
+                        }}
+                      >
+                        <span>Mời vào nhóm</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1001,6 +1411,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           onClick={() => setSelectedCandidate(null)}
         >
           <div
+            ref={modalRef}
             style={{
               background: 'var(--bg-card)',
               borderRadius: 20,
@@ -1087,6 +1498,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
               }}
             >
               <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Mã số sinh viên (MSSV):</span>
+                <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+                  {selectedCandidate.studentCode || 'Chưa cập nhật'}
+                </strong>
+              </div>
+              <div>
                 <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>Chuyên ngành:</span>
                 <strong style={{ color: 'var(--text-main)' }}>
                   {getMajorMeta(selectedCandidate.major)?.label || 'Chưa cập nhật'}
@@ -1116,11 +1533,15 @@ export const CandidateDiscoveryPage: React.FC = () => {
             <div style={{ marginBottom: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 12, padding: '1.15rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                  Điểm 5 Kỹ năng Cốt lõi
+                  {isStaff ? 'Kết quả Đánh giá 5 Kỹ năng Cốt lõi của Sinh viên' : 'Điểm 5 Kỹ năng Cốt lõi'}
                 </h4>
-                {selectedCandidate.isProfileCompleted && (
+                {selectedCandidate.isProfileCompleted ? (
                   <span style={{ fontSize: '0.875rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ShieldCheck size={14} /> Đã cam kết trung thực
+                    <ShieldCheck size={14} /> Đã cam kết trung thực về năng lực (BR-07)
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.85rem', color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <AlertCircle size={14} /> Chưa hoàn tất tự đánh giá
                   </span>
                 )}
               </div>
@@ -1247,28 +1668,50 @@ export const CandidateDiscoveryPage: React.FC = () => {
               </div>
             )}
 
-            {/* Privacy Shield Notice */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '0.6rem',
-                background: 'var(--bg-subtle)',
-                border: '1px solid var(--border-subtle)',
-                padding: '0.75rem 1rem',
-                borderRadius: 12,
-                fontSize: '0.775rem',
-                color: 'var(--text-muted)',
-                lineHeight: 1.5,
-                marginBottom: '1.5rem',
-              }}
-            >
-              <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>
-                Hồ sơ ứng viên công khai tuân thủ chính sách bảo mật sinh viên môn EXE: Địa chỉ Email và Mã số sinh viên
-                (MSSV) được ẩn hoàn toàn để bảo vệ quyền riêng tư.
-              </span>
-            </div>
+            {/* Privacy Shield / Staff Notice */}
+            {isStaff ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.6rem',
+                  background: 'rgba(0, 84, 166, 0.05)',
+                  border: '1px solid rgba(0, 84, 166, 0.2)',
+                  padding: '0.8rem 1rem',
+                  borderRadius: 12,
+                  fontSize: '0.825rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.5,
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <ShieldCheck size={18} color="#0054a6" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  <strong>Hồ sơ Quản trị & Điều phối Học kỳ:</strong> Dữ liệu sinh viên được đồng bộ từ FAP và hệ thống khảo sát 5 kỹ năng cốt lõi môn EXE101, phục vụ công tác điều phối học kỳ và kiểm tra cân bằng đội hình.
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.6rem',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-subtle)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 12,
+                  fontSize: '0.825rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.5,
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  Hồ sơ ứng viên công khai tuân thủ chính sách bảo mật sinh viên môn EXE: Thông tin liên lạc cá nhân được bảo vệ quyền riêng tư.
+                </span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
@@ -1277,26 +1720,36 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 onClick={() => {
                   setSelectedCandidate(null);
                 }}
-                style={{ borderRadius: 12, padding: '0.65rem 1.25rem', fontWeight: 600, border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}
+                style={{
+                  borderRadius: 12,
+                  padding: isStaff ? '0.65rem 1.75rem' : '0.65rem 1.25rem',
+                  fontWeight: 600,
+                  border: '1px solid var(--border-medium)',
+                  color: 'var(--text-main)',
+                  background: 'var(--bg-card)',
+                  cursor: 'pointer',
+                }}
               >
                 Đóng
               </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  setFeedback(`Đã gửi lời mời tham gia nhóm tới ứng viên ${selectedCandidate.fullName}!`);
-                  setSelectedCandidate(null);
-                }}
-                style={{
-                  borderRadius: 12,
-                  padding: '0.65rem 1.45rem',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 14px rgba(242, 111, 33, 0.35)',
-                }}
-              >
-                Mời vào nhóm
-              </button>
+              {!isStaff && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setFeedback(`Đã gửi lời mời tham gia nhóm tới ứng viên ${selectedCandidate.fullName}!`);
+                    setSelectedCandidate(null);
+                  }}
+                  style={{
+                    borderRadius: 12,
+                    padding: '0.65rem 1.45rem',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 14px rgba(242, 111, 33, 0.35)',
+                  }}
+                >
+                  Mời vào nhóm
+                </button>
+              )}
             </div>
           </div>
         </div>

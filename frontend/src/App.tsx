@@ -32,6 +32,13 @@ const RootRedirect: React.FC = () => {
   return <Navigate to="/groups" replace />;
 };
 
+const SpacesRoute: React.FC = () => {
+  const { user } = useAuth();
+  if (user?.role === 'Moderator') return <Navigate to="/moderator/spaces" replace />;
+  if (user?.role === 'Lecturer') return <Navigate to="/lecturer/dashboard" replace />;
+  return <Navigate to="/groups" replace />;
+};
+
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
@@ -50,7 +57,7 @@ export const App: React.FC = () => {
             <Route element={<MainLayout />}>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/spaces" element={<Navigate to="/moderator/spaces" replace />} />
+              <Route path="/spaces" element={<SpacesRoute />} />
               <Route path="/candidates" element={<CandidateDiscoveryPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />

@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { gsap } from 'gsap';
 import {
   Users,
   Cpu,
@@ -9,13 +11,166 @@ import {
   Layers,
   Send,
   AlertCircle,
+  ShieldCheck,
+  Check,
+  X,
+  Search,
+  Clock,
+  DoorOpen,
+  Crown,
+  Info,
+  RotateCcw,
 } from '../../utils/icons';
 import { useSelectedSpace, reloadSpaces } from '../../hooks/useSelectedSpace';
 import { workspaceApi, errorMessage, type DistributePreview, type UnmatchedSummary } from '../../api/workspace';
-import { StateBox, Button, useConfirm } from '../../components/workspace/ui';
+import { StateBox } from '../../components/workspace/ui';
 
-// Giao diện giữ nguyên bản thiết kế của Tú; dữ liệu lấy từ Group Service (unmatched-summary,
-// distribute-preview/confirm qua Matching gRPC, finalize) thay cho dữ liệu mẫu.
+// ── TOAST THÔNG BÁO NỔI GÓC PHẢI TRÊN (GSAP SPRING ANIMATION) ─────────────────
+
+interface ToastState {
+  id: number;
+  type: 'success' | 'error' | 'info';
+  message: string;
+}
+
+const FloatingToast: React.FC<{
+  toast: ToastState | null;
+  onClose: () => void;
+}> = ({ toast, onClose }) => {
+  const toastRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!toast || !toastRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        toastRef.current,
+        { opacity: 0, y: -20, scale: 0.92 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: 'back.out(1.5)' }
+      );
+    });
+    return () => ctx.revert();
+  }, [toast]);
+
+  if (!toast) return null;
+
+  const isSuccess = toast.type === 'success';
+  const isError = toast.type === 'error';
+
+  return createPortal(
+    <div
+      ref={toastRef}
+      style={{
+        position: 'fixed',
+        top: 24,
+        right: 24,
+        zIndex: 10000,
+        maxWidth: 480,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 18px',
+        borderRadius: 14,
+        backgroundColor: isSuccess ? '#059669' : isError ? '#DC2626' : '#0054A6',
+        color: '#FFFFFF',
+        boxShadow: isSuccess
+          ? '0 10px 30px rgba(5, 150, 105, 0.35)'
+          : isError
+          ? '0 10px 30px rgba(220, 38, 38, 0.35)'
+          : '0 10px 30px rgba(0, 84, 166, 0.35)',
+        border: '1px solid rgba(255, 255, 255, 0.2)',
+        fontSize: '14px',
+        fontWeight: 650,
+        lineHeight: 1.4,
+      }}
+    >
+      <div style={{ flexShrink: 0 }}>
+        {isSuccess ? <CheckCircle2 size={20} /> : isError ? <AlertCircle size={20} /> : <Info size={20} />}
+      </div>
+      <div style={{ flex: 1 }}>{toast.message}</div>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: '#FFFFFF',
+          padding: '2px',
+          cursor: 'pointer',
+          borderRadius: 6,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: 0.8,
+          flexShrink: 0,
+        }}
+        aria-label="Đóng thông báo"
+      >
+        <X size={16} />
+      </button>
+    </div>,
+    document.body
+  );
+};
+
+// ── DIALOG HOẠT HỌA GSAP DÙNG CHUNG CHO CÁC HÀNH ĐỘNG XÁC NHẬN ────────────────
+
+const AnimatedDialog: React.FC<{
+  children: React.ReactNode;
+  maxWidth?: number;
+  onClose: () => void;
+  disabled?: boolean;
+}> = ({ children, maxWidth = 480, onClose, disabled }) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ref.current,
+        { opacity: 0, scale: 0.95, y: 8 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.65)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: '1rem',
+        backdropFilter: 'blur(3px)',
+      }}
+      onClick={() => !disabled && onClose()}
+    >
+      <div
+        ref={ref}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth,
+          backgroundColor: 'var(--bg-card, #FFFFFF)',
+          borderRadius: 20,
+          border: '1px solid var(--border-light, #E2E8F0)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ── DATA INTERFACES ───────────────────────────────────────────────────────────
 
 interface UnassignedStudent {
   id: string;
@@ -66,30 +221,43 @@ interface DistributionPlan {
   }[];
 }
 
+// ── COMPONENT CHÍNH: MODERATOR DISTRIBUTION PAGE ──────────────────────────────
+
 export const ModeratorDistributionPage: React.FC = () => {
   const { space, loading: spacesLoading, error: spacesError } = useSelectedSpace();
-  const dialog = useConfirm();
   const [summary, setSummary] = useState<UnmatchedSummary | null>(null);
   const [preview, setPreview] = useState<DistributePreview | null>(null);
 
-  // 3-step state
+  // States
   const planGenerated = !!preview;
   const [executed, setExecuted] = useState<boolean>(false);
   const isSemesterLocked = space?.status === 'Locked';
   const canDistribute = space?.status === 'ClosedRegistration';
   const [busy, setBusy] = useState(false);
 
-  // Notification Toast
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const flash = (msg: string) => {
-    setToastMsg(msg);
-    window.setTimeout(() => setToastMsg(null), 4000);
-  };
-  const flashError = (err: unknown) => {
-    setErrorMsg(errorMessage(err));
-    window.setTimeout(() => setErrorMsg(null), 6000);
-  };
+  // Filter States for 2-Column Board
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentMajorFilter, setStudentMajorFilter] = useState('ALL');
+  const [roomFilterTab, setRoomFilterTab] = useState<'ALL' | 'INCOMPLETE' | 'EMPTY'>('ALL');
+  const [roomSearch, setRoomSearch] = useState('');
+
+  // Confirmation Modals State
+  const [confirmRunOpen, setConfirmRunOpen] = useState(false);
+  const [confirmDistributeOpen, setConfirmDistributeOpen] = useState(false);
+  const [confirmCloseRegOpen, setConfirmCloseRegOpen] = useState(false);
+  const [confirmFinalizeOpen, setConfirmFinalizeOpen] = useState(false);
+
+  // Notification Toast State
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
+
+  const showToast = useCallback((type: 'success' | 'error' | 'info', message: string, ms = 4500) => {
+    if (toastTimeoutRef.current) window.clearTimeout(toastTimeoutRef.current);
+    setToast({ id: Date.now(), type, message });
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToast(null);
+    }, ms);
+  }, []);
 
   const spaceId = space?.id;
   const loadSummary = useCallback(async () => {
@@ -97,9 +265,9 @@ export const ModeratorDistributionPage: React.FC = () => {
     try {
       setSummary(await workspaceApi.getUnmatchedSummary(spaceId));
     } catch (err) {
-      flashError(err);
+      showToast('error', errorMessage(err, 'Không tải được danh sách sinh viên lẻ.'));
     }
-  }, [spaceId]);
+  }, [spaceId, showToast]);
 
   useEffect(() => {
     setSummary(null);
@@ -108,7 +276,7 @@ export const ModeratorDistributionPage: React.FC = () => {
     void loadSummary();
   }, [loadSummary]);
 
-  // Cập nhật danh sách sinh viên lẻ theo thời gian thực khi có người vào/rời phòng
+  // Cập nhật sinh viên lẻ theo thời gian thực khi có người vào/rời phòng
   useEffect(() => {
     const handleRealtime = () => void loadSummary();
     window.addEventListener('realtime:space-updated', handleRealtime);
@@ -121,7 +289,7 @@ export const ModeratorDistributionPage: React.FC = () => {
     };
   }, [loadSummary]);
 
-  // Dữ liệu thật → đúng dạng mà giao diện đang hiển thị
+  // Dữ liệu sinh viên lẻ
   const unassignedList: UnassignedStudent[] = useMemo(
     () =>
       (summary?.unmatchedStudents ?? []).map((s) => ({
@@ -141,6 +309,28 @@ export const ModeratorDistributionPage: React.FC = () => {
     [summary]
   );
 
+  // Danh sách các chuyên ngành xuất hiện trong sinh viên lẻ
+  const availableMajors = useMemo(() => {
+    const majors = new Set<string>();
+    unassignedList.forEach((s) => {
+      if (s.major) majors.add(s.major);
+    });
+    return Array.from(majors).sort();
+  }, [unassignedList]);
+
+  // Lọc sinh viên lẻ theo ô tìm kiếm và chuyên ngành
+  const filteredStudents = useMemo(() => {
+    return unassignedList.filter((s) => {
+      const matchSearch =
+        !studentSearch.trim() ||
+        s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        s.studentCode.toLowerCase().includes(studentSearch.toLowerCase());
+      const matchMajor = studentMajorFilter === 'ALL' || s.major === studentMajorFilter;
+      return matchSearch && matchMajor;
+    });
+  }, [unassignedList, studentSearch, studentMajorFilter]);
+
+  // Danh sách phòng cần lấp và phòng trống
   const roomsList: IncompleteRoom[] = useMemo(
     () =>
       [...(summary?.incompleteRooms ?? []), ...(summary?.emptyRooms ?? [])].map((r) => ({
@@ -154,12 +344,34 @@ export const ModeratorDistributionPage: React.FC = () => {
         neededSkills:
           r.memberCount === 0
             ? ['Đang trống 100%']
-            : [`Còn ${r.maxMembers - r.memberCount} chỗ`, ...[...new Set(r.members.map((m) => m.major).filter(Boolean) as string[])].map((m) => `Có ${m}`)],
+            : [
+                `Còn ${r.maxMembers - r.memberCount} chỗ`,
+                ...[...new Set(r.members.map((m) => m.major).filter(Boolean) as string[])].map((m) => `Có ${m}`),
+              ],
       })),
     [summary]
   );
 
-  // Generated Plan (từ Matching Service)
+  // Lọc danh sách phòng theo tab và ô tìm kiếm
+  const filteredRooms = useMemo(() => {
+    return roomsList.filter((r) => {
+      const matchTab =
+        roomFilterTab === 'ALL' ||
+        (roomFilterTab === 'INCOMPLETE' && r.status === 'Incomplete') ||
+        (roomFilterTab === 'EMPTY' && r.status === 'Empty');
+      const matchSearch =
+        !roomSearch.trim() ||
+        r.code.toLowerCase().includes(roomSearch.toLowerCase()) ||
+        r.name.toLowerCase().includes(roomSearch.toLowerCase()) ||
+        r.leaderName.toLowerCase().includes(roomSearch.toLowerCase());
+      return matchTab && matchSearch;
+    });
+  }, [roomsList, roomFilterTab, roomSearch]);
+
+  const incompleteCount = useMemo(() => roomsList.filter((r) => r.status === 'Incomplete').length, [roomsList]);
+  const emptyCount = useMemo(() => roomsList.filter((r) => r.status === 'Empty').length, [roomsList]);
+
+  // Phương án phân bổ đề xuất từ Matching gRPC
   const previewPlan: DistributionPlan = useMemo(() => {
     const plans = preview?.roomPlans ?? [];
     const toPlanned = (s: { fullName: string; studentCode: string; major: string; managementScore: number; isLeader: boolean }): PlannedStudent => ({
@@ -176,8 +388,8 @@ export const ModeratorDistributionPage: React.FC = () => {
           p.addedStudents.map((st) => ({
             student: toPlanned(st),
             targetRoom: p.roomCode || p.name,
-            reason: `Lấp đầy phòng từ ${p.memberCountBefore} lên ${p.memberCountAfter} thành viên; chỉ số cân bằng kỹ năng ${Math.round(p.balanceScore)}/100.`,
-            existingLeader: `${p.leaderName || '—'} — Giữ nguyên quyền Trưởng nhóm`,
+            reason: `Lấp đầy phòng từ ${p.memberCountBefore} lên ${p.memberCountAfter} thành viên; điểm cân bằng kỹ năng ${Math.round(p.balanceScore)}/100.`,
+            existingLeader: `${p.leaderName || '—'} (Giữ Trưởng nhóm)`,
           }))
         ),
       priority2: plans
@@ -188,75 +400,79 @@ export const ModeratorDistributionPage: React.FC = () => {
             targetRoom: p.roomCode || p.name,
             students,
             newLeader: students.find((s) => s.isLeader) ?? null,
-            reason: `Gom ${students.length} sinh viên còn lại vào phòng trống ${p.roomCode || p.name} tạo thành nhóm mới (chỉ số cân bằng kỹ năng ${Math.round(p.balanceScore)}/100). Sinh viên có chỉ số Quản lý cao nhất làm Trưởng nhóm.`,
+            reason: `Gom ${students.length} sinh viên còn lại vào phòng trống ${p.roomCode || p.name} tạo thành nhóm mới (điểm cân bằng ${Math.round(p.balanceScore)}/100). Sinh viên có điểm Quản lý cao nhất làm Trưởng nhóm.`,
           };
         }),
     };
   }, [preview]);
 
-  // Step 1: Run Algorithm Preview
-  const handleRunAlgorithm = async () => {
+  // ── XỬ LÝ HÀNH ĐỘNG CÓ MODAL XÁC NHẬN ──────────────────────────────────────
+
+  // Thực thi Bước 1: Gọi gRPC Matching Service
+  const handleExecuteRunAlgorithm = async () => {
     if (!space) return;
+    setConfirmRunOpen(false);
     setBusy(true);
     try {
       const result = await workspaceApi.previewDistribution(space.id);
       setPreview(result);
-      flash(`Đã kết nối gRPC Matching Service và tính phương án: phân bổ ${result.totalDistributed}/${result.totalUnmatched} sinh viên.`);
+      showToast('success', `Đã kết nối gRPC Matching Service: đề xuất phân bổ ${result.totalDistributed}/${result.totalUnmatched} sinh viên.`);
     } catch (err) {
-      flashError(err);
+      showToast('error', errorMessage(err, 'Không thể tính toán phương án phân bổ.'));
     } finally {
       setBusy(false);
     }
   };
 
-  // Step 2: Confirm Execution
-  const handleConfirmExecution = async () => {
+  // Thực thi Bước 2: Áp dụng phương án vào Database
+  const handleExecuteConfirmDistribution = async () => {
     if (!space) return;
-    const ok = await dialog.confirm({ title: 'Thực thi phương án phân bổ?', message: 'Sinh viên sẽ được thêm vào phòng và nhận thông báo kết quả.', confirmLabel: 'Thực thi' });
-    if (ok === null) return;
+    setConfirmDistributeOpen(false);
     setBusy(true);
     try {
       const result = await workspaceApi.confirmDistribution(space.id);
       setExecuted(true);
       setPreview(null);
-      flash(`Đã thực thi phân phối thành công! Đã thêm ${result.totalDistributed} sinh viên vào ${result.updatedRoomsCount} phòng và gửi thông báo kết quả.`);
+      showToast('success', `Đã phân phối thành công! Thêm ${result.totalDistributed} sinh viên vào ${result.updatedRoomsCount} phòng và gửi thông báo kết quả.`);
       await loadSummary();
     } catch (err) {
-      flashError(err);
+      showToast('error', errorMessage(err, 'Không thể thực thi phân phối vào cơ sở dữ liệu.'));
     } finally {
       setBusy(false);
     }
   };
 
-  // Step 3: Lock Semester
-  const handleLockSemester = async () => {
+  // Thực thi Đóng cổng đăng ký tự do
+  const handleExecuteCloseRegistration = async () => {
     if (!space) return;
-    const ok = await dialog.confirm({ title: 'Chốt sổ học kỳ?', message: 'Toàn bộ nhóm bị khóa, các đơn đang chờ tự động bị từ chối. Không thể hoàn tác.', confirmLabel: 'Chốt sổ', danger: true });
-    if (ok === null) return;
+    setConfirmCloseRegOpen(false);
+    setBusy(true);
+    try {
+      await workspaceApi.closeRegistration(space.id);
+      showToast('success', 'Đã đóng cổng đăng ký tự do. Học kỳ sẵn sàng cho bước điều phối sinh viên lẻ.');
+      reloadSpaces();
+      await loadSummary();
+    } catch (err) {
+      showToast('error', errorMessage(err, 'Không thể đóng cổng đăng ký.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Thực thi Bước 3: Chốt sổ Học kỳ vĩnh viễn
+  const handleExecuteLockSemester = async () => {
+    if (!space) return;
+    setConfirmFinalizeOpen(false);
     setBusy(true);
     try {
       const result = await workspaceApi.finalizeSpace(space.id);
-      flash(`Đã chốt sổ và khóa ${result.lockedRoomsCount} nhóm! ${result.rejectedRequestsCount} đơn chờ đã tự động bị từ chối.`);
+      showToast('success', `Đã chốt sổ và khóa ${result.lockedRoomsCount} nhóm! ${result.rejectedRequestsCount} đơn chờ đã tự động bị hủy.`);
       reloadSpaces();
       await loadSummary();
     } catch (err) {
-      flashError(err);
+      showToast('error', errorMessage(err, 'Không thể chốt sổ học kỳ.'));
     } finally {
       setBusy(false);
-    }
-  };
-
-  const handleCloseRegistration = async () => {
-    if (!space) return;
-    const ok = await dialog.confirm({ title: 'Đóng đăng ký tự nguyện?', confirmLabel: 'Đóng đăng ký' });
-    if (ok === null) return;
-    try {
-      await workspaceApi.closeRegistration(space.id);
-      flash('Đã đóng đăng ký. Có thể chạy thuật toán ghép nhóm.');
-      reloadSpaces();
-      await loadSummary();
-    } catch (err) {
-      flashError(err);
     }
   };
 
@@ -275,627 +491,1520 @@ export const ModeratorDistributionPage: React.FC = () => {
   const stepsDisabled = !canDistribute || busy;
   const step1Disabled = stepsDisabled || unassignedList.length === 0;
   const step2Disabled = stepsDisabled || !planGenerated || (preview?.totalDistributed ?? 0) === 0;
-  const step3Disabled = stepsDisabled;
+  const step3Disabled = stepsDisabled || unassignedList.length > 0;
 
   return (
     <div style={{ padding: '0 0 3rem 0', maxWidth: 1560, margin: '0 auto' }}>
-      {/* Toast */}
-      {toastMsg && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 9999,
-            backgroundColor: '#059669',
-            color: '#FFFFFF',
-            padding: '12px 20px',
-            borderRadius: 12,
-            boxShadow: '0 10px 25px rgba(5, 150, 105, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: '16px',
-            fontWeight: 600,
-          }}
-        >
-          <CheckCircle2 size={18} />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-      {errorMsg && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            zIndex: 9999,
-            maxWidth: 'min(560px, calc(100vw - 32px))',
-            backgroundColor: '#B91C1C',
-            color: '#FFFFFF',
-            padding: '12px 20px',
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: '15px',
-            fontWeight: 600,
-          }}
-        >
-          <AlertCircle size={18} />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-      {dialog.node}
+      {/* Toast thông báo góc phải trên */}
+      <FloatingToast toast={toast} onClose={() => setToast(null)} />
 
-      {/* Header — Minimal Enterprise Hierarchy */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '13px',
-            fontWeight: 500,
-            color: '#64748B',
-            marginBottom: '6px',
-          }}
-        >
-          <span>Điều phối & Học kỳ</span>
-          <span style={{ color: '#CBD5E1' }}>/</span>
-          <span style={{ color: '#334155', fontWeight: 600 }}>Điều phối sinh viên lẻ & Chốt sổ</span>
+      {/* ── MODALS XÁC NHẬN ── */}
+
+      {/* 1. Modal Xác nhận Chạy Matching gRPC */}
+      {confirmRunOpen && (
+        <AnimatedDialog maxWidth={460} onClose={() => setConfirmRunOpen(false)} disabled={busy}>
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(0, 84, 166, 0.1)',
+                color: 'var(--fpt-blue, #0054a6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <Cpu size={28} strokeWidth={2} />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+              Chạy thuật toán Ghép nhóm gRPC?
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+              Hệ thống sẽ kết nối đến <strong>Matching Service</strong> để tính toán phương án phân bổ tối ưu cho{' '}
+              <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+                {unassignedList.length} sinh viên lẻ
+              </strong>{' '}
+              vào các phòng chưa đủ sĩ số và phòng trống.
+            </p>
+            <div
+              style={{
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: '13px',
+                color: '#475569',
+                textAlign: 'left',
+                marginBottom: '1.25rem',
+                lineHeight: 1.45,
+              }}
+            >
+              <div>• <strong>Ưu tiên 1</strong>: Bù đắp kỹ năng còn thiếu cho phòng từ 1–4 SV.</div>
+              <div style={{ marginTop: 4 }}>• <strong>Ưu tiên 2</strong>: Gom SV lẻ còn lại lập nhóm mới tại phòng trống.</div>
+              <div style={{ marginTop: 4 }}>• <strong>Đề cử Leader</strong>: Sinh viên có điểm Quản lý (Management) cao nhất.</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmRunOpen(false)}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  background: 'transparent',
+                  color: '#64748B',
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteRunAlgorithm}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: 'var(--fpt-blue, #0054a6)',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: busy ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                {busy ? <RotateCcw className="spin" size={16} /> : <Cpu size={16} />}
+                <span>{busy ? 'Đang tính toán...' : 'Bắt đầu tính toán'}</span>
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
+      )}
+
+      {/* 2. Modal Xác nhận Phân phối vào Database */}
+      {confirmDistributeOpen && (
+        <AnimatedDialog maxWidth={460} onClose={() => setConfirmDistributeOpen(false)} disabled={busy}>
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(5, 150, 105, 0.1)',
+                color: '#059669',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <CheckCircle2 size={28} strokeWidth={2} />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+              Xác nhận Thực thi Phân phối?
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+              Bạn có chắc chắn muốn áp dụng phương án phân bổ{' '}
+              <strong style={{ color: '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+                {preview?.totalDistributed} sinh viên lẻ
+              </strong>{' '}
+              vào{' '}
+              <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+                {preview?.roomPlans.length} phòng học phần
+              </strong>{' '}
+              trên Database không?
+            </p>
+            <div
+              style={{
+                backgroundColor: '#ECFDF5',
+                border: '1px solid #A7F3D0',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: '13px',
+                color: '#065F46',
+                textAlign: 'left',
+                marginBottom: '1.25rem',
+                lineHeight: 1.45,
+              }}
+            >
+              <strong>Lưu ý quan trọng:</strong> Sau khi xác nhận, sinh viên sẽ chính thức được ghi danh vào nhóm và nhận thông báo kết quả.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmDistributeOpen(false)}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  background: 'transparent',
+                  color: '#64748B',
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteConfirmDistribution}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#059669',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: busy ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                {busy ? <RotateCcw className="spin" size={16} /> : <Check size={16} />}
+                <span>{busy ? 'Đang phân phối...' : 'Đồng ý & Phân phối'}</span>
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
+      )}
+
+      {/* 3. Modal Xác nhận Đóng cổng đăng ký tự do */}
+      {confirmCloseRegOpen && (
+        <AnimatedDialog maxWidth={460} onClose={() => setConfirmCloseRegOpen(false)} disabled={busy}>
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(217, 119, 6, 0.1)',
+                color: '#D97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <Lock size={28} strokeWidth={2} />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+              Đóng cổng đăng ký tự do?
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+              Không gian <strong style={{ color: 'var(--text-main, #0F172A)' }}>"{space.name}"</strong> sẽ chuyển sang trạng thái{' '}
+              <strong style={{ color: '#D97706' }}>Đóng đăng ký (ClosedRegistration)</strong>.
+            </p>
+            <div
+              style={{
+                backgroundColor: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: '13px',
+                color: '#92400E',
+                textAlign: 'left',
+                marginBottom: '1.25rem',
+                lineHeight: 1.45,
+              }}
+            >
+              Sinh viên không thể tự ý rời nhóm hoặc gửi đơn ứng tuyển mới. Điều phối viên có thể bắt đầu chạy thuật toán ghép nhóm tự động.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmCloseRegOpen(false)}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  background: 'transparent',
+                  color: '#64748B',
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteCloseRegistration}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#D97706',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: busy ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                {busy ? <RotateCcw className="spin" size={16} /> : <Lock size={16} />}
+                <span>{busy ? 'Đang đóng...' : 'Xác nhận Đóng cổng'}</span>
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
+      )}
+
+      {/* 4. Modal Xác nhận Chốt sổ Toàn kỳ */}
+      {confirmFinalizeOpen && (
+        <AnimatedDialog maxWidth={460} onClose={() => setConfirmFinalizeOpen(false)} disabled={busy}>
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(220, 38, 38, 0.1)',
+                color: '#DC2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <ShieldCheck size={28} strokeWidth={2} />
+            </div>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+              Chốt sổ & Khóa danh sách toàn kỳ?
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+              Toàn bộ nhóm học phần trong học kỳ{' '}
+              <strong style={{ color: 'var(--text-main, #0F172A)' }}>
+                {space.semesterCode} • {space.subjectCode}
+              </strong>{' '}
+              sẽ chuyển sang trạng thái <strong style={{ color: '#DC2626' }}>Khóa chốt sổ (Locked)</strong>.
+            </p>
+            <div
+              style={{
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: '13px',
+                color: '#991B1B',
+                textAlign: 'left',
+                marginBottom: '1.25rem',
+                lineHeight: 1.45,
+              }}
+            >
+              <strong>Lưu ý:</strong> Mọi đơn xin gia nhập tồn đọng sẽ tự động bị từ chối. Sinh viên không thể thay đổi nhóm trừ khi nộp đơn Điều chuyển (Phase 6) được Điều phối viên phê duyệt. Thao tác không thể hoàn tác.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setConfirmFinalizeOpen(false)}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  background: 'transparent',
+                  color: '#64748B',
+                  fontWeight: 650,
+                  cursor: 'pointer',
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteLockSemester}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: busy ? 'wait' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                {busy ? <RotateCcw className="spin" size={16} /> : <ShieldCheck size={16} />}
+                <span>{busy ? 'Đang chốt sổ...' : 'Xác nhận Chốt sổ'}</span>
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
+      )}
+
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
+      {/* Header — Enterprise Hierarchy */}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: '#64748B', marginBottom: '6px' }}>
+            <span>Điều phối & Học kỳ</span>
+            <span style={{ color: '#CBD5E1' }}>/</span>
+            <span style={{ color: '#334155', fontWeight: 600 }}>Điều phối sinh viên lẻ & Chốt sổ</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+              Điều phối Sinh viên lẻ & Chốt sổ Học kỳ
+            </h1>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono, monospace)',
+                fontSize: '12px',
+                fontWeight: 700,
+                padding: '3px 10px',
+                borderRadius: '999px',
+                background: 'rgba(0, 84, 166, 0.08)',
+                color: 'var(--fpt-blue, #0054a6)',
+                border: '1px solid rgba(0, 84, 166, 0.2)',
+              }}
+            >
+              {space.semesterCode} • {space.subjectCode}
+            </span>
+          </div>
+          <p style={{ color: '#64748B', fontSize: '14.5px', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+            Tự động phân bổ sinh viên chưa có nhóm vào các phòng còn thiếu hoặc tạo nhóm mới tối ưu theo 5 chỉ số năng lực, sau đó chốt sổ học kỳ.
+          </p>
         </div>
-        <h1 style={{ fontSize: '24px', fontWeight: 650, color: '#0F172A', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
-          Điều phối Sinh viên lẻ & Chốt sổ Học kỳ
-        </h1>
-        <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0, lineHeight: 1.5 }}>
-          Tự động phân bổ sinh viên chưa có nhóm vào các phòng còn thiếu hoặc tạo nhóm mới tối ưu theo 5 chỉ số năng lực, sau đó chốt sổ học kỳ.
-        </p>
+
+        {/* Nút Đóng cổng đăng ký (nếu trạng thái đang là Open) */}
+        {space.status === 'Open' && (
+          <button
+            type="button"
+            onClick={() => setConfirmCloseRegOpen(true)}
+            disabled={busy}
+            style={{
+              height: 40,
+              padding: '0 16px',
+              borderRadius: 10,
+              border: 'none',
+              background: '#D97706',
+              color: '#FFFFFF',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 7,
+              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.25)',
+            }}
+            title="Đóng cổng đăng ký tự do để bắt đầu phân phối sinh viên lẻ"
+          >
+            <Lock size={15} />
+            <span>Đóng cổng đăng ký</span>
+          </button>
+        )}
       </div>
 
-      {!canDistribute && !isSemesterLocked && (
+      {/* Cảnh báo trạng thái nếu chưa đóng đăng ký */}
+      {space.status === 'Open' && (
         <div
           style={{
-            padding: '14px 18px',
-            borderRadius: 14,
+            padding: '12px 18px',
+            borderRadius: 12,
             backgroundColor: '#FFFBEB',
             border: '1px solid #FDE68A',
             color: '#92400E',
-            marginBottom: '1.5rem',
+            marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
             flexWrap: 'wrap',
-            fontSize: '15px',
+            fontSize: '14px',
             fontWeight: 600,
           }}
         >
-          <span>
-            {space.status === 'Open'
-              ? 'Học kỳ đang mở đăng ký tự nguyện. Cần đóng đăng ký trước khi chạy thuật toán ghép nhóm.'
-              : 'Học kỳ chưa mở đăng ký: hãy tải danh sách FAP và tạo phòng ở trang Quản lý Học kỳ & Phòng.'}
-          </span>
-          {space.status === 'Open' && (
-            <Button variant="dark" icon={<Lock size={15} />} onClick={handleCloseRegistration}>
-              Đóng đăng ký ngay
-            </Button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={16} style={{ color: '#D97706', flexShrink: 0 }} />
+            <span>
+              Học kỳ đang mở đăng ký tự nguyện. Cần đóng cổng đăng ký trước khi chạy thuật toán ghép nhóm tự động.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setConfirmCloseRegOpen(true)}
+            style={{
+              padding: '5px 12px',
+              borderRadius: 8,
+              border: '1px solid #D97706',
+              background: '#FFFFFF',
+              color: '#D97706',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Đóng cổng ngay
+          </button>
         </div>
       )}
 
-      {/* Semester Locked Banner */}
+      {/* Banner Đã chốt sổ */}
       {isSemesterLocked && (
         <div
           style={{
-            padding: '20px 26px',
-            borderRadius: 18,
-            backgroundColor: 'rgba(5, 150, 105, 0.1)',
-            border: '1px solid rgba(5, 150, 105, 0.3)',
-            marginBottom: '1.75rem',
+            padding: '16px 20px',
+            borderRadius: 14,
+            backgroundColor: 'rgba(5, 150, 105, 0.08)',
+            border: '1px solid rgba(5, 150, 105, 0.25)',
+            marginBottom: '1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 12,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: '#059669', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Lock size={20} />
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                backgroundColor: '#059669',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <ShieldCheck size={20} />
             </div>
             <div>
-              <h4 style={{ fontSize: '17px', fontWeight: 800, color: '#059669', margin: 0 }}>
-                Học kỳ {space.semesterCode} • {space.subjectCode} đã được Chốt sổ Chính thức
+              <h4 style={{ fontSize: '15.5px', fontWeight: 800, color: '#059669', margin: 0 }}>
+                Học kỳ {space.semesterCode} • {space.subjectCode} đã Chốt sổ Chính thức (Locked)
               </h4>
-              <p style={{ fontSize: '15px', color: 'var(--text-secondary, #475569)', margin: '2px 0 0 0' }}>
-                Toàn bộ sinh viên đã được ghép vào nhóm hợp lệ. Quyền tự ý rời nhóm bị vô hiệu hóa; mọi điều chuyển sau thời điểm này đều phải qua quy trình xét duyệt của Điều phối viên.
+              <p style={{ fontSize: '13.5px', color: '#475569', margin: '2px 0 0 0' }}>
+                Toàn bộ nhóm học phần đã được khóa cứng. Mọi sự thay đổi thành viên sau thời điểm này đều phải qua màn hình Quản lý Chuyển nhóm (Phase 6).
               </p>
             </div>
           </div>
-          <span style={{ padding: '9px 18px', borderRadius: 999, backgroundColor: '#059669', color: '#FFFFFF', fontWeight: 700, fontSize: '14px' }}>
+          <span
+            style={{
+              padding: '6px 14px',
+              borderRadius: 999,
+              backgroundColor: '#059669',
+              color: '#FFFFFF',
+              fontWeight: 700,
+              fontSize: '13px',
+              whiteSpace: 'nowrap',
+            }}
+          >
             ĐÃ KHÓA SỔ
           </span>
         </div>
       )}
 
-      {/* 3-Step Coordination Action Toolbar */}
+      {/* 5 KPI Stat Cards Chuẩn Nhánh Cũ */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+        <div
+          style={{
+            padding: '1rem',
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderLeft: '4px solid var(--fpt-blue, #0054a6)',
+          }}
+        >
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Tổng SV FAP Ghi danh
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#0F172A', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {summary?.totalEnrolled ?? 0}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '1rem',
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderLeft: '4px solid #059669',
+          }}
+        >
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+            SV Đã có nhóm
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#059669', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {summary?.totalMatched ?? 0}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '1rem',
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderLeft: '4px solid #EF4444',
+          }}
+        >
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+            SV Chưa có nhóm (Lẻ)
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#EF4444', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {summary?.totalUnmatched ?? 0}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '1rem',
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderLeft: '4px solid #D97706',
+          }}
+        >
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Phòng cần lấp (1-4 SV)
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#D97706', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {incompleteCount}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: '1rem',
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            borderLeft: '4px solid #64748B',
+          }}
+        >
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+            Phòng trống (0 SV)
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#64748B', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+            {emptyCount}
+          </div>
+        </div>
+      </div>
+
+      {/* ── QUY TRÌNH 3 BƯỚC ĐIỀU PHỐI GỌN GÀNG, ĐẲNG CẤP ── */}
       <div
         style={{
           backgroundColor: 'var(--bg-card, #FFFFFF)',
           border: '1px solid var(--border-light, #E2E8F0)',
-          borderRadius: '20px',
-          padding: '26px',
-          marginBottom: '1.75rem',
+          borderRadius: 16,
+          padding: '18px 20px',
+          marginBottom: '1.5rem',
           boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-            Quy trình 3 Bước Điều phối Tự động & Khóa sổ
-          </h3>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-            Thực hiện tuần tự các bước sau khi kết thúc thời hạn đăng ký tự nguyện
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div>
+            <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+              Quy trình 3 Bước Điều phối Tự động & Khóa sổ
+            </h3>
+            <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+              Thực hiện tuần tự sau khi đóng cổng đăng ký tự do
+            </span>
+          </div>
+          <span
+            style={{
+              padding: '3px 10px',
+              borderRadius: 999,
+              fontSize: '12px',
+              fontWeight: 700,
+              backgroundColor: canDistribute ? 'rgba(0, 84, 166, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+              color: canDistribute ? 'var(--fpt-blue, #0054a6)' : '#64748B',
+            }}
+          >
+            {isSemesterLocked
+              ? 'Đã hoàn tất vòng đời'
+              : canDistribute
+              ? 'Sẵn sàng điều phối gRPC'
+              : 'Chờ đóng cổng đăng ký'}
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-          {/* Nút 1: Chạy thuật toán xem trước */}
-          <button
-            type="button"
-            onClick={handleRunAlgorithm}
-            disabled={step1Disabled}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+          {/* BƯỚC 1: Chạy thuật toán Ghép nhóm Tự động */}
+          <div
             style={{
-              padding: '14px 16px',
+              padding: '12px 14px',
               borderRadius: 12,
-              border: planGenerated ? '2px solid #0054A6' : '1px solid var(--border-medium, #CBD5E1)',
-              backgroundColor: planGenerated ? 'rgba(0, 84, 166, 0.08)' : 'var(--bg-card, #FFFFFF)',
-              color: planGenerated ? '#0054A6' : 'var(--text-main, #0F172A)',
-              cursor: step1Disabled ? 'not-allowed' : 'pointer',
-              opacity: step1Disabled ? 0.6 : 1,
-              textAlign: 'left',
+              border: planGenerated ? '1.5px solid var(--fpt-blue, #0054a6)' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: planGenerated ? 'rgba(0, 84, 166, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '4px',
-              transition: 'all 0.15s ease',
+              justifyContent: 'space-between',
+              gap: 8,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '16px', fontWeight: 800 }}>
-                Bước 1: Chạy thuật toán Ghép nhóm Tự động
-              </span>
-              <Cpu size={18} color="#0054A6" />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fpt-blue, #0054a6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Bước 1 • Tính toán
+                </span>
+                {planGenerated && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
+                    Đã có phương án
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                Chạy gRPC Matching Service
+              </div>
+              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+                Xem trước phương án phân bổ 5 kỹ năng vào phòng thiếu và phòng trống.
+              </p>
             </div>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-              (Xem trước phương án từ gRPC Matching Service)
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setConfirmRunOpen(true)}
+              disabled={step1Disabled}
+              style={{
+                width: '100%',
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: 'none',
+                background: planGenerated ? 'var(--fpt-blue, #0054a6)' : 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: step1Disabled ? 'not-allowed' : 'pointer',
+                opacity: step1Disabled ? 0.5 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              }}
+            >
+              <Cpu size={14} />
+              <span>{planGenerated ? 'Tính toán lại' : 'Chạy thuật toán'}</span>
+            </button>
+          </div>
 
-          {/* Nút 2: Xác nhận thực thi */}
-          <button
-            type="button"
-            onClick={handleConfirmExecution}
-            disabled={step2Disabled}
+          {/* BƯỚC 2: Xác nhận Thực thi Phân phối */}
+          <div
             style={{
-              padding: '14px 16px',
+              padding: '12px 14px',
               borderRadius: 12,
-              border: executed ? '2px solid #059669' : '1px solid var(--border-medium, #CBD5E1)',
-              backgroundColor: executed ? 'rgba(5, 150, 105, 0.08)' : 'var(--bg-card, #FFFFFF)',
-              color: executed ? '#059669' : 'var(--text-main, #0F172A)',
-              cursor: step2Disabled ? 'not-allowed' : 'pointer',
-              opacity: step2Disabled ? 0.6 : 1,
-              textAlign: 'left',
+              border: executed ? '1.5px solid #059669' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: executed ? 'rgba(5, 150, 105, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '4px',
-              transition: 'all 0.15s ease',
+              justifyContent: 'space-between',
+              gap: 8,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '16px', fontWeight: 800 }}>
-                Bước 2: Xác nhận Thực thi Phân phối
-              </span>
-              <Send size={18} color="#059669" />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Bước 2 • Thực thi
+                </span>
+                {executed && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
+                    Đã thực thi
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                Xác nhận Áp dụng Phân phối
+              </div>
+              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+                Ghi danh chính thức vào Database và gửi thông báo cho sinh viên.
+              </p>
             </div>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-              Áp dụng phương án và gửi thông báo kết quả cho sinh viên
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDistributeOpen(true)}
+              disabled={step2Disabled}
+              style={{
+                width: '100%',
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: 'none',
+                background: '#059669',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: step2Disabled ? 'not-allowed' : 'pointer',
+                opacity: step2Disabled ? 0.5 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 1px 3px rgba(5, 150, 105, 0.2)',
+              }}
+            >
+              <Send size={14} />
+              <span>Xác nhận Phân phối</span>
+            </button>
+          </div>
 
-          {/* Nút 3: Chốt sổ & Khóa danh sách */}
-          <button
-            type="button"
-            onClick={handleLockSemester}
-            disabled={step3Disabled}
+          {/* BƯỚC 3: Chốt sổ & Khóa toàn kỳ */}
+          <div
             style={{
-              padding: '14px 16px',
+              padding: '12px 14px',
               borderRadius: 12,
-              border: isSemesterLocked ? '2px solid #D97706' : '1px solid var(--border-medium, #CBD5E1)',
-              backgroundColor: isSemesterLocked ? 'rgba(217, 119, 6, 0.08)' : 'var(--bg-card, #FFFFFF)',
-              color: isSemesterLocked ? '#D97706' : 'var(--text-main, #0F172A)',
-              cursor: step3Disabled ? 'not-allowed' : 'pointer',
-              opacity: step3Disabled ? 0.6 : 1,
-              textAlign: 'left',
+              border: isSemesterLocked ? '1.5px solid #DC2626' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: isSemesterLocked ? 'rgba(220, 38, 38, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '4px',
-              transition: 'all 0.15s ease',
+              justifyContent: 'space-between',
+              gap: 8,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '16px', fontWeight: 800 }}>
-                Bước 3: Chốt sổ & Khóa danh sách toàn kỳ
-              </span>
-              <Lock size={18} color="#D97706" />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Bước 3 • Khóa cứng
+                </span>
+                {isSemesterLocked && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#DC2626', background: '#FEF2F2', padding: '1px 6px', borderRadius: 4 }}>
+                    Đã khóa sổ
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                Chốt sổ & Khóa danh sách kỳ
+              </div>
+              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+                Khóa tự ý rời nhóm, từ chối đơn chờ và chốt dữ liệu báo cáo.
+              </p>
             </div>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-              Khóa tự ý rời nhóm & tự động từ chối mọi đơn ứng tuyển tồn đọng
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setConfirmFinalizeOpen(true)}
+              disabled={step3Disabled}
+              style={{
+                width: '100%',
+                padding: '7px 12px',
+                borderRadius: 8,
+                border: 'none',
+                background: '#DC2626',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: step3Disabled ? 'not-allowed' : 'pointer',
+                opacity: step3Disabled ? 0.5 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                boxShadow: '0 1px 3px rgba(220, 38, 38, 0.2)',
+              }}
+              title={
+                unassignedList.length > 0
+                  ? `Còn ${unassignedList.length} sinh viên lẻ chưa ghép nhóm. Vui lòng chạy phân phối trước khi chốt sổ.`
+                  : 'Khóa cứng các phòng và chốt sổ toàn bộ'
+              }
+            >
+              <ShieldCheck size={14} />
+              <span>Chốt sổ Học kỳ</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Hiển thị Bảng Phương án Phân bổ Thông minh (Từ gRPC Matching Service) khi bấm Bước 1 */}
+      {/* ── BẢNG PHƯƠNG ÁN PHÂN BỔ ĐỀ XUẤT (KHI CÓ KẾT QUẢ PREVIEW) ── */}
       {planGenerated && (
         <div
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
-            border: '2px solid #0054A6',
-            borderRadius: '20px',
-            padding: '22px',
-            marginBottom: '1.75rem',
-            boxShadow: '0 4px 16px rgba(0, 84, 166, 0.08)',
+            border: '2px solid var(--fpt-blue, #0054a6)',
+            borderRadius: 16,
+            padding: '20px',
+            marginBottom: '1.5rem',
+            boxShadow: '0 6px 20px rgba(0, 84, 166, 0.08)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 12, backgroundColor: '#0054A6', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0054A6', margin: 0 }}>
-                Phương án Phân bổ Thông minh (Được đề xuất từ gRPC Matching Service)
-              </h3>
-              <span style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)' }}>
-                Thuật toán tối ưu hóa đa mục tiêu: Cân bằng 5 kỹ năng + Đa dạng chuyên ngành + Bảo toàn Trưởng nhóm hiện hữu
-              </span>
-            </div>
-          </div>
-
-          {/* NHÓM ƯU TIÊN 1 */}
-          {previewPlan.priority1.length === 0 && previewPlan.priority2.length === 0 && (
-            <div style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)' }}>Không có sinh viên nào cần phân bổ.</div>
-          )}
-          {previewPlan.priority1.length > 0 && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 800, backgroundColor: 'rgba(0, 84, 166, 0.12)', color: '#0054A6' }}>
-                ƯU TIÊN 1
-              </span>
-              <strong style={{ fontSize: '16px', color: 'var(--text-main, #0F172A)' }}>
-                Lấp đầy các phòng đang thiếu người từ 1–4/5 thành viên trước:
-              </strong>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {previewPlan.priority1.map((p, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                    border: '1px solid var(--border-light, #E2E8F0)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '12px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 999, backgroundColor: '#0054A6', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px' }}>
-                      {idx + 1}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main, #0F172A)' }}>
-                        {p.student.name} ({p.student.studentCode} • {p.student.major})
-                      </div>
-                      <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                        {p.reason}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <ArrowRight size={16} color="var(--text-light, #94A3B8)" />
-                    <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '15px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '3px 8px', borderRadius: 6, border: '1px solid #BFDBFE' }}>
-                      {p.targetRoom}
-                    </span>
-                    <span style={{ fontSize: '13px', color: '#059669', fontWeight: 600, backgroundColor: 'rgba(5, 150, 105, 0.1)', padding: '3px 8px', borderRadius: 6 }}>
-                      {p.existingLeader}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          )}
-
-          {/* NHÓM ƯU TIÊN 2 */}
-          {previewPlan.priority2.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 800, backgroundColor: 'rgba(242, 112, 36, 0.12)', color: 'var(--accent-color, #F26F21)' }}>
-                ƯU TIÊN 2
-              </span>
-              <strong style={{ fontSize: '16px', color: 'var(--text-main, #0F172A)' }}>
-                Tạo nhóm mới từ các phòng trống cho số sinh viên lẻ còn dư:
-              </strong>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'var(--fpt-blue, #0054a6)',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '15.5px', fontWeight: 800, color: 'var(--fpt-blue, #0054a6)', margin: 0 }}>
+                  Phương án Phân bổ Thông minh (Đề xuất từ gRPC Matching Service)
+                </h3>
+                <span style={{ fontSize: '13px', color: '#64748B' }}>
+                  Phân bổ{' '}
+                  <strong style={{ color: '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {preview?.totalDistributed} / {preview?.totalUnmatched} sinh viên lẻ
+                  </strong>{' '}
+                  vào{' '}
+                  <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+                    {preview?.roomPlans.length} phòng
+                  </strong>{' '}
+                  (Còn lại: {preview?.totalRemaining} SV)
+                </span>
+              </div>
             </div>
 
-            {previewPlan.priority2.map((group) => (
-            <div
-              key={group.targetRoom}
+            <button
+              type="button"
+              onClick={() => setConfirmDistributeOpen(true)}
+              disabled={busy}
               style={{
-                padding: '16px',
-                borderRadius: 12,
-                backgroundColor: 'rgba(242, 112, 36, 0.05)',
-                border: '1px solid rgba(242, 112, 36, 0.25)',
-                marginBottom: '10px',
+                height: 36,
+                padding: '0 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: '#059669',
+                color: '#FFFFFF',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontSize: '14px', color: '#334155', backgroundColor: '#FFFFFF', padding: '3px 9px', borderRadius: 6, border: '1px solid #E2E8F0' }}>
-                    {group.targetRoom}
-                  </span>
-                  <span style={{ fontSize: '15px', fontWeight: 650, color: '#0F172A' }}>
-                    Nhóm khởi nghiệp mới ({group.students.length} thành viên)
-                  </span>
-                </div>
-                {group.newLeader && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '4px 10px', borderRadius: 8 }}>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                    Trưởng nhóm đề xuất (Quản lý: {group.newLeader.management}/100): <strong style={{ color: '#0F172A' }}>{group.newLeader.name}</strong> ({group.newLeader.studentCode})
-                  </span>
-                </div>
-                )}
+              <CheckCircle2 size={15} />
+              <span>Xác nhận Áp dụng Phương án</span>
+            </button>
+          </div>
+
+          {/* Nhóm Ưu tiên 1 */}
+          {previewPlan.priority1.length > 0 && (
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(0, 84, 166, 0.12)', color: 'var(--fpt-blue, #0054a6)' }}>
+                  ƯU TIÊN 1
+                </span>
+                <strong style={{ fontSize: '14px', color: '#0F172A' }}>
+                  Lấp đầy các phòng đang thiếu người từ 1–4/5 thành viên trước:
+                </strong>
               </div>
 
-              <p style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', margin: '0 0 12px 0' }}>
-                {group.reason}
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
-                {group.students.map((st) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {previewPlan.priority1.map((p, idx) => (
                   <div
-                    key={st.studentCode}
+                    key={idx}
                     style={{
-                      padding: '8px 10px',
+                      padding: '10px 14px',
                       borderRadius: 10,
-                      backgroundColor: 'var(--bg-card, #FFFFFF)',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                       border: '1px solid var(--border-light, #E2E8F0)',
-                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '10px',
                     }}
                   >
-                    <div style={{ fontWeight: 650, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>{st.name}</span>
-                      {st.isLeader && (
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '1px 6px', borderRadius: 5, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155' }}>
-                          Trưởng nhóm
-                        </span>
-                      )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 999,
+                          backgroundColor: 'var(--fpt-blue, #0054a6)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                        }}
+                      >
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#0F172A' }}>
+                          {p.student.name} ({p.student.studentCode} • {p.student.major})
+                        </div>
+                        <div style={{ fontSize: '12.5px', color: '#64748B' }}>{p.reason}</div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
-                      {st.studentCode} • {st.major}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ArrowRight size={14} color="#94A3B8" />
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono, monospace)',
+                          fontWeight: 800,
+                          fontSize: '13.5px',
+                          color: 'var(--fpt-blue, #0054a6)',
+                          backgroundColor: '#EFF6FF',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #BFDBFE',
+                        }}
+                      >
+                        {p.targetRoom}
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#059669', fontWeight: 650, backgroundColor: 'rgba(5, 150, 105, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
+                        {p.existingLeader}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-            ))}
-          </div>
+          )}
+
+          {/* Nhóm Ưu tiên 2 */}
+          {previewPlan.priority2.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(242, 111, 33, 0.12)', color: 'var(--fpt-orange, #f26f21)' }}>
+                  ƯU TIÊN 2
+                </span>
+                <strong style={{ fontSize: '14px', color: '#0F172A' }}>
+                  Tạo nhóm mới từ các phòng trống cho số sinh viên lẻ còn dư:
+                </strong>
+              </div>
+
+              {previewPlan.priority2.map((group) => (
+                <div
+                  key={group.targetRoom}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(242, 111, 33, 0.04)',
+                    border: '1px solid rgba(242, 111, 33, 0.2)',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono, monospace)',
+                          fontWeight: 800,
+                          fontSize: '13.5px',
+                          color: '#0F172A',
+                          backgroundColor: '#FFFFFF',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          border: '1px solid #E2E8F0',
+                        }}
+                      >
+                        {group.targetRoom}
+                      </span>
+                      <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+                        Nhóm mới thành lập ({group.students.length} thành viên)
+                      </span>
+                    </div>
+                    {group.newLeader && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: 6 }}>
+                        <Crown size={13} style={{ color: 'var(--fpt-orange, #f26f21)' }} />
+                        <span style={{ fontSize: '12px', fontWeight: 650, color: '#334155' }}>
+                          Trưởng nhóm đề cử (Quản lý: {group.newLeader.management}/100): <strong style={{ color: '#0F172A' }}>{group.newLeader.name}</strong>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '12.5px', color: '#64748B', margin: '0 0 8px 0' }}>
+                    {group.reason}
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '6px' }}>
+                    {group.students.map((st) => (
+                      <div
+                        key={st.studentCode}
+                        style={{
+                          padding: '6px 8px',
+                          borderRadius: 8,
+                          backgroundColor: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <div style={{ fontWeight: 650, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>{st.name}</span>
+                          {st.isLeader && (
+                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, backgroundColor: 'rgba(242, 111, 33, 0.1)', color: 'var(--fpt-orange, #f26f21)' }}>
+                              Trưởng nhóm
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: '#64748B' }}>
+                          {st.studentCode} • {st.major}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {/* 2-Column Split: Sinh viên lẻ vs Phòng thiếu */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(460px, 100%), 1fr))', gap: '1.5rem' }}>
-        {/* CỘT TRÁI: Sinh viên chưa có nhóm */}
+      {/* ── BẢNG ĐỐI CHIẾU 2 CỘT CÂN BẰNG, ĐỒNG ĐỀU (SINH VIÊN LẺ VS PHÒNG THIẾU) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(480px, 100%), 1fr))', gap: '1.25rem', alignItems: 'stretch' }}>
+        {/* CỘT TRÁI: Sinh viên Chưa có Nhóm */}
         <div
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
-            padding: '26px',
+            borderRadius: 16,
+            padding: '20px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '600px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          {/* Header Cột */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
-                <Users size={18} />
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#EF4444',
+                  flexShrink: 0,
+                }}
+              >
+                <Users size={17} />
               </div>
               <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Sinh viên Chưa có Nhóm ({unassignedList.length} bạn)
                 </h3>
-                <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                  Hết hạn đăng ký nhưng chưa tham gia phòng nào
+                <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                  Hết hạn tự do nhưng chưa tham gia phòng nào
                 </span>
               </div>
             </div>
 
             <span
               style={{
-                padding: '3px 10px',
+                padding: '3px 9px',
                 borderRadius: 999,
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: 700,
                 backgroundColor: unassignedList.length === 0 ? 'rgba(5, 150, 105, 0.12)' : 'rgba(239, 68, 68, 0.12)',
                 color: unassignedList.length === 0 ? '#059669' : '#EF4444',
               }}
             >
-              {unassignedList.length === 0 ? 'Đã ghép 100%' : `${unassignedList.length} sinh viên chờ`}
+              {unassignedList.length === 0 ? 'Đã ghép 100%' : `${unassignedList.length} SV chờ`}
             </span>
           </div>
 
-          {unassignedList.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '36px 20px', color: '#059669' }}>
-              <CheckCircle2 size={40} style={{ margin: '0 auto 10px auto' }} />
-              <div style={{ fontWeight: 800, fontSize: '17px' }}>Tất cả sinh viên đã được ghép nhóm thành công!</div>
-              <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0' }}>
-                Không còn sinh viên nào bị lẻ trong học kỳ này.
-              </p>
+          {/* Bộ lọc Tìm kiếm & Ngành */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input
+                type="text"
+                placeholder="Tìm tên, MSSV..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px 6px 30px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  fontSize: '12.5px',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                }}
+              />
             </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '520px', overflowY: 'auto' }}>
-              {unassignedList.map((st) => (
+            <select
+              value={studentMajorFilter}
+              onChange={(e) => setStudentMajorFilter(e.target.value)}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--border-light, #E2E8F0)',
+                fontSize: '12.5px',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                color: '#334155',
+                fontWeight: 600,
+              }}
+            >
+              <option value="ALL">Tất cả ngành ({unassignedList.length})</option>
+              {availableMajors.map((mj) => (
+                <option key={mj} value={mj}>
+                  Ngành {mj}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Danh sách Sinh viên Cuộn được */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+            {unassignedList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#059669', margin: 'auto 0' }}>
+                <CheckCircle2 size={42} style={{ margin: '0 auto 10px auto' }} />
+                <div style={{ fontWeight: 800, fontSize: '15.5px' }}>Tất cả sinh viên đã được ghép nhóm!</div>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>
+                  Không còn sinh viên nào bị lẻ trong học kỳ này.
+                </p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8', margin: 'auto 0' }}>
+                <Search size={32} style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
+                <div style={{ fontWeight: 650, fontSize: '14px', color: '#475569' }}>Không tìm thấy sinh viên phù hợp</div>
+                <p style={{ fontSize: '12.5px', margin: '4px 0 0 0' }}>Thử xóa bộ lọc để xem toàn bộ danh sách.</p>
+              </div>
+            ) : (
+              filteredStudents.map((st) => (
                 <div
                   key={st.id}
                   style={{
-                    padding: '12px 14px',
-                    borderRadius: 12,
+                    padding: '10px 12px',
+                    borderRadius: 10,
                     backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                     border: '1px solid var(--border-light, #E2E8F0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <div>
-                      <span style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-main, #0F172A)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <span style={{ fontWeight: 750, fontSize: '14px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {st.name}
                       </span>
-                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '14px', color: '#475569' }}>
+                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', color: 'var(--fpt-blue, #0054a6)', fontWeight: 700 }}>
                         {st.studentCode}
                       </span>
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 4 }}>
-                      Khóa {st.classCode}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          backgroundColor: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          color: '#334155',
+                        }}
+                      >
+                        {st.major}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          color: '#64748B',
+                          backgroundColor: '#FFFFFF',
+                          border: '1px solid #E2E8F0',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        {st.classCode}
+                      </span>
+                    </div>
                   </div>
 
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary, #475569)', marginBottom: '8px' }}>
-                    {st.major}
-                  </div>
-
-                  {/* 5 Skills Badges */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', fontVariantNumeric: 'tabular-nums' }}>
-                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
-                      Tech: <strong style={{ color: '#0F172A' }}>{st.skills.tech}</strong>
-                    </span>
-                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
-                      Mgt: <strong style={{ color: '#0F172A' }}>{st.skills.management}</strong>
-                    </span>
-                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
-                      GD: <strong style={{ color: '#0F172A' }}>{st.skills.graphicDesign}</strong>
-                    </span>
-                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
-                      MKT: <strong style={{ color: '#0F172A' }}>{st.skills.marketing}</strong>
-                    </span>
-                    <span style={{ fontSize: '12.5px', padding: '2px 7px', borderRadius: 5, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', color: '#334155', fontWeight: 600 }}>
-                      Sale: <strong style={{ color: '#0F172A' }}>{st.skills.sale}</strong>
-                    </span>
+                  {/* 5 Skills Tabular Pills */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(5, 1fr)',
+                      gap: '4px',
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontSize: '11.5px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                      <span style={{ color: '#64748B', fontSize: '10px' }}>TEC: </span>
+                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.tech}</strong>
+                    </div>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'rgba(242, 111, 33, 0.08)', border: '1px solid rgba(242, 111, 33, 0.25)' }} title="Điểm Quản lý (Tiêu chuẩn chỉ định Trưởng nhóm)">
+                      <span style={{ color: 'var(--fpt-orange, #f26f21)', fontSize: '10px', fontWeight: 700 }}>MGT: </span>
+                      <strong style={{ color: 'var(--fpt-orange, #f26f21)', fontVariantNumeric: 'tabular-nums', fontWeight: 800 }}>{st.skills.management}</strong>
+                    </div>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                      <span style={{ color: '#64748B', fontSize: '10px' }}>DES: </span>
+                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.graphicDesign}</strong>
+                    </div>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                      <span style={{ color: '#64748B', fontSize: '10px' }}>MKT: </span>
+                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.marketing}</strong>
+                    </div>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
+                      <span style={{ color: '#64748B', fontSize: '10px' }}>SAL: </span>
+                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.sale}</strong>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </div>
 
-        {/* CỘT PHẢI: Phòng chưa đủ sĩ số & Phòng trống */}
+        {/* CỘT PHẢI: Hiện trạng Các Phòng Trong Môn */}
         <div
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderRadius: '20px',
-            padding: '26px',
+            borderRadius: 16,
+            padding: '20px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '600px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+          {/* Header Cột */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0F172A' }}>
-                <Layers size={18} />
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#0F172A',
+                  flexShrink: 0,
+                }}
+              >
+                <Layers size={17} />
               </div>
               <div>
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Hiện trạng Các Phòng Trong Môn ({roomsList.length} phòng)
                 </h3>
-                <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                  Phòng chưa đủ sĩ số (1-4/5) và các phòng trống (0/5)
+                <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                  Phòng chưa đủ sĩ số (1-4/5) và phòng trống (0/5)
                 </span>
               </div>
             </div>
 
-            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#D97706', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '3px 8px', borderRadius: 999 }}>
               Cần điều phối
             </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '520px', overflowY: 'auto' }}>
-            {roomsList.map((room) => (
-              <div
-                key={room.id}
+          {/* Bộ lọc Tab & Tìm kiếm Phòng */}
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 4, background: '#F1F5F9', padding: 3, borderRadius: 8 }}>
+              <button
+                type="button"
+                onClick={() => setRoomFilterTab('ALL')}
                 style={{
-                  padding: '12px 14px',
-                  borderRadius: 12,
-                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                  border: '1px solid var(--border-light, #E2E8F0)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: '8px',
+                  padding: '4px 9px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: roomFilterTab === 'ALL' ? '#FFFFFF' : 'transparent',
+                  color: roomFilterTab === 'ALL' ? '#0F172A' : '#64748B',
+                  boxShadow: roomFilterTab === 'ALL' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontSize: '15px', color: '#0F172A' }}>
-                      {room.code}
-                    </span>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 999,
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        color: room.currentCount === 0 ? '#64748B' : '#0F172A',
-                      }}
-                    >
-                      {room.currentCount}/{room.maxCount} thành viên
-                    </span>
-                  </div>
+                Tất cả ({roomsList.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoomFilterTab('INCOMPLETE')}
+                style={{
+                  padding: '4px 9px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: roomFilterTab === 'INCOMPLETE' ? '#FFFFFF' : 'transparent',
+                  color: roomFilterTab === 'INCOMPLETE' ? '#D97706' : '#64748B',
+                  boxShadow: roomFilterTab === 'INCOMPLETE' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                Thiếu ({incompleteCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoomFilterTab('EMPTY')}
+                style={{
+                  padding: '4px 9px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: roomFilterTab === 'EMPTY' ? '#FFFFFF' : 'transparent',
+                  color: roomFilterTab === 'EMPTY' ? '#64748B' : '#64748B',
+                  boxShadow: roomFilterTab === 'EMPTY' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                }}
+              >
+                Trống ({emptyCount})
+              </button>
+            </div>
 
-                  <div style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)' }}>
-                    Trưởng nhóm: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{room.leaderName}</strong>
-                  </div>
-                </div>
+            <div style={{ position: 'relative', flex: 1, minWidth: 140 }}>
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input
+                type="text"
+                placeholder="Tìm mã phòng..."
+                value={roomSearch}
+                onChange={(e) => setRoomSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px 10px 6px 30px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  fontSize: '12.5px',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                }}
+              />
+            </div>
+          </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {room.neededSkills.map((sk, idx) => (
-                    <span
-                      key={idx}
-                      style={{
-                        fontSize: '12.5px',
-                        padding: '2px 8px',
-                        borderRadius: 999,
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        color: '#334155',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {sk}
-                    </span>
-                  ))}
-                </div>
+          {/* Danh sách Phòng Cuộn được */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+            {filteredRooms.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8', margin: 'auto 0' }}>
+                <DoorOpen size={32} style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
+                <div style={{ fontWeight: 650, fontSize: '14px', color: '#475569' }}>Không có phòng phù hợp</div>
+                <p style={{ fontSize: '12.5px', margin: '4px 0 0 0' }}>Toàn bộ phòng đã đầy hoặc không khớp bộ lọc.</p>
               </div>
-            ))}
+            ) : (
+              filteredRooms.map((room) => {
+                const max = room.maxCount || 5;
+                const current = room.currentCount || 0;
+                return (
+                  <div
+                    key={room.id}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono, monospace)',
+                            fontWeight: 800,
+                            fontSize: '13.5px',
+                            color: '#0F172A',
+                          }}
+                        >
+                          {room.code}
+                        </span>
+                        <span
+                          style={{
+                            padding: '1px 7px',
+                            borderRadius: 999,
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            backgroundColor: room.currentCount === 0 ? '#F1F5F9' : '#FFFBEB',
+                            border: room.currentCount === 0 ? '1px solid #E2E8F0' : '1px solid #FDE68A',
+                            color: room.currentCount === 0 ? '#64748B' : '#D97706',
+                          }}
+                        >
+                          {room.currentCount}/{room.maxCount} thành viên
+                        </span>
+                      </div>
+
+                      {/* Visual Seat Indicators */}
+                      <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+                        {Array.from({ length: max }).map((_, slotIdx) => {
+                          const isFilled = slotIdx < current;
+                          return (
+                            <div
+                              key={slotIdx}
+                              style={{
+                                width: 14,
+                                height: 6,
+                                borderRadius: 3,
+                                backgroundColor: isFilled
+                                  ? current >= max
+                                    ? '#059669'
+                                    : 'var(--fpt-orange, #f26f21)'
+                                  : '#E2E8F0',
+                              }}
+                              title={isFilled ? `Chỗ ${slotIdx + 1}: Đã có thành viên` : `Chỗ ${slotIdx + 1}: Còn trống`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '12px' }}>
+                      <div style={{ color: '#64748B' }}>
+                        Trưởng nhóm:{' '}
+                        <strong style={{ color: room.leaderName === '(Chưa có)' ? '#94A3B8' : '#0F172A' }}>
+                          {room.leaderName}
+                        </strong>
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'flex-end' }}>
+                        {room.neededSkills.slice(0, 2).map((sk, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              fontSize: '11px',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              backgroundColor: '#FFFFFF',
+                              border: '1px solid #E2E8F0',
+                              color: '#475569',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {sk}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 };
+
 export default ModeratorDistributionPage;

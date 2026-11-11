@@ -5,6 +5,7 @@ import {
   HelpCircle,
   CheckCircle2,
 } from '../utils/icons';
+import { ShieldCheck, GraduationCap, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { FptEducationLogo } from '../components/FptEducationLogo';
 import { ExeNetworkGlobe } from '../components/ExeNetworkGlobe';
@@ -16,7 +17,7 @@ const BODY_FONT = '"Plus Jakarta Sans", "Nunito Sans", "Be Vietnam Pro", sans-se
 export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showProcessTooltip, setShowProcessTooltip] = useState<boolean>(false);
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, loginDemo } = useAuth();
   const navigate = useNavigate();
 
   const handleCredential = async (idToken: string) => {
@@ -311,6 +312,144 @@ export const LoginPage: React.FC = () => {
               onCredential={handleCredential}
               onError={(msg) => setError(msg)}
             />
+
+            {/* Cụm nút Trải nghiệm nhanh với tài khoản Seed mẫu (Moderator / Lecturer / Student) */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                margin: '20px 0 16px 0',
+              }}
+            >
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
+              <span
+                style={{
+                  fontFamily: HEADING_FONT,
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#94A3B8',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                HOẶC ĐĂNG NHẬP NHANH VỚI TÀI KHOẢN MẪU
+              </span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#EDF2F7' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Nút 1: Moderator */}
+              <button
+                type="button"
+                onClick={() => {
+                  loginDemo('Moderator');
+                  navigate('/moderator/spaces');
+                }}
+                style={{
+                  width: '100%',
+                  height: '46px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '0 16px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1E293B',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  fontFamily: BODY_FONT,
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#2563EB';
+                  e.currentTarget.style.backgroundColor = '#EFF6FF';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }}
+              >
+                <ShieldCheck size={18} color="#2563EB" style={{ flexShrink: 0 }} />
+                <span>Tiếp tục với vai trò Điều phối viên (Moderator)</span>
+              </button>
+
+              {/* Nút 2: Lecturer */}
+              <button
+                type="button"
+                onClick={() => {
+                  loginDemo('Lecturer');
+                  navigate('/lecturer/dashboard');
+                }}
+                style={{
+                  width: '100%',
+                  height: '46px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '0 16px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1E293B',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  fontFamily: BODY_FONT,
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#059669';
+                  e.currentTarget.style.backgroundColor = '#ECFDF5';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }}
+              >
+                <GraduationCap size={18} color="#059669" style={{ flexShrink: 0 }} />
+                <span>Tiếp tục với vai trò Giảng viên (Lecturer)</span>
+              </button>
+
+              {/* Nút 3: Student */}
+              <button
+                type="button"
+                onClick={() => {
+                  loginDemo('Student');
+                  navigate('/groups');
+                }}
+                style={{
+                  width: '100%',
+                  height: '46px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '0 16px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1E293B',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '12px',
+                  fontFamily: BODY_FONT,
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#F27024';
+                  e.currentTarget.style.backgroundColor = '#FFF7ED';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.backgroundColor = '#FFFFFF';
+                }}
+              >
+                <Users size={18} color="#F27024" style={{ flexShrink: 0 }} />
+                <span>Tiếp tục với vai trò Sinh viên (Phan Thảo Vy)</span>
+              </button>
+            </div>
 
             {/* Dòng chú thích ngắn gọn ở đáy card */}
             <p

@@ -201,6 +201,9 @@ export const LecturerDashboardPage: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 3rem 0', maxWidth: 1560, margin: '0 auto' }}>
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
       {/* Header */}
       <div style={{ marginBottom: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

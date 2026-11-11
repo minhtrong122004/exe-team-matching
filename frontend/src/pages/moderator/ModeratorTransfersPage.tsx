@@ -292,6 +292,9 @@ export const ModeratorTransfersPage: React.FC = () => {
       )}
       {dialog.node}
 
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
       {!isLocked && (
         <div style={{ padding: '12px 16px', borderRadius: 10, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', marginBottom: '1.5rem', fontSize: '14px', color: '#475569' }}>
           Chuyển nhóm chỉ áp dụng sau khi học kỳ {space.semesterCode} • {space.subjectCode} đã <strong style={{ color: '#0F172A' }}>chốt sổ</strong> ở trang Điều phối.

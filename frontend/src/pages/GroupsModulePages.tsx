@@ -37,6 +37,7 @@ import {
   TrendingUp,
   UserPlus,
   Users,
+  AlertCircle,
 } from '../utils/icons';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -69,6 +70,7 @@ export interface RoomItem {
   skillBalance?: number;
   neededSkills?: string[];
   isEarlyClosed?: boolean;
+  avgSkills?: Record<SkillKey, number>;
 }
 
 const SKILLS = [
@@ -125,6 +127,7 @@ const toRoomItem = (room: RoomSummary, detail: GroupDetail | undefined, profiles
     skillBalance: memberProfiles.length ? Math.max(0, 100 - (Math.max(...values) - Math.min(...values))) : undefined,
     neededSkills: memberProfiles.length ? SKILLS.filter((s) => avg[s.key] < 50).map((s) => s.name) : undefined,
     isEarlyClosed: detail?.isClosedByLeader,
+    avgSkills: memberProfiles.length ? avg : undefined,
   };
 };
 
@@ -283,6 +286,9 @@ export const GroupsPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -305,6 +311,55 @@ export const GroupsPage: React.FC = () => {
         >
           <CheckCircle2 size={18} color="#22C55E" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* BR-07 Profile Incomplete Banner for Student */}
+      {user?.role === 'Student' && !user?.isProfileCompleted && (
+        <div
+          style={{
+            padding: '12px 18px',
+            borderRadius: 12,
+            backgroundColor: 'rgba(242, 111, 33, 0.08)',
+            border: '1px solid rgba(242, 111, 33, 0.3)',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(242, 111, 33, 0.15)', color: '#F26F21', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+                Yêu cầu hoàn tất Hồ sơ 5 Kỹ năng cốt lõi (BR-07)
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748B', marginTop: 2 }}>
+                Vui lòng cập nhật điểm 5 kỹ năng và cam kết trách nhiệm cá nhân để mở khóa quyền vào phòng và nộp đơn ứng tuyển.
+              </div>
+            </div>
+          </div>
+          <Link to="/profile" style={{ textDecoration: 'none' }}>
+            <button
+              type="button"
+              style={{
+                padding: '7px 15px',
+                borderRadius: 8,
+                backgroundColor: 'var(--fpt-orange, #F26F21)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cập nhật ngay →
+            </button>
+          </Link>
         </div>
       )}
 
@@ -732,6 +787,30 @@ export const GroupsPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* Micro 5-Skill Distribution Meter */}
+                {room.avgSkills && (
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #E2E8F0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+                      {[
+                        { label: 'Tech', val: room.avgSkills.techScore, color: '#0284C7' },
+                        { label: 'Mgt', val: room.avgSkills.managementScore, color: '#F59E0B' },
+                        { label: 'Des', val: room.avgSkills.graphicDesignScore, color: '#EC4899' },
+                        { label: 'Mkt', val: room.avgSkills.marketingScore, color: '#8B5CF6' },
+                        { label: 'Sale', val: room.avgSkills.saleScore, color: '#10B981' },
+                      ].map((sk) => (
+                        <div key={sk.label} title={`${sk.label}: ${sk.val}%`} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{ height: 3.5, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
+                            <div style={{ width: `${sk.val}%`, height: '100%', backgroundColor: sk.color, borderRadius: 2 }} />
+                          </div>
+                          <span style={{ fontSize: '9.5px', color: '#64748B', textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                            {sk.label} {sk.val}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Clear Divider between Project Info and Member Roster */}
                 <div
                   style={{
@@ -1079,7 +1158,8 @@ export const GroupsPage: React.FC = () => {
       </div>
 
       {/* Modal Ứng tuyển vào nhóm */}
-      {applyModalRoom && (
+      {applyModalRoom &&
+        createPortal(
         <div
           className="motion-modal-backdrop"
           style={{
@@ -1189,11 +1269,13 @@ export const GroupsPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── MODAL GIÁM SÁT PHÒNG NHÓM (DÀNH CHO MODERATOR & LECTURER) ── */}
-      {inspectRoomModal && (
+      {inspectRoomModal &&
+        createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -1354,7 +1436,8 @@ export const GroupsPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1711,10 +1794,19 @@ export const MyGroupPage: React.FC = () => {
     );
   }
 
-  const electionHoursLeft = Math.max(0, Math.ceil(secondsLeft / 3600));
+  const formatCountdown = (secs: number) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  };
 
   return (
     <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
+      {/* FPT Tricolor Brand Identity Line */}
+      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
+
       {/* Toast */}
       {toastMessage && (
         <div
@@ -1737,6 +1829,55 @@ export const MyGroupPage: React.FC = () => {
         >
           <CheckCircle2 size={18} color="#22C55E" />
           <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* BR-07 Profile Incomplete Banner for Student */}
+      {user?.role === 'Student' && !user?.isProfileCompleted && (
+        <div
+          style={{
+            padding: '12px 18px',
+            borderRadius: 12,
+            backgroundColor: 'rgba(242, 111, 33, 0.08)',
+            border: '1px solid rgba(242, 111, 33, 0.3)',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(242, 111, 33, 0.15)', color: '#F26F21', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+                Yêu cầu hoàn tất Hồ sơ 5 Kỹ năng cốt lõi (BR-07)
+              </div>
+              <div style={{ fontSize: '13px', color: '#64748B', marginTop: 2 }}>
+                Vui lòng cập nhật điểm 5 kỹ năng và cam kết trách nhiệm cá nhân để hồ sơ năng lực của nhóm đạt độ chính xác cao nhất.
+              </div>
+            </div>
+          </div>
+          <Link to="/profile" style={{ textDecoration: 'none' }}>
+            <button
+              type="button"
+              style={{
+                padding: '7px 15px',
+                borderRadius: 8,
+                backgroundColor: 'var(--fpt-orange, #F26F21)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cập nhật ngay →
+            </button>
+          </Link>
         </div>
       )}
 
@@ -2011,7 +2152,16 @@ export const MyGroupPage: React.FC = () => {
 
             {/* 5 Core Skills Rows (Synced with user's chosen accent color + Clean Neutral Badges) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              {teamSkills.map((s) => (
+              {teamSkills.map((s) => {
+                const skillColorMap: Record<string, string> = {
+                  Tech: '#0284C7',
+                  Management: '#F59E0B',
+                  'Graphic Design': '#EC4899',
+                  Marketing: '#8B5CF6',
+                  Sale: '#10B981',
+                };
+                const skillColor = skillColorMap[s.name] || 'var(--accent-color, #F26F21)';
+                return (
                 <div
                   key={s.name}
                   style={{
@@ -2023,7 +2173,7 @@ export const MyGroupPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>{s.name}</span>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: skillColor }}>{s.name}</span>
                       <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748B' }}>· {s.sub}</span>
                     </div>
 
@@ -2046,7 +2196,7 @@ export const MyGroupPage: React.FC = () => {
                         style={{
                           fontSize: '14px',
                           fontWeight: 700,
-                          color: s.score >= 65 ? 'var(--accent-color, #F26F21)' : '#0F172A',
+                          color: s.score >= 50 ? skillColor : '#0F172A',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '38px',
                           textAlign: 'right',
@@ -2057,7 +2207,7 @@ export const MyGroupPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Progress bar synced with user's chosen accent color */}
+                  {/* Progress bar with dedicated skill color */}
                   <div
                     style={{
                       height: 6,
@@ -2071,13 +2221,14 @@ export const MyGroupPage: React.FC = () => {
                       style={{
                         width: `${s.score}%`,
                         height: '100%',
-                        background: s.score >= 65 ? 'var(--accent-gradient, var(--accent-color, #F26F21))' : '#94A3B8',
+                        backgroundColor: s.score >= 50 ? skillColor : '#94A3B8',
                         borderRadius: 999,
+                        transition: 'width 250ms ease',
                       }}
                     />
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           </div>
         </div>
@@ -2299,31 +2450,33 @@ export const MyGroupPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Bầu chọn Trưởng nhóm mới Card (nếu kích hoạt) */}
-            {showElectionCard && election && (
+            {/* Bầu chọn Trưởng nhóm mới Card (tự động hiện khi có cuộc bầu đang diễn ra) */}
+            {(showElectionCard || election?.status === 'Active') && election && (
               <div
                 style={{
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#FFFBEB',
+                  border: '1.5px solid #FDE68A',
                   borderRadius: 14,
-                  padding: '16px',
+                  padding: '18px',
                   marginBottom: '1rem',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.12)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                  <div style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Vote size={15} color="#334155" />
-                    <span>Bình chọn Leader mới: {election.candidateName}</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Vote size={18} color="#D97706" />
+                    <span>Bầu chọn Trưởng nhóm mới: <strong>{election.candidateName}</strong></span>
                   </div>
-                  <span style={{ fontSize: '12px', color: '#475569', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 999, fontWeight: 600 }}>
-                    Còn {electionHoursLeft} giờ
+                  <span style={{ fontSize: '12.5px', color: '#B45309', backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', padding: '3px 10px', borderRadius: 999, fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={13} />
+                    <span>Còn {formatCountdown(secondsLeft)}</span>
                   </span>
                 </div>
-                <div style={{ fontSize: '13.5px', color: '#64748B', marginBottom: '8px' }}>
-                  Tiến độ phiếu bầu: <strong style={{ color: '#0F172A' }}>{electionVotes}/{electionRequired} phiếu đồng ý cần đạt</strong>
+                <div style={{ fontSize: '13.5px', color: '#78350F', marginBottom: '8px' }}>
+                  Tiến độ biểu quyết: <strong style={{ color: '#92400E' }}>{electionVotes}/{electionRequired} phiếu đồng ý (&gt; 50% quân số nhóm)</strong>
                 </div>
-                <div style={{ height: 6, borderRadius: 999, backgroundColor: '#E2E8F0', overflow: 'hidden', marginBottom: '12px' }}>
-                  <div style={{ width: `${Math.min(100, (electionVotes / electionRequired) * 100)}%`, height: '100%', backgroundColor: '#0F172A' }} />
+                <div style={{ height: 8, borderRadius: 999, backgroundColor: '#FDE68A', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{ width: `${Math.min(100, (electionVotes / electionRequired) * 100)}%`, height: '100%', backgroundColor: '#D97706', transition: 'width 200ms ease' }} />
                 </div>
                 <button
                   type="button"
@@ -2331,17 +2484,19 @@ export const MyGroupPage: React.FC = () => {
                   disabled={userVotedElection}
                   style={{
                     width: '100%',
-                    padding: '9px 14px',
-                    borderRadius: 9,
-                    backgroundColor: userVotedElection ? '#CBD5E1' : '#0F172A',
+                    padding: '10px 16px',
+                    borderRadius: 10,
+                    backgroundColor: userVotedElection ? '#D1D5DB' : 'var(--fpt-orange, #F26F21)',
                     border: 'none',
                     color: '#FFFFFF',
-                    fontSize: '13.5px',
-                    fontWeight: 600,
+                    fontSize: '14px',
+                    fontWeight: 700,
                     cursor: userVotedElection ? 'not-allowed' : 'pointer',
+                    boxShadow: userVotedElection ? 'none' : '0 2px 6px rgba(242, 111, 33, 0.3)',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  {userVotedElection ? 'Bạn đã bỏ phiếu đồng ý' : 'Bỏ phiếu Đồng ý bầu Leader mới'}
+                  {userVotedElection ? '✓ Bạn đã bỏ phiếu đồng ý cho ứng viên này' : 'Bỏ phiếu Đồng ý đề cử Leader mới'}
                 </button>
               </div>
             )}
