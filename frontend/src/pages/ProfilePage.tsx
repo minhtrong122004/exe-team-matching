@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
+import { errorMessage } from '../api/workspace';
 import { useAuth } from '../contexts/AuthContext';
 import type { UserProfileResponse, UpdateProfileSkillsRequest } from '../types';
 import {
@@ -8,8 +9,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Lock,
-  Eye,
-  EyeOff,
   KeyRound,
   ShieldCheck,
 } from '../utils/icons';
@@ -379,20 +378,14 @@ export const ProfilePage: React.FC = () => {
   const [isCommitted, setIsCommitted] = useState<boolean>(true);
   const [saving5Skills, setSaving5Skills] = useState<boolean>(false);
 
-  // Form Đổi mật khẩu
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
 
   // Tự động phân tích MSSV (Ví dụ: SE185102)
-  const studentCode = authUser?.studentCode || 'SE185102';
-  const fullName = authUser?.fullName || 'Lữ Phước Nhật Tú';
-  const email = authUser?.email || 'tulpnse185102@fpt.edu.vn';
+  const studentCode = authUser?.studentCode || '';
+  const fullName = authUser?.fullName || '';
+  const email = authUser?.email || '';
 
   const extractStudentInfo = (code: string) => {
-    const upper = (code || 'SE185102').toUpperCase().trim();
+    const upper = (code || '').toUpperCase().trim();
     let majorName = 'SE - Kỹ thuật phần mềm';
     let cohort = 'K18';
     let nominalClass = 'SE1801';
@@ -438,8 +431,8 @@ export const ProfilePage: React.FC = () => {
         if (d.bio) setBio(d.bio);
         if (d.isCommitted !== undefined) setIsCommitted(Boolean(d.isCommitted));
         if (d.isProfileCompleted !== undefined) setIsProfileCompleted(Boolean(d.isProfileCompleted));
-      } catch {
-        // Fallback demo/offline state
+      } catch (err) {
+        if (isMounted) setError(errorMessage(err, 'Không tải được hồ sơ của bạn.'));
       }
     };
     void fetchRemoteProfile();
@@ -467,69 +460,27 @@ export const ProfilePage: React.FC = () => {
         marketingScore,
         saleScore,
         isCommitted: true,
+        bio: bio || undefined,
       };
 
-      try {
-        await apiClient.put('/users/me/profile-skills', payload);
-        await apiClient.put('/users/me', { bio });
-      } catch {
-        // Offline / Demo fallback
-      }
+      // API profile-skills nhận luôn phần giới thiệu; PUT /users/me bắt buộc gửi đủ họ tên nên không dùng ở đây.
+      await apiClient.put('/users/me/profile-skills', payload);
 
       setIsProfileCompleted(true);
       updateUserData({ isProfileCompleted: true });
       setSuccessMsg('Đã lưu và cập nhật hồ sơ năng lực 5 kỹ năng thành công!');
-    } catch {
-      setError('Có lỗi xảy ra khi lưu hồ sơ. Vui lòng thử lại.');
+    } catch (err) {
+      setError(errorMessage(err, 'Có lỗi xảy ra khi lưu hồ sơ. Vui lòng thử lại.'));
     } finally {
       setSaving5Skills(false);
-    }
-  };
-
-  // Xử lý đổi mật khẩu
-  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccessMsg(null);
-
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      setError('Vui lòng điền đầy đủ mật khẩu hiện tại và mật khẩu mới.');
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError('Mật khẩu mới phải có tối thiểu 8 ký tự.');
-      return;
-    }
-
-    if (newPassword !== confirmNewPassword) {
-      setError('Mật khẩu xác nhận không trùng khớp.');
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      try {
-        await apiClient.post('/auth/change-password', { currentPassword, newPassword, confirmNewPassword });
-      } catch {
-        // Fallback for demo mode
-      }
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setSuccessMsg('Đổi mật khẩu tài khoản thành công!');
-    } catch {
-      setError('Không thể đổi mật khẩu. Vui lòng kiểm tra lại mật khẩu hiện tại.');
-    } finally {
-      setChangingPassword(false);
     }
   };
 
   const isStaff = authUser?.role === 'Moderator' || authUser?.role === 'Lecturer';
   const isModerator = authUser?.role === 'Moderator';
   const staffRoleTitle = isModerator ? 'Điều phối viên Học kỳ' : 'Giảng viên Hướng dẫn & Đánh giá';
-  const staffName = authUser?.fullName || (isModerator ? 'ThS. Lê Minh Điều Phối' : 'TS. Nguyễn Văn Giảng');
-  const staffEmail = authUser?.email || (isModerator ? 'moderator@fpt.edu.vn' : 'lecturer@fpt.edu.vn');
+  const staffName = authUser?.fullName || '—';
+  const staffEmail = authUser?.email || '—';
   const staffCode = isModerator ? 'FE-MOD-01' : 'FE-LEC-08';
   const staffInitials = isModerator ? 'ĐP' : 'GV';
   const staffUnit = 'Bộ môn Khởi nghiệp - Đại học FPT TP.HCM';
@@ -641,7 +592,7 @@ export const ProfilePage: React.FC = () => {
                     Học kỳ đảm nhiệm
                   </label>
                   <div style={{ padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', fontSize: '15px', fontWeight: 700, color: 'var(--accent-color, #F26F21)' }}>
-                    Fall 2026 • Môn EXE101 & EXE201
+                    Học kỳ hiện tại
                   </div>
                 </div>
               </div>
@@ -655,7 +606,7 @@ export const ProfilePage: React.FC = () => {
 
           {/* CỘT PHẢI: Quyền hạn trong học kỳ + Đổi mật khẩu tài khoản công vụ */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Khung 1: Quyền hạn trong học kỳ Fall 2026 */}
+            {/* Khung 1: Quyền hạn trong học kỳ */}
             <div
               style={{
                 backgroundColor: 'var(--bg-card, #FFFFFF)',
@@ -668,7 +619,7 @@ export const ProfilePage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
                 <ShieldCheck size={18} color={isModerator ? '#0054A6' : '#008837'} />
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-                  Quyền hạn & Nhiệm vụ trong học kỳ Fall 2026
+                  Quyền hạn & Nhiệm vụ trong học kỳ
                 </h3>
               </div>
 
@@ -732,125 +683,14 @@ export const ProfilePage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '12px' }}>
                 <KeyRound size={18} color="var(--accent-color, #F26F21)" />
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
-                  Đổi mật khẩu tài khoản công vụ
+                  Bảo mật tài khoản
                 </h3>
               </div>
 
-              <form onSubmit={handleChangePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                    Mật khẩu hiện tại
-                  </label>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    placeholder="Nhập mật khẩu hiện tại..."
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      height: 44,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '15px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                      Mật khẩu mới
-                    </label>
-                    <input
-                      type={showPasswords ? 'text' : 'password'}
-                      placeholder="Tối thiểu 8 ký tự..."
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      style={{
-                        width: '100%',
-                        height: 44,
-                        padding: '0 12px',
-                        borderRadius: 10,
-                        border: '1px solid var(--border-medium, #CBD5E1)',
-                        backgroundColor: 'var(--bg-input, #FFFFFF)',
-                        color: 'var(--text-main, #0F172A)',
-                        fontSize: '15px',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>
-                      Xác nhận mật khẩu mới
-                    </label>
-                    <input
-                      type={showPasswords ? 'text' : 'password'}
-                      placeholder="Nhập lại mật khẩu mới..."
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      required
-                      style={{
-                        width: '100%',
-                        height: 44,
-                        padding: '0 12px',
-                        borderRadius: 10,
-                        border: '1px solid var(--border-medium, #CBD5E1)',
-                        backgroundColor: 'var(--bg-input, #FFFFFF)',
-                        color: 'var(--text-main, #0F172A)',
-                        fontSize: '15px',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(!showPasswords)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted, #64748B)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
-                    <span>{showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}</span>
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={changingPassword}
-                    style={{
-                      padding: '9px 20px',
-                      borderRadius: 12,
-                      backgroundColor: 'var(--accent-color, #F26F21)',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontSize: '15px',
-                      fontWeight: 700,
-                      cursor: changingPassword ? 'not-allowed' : 'pointer',
-                      boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
-                    }}
-                  >
-                    {changingPassword ? 'Đang cập nhật...' : 'Lưu thay đổi mật khẩu'}
-                  </button>
-                </div>
-              </form>
+              <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.6 }}>
+                Tài khoản đăng nhập bằng Google (email @fpt.edu.vn hoặc email được cấp quyền), hệ thống không lưu mật khẩu.
+                Để đổi mật khẩu hoặc bật xác minh 2 bước, vào trang quản lý tài khoản Google của bạn.
+              </p>
             </div>
           </div>
         </div>
@@ -1262,7 +1102,7 @@ export const ProfilePage: React.FC = () => {
               }}
             >
               <KeyRound size={15} />
-              <span>Đổi mật khẩu bảo mật</span>
+              <span>Bảo mật tài khoản</span>
             </button>
           </div>
 
@@ -1501,127 +1341,17 @@ export const ProfilePage: React.FC = () => {
             <div style={{ maxWidth: 480 }}>
               <div style={{ marginBottom: '1.25rem' }}>
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 4px' }}>
-                  Đổi mật khẩu bảo mật
+                  Bảo mật tài khoản
                 </h3>
                 <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.5 }}>
-                  Mật khẩu mới phải có tối thiểu 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ số và 1 ký tự đặc biệt.
+                  Đăng nhập một chạm bằng Google.
                 </p>
               </div>
 
-              <form onSubmit={handleChangePasswordSubmit}>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
-                    Mật khẩu hiện tại *
-                  </label>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={changingPassword}
-                    required
-                    style={{
-                      width: '100%',
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '15px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
-                    Mật khẩu mới *
-                  </label>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={changingPassword}
-                    required
-                    style={{
-                      width: '100%',
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '15px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '5px' }}>
-                    Xác nhận mật khẩu mới *
-                  </label>
-                  <input
-                    type={showPasswords ? 'text' : 'password'}
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    disabled={changingPassword}
-                    required
-                    style={{
-                      width: '100%',
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid var(--border-medium, #CBD5E1)',
-                      backgroundColor: 'var(--bg-input, #FFFFFF)',
-                      color: 'var(--text-main, #0F172A)',
-                      fontSize: '15px',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(!showPasswords)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted, #64748B)',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
-                    <span>{showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}</span>
-                  </button>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={changingPassword}
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: 12,
-                    backgroundColor: 'var(--accent-color, #F26F21)',
-                    border: 'none',
-                    color: '#FFFFFF',
-                    fontSize: '15.5px',
-                    fontWeight: 700,
-                    cursor: changingPassword ? 'default' : 'pointer',
-                    boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
-                  }}
-                >
-                  {changingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
-                </button>
-              </form>
+              <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0, lineHeight: 1.6 }}>
+                Tài khoản đăng nhập bằng Google (email @fpt.edu.vn hoặc email được cấp quyền), hệ thống không lưu mật khẩu.
+                Để đổi mật khẩu hoặc bật xác minh 2 bước, vào trang quản lý tài khoản Google của bạn.
+              </p>
             </div>
           )}
         </div>

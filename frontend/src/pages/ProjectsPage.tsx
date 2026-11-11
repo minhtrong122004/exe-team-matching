@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
+import { errorMessage } from '../api/workspace';
 import { useAuth } from '../contexts/AuthContext';
 import type { ProjectItem, ProjectDomain, ProjectStatus, PagedResult } from '../types';
 import {
@@ -99,81 +100,6 @@ const STATUS_OPTIONS: { status: ProjectStatus; label: string; badgeClass: string
 
 const POPULAR_TAGS = ['AI', 'React', '.NET', 'Mobile', 'IoT', 'FinTech', 'Marketing', 'UI/UX', 'Cloud'];
 
-// ── Fallback Mock Projects (Displayed when API is offline or returns empty) ──
-const FALLBACK_PROJECTS: ProjectItem[] = [
-  {
-    id: 'proj-fallback-01',
-    title: 'EcoCampus - Hệ thống Phân loại Rác Thông minh AI',
-    problem: 'Rác thải tại các tòa nhà và khuôn viên đại học bị trộn lẫn khiến việc tái chế khó khăn, gây ô nhiễm môi trường và phát sinh chi phí vận hành xử lý lớn.',
-    solution: 'Ứng dụng Computer Vision trên thiết bị nhúng và camera tại nguồn tự động nhận diện, hướng dẫn phân loại rác thải nhựa/kim loại/hữu cơ kèm hệ thống tích điểm quà xanh cho sinh viên.',
-    domain: 'Other',
-    status: 'Recruiting',
-    ownerId: 'usr-tu-fallback',
-    ownerName: 'Lữ Phước Nhật Tú',
-    ownerEmail: 'tulpnse185102@fpt.edu.vn',
-    teamId: 'team-01',
-    tags: ['AI', 'Computer Vision', 'Tái chế', 'IoT', 'Campus Xanh'],
-    createdAt: '2026-11-05T08:30:00Z',
-    updatedAt: '2026-11-09T09:00:00Z',
-  },
-  {
-    id: 'proj-fallback-02',
-    title: 'FinWise - Nền tảng Quản lý Tài chính & Đầu tư Thông minh Gen Z',
-    problem: 'Hơn 70% sinh viên và bạn trẻ mới đi làm gặp khó khăn trong việc kiểm soát dòng tiền chi tiêu hàng tháng, thiếu công cụ mô phỏng tích lũy và đầu tư kỷ luật.',
-    solution: 'Trợ lý tài chính cá nhân tự động phân loại giao dịch ngân hàng theo quy tắc 50/30/20, gợi ý lộ trình cắt giảm chi phí không thiết yếu và lập kế hoạch đầu tư an toàn.',
-    domain: 'FinTech',
-    status: 'Recruiting',
-    ownerId: 'usr-trong-fallback',
-    ownerName: 'Nguyễn Minh Trọng',
-    ownerEmail: 'trongnmse185103@fpt.edu.vn',
-    tags: ['FinTech', 'Gen Z', 'Ngân sách', 'Tiết kiệm', 'AI Assistant'],
-    createdAt: '2026-11-06T09:15:00Z',
-    updatedAt: '2026-11-09T10:15:00Z',
-  },
-  {
-    id: 'proj-fallback-03',
-    title: 'UniFood - Đặt suất ăn Sinh viên & Cứu trợ Thực phẩm sạch Canteen',
-    problem: 'Sinh viên phải xếp hàng dài 15-20 phút tại canteen vào giờ nghỉ trưa, trong khi các quầy thực phẩm sạch cuối ngày thường thừa đồ ăn tươi mà không có kênh tiêu thụ ưu đãi kịp thời.',
-    solution: 'Nền tảng pre-order suất ăn trưa nhận ngay tại quầy không cần xếp hàng, đồng thời kết nối bán thanh lý các suất ăn tiêu chuẩn chất lượng cao cuối ngày với giá giảm 50-70%.',
-    domain: 'FnB',
-    status: 'Recruiting',
-    ownerId: 'usr-tin-fallback',
-    ownerName: 'Võ Trọng Tín',
-    ownerEmail: 'tinvtmkt180120@fpt.edu.vn',
-    tags: ['FnB', 'Canteen', 'Giảm lãng phí', 'Pre-order', 'Sinh viên'],
-    createdAt: '2026-11-07T10:45:00Z',
-    updatedAt: '2026-11-09T11:00:00Z',
-  },
-  {
-    id: 'proj-fallback-04',
-    title: 'F-Tour - Bản đồ Số Tương tác & Trải nghiệm Campus 3D',
-    problem: 'Tân sinh viên, khách tham quan và phụ huynh thường bị mất phương hướng khi đến các campus đại học quy mô lớn như Hòa Lạc hay TP. Thủ Đức, khó tìm đúng hội trường và phòng ban.',
-    solution: 'Bản đồ số 3D tái hiện trực quan không gian thực tế của các cơ sở FPT, tích hợp định vị chỉ đường trong nhà và thuyết minh tự động các điểm mốc văn hóa FPT Edu.',
-    domain: 'Tourism',
-    status: 'Recruiting',
-    ownerId: 'usr-yen-fallback',
-    ownerName: 'Lê Hoàng Yến',
-    ownerEmail: 'yenlhgd180215@fpt.edu.vn',
-    tags: ['EdTech', '3D Map', 'Campus Navigation', 'WebXR', 'AR'],
-    createdAt: '2026-11-08T14:20:00Z',
-    updatedAt: '2026-11-09T12:30:00Z',
-  },
-  {
-    id: 'proj-fallback-05',
-    title: 'MediQueue - Hệ thống Bốc số Khám bệnh Từ xa & Theo dõi Y tế Học đường',
-    problem: 'Học sinh sinh viên và người bệnh mất nhiều thời gian chờ đợi hàng giờ tại trạm y tế chỉ để chờ đo huyết áp hoặc nhận thuốc, gây quá tải và nguy cơ lây nhiễm chéo.',
-    solution: 'Ứng dụng lấy số thứ tự khám từ xa, gửi thông báo nhắc trước 15 phút khi sắp đến lượt và lưu trữ lịch sử tư vấn sức khỏe học đường bảo mật.',
-    domain: 'Health',
-    status: 'Recruiting',
-    ownerId: 'usr-tran-fallback',
-    ownerName: 'Phạm Bảo Trân',
-    ownerEmail: 'tranpbse180145@fpt.edu.vn',
-    tags: ['Healthcare', 'Bốc số từ xa', 'Smart Clinic', 'Y tế số'],
-    createdAt: '2026-11-09T08:00:00Z',
-    updatedAt: '2026-11-09T14:00:00Z',
-  },
-];
-
 // ── In-App Toast Notification Interface ──
 interface Toast {
   id: number;
@@ -236,33 +162,7 @@ export const ProjectsPage: React.FC = () => {
     }, 3200);
   }, []);
 
-  const applyFallbackProjects = useCallback(() => {
-    let list = [...FALLBACK_PROJECTS];
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          (p.problem && p.problem.toLowerCase().includes(q)) ||
-          (p.solution && p.solution.toLowerCase().includes(q)) ||
-          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
-      );
-    }
-    if (domain) {
-      list = list.filter((p) => p.domain === domain);
-    }
-    if (status) {
-      list = list.filter((p) => p.status === status);
-    }
-    if (filterMyProjects && user?.id) {
-      list = list.filter((p) => p.ownerId === user.id || p.ownerName?.includes('Tú'));
-    }
-    setProjects(list);
-    setTotalCount(list.length);
-    setTotalPages(1);
-  }, [search, domain, status, filterMyProjects, user]);
-
-  // Fetch Projects from API
+  // Fetch Projects from API (không còn dữ liệu mẫu: lỗi thì báo lỗi, rỗng thì hiện trạng thái rỗng)
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
@@ -277,20 +177,19 @@ export const ProjectsPage: React.FC = () => {
       params.append('pageSize', viewMode === 'grid' ? '6' : '10');
 
       const res = await apiClient.get<PagedResult<ProjectItem>>(`/projects?${params.toString()}`);
-      if (res.data && res.data.items && res.data.items.length > 0) {
-        setProjects(res.data.items);
-        setTotalCount(res.data.totalCount || res.data.items.length);
-        setTotalPages(Math.max(1, res.data.totalPages || 1));
-      } else {
-        applyFallbackProjects();
-      }
+      const items = res.data?.items ?? [];
+      setProjects(items);
+      setTotalCount(res.data?.totalCount ?? items.length);
+      setTotalPages(Math.max(1, res.data?.totalPages || 1));
     } catch (err) {
-      console.warn('API /projects not accessible or offline, fallback to 5 sample projects:', err);
-      applyFallbackProjects();
+      setProjects([]);
+      setTotalCount(0);
+      setTotalPages(1);
+      showToast(errorMessage(err, 'Không tải được danh sách dự án.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, applyFallbackProjects]);
+  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, showToast]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

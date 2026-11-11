@@ -17,6 +17,7 @@ import {
   MyGroupPage,
   JoinRequestsPage,
   NotificationsPage,
+  ReportsPage,
 } from './pages/PlaceholderPages';
 
 const RootRedirect: React.FC = () => {
@@ -61,7 +62,7 @@ export const App: React.FC = () => {
 
               {/* Lecturer and Moderator reports & dashboard */}
               <Route element={<ProtectedRoute allowedRoles={['Lecturer', 'Moderator']} />}>
-                <Route path="/reports" element={<LecturerDashboardPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/lecturer/dashboard" element={<LecturerDashboardPage />} />
               </Route>
 

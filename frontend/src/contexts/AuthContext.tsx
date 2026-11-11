@@ -14,7 +14,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   loginWithGoogle: (idToken: string) => Promise<AuthUserDto>;
-  loginDemo?: (role?: 'Student' | 'Lecturer' | 'Moderator') => AuthUserDto;
   acceptTerms: () => Promise<AcceptTermsResponse>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -45,51 +44,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(updated));
       return updated;
     });
-  }, []);
-
-  const loginDemo = useCallback((role: 'Student' | 'Lecturer' | 'Moderator' = 'Student'): AuthUserDto => {
-    let demoUser: User;
-    if (role === 'Moderator') {
-      demoUser = {
-        id: '22222222-2222-2222-2222-222222222202',
-        email: 'moderator@fpt.edu.vn',
-        fullName: 'ThS. Lê Minh Điều Phối',
-        role: 'Moderator',
-        campus: 'Hà Nội',
-        hasAcceptedTerms: true,
-        isProfileCompleted: true,
-      };
-    } else if (role === 'Lecturer') {
-      demoUser = {
-        id: '33333333-3333-3333-3333-333333333303',
-        email: 'lecturer@fpt.edu.vn',
-        fullName: 'TS. Nguyễn Văn Giảng Viên',
-        role: 'Lecturer',
-        campus: 'Đà Nẵng',
-        hasAcceptedTerms: true,
-        isProfileCompleted: true,
-      };
-    } else {
-      demoUser = {
-        id: '11111111-1111-1111-1111-111111111101',
-        email: 'tulpnse185102@fpt.edu.vn',
-        fullName: 'Lữ Phước Nhật Tú',
-        role: 'Student',
-        studentCode: 'SE185102',
-        campus: 'TP. Hồ Chí Minh',
-        major: 'Kỹ thuật phần mềm',
-        hasAcceptedTerms: true,
-        isProfileCompleted: true,
-      };
-    }
-    const demoTokenMap: Record<'Student' | 'Lecturer' | 'Moderator', { accessToken: string; refreshToken: string }> = {"Student":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTEwMSIsInN1YiI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTEwMSIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6InR1bHBuc2UxODUxMDJAZnB0LmVkdS52biIsImVtYWlsIjoidHVscG5zZTE4NTEwMkBmcHQuZWR1LnZuIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6Ikzhu68gUGjGsOG7m2MgTmjhuq10IFTDuiIsIm5hbWUiOiJM4buvIFBoxrDhu5tjIE5o4bqtdCBUw7oiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJTdHVkZW50Iiwicm9sZSI6IlN0dWRlbnQiLCJqdGkiOiI1YmYzNDFiNC0zNTBjLTRhNTktYjhmZS1kYTRkZTdkODY3NzgiLCJuYmYiOjE3OTQyNDE2NTcsImV4cCI6MTgyNTc3NzY2NywiaXNzIjoiZXhlLWF1dGgiLCJhdWQiOiJleGUtYXBpIn0.U5o2ejYNtQFk4WHzG0_dhqyjpTiBPp5ERGbwPoSjfBc","refreshToken":"demo-refresh-token-student-tu-2026"},"Moderator":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIwMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIwMiIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6Im1vZGVyYXRvckBmcHQuZWR1LnZuIiwiZW1haWwiOiJtb2RlcmF0b3JAZnB0LmVkdS52biIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJUaFMuIEzDqiBNaW5oIMSQaeG7gXUgUGjhu5FpIiwibmFtZSI6IlRoUy4gTMOqIE1pbmggxJBp4buBdSBQaOG7kWkiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJNb2RlcmF0b3IiLCJyb2xlIjoiTW9kZXJhdG9yIiwianRpIjoiZTI4NGI3M2YtYWJlYS00MGFkLTkwZDktZjM4YjljZTExM2E5IiwibmJmIjoxNzk0MjQxNjU3LCJleHAiOjE4MjU3Nzc2NjcsImlzcyI6ImV4ZS1hdXRoIiwiYXVkIjoiZXhlLWFwaSJ9.tXV04A8SB3xNsKUBBMc0UqNk-JZ0E3azp1Waet3DzBI","refreshToken":"demo-refresh-token-moderator-2026"},"Lecturer":{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjMzMzMzMzMzLTMzMzMtMzMzMy0zMzMzLTMzMzMzMzMzMzMwMyIsInN1YiI6IjMzMzMzMzMzLTMzMzMtMzMzMy0zMzMzLTMzMzMzMzMzMzMwMyIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL2VtYWlsYWRkcmVzcyI6ImxlY3R1cmVyQGZwdC5lZHUudm4iLCJlbWFpbCI6ImxlY3R1cmVyQGZwdC5lZHUudm4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiVFMuIE5ndXnhu4VuIFbEg24gR2nhuqNuZyBWacOqbiIsIm5hbWUiOiJUUy4gTmd1eeG7hW4gVsSDbiBHaeG6o25nIFZpw6puIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiTGVjdHVyZXIiLCJyb2xlIjoiTGVjdHVyZXIiLCJqdGkiOiI3N2U3OWNhOC1jNjczLTQyYmYtOGIzNi1iNjRiNzc2M2RkNjMiLCJuYmYiOjE3OTQyNDE2NTcsImV4cCI6MTgyNTc3NzY2NywiaXNzIjoiZXhlLWF1dGgiLCJhdWQiOiJleGUtYXBpIn0.l-5w8Ovve_Owb93XSnWG_PA5RUr7KmoCvblQoIltF00","refreshToken":"demo-refresh-token-lecturer-2026"}};
-    localStorage.setItem('access_token', demoTokenMap[role].accessToken);
-    localStorage.setItem('refresh_token', demoTokenMap[role].refreshToken);
-    localStorage.setItem('user', JSON.stringify(demoUser));
-    localStorage.setItem('is_demo_mode', 'true');
-    setUser(demoUser);
-    setIsLoading(false);
-    return demoUser;
   }, []);
 
   const refreshCurrentUser = useCallback(async () => {
@@ -282,7 +236,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!user,
         isLoading,
         loginWithGoogle,
-        loginDemo,
         acceptTerms,
         logout,
         refreshCurrentUser,

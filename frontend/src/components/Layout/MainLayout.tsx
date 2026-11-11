@@ -12,6 +12,8 @@ import {
   type AppearanceSettings,
 } from './AppearanceCustomizerModal';
 import { notificationsApi } from '../../api/notifications';
+import { useSelectedSpace, selectSpace } from '../../hooks/useSelectedSpace';
+import { SPACE_PHASE, SPACE_STATUS_LABEL } from '../../api/workspace';
 import type { UserRole, NotificationResponse } from '../../types';
 import {
   Lightbulb,
@@ -88,96 +90,6 @@ const getNotificationTypeConfig = (type: string) => {
   }
 };
 
-const STUDENT_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-stu-02',
-    recipientId: 'curr-user',
-    type: 'GROUP_REQUEST',
-    title: 'Có ứng viên mới nộp đơn vào nhóm FA26EXE101-02',
-    message: 'Sinh viên Nguyễn Minh Trọng (SE185103 • AI) vừa nộp đơn ứng tuyển vào nhóm với vai trò Kỹ thuật & AI.',
-    isRead: false,
-    createdAt: '2026-11-09T09:15:00Z',
-  },
-  {
-    id: 'notif-stu-03',
-    recipientId: 'curr-user',
-    type: 'ELECTION_OPEN',
-    title: 'Mở đợt biểu quyết bầu Trưởng nhóm mới (24h)',
-    message: 'Thành viên trong nhóm FA26EXE101-02 đã khởi xướng cuộc bỏ phiếu tín nhiệm bầu chọn Trưởng nhóm mới.',
-    isRead: false,
-    createdAt: '2026-11-09T10:30:00Z',
-  },
-  {
-    id: 'notif-stu-04',
-    recipientId: 'curr-user',
-    type: 'GROUP_ACCEPTED',
-    title: 'Kết quả đơn ứng tuyển phòng FA26EXE101-02',
-    message: 'Chúc mừng bạn! Trưởng nhóm FA26EXE101-02 đã đồng ý duyệt bạn vào nhóm chính thức cho đề tài EcoCampus.',
-    isRead: false,
-    createdAt: '2026-11-09T11:45:00Z',
-  },
-  {
-    id: 'notif-stu-01',
-    recipientId: 'curr-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Khởi tạo tài khoản & Cấp quyền học kỳ Fall 2026',
-    message: 'Tài khoản của bạn đã được đồng bộ tự động từ danh sách FAP cho học phần EXE101.',
-    isRead: true,
-    createdAt: '2026-11-08T08:00:00Z',
-  },
-];
-
-const MODERATOR_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-mod-02',
-    recipientId: 'mod-user',
-    type: 'GROUP_REQUEST',
-    title: 'Có 3 yêu cầu xin chuyển nhóm / đổi chéo mới chờ duyệt',
-    message: 'Sinh viên từ các nhóm đã nộp 3 đơn chuyển nhóm kèm lý do đổi chéo đề tài đang chờ phê duyệt.',
-    isRead: false,
-    createdAt: '2026-11-09T09:30:00Z',
-  },
-  {
-    id: 'notif-mod-03',
-    recipientId: 'mod-user',
-    type: 'SYSTEM',
-    title: 'Cảnh báo: Còn 8 sinh viên chưa có nhóm trước hạn đóng',
-    message: 'Thời hạn đăng ký tự nguyện sắp kết thúc. Còn 8 sinh viên chưa tham gia phòng nào.',
-    isRead: false,
-    createdAt: '2026-11-09T10:45:00Z',
-  },
-  {
-    id: 'notif-mod-04',
-    recipientId: 'mod-user',
-    type: 'GROUP_ACCEPTED',
-    title: 'Phòng FA26EXE101-02 vừa chạm ngưỡng 3 thành viên',
-    message: 'Phòng FA26EXE101-02 vừa tiếp nhận thành viên thứ 3 và tự động chuyển sang chế độ Nhóm đang tuyển.',
-    isRead: false,
-    createdAt: '2026-11-09T11:15:00Z',
-  },
-  {
-    id: 'notif-mod-01',
-    recipientId: 'mod-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Đồng bộ thành công 50 sinh viên từ FAP cho EXE101',
-    message: 'Hệ thống đã nạp danh sách 50 sinh viên đủ điều kiện từ FAP kỳ Fall 2026.',
-    isRead: true,
-    createdAt: '2026-11-08T08:30:00Z',
-  },
-];
-
-const LECTURER_NOTIFICATIONS: NotificationResponse[] = [
-  {
-    id: 'notif-lec-01',
-    recipientId: 'lec-user',
-    type: 'SYSTEM_ACCOUNT',
-    title: 'Danh sách 10 nhóm EXE101 đã được chốt sổ chính thức',
-    message: 'Điều phối viên đã khóa sổ 10 nhóm môn EXE101. Giảng viên có thể tải file CSV để theo dõi và chấm điểm.',
-    isRead: false,
-    createdAt: '2026-11-09T12:00:00Z',
-  },
-];
-
 export const MainLayout: React.FC = () => {
   const { user, logout, acceptTerms } = useAuth();
   const navigate = useNavigate();
@@ -204,12 +116,7 @@ export const MainLayout: React.FC = () => {
 
   const activeAccent = getAccentOption(appearance.accentId);
 
-  const getRoleFallbackNotifications = useCallback(() => {
-    if (user?.role === 'Moderator') return MODERATOR_NOTIFICATIONS;
-    if (user?.role === 'Lecturer') return LECTURER_NOTIFICATIONS;
-    return STUDENT_NOTIFICATIONS;
-  }, [user?.role]);
-
+  // Thông báo thật từ Notification Service; lỗi thì để trống (không hiện dữ liệu mẫu).
   const loadNotifications = useCallback(async () => {
     if (!user) return;
     try {
@@ -217,63 +124,58 @@ export const MainLayout: React.FC = () => {
         notificationsApi.getMyNotifications({ page: 1, pageSize: 12 }),
         notificationsApi.getUnreadCount(),
       ]);
-      if (pagedRes.items && pagedRes.items.length > 0) {
-        setNotifItems(pagedRes.items);
-        setUnreadCount(unreadRes.unreadCount ?? pagedRes.items.filter((n) => !n.isRead).length);
-      } else {
-        const fb = getRoleFallbackNotifications();
-        setNotifItems(fb);
-        setUnreadCount(fb.filter((n) => !n.isRead).length);
-      }
+      const items = pagedRes.items ?? [];
+      setNotifItems(items);
+      setUnreadCount(unreadRes.unreadCount ?? items.filter((n) => !n.isRead).length);
     } catch {
-      const fb = getRoleFallbackNotifications();
-      setNotifItems(fb);
-      setUnreadCount(fb.filter((n) => !n.isRead).length);
+      setNotifItems([]);
+      setUnreadCount(0);
     }
-  }, [user, getRoleFallbackNotifications]);
+  }, [user]);
 
   useEffect(() => {
     void loadNotifications();
     const handler = () => void loadNotifications();
     window.addEventListener('notifications:updated', handler);
-    return () => window.removeEventListener('notifications:updated', handler);
+    // Làm mới định kỳ để thấy thông báo mới do event Redis Streams tạo ra.
+    const timer = window.setInterval(handler, 30000);
+    return () => {
+      window.removeEventListener('notifications:updated', handler);
+      window.clearInterval(timer);
+    };
   }, [loadNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsApi.markAsRead(id);
+      setNotifItems((prev) => {
+        const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
+        setUnreadCount(updated.filter((n) => !n.isRead).length);
+        return updated;
+      });
     } catch {
-      // Offline fallback
+      void loadNotifications();
     }
-    setNotifItems((prev) => {
-      const updated = prev.map((n) => (n.id === id ? { ...n, isRead: true } : n));
-      setUnreadCount(updated.filter((n) => !n.isRead).length);
-      return updated;
-    });
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsApi.markAllAsRead();
+      setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
     } catch {
-      // Offline fallback
+      void loadNotifications();
     }
-    setNotifItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
   };
 
   const displayedNotifs = notifFilter === 'unread' ? notifItems.filter((n) => !n.isRead) : notifItems;
 
-  // Topbar Course Space Selector
-  const [selectedSpace, setSelectedSpace] = useState<string>(() => {
-    return localStorage.getItem('selectedCourseSpace') || 'exe101';
-  });
-
-  const handleSpaceChange = (newSpace: string) => {
-    setSelectedSpace(newSpace);
-    localStorage.setItem('selectedCourseSpace', newSpace);
-    window.dispatchEvent(new CustomEvent('coursespace:changed', { detail: newSpace }));
-  };
+  // Không gian môn học đang chọn (dữ liệu thật từ Group Service)
+  const { spaces, space: currentSpace } = useSelectedSpace();
+  const spacePhase = currentSpace ? SPACE_PHASE[currentSpace.status] : 0;
+  const spaceStatusLabel = currentSpace ? SPACE_STATUS_LABEL[currentSpace.status] : 'Chưa có không gian môn học';
+  const spaceDot = (status?: string) =>
+    status === 'Open' ? '#10B981' : status === 'ClosedRegistration' ? '#F59E0B' : status === 'Locked' ? '#64748B' : '#94A3B8';
 
   // First-Login Onboarding State (Terms)
   const [termsChecked, setTermsChecked] = useState(false);
@@ -382,9 +284,15 @@ export const MainLayout: React.FC = () => {
               roles: ['Moderator'],
             },
             {
-              to: '/reports',
-              label: 'Tổng quan & Xuất báo cáo',
+              to: '/lecturer/dashboard',
+              label: 'Danh sách nhóm & Xuất CSV',
               icon: <FileText size={20} />,
+              roles: ['Moderator'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo thống kê',
+              icon: <Sparkles size={20} />,
               roles: ['Moderator'],
             },
           ],
@@ -418,6 +326,12 @@ export const MainLayout: React.FC = () => {
               to: '/lecturer/dashboard',
               label: 'Tổng quan & Xuất báo cáo',
               icon: <FileText size={20} />,
+              roles: ['Lecturer'],
+            },
+            {
+              to: '/reports',
+              label: 'Báo cáo thống kê',
+              icon: <Sparkles size={20} />,
               roles: ['Lecturer'],
             },
             {
@@ -584,7 +498,7 @@ export const MainLayout: React.FC = () => {
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                Fall 2026
+                {currentSpace?.semesterCode ?? '—'}
               </span>
             )}
           </div>
@@ -616,9 +530,7 @@ export const MainLayout: React.FC = () => {
                     textOverflow: 'ellipsis',
                   }}
                 >
-                  {selectedSpace === 'exe101'
-                    ? 'EXE101 · Khởi nghiệp 1'
-                    : 'EXE201 · Khởi nghiệp 2'}
+                  {currentSpace ? `${currentSpace.subjectCode} · ${currentSpace.name}` : 'Chưa có môn học'}
                 </div>
                 <ChevronDown size={14} color="var(--text-light, #94A3B8)" style={{ flexShrink: 0 }} />
               </div>
@@ -640,14 +552,14 @@ export const MainLayout: React.FC = () => {
                       width: 6,
                       height: 6,
                       borderRadius: '50%',
-                      backgroundColor: selectedSpace === 'exe201-unauthorized' ? '#94A3B8' : 'var(--status-forming, #10B981)',
+                      backgroundColor: spaceDot(currentSpace?.status),
                       flexShrink: 0,
                     }}
                   />
-                  <span>Giai đoạn lập nhóm</span>
+                  <span>{spaceStatusLabel}</span>
                 </span>
                 <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 400, color: 'var(--text-light, #94A3B8)' }}>
-                  2 / 4
+                  {spacePhase} / 4
                 </span>
               </div>
 
@@ -668,7 +580,7 @@ export const MainLayout: React.FC = () => {
                       height: 3.5,
                       borderRadius: 999,
                       backgroundColor:
-                        step <= 2
+                        step <= spacePhase
                           ? 'var(--status-progress, #7C3AED)'
                           : isDarkMode
                           ? '#334155'
@@ -681,7 +593,7 @@ export const MainLayout: React.FC = () => {
           ) : (
             <div
               onClick={() => setSpaceMenuOpen(true)}
-              data-sidebar-tooltip="EXE101 • Học kỳ Fall 2026 (Đợt 2/4)"
+              data-sidebar-tooltip={currentSpace ? `${currentSpace.subjectCode} • ${currentSpace.semesterCode} (${spaceStatusLabel})` : 'Chưa có môn học'}
               style={{
                 width: 36,
                 height: 36,
@@ -698,7 +610,7 @@ export const MainLayout: React.FC = () => {
                 cursor: 'pointer',
               }}
             >
-              {selectedSpace === 'exe101' ? '101' : '201'}
+              {currentSpace ? currentSpace.subjectCode.slice(-3) : '—'}
             </div>
           )}
         </div>
@@ -1047,7 +959,7 @@ export const MainLayout: React.FC = () => {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Fall 2026
+                  {currentSpace?.semesterCode ?? 'Học kỳ'}
                 </span>
                 <span style={{ color: 'var(--text-light, #CBD5E1)', fontSize: '13px' }}>/</span>
                 <span
@@ -1059,26 +971,17 @@ export const MainLayout: React.FC = () => {
                     letterSpacing: '-0.01em',
                   }}
                 >
-                  {selectedSpace === 'exe201'
-                    ? 'EXE201 — Thực chiến Khởi nghiệp 2'
-                    : selectedSpace === 'exe201-unauthorized'
-                    ? 'EXE201 — Kiểm thử phân quyền FAP'
-                    : 'EXE101 — Trải nghiệm Khởi nghiệp 1'}
+                  {currentSpace ? `${currentSpace.subjectCode} — ${currentSpace.name}` : 'Chưa có không gian môn học'}
                 </span>
 
                 {/* Subtle status dot */}
                 <span
-                  title={
-                    selectedSpace === 'exe201-unauthorized'
-                      ? 'Chưa có trong danh sách FAP'
-                      : 'Đang mở đăng ký nhóm'
-                  }
+                  title={spaceStatusLabel}
                   style={{
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    backgroundColor:
-                      selectedSpace === 'exe201-unauthorized' ? '#94A3B8' : '#10B981',
+                    backgroundColor: spaceDot(currentSpace?.status),
                     flexShrink: 0,
                   }}
                 />
@@ -1125,35 +1028,33 @@ export const MainLayout: React.FC = () => {
                     }}
                   >
                     <span>Chuyển học kỳ & môn học</span>
-                    <span>Fall 2026</span>
+                    <span>{spaces.length} không gian</span>
                   </div>
 
-                  {[
-                    {
-                      value: 'exe101',
-                      code: '101',
-                      title: 'Môn EXE101 — Trải nghiệm Khởi nghiệp 1',
-                      subtitle: 'Học kỳ Fall 2026 • 50 SV đủ điều kiện • 12 Phòng nhóm',
-                      badge: 'Đang mở đăng ký',
-                      dotColor: '#10B981',
-                    },
-                    {
-                      value: 'exe201',
-                      code: '201',
-                      title: 'Môn EXE201 — Thực chiến Khởi nghiệp 2',
-                      subtitle: 'Học kỳ Fall 2026 • Liên ngành Công nghệ & Kinh doanh',
-                      badge: 'Đang mở đăng ký',
-                      dotColor: '#10B981',
-                    },
-                  ].map((opt) => {
-                    const isSelected = selectedSpace === opt.value;
+                  {spaces.length === 0 && (
+                    <div style={{ padding: '12px 10px', fontSize: '13px', color: '#64748B' }}>
+                      {user?.role === 'Student'
+                        ? 'Bạn chưa có tên trong danh sách FAP của môn học nào.'
+                        : 'Chưa có không gian môn học nào.'}
+                    </div>
+                  )}
+
+                  {spaces.map((s) => ({
+                    value: s.id,
+                    code: s.subjectCode.slice(-3),
+                    title: `${s.subjectCode} — ${s.name}`,
+                    subtitle: `Học kỳ ${s.semesterCode} • ${s.totalStudents} SV • ${s.totalRooms} phòng`,
+                    badge: SPACE_STATUS_LABEL[s.status],
+                    dotColor: spaceDot(s.status),
+                  })).map((opt) => {
+                    const isSelected = currentSpace?.id === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
                         className="motion-dropdown-item"
                         onClick={() => {
-                          handleSpaceChange(opt.value);
+                          selectSpace(opt.value);
                           setSpaceMenuOpen(false);
                         }}
                         style={{
@@ -1269,106 +1170,6 @@ export const MainLayout: React.FC = () => {
                       </button>
                     );
                   })}
-
-                  {/* Divider for QA Simulation Mode */}
-                  <div
-                    style={{
-                      height: 1,
-                      backgroundColor: '#F1F5F9',
-                      margin: '6px 4px',
-                    }}
-                  />
-                  <div
-                    style={{
-                      padding: '4px 10px 4px 10px',
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.06em',
-                      color: '#94A3B8',
-                    }}
-                  >
-                    Chế độ Kiểm thử Phân quyền (QA Simulation)
-                  </div>
-
-                  {(() => {
-                    const isSelected = selectedSpace === 'exe201-unauthorized';
-                    return (
-                      <button
-                        type="button"
-                        className="motion-dropdown-item"
-                        onClick={() => {
-                          handleSpaceChange('exe201-unauthorized');
-                          setSpaceMenuOpen(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          padding: '9px 10px',
-                          borderRadius: 10,
-                          border: isSelected ? '1px solid #E2E8F0' : '1px solid transparent',
-                          backgroundColor: isSelected ? '#F8FAFC' : 'transparent',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '11px', minWidth: 0 }}>
-                          <div
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: 8,
-                              backgroundColor: isSelected ? '#0F172A' : '#F1F5F9',
-                              color: isSelected ? '#FFFFFF' : '#64748B',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              flexShrink: 0,
-                            }}
-                          >
-                            QA
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
-                              Môn EXE201 (Mô phỏng: Chưa có trong danh sách FAP)
-                            </div>
-                            <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px' }}>
-                              Kiểm thử giao diện từ chối truy cập khi sinh viên chưa được đồng bộ FAP
-                            </div>
-                          </div>
-                        </div>
-
-                        {isSelected && (
-                          <span
-                            style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 999,
-                              backgroundColor: 'var(--accent-color, #F26F21)',
-                              color: '#FFFFFF',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Check size={12} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })()}
                 </div>
               )}
             </div>
@@ -1947,66 +1748,9 @@ export const MainLayout: React.FC = () => {
             PAGE CONTENT (Handles FAP Eligibility Check)
            ══════════════════════════════════════════════════════════════ */}
         <main style={{ flex: 1, padding: '2.25rem 2.75rem' }}>
-          {selectedSpace === 'exe201-unauthorized' ? (
-            <div
-              key="unauthorized-space"
-              className="motion-page-enter"
-              style={{
-                maxWidth: 580,
-                margin: '48px auto',
-                padding: '36px 32px',
-                borderRadius: 16,
-                border: '1px solid var(--border-light, #E2E8F0)',
-                backgroundColor: 'var(--bg-card, #FFFFFF)',
-                textAlign: 'center',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-              }}
-            >
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  backgroundColor: '#FEF2F2',
-                  border: '1px solid #FEE2E2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                }}
-              >
-                <AlertCircle size={30} color="#DC2626" />
-              </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', marginBottom: '8px' }}>
-                Chưa đủ điều kiện tham gia học phần
-              </h3>
-              <p style={{ fontSize: '14px', color: '#64748B', lineHeight: 1.6, marginBottom: '24px' }}>
-                Tài khoản của bạn hiện chưa có trong danh sách đủ điều kiện học môn này từ hệ thống FAP. Vui lòng liên hệ bộ phận Điều phối (Moderator) để được kiểm tra.
-              </p>
-              <button
-                type="button"
-                className="motion-cta-btn"
-                onClick={() => handleSpaceChange('exe101')}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: 10,
-                  backgroundColor: 'var(--accent-color, #F26F21)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(242, 112, 36, 0.25)',
-                }}
-              >
-                Quay lại Không gian Hợp lệ
-              </button>
-            </div>
-          ) : (
-            <div key={`${location.pathname}-${selectedSpace}`} className="motion-page-enter">
-              <Outlet />
-            </div>
-          )}
+          <div key={`${location.pathname}-${currentSpace?.id ?? "none"}`} className="motion-page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 
