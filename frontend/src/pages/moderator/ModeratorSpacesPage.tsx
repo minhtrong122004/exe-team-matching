@@ -198,6 +198,15 @@ export const ModeratorSpacesPage: React.FC = () => {
     void loadData();
   }, [loadData]);
 
+  // Đồng bộ thời gian thực sĩ số phòng và danh sách sinh viên
+  useEffect(() => {
+    const handleRealtime = () => void loadData();
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+    };
+  }, [loadData]);
+
   useEffect(() => {
     if (!space) return;
     setConfig({

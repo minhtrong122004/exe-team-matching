@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { RealtimeProvider } from './contexts/RealtimeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { MainLayout } from './components/Layout/MainLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -35,8 +36,9 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Public Authentication routes */}
+        <RealtimeProvider>
+          <Routes>
+            {/* Public Authentication routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/verify-email" element={<Navigate to="/login" replace />} />
@@ -79,8 +81,9 @@ export const App: React.FC = () => {
           {/* Catch-all redirect */}
           <Route path="*" element={<RootRedirect />} />
         </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+      </RealtimeProvider>
+    </AuthProvider>
+  </BrowserRouter>
   );
 };
 

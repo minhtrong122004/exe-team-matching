@@ -115,6 +115,19 @@ export const ModeratorDistributionPage: React.FC = () => {
     void loadSummary();
   }, [loadSummary]);
 
+  // Cập nhật danh sách sinh viên lẻ theo thời gian thực khi có người vào/rời phòng
+  useEffect(() => {
+    const handleRealtime = () => void loadSummary();
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    window.addEventListener('realtime:member-joined', handleRealtime);
+    window.addEventListener('realtime:member-left', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+      window.removeEventListener('realtime:member-joined', handleRealtime);
+      window.removeEventListener('realtime:member-left', handleRealtime);
+    };
+  }, [loadSummary]);
+
   const run = async (kind: NonNullable<typeof busy>, action: () => Promise<void>) => {
     setBusy(kind);
     try {

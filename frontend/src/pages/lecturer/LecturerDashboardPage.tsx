@@ -111,6 +111,19 @@ export const LecturerDashboardPage: React.FC = () => {
     void load();
   }, [load]);
 
+  // Đồng bộ thời gian thực bảng theo dõi tiến độ nhóm của giảng viên
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    window.addEventListener('realtime:group-updated', handleRealtime);
+    window.addEventListener('realtime:member-transferred', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+      window.removeEventListener('realtime:group-updated', handleRealtime);
+      window.removeEventListener('realtime:member-transferred', handleRealtime);
+    };
+  }, [load]);
+
   const groups = useMemo(() => {
     const list = (roster?.groups ?? []).filter((g) => g.memberCount > 0);
     const q = search.trim().toLowerCase();

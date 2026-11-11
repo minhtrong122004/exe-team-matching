@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertCircle, X, Info } from '../../utils/icons';
 
 /**
@@ -341,19 +342,29 @@ export const Modal: React.FC<{
 }> = ({ open, title, subtitle, onClose, children, footer, width = 560 }) => {
   useEffect(() => {
     if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKey);
+    };
   }, [open, onClose]);
+
   if (!open) return null;
-  return (
+
+  return createPortal(
     <div
       onClick={onClose}
+      className="modal-overlay"
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9000,
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        zIndex: 9999,
+        backgroundColor: 'rgba(15, 23, 42, 0.55)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -364,7 +375,7 @@ export const Modal: React.FC<{
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="motion-dropdown-panel"
+        className="modal-content"
         style={{
           width: '100%',
           maxWidth: width,
@@ -394,7 +405,8 @@ export const Modal: React.FC<{
         {children}
         {footer && <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

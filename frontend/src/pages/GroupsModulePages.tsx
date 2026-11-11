@@ -55,6 +55,7 @@ import {
   Lock,
   Unlock,
   ArrowLeftRight,
+  ShieldAlert,
   Send,
   TrendingUp,
   UserPlus,
@@ -162,6 +163,17 @@ export const GroupsPage: React.FC = () => {
     setMyGroup(null);
     setMatchScores({});
     void load();
+  }, [load]);
+
+  // Cập nhật realtime khi có bất kỳ thay đổi nào về phòng, nhóm, sĩ số
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    window.addEventListener('realtime:group-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+      window.removeEventListener('realtime:group-updated', handleRealtime);
+    };
   }, [load]);
 
   const showError = (err: unknown) => {
@@ -539,6 +551,7 @@ export const MyGroupPage: React.FC = () => {
   const [removeTarget, setRemoveTarget] = useState<{ userId: string; fullName: string } | null>(null);
   const [removeReason, setRemoveReason] = useState('');
   const [transferOpen, setTransferOpen] = useState(false);
+  const [transferType, setTransferType] = useState<'ONE_WAY' | 'SWAP'>('SWAP');
   const [transferGroups, setTransferGroups] = useState<RosterGroup[]>([]);
   const [transferForm, setTransferForm] = useState({ targetGroupId: '', swapWithStudentId: '', reason: '' });
 
@@ -581,6 +594,25 @@ export const MyGroupPage: React.FC = () => {
   useEffect(() => {
     setGroup(null);
     void load();
+  }, [load]);
+
+  // Tham gia SignalR group của nhóm mình và lắng nghe sự kiện thời gian thực
+  useEffect(() => {
+    if (group?.id) {
+      window.dispatchEvent(new CustomEvent('realtime:join-group-intent', { detail: group.id }));
+    }
+  }, [group?.id]);
+
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:group-updated', handleRealtime);
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    window.addEventListener('realtime:transfer-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:group-updated', handleRealtime);
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+      window.removeEventListener('realtime:transfer-updated', handleRealtime);
+    };
   }, [load]);
 
   // Đếm ngược thời hạn bầu Trưởng nhóm; hết giờ thì tải lại kết quả.
@@ -713,6 +745,8 @@ export const MyGroupPage: React.FC = () => {
   const pendingTransfer = myTransfers.some((t) => t.status === 'Pending');
 
   const openTransfer = async () => {
+    const isMinMembers = group.members.length <= 3;
+    setTransferType(isMinMembers ? 'SWAP' : 'ONE_WAY');
     setTransferForm({ targetGroupId: '', swapWithStudentId: '', reason: '' });
     setTransferOpen(true);
     try {
@@ -754,7 +788,22 @@ export const MyGroupPage: React.FC = () => {
       toast.show(errorMessage(err), 'error');
     }
   };
+
   const transferTarget = transferGroups.find((g) => g.groupId === transferForm.targetGroupId);
+
+  const handleTargetGroupChange = (targetGroupId: string) => {
+    const target = transferGroups.find((g) => g.groupId === targetGroupId);
+    const targetIsFull = !!target && target.memberCount >= target.maxMembers;
+    const isMinMembers = group.members.length <= 3;
+    if (isMinMembers || targetIsFull) {
+      setTransferType('SWAP');
+    }
+    setTransferForm({
+      ...transferForm,
+      targetGroupId,
+      swapWithStudentId: '',
+    });
+  };
 
   return (
     <PageShell>
@@ -1127,51 +1176,178 @@ export const MyGroupPage: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Yêu cầu chuyển nhóm (sau chốt sổ) */}
-      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Yêu cầu chuyển nhóm">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Yêu cầu chuyển nhóm / Đổi chéo (sau chốt sổ) */}
+      <Modal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        title="Yêu cầu chuyển nhóm / Đổi chéo (Hậu chốt sổ)"
+        subtitle="Quy trình điều phối nhân sự đặc biệt sau khi học kỳ đã khóa danh sách chính thức."
+        width={600}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Cảnh báo bảo toàn sĩ số nếu nhóm <= 3 người */}
+          {group.members.length <= 3 && (
+            <div
+              style={{
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 12,
+                padding: '12px 14px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+              }}
+            >
+              <ShieldAlert size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 13.5, color: '#991B1B', lineHeight: 1.5 }}>
+                <strong style={{ fontWeight: 700 }}>Quy định bảo toàn sĩ số:</strong> Nhóm hiện tại của bạn chỉ có đúng{' '}
+                <strong style={{ fontWeight: 700 }}>{group.members.length} thành viên</strong> (ngưỡng tối thiểu môn học). Bắt buộc phải chọn hình thức{' '}
+                <strong style={{ fontWeight: 700 }}>Đổi chéo 2 sinh viên (Swap 1-1)</strong> để không làm nhóm thiếu người!
+              </div>
+            </div>
+          )}
+
+          {/* Chọn hình thức chuyển */}
+          <div>
+            <label style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: 6 }}>
+              Hình thức chuyển:
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <button
+                type="button"
+                disabled={group.members.length <= 3 || (!!transferTarget && transferTarget.memberCount >= transferTarget.maxMembers)}
+                onClick={() => {
+                  setTransferType('ONE_WAY');
+                  setTransferForm((prev) => ({ ...prev, swapWithStudentId: '' }));
+                }}
+                style={{
+                  height: 42,
+                  borderRadius: 10,
+                  border: transferType === 'ONE_WAY' ? '2px solid var(--accent-color, #0054A6)' : '1px solid var(--border-medium, #CBD5E1)',
+                  backgroundColor: transferType === 'ONE_WAY' ? 'rgba(0, 84, 166, 0.08)' : 'var(--bg-card, #FFFFFF)',
+                  color: group.members.length <= 3 || (!!transferTarget && transferTarget.memberCount >= transferTarget.maxMembers)
+                    ? 'var(--text-light, #94A3B8)'
+                    : transferType === 'ONE_WAY'
+                    ? 'var(--accent-color, #0054A6)'
+                    : 'var(--text-main, #0F172A)',
+                  fontSize: 14,
+                  fontWeight: transferType === 'ONE_WAY' ? 700 : 600,
+                  cursor: group.members.length <= 3 || (!!transferTarget && transferTarget.memberCount >= transferTarget.maxMembers)
+                    ? 'not-allowed'
+                    : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                Chuyển 1 chiều
+              </button>
+              <button
+                type="button"
+                onClick={() => setTransferType('SWAP')}
+                style={{
+                  height: 42,
+                  borderRadius: 10,
+                  border: transferType === 'SWAP' ? '2px solid var(--accent-color, #0054A6)' : '1px solid var(--border-medium, #CBD5E1)',
+                  backgroundColor: transferType === 'SWAP' ? 'rgba(0, 84, 166, 0.08)' : 'var(--bg-card, #FFFFFF)',
+                  color: transferType === 'SWAP' ? 'var(--accent-color, #0054A6)' : 'var(--text-main, #0F172A)',
+                  fontSize: 14,
+                  fontWeight: transferType === 'SWAP' ? 700 : 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <ArrowLeftRight size={15} />
+                Đổi chéo 2 sinh viên (Swap)
+              </button>
+            </div>
+            {!!transferTarget && transferTarget.memberCount >= transferTarget.maxMembers && (
+              <div style={{ fontSize: 12.5, color: 'var(--text-muted, #64748B)', marginTop: 4 }}>
+                * Nhóm đích đã đủ sĩ số ({transferTarget.memberCount}/{transferTarget.maxMembers}), bắt buộc phải chọn hình thức Đổi chéo (Swap).
+              </div>
+            )}
+          </div>
+
+          {/* Chọn phòng nhóm muốn đến */}
           <Field label="Nhóm muốn chuyển đến">
-            <select style={fieldStyle} value={transferForm.targetGroupId} onChange={(e) => setTransferForm({ ...transferForm, targetGroupId: e.target.value, swapWithStudentId: '' })}>
-              <option value="">— Chọn nhóm —</option>
+            <select
+              style={fieldStyle}
+              value={transferForm.targetGroupId}
+              onChange={(e) => handleTargetGroupChange(e.target.value)}
+            >
+              <option value="">— Chọn nhóm đích —</option>
               {transferGroups.map((g) => (
                 <option key={g.groupId} value={g.groupId}>
-                  {g.roomCode} — {g.groupName} ({g.memberCount}/{g.maxMembers})
+                  {g.roomCode} — {g.groupName} ({g.memberCount}/{g.maxMembers} thành viên{g.memberCount >= g.maxMembers ? ' - Đã đủ' : ''})
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Đổi chéo với" hint="Bắt buộc khi nhóm đích đã đủ người.">
-            <select style={fieldStyle} value={transferForm.swapWithStudentId} disabled={!transferTarget} onChange={(e) => setTransferForm({ ...transferForm, swapWithStudentId: e.target.value })}>
-              <option value="">— Chuyển một chiều —</option>
-              {transferTarget?.members.map((m) => (
-                <option key={m.studentId} value={m.studentId}>
-                  {m.fullName}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Lý do">
-            <textarea rows={4} style={textareaStyle} value={transferForm.reason} onChange={(e) => setTransferForm({ ...transferForm, reason: e.target.value })} />
+
+          {/* Chọn sinh viên đối tác (chỉ hiện khi SWAP) */}
+          {transferType === 'SWAP' && (
+            <Field
+              label="Sinh viên đối tác đồng ý đổi chéo"
+              hint={transferTarget ? 'Chọn sinh viên thuộc nhóm đích đồng ý đổi chéo.' : 'Vui lòng chọn nhóm đích trước.'}
+            >
+              <select
+                style={fieldStyle}
+                value={transferForm.swapWithStudentId}
+                disabled={!transferTarget}
+                onChange={(e) => setTransferForm({ ...transferForm, swapWithStudentId: e.target.value })}
+              >
+                <option value="">— Chọn sinh viên đổi chéo —</option>
+                {transferTarget?.members.map((m) => (
+                  <option key={m.studentId} value={m.studentId}>
+                    {m.fullName} {m.role === 'Leader' ? '(Trưởng nhóm)' : '(Thành viên)'}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+
+          {/* Lý do xin chuyển */}
+          <Field label="Lý do xin chuyển / đổi chéo (bắt buộc)">
+            <textarea
+              rows={3}
+              placeholder="Nêu rõ lý do học vụ, định hướng đề tài hoặc sự phù hợp kỹ năng để Điều phối viên xem xét..."
+              style={textareaStyle}
+              value={transferForm.reason}
+              onChange={(e) => setTransferForm({ ...transferForm, reason: e.target.value })}
+            />
           </Field>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
           <Button variant="outline" onClick={() => setTransferOpen(false)}>
             Hủy
           </Button>
           <Button
             icon={<Send size={15} />}
             loading={busy === 'transfer'}
-            disabled={!transferForm.targetGroupId || !transferForm.reason.trim()}
+            disabled={
+              !transferForm.targetGroupId ||
+              !transferForm.reason.trim() ||
+              (transferType === 'SWAP' && !transferForm.swapWithStudentId)
+            }
             onClick={async () => {
               const ok = await act(
                 'transfer',
                 () =>
                   workspaceApi.createTransferRequest(space.id, {
                     targetGroupId: transferForm.targetGroupId,
-                    swapWithStudentId: transferForm.swapWithStudentId || null,
+                    swapWithStudentId: transferType === 'SWAP' ? transferForm.swapWithStudentId : null,
                     reason: transferForm.reason.trim(),
                   }),
-                'Đã gửi yêu cầu chuyển nhóm.'
+                transferType === 'SWAP'
+                  ? 'Đã gửi yêu cầu đổi chéo (Swap) tới Điều phối viên.'
+                  : 'Đã gửi yêu cầu chuyển nhóm 1 chiều tới Điều phối viên.'
               );
               if (ok) setTransferOpen(false);
             }}
@@ -1219,6 +1395,17 @@ export const JoinRequestsPage: React.FC = () => {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Lắng nghe sự kiện duyệt / từ chối đơn apply thời gian thực
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:join-request-decided', handleRealtime);
+    window.addEventListener('realtime:group-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:join-request-decided', handleRealtime);
+      window.removeEventListener('realtime:group-updated', handleRealtime);
+    };
   }, [load]);
 
   const cancel = async (req: JoinRequest) => {

@@ -65,16 +65,26 @@ export const useSelectedSpace = (): SelectedSpaceState => {
     void reload();
     const onChanged = (e: Event) => setSelectedId((e as CustomEvent<string>).detail);
     const onReload = () => void reload();
+    const onRealtimeUpdate = () => void reload();
+
     window.addEventListener(CHANGED_EVENT, onChanged);
     window.addEventListener(RELOAD_EVENT, onReload);
+    window.addEventListener('realtime:space-updated', onRealtimeUpdate);
     return () => {
       window.removeEventListener(CHANGED_EVENT, onChanged);
       window.removeEventListener(RELOAD_EVENT, onReload);
+      window.removeEventListener('realtime:space-updated', onRealtimeUpdate);
     };
   }, [reload]);
 
   // Lựa chọn cũ không còn hợp lệ (đã xóa, hoặc giá trị mẫu cũ như "exe101") thì dùng không gian mới nhất.
   const space = spaces.find((s) => s.id === selectedId) ?? spaces[0] ?? null;
+
+  useEffect(() => {
+    if (space?.id) {
+      window.dispatchEvent(new CustomEvent('realtime:join-space-intent', { detail: space.id }));
+    }
+  }, [space?.id]);
 
   return { spaces, space, loading, error, reload };
 };

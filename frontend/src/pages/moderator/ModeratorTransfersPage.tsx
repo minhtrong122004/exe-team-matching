@@ -89,6 +89,17 @@ export const ModeratorTransfersPage: React.FC = () => {
     void load();
   }, [load]);
 
+  // Cập nhật danh sách yêu cầu chuyển nhóm thời gian thực
+  useEffect(() => {
+    const handleRealtime = () => void load();
+    window.addEventListener('realtime:transfer-updated', handleRealtime);
+    window.addEventListener('realtime:space-updated', handleRealtime);
+    return () => {
+      window.removeEventListener('realtime:transfer-updated', handleRealtime);
+      window.removeEventListener('realtime:space-updated', handleRealtime);
+    };
+  }, [load]);
+
   const sourceGroup = groups.find((g) => g.groupId === sourceGroupId);
   const targetGroup = groups.find((g) => g.groupId === targetGroupId);
   const threshold = space?.groupThreshold ?? 3;
