@@ -141,6 +141,17 @@ public class GroupsController(
         Guid id, [FromQuery] int top = 10, CancellationToken ct = default) =>
         Ok(await matchingService.GetCandidatesAsync(id, top, ct));
 
+    /// <summary>
+    /// Phân tích nhóm toàn diện với AI Mentor (Tier 2: Gemini API / Heuristic Fallback).
+    /// Đánh giá sức mạnh, điểm mù, gợi ý 3 đề tài khởi nghiệp EXE phù hợp và lộ trình hành động 4 tuần.
+    /// </summary>
+    [HttpGet("{id:guid}/ai-mentor")]
+    [ProducesResponseType<AiMentorResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<AiMentorResponse>> GetAiMentorInsights(Guid id, CancellationToken ct) =>
+        Ok(await matchingService.GetAiMentorInsightsAsync(id, ct));
+
     // ─────────────────────────────────────────────────────────────────────────
     // Thành viên
     // ─────────────────────────────────────────────────────────────────────────

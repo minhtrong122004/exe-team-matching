@@ -51,8 +51,9 @@ public class GroupService(
     {
         var group = await LoadAsync(id, ct);
 
-        // BR-13: nhóm đã đủ hoặc đã đóng thì ẩn thông tin thành viên với sinh viên ngoài nhóm.
-        var hideMembers = group.Status is GroupStatus.Closed or GroupStatus.Locked
+        // BR-13: trong giai đoạn tuyển dụng, nếu nhóm đã đóng tuyển sớm (Closed) thì ẩn thông tin thành viên với sinh viên ngoài nhóm.
+        // Hậu chốt sổ (Locked), thành viên nhóm hiển thị công khai để sinh viên lựa chọn thành viên đổi chéo (Swap) theo BR-36 & BR-37.
+        var hideMembers = group.Status == GroupStatus.Closed
                           && currentUser.IsInRole(Roles.Student)
                           && group.Members.All(m => m.UserId != currentUser.UserId);
 
@@ -228,7 +229,7 @@ public class GroupService(
 
         if (group.Status == GroupStatus.Locked)
         {
-            throw new BusinessRuleException("ROOM_LOCKED", "Phòng này đã bị khóa sau khi chốt sổ (BR-33).");
+            throw new BusinessRuleException("ROOM_LOCKED", "Phòng này đã bị khóa sau khi chốt sổ.");
         }
 
         var userId = currentUser.UserId;
@@ -241,10 +242,17 @@ public class GroupService(
             var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
             if (space != null)
             {
-                if (space.Status != CourseSpaceStatus.Open)
+                if (space.Status != CourseSpaceStatus.Open || space.RegistrationDeadline <= DateTime.UtcNow)
                 {
+                    if (space.Status == CourseSpaceStatus.Open && space.RegistrationDeadline <= DateTime.UtcNow)
+                    {
+                        space.Status = CourseSpaceStatus.ClosedRegistration;
+                        space.UpdatedAt = DateTime.UtcNow;
+                        await uow.SaveChangesAsync(ct);
+                    }
+
                     throw new BusinessRuleException("REGISTRATION_CLOSED",
-                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Sinh viên không thể tự do chọn phòng vào lúc này.");
+                        $"Thời hạn đăng ký tự do của học phần đã kết thúc vào lúc {space.RegistrationDeadline:dd/MM/yyyy HH:mm}. Hệ thống đã tự động đóng cổng đăng ký để chuyển sang giai đoạn điều phối sinh viên lẻ.");
                 }
 
                 currentEnrollment = await spaceRepo.GetEnrollmentAsync(space.Id, userId, ct);
@@ -254,7 +262,7 @@ public class GroupService(
                     if (!enrolledSpaces.Any(s => s.Id == space.Id))
                     {
                         throw new BusinessRuleException("NOT_ENROLLED_IN_SPACE",
-                            $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode} (BR-01).");
+                            $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode}.");
                     }
                 }
 
@@ -278,7 +286,7 @@ public class GroupService(
         if (!isProfileCompleted)
         {
             throw new BusinessRuleException("PROFILE_INCOMPLETE",
-                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room (BR-07).");
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi tham gia Room.");
         }
 
         var member = await membership.AddDirectMemberAsync(
@@ -302,9 +310,9 @@ public class GroupService(
             group.MaxMembers), ct);
 
         var message = member.Role == MemberRole.Leader
-            ? "Bạn là thành viên đầu tiên vào phòng và trở thành Trưởng nhóm (Leader) tạm thời (BR-15)."
+            ? "Bạn là thành viên đầu tiên vào phòng và trở thành Trưởng nhóm (Leader) tạm thời."
             : (group.Status == GroupStatus.Recruiting
-                ? $"Phòng đã đạt ngưỡng {threshold} thành viên và chính thức trở thành Group (BR-16)."
+                ? $"Phòng đã đạt ngưỡng {threshold} thành viên và chính thức trở thành Group."
                 : $"Gia nhập phòng thành công ({group.Members.Count}/{group.MaxMembers}).");
 
         return new DirectJoinRoomResponse(
@@ -335,7 +343,7 @@ public class GroupService(
         if (group.Members.Count < threshold)
         {
             throw new BusinessRuleException("BELOW_THRESHOLD",
-                $"Nhóm cần đạt tối thiểu ngưỡng {threshold} thành viên mới có thể chốt tuyển sớm (BR-16, BR-28).");
+                $"Nhóm cần đạt tối thiểu ngưỡng {threshold} thành viên mới có thể chốt tuyển sớm.");
         }
 
         var now = DateTime.UtcNow;

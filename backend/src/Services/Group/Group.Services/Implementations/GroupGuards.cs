@@ -34,7 +34,7 @@ internal static class GroupGuards
     public static void EnsureNotLocked(this GroupEntity group)
     {
         if (group.Status == GroupStatus.Locked)
-            throw new BusinessRuleException("ROOM_LOCKED", "Nhóm đã chốt sổ nên không thể thay đổi (BR-33).");
+            throw new BusinessRuleException("ROOM_LOCKED", "Nhóm đã chốt sổ nên không thể thay đổi.");
     }
 
     /// <summary>Nhóm phải đang tuyển: đã đủ người → GROUP_FULL, còn lại → GROUP_NOT_RECRUITING.</summary>

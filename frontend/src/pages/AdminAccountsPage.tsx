@@ -868,7 +868,7 @@ export const AdminAccountsPage: React.FC = () => {
                                   border: acc.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fde68a',
                                 }}
                               >
-                                {acc.hasAcceptedTerms ? 'Đã đồng ý BR-34' : 'Chờ đồng ý BR-34'}
+                                {acc.hasAcceptedTerms ? 'Đã đồng ý điều khoản' : 'Chờ đồng ý điều khoản'}
                               </span>
                             </div>
                           )}
@@ -1109,7 +1109,7 @@ export const AdminAccountsPage: React.FC = () => {
             >
               <ShieldCheck size={16} color="#0054a6" style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0 }}>
-                <strong>Lưu ý phân quyền (BR-02):</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
+                <strong>Lưu ý phân quyền:</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
               </p>
             </div>
 

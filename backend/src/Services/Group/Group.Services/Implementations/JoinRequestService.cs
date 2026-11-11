@@ -41,17 +41,24 @@ public class JoinRequestService(
             var space = await spaceRepo.GetByIdAsync(group.SpaceId.Value, ct);
             if (space != null)
             {
-                if (space.Status != CourseSpaceStatus.Open)
+                if (space.Status != CourseSpaceStatus.Open || space.RegistrationDeadline <= DateTime.UtcNow)
                 {
+                    if (space.Status == CourseSpaceStatus.Open && space.RegistrationDeadline <= DateTime.UtcNow)
+                    {
+                        space.Status = CourseSpaceStatus.ClosedRegistration;
+                        space.UpdatedAt = DateTime.UtcNow;
+                        await uow.SaveChangesAsync(ct);
+                    }
+
                     throw new BusinessRuleException("REGISTRATION_CLOSED",
-                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.");
+                        $"Thời hạn đăng ký tự do của học phần đã kết thúc vào lúc {space.RegistrationDeadline:dd/MM/yyyy HH:mm}. Bạn không thể nộp thêm đơn ứng tuyển vào lúc này.");
                 }
 
                 // BR-01: chỉ sinh viên có trong danh sách của môn mới được nộp đơn.
                 if (!await spaceRepo.IsStudentEnrolledAsync(space.Id, studentId, ct))
                 {
                     throw new BusinessRuleException("NOT_ENROLLED_IN_SPACE",
-                        $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode} (BR-01).");
+                        $"Bạn không có tên trong danh sách sinh viên hợp lệ của môn {space.SubjectCode} học kỳ {space.SemesterCode}.");
                 }
 
                 limit = space.MaxConcurrentApplies;
@@ -75,7 +82,7 @@ public class JoinRequestService(
         if (!isProfileCompleted)
         {
             throw new BusinessRuleException("PROFILE_INCOMPLETE",
-                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi nộp đơn Apply (BR-07).");
+                "Bạn bắt buộc phải hoàn tất khai báo 5 kỹ năng cốt lõi và xác nhận cam kết trách nhiệm tại trang Hồ sơ cá nhân trước khi nộp đơn Apply.");
         }
 
         // BR-04: không gửi tới nhóm mình đang ở.
@@ -95,7 +102,7 @@ public class JoinRequestService(
 
         if (await joinRequests.CountPendingByStudentAsync(studentId, group.SpaceId, ct) >= limit)
             throw new BusinessRuleException(GroupErrorCodes.JoinRequestLimit,
-                $"Bạn chỉ được nộp tối đa {limit} đơn ứng tuyển cùng lúc (BR-22). Vui lòng rút bớt đơn cũ trước khi nộp thêm.");
+                $"Bạn chỉ được nộp tối đa {limit} đơn ứng tuyển cùng lúc. Vui lòng rút bớt đơn cũ trước khi nộp thêm.");
 
         if (request.SlotId is { } slotId)
         {
@@ -167,7 +174,7 @@ public class JoinRequestService(
                 if (space != null && space.Status != CourseSpaceStatus.Open)
                 {
                     throw new BusinessRuleException("REGISTRATION_CLOSED",
-                        "Không gian học phần đã đóng cổng đăng ký tự do (BR-30) hoặc đã chốt sổ. Không thể duyệt đơn ứng tuyển vào lúc này.");
+                        "Không gian học phần đã đóng cổng đăng ký tự do hoặc đã chốt sổ. Không thể duyệt đơn ứng tuyển vào lúc này.");
                 }
             }
 
@@ -240,7 +247,7 @@ public class JoinRequestService(
 
         // Thành viên trong nhóm mới được bỏ phiếu tham khảo (BR-25)
         var member = r.Group.Members.FirstOrDefault(m => m.UserId == currentUserId)
-            ?? throw new BusinessRuleException("NOT_MEMBER", "Chỉ thành viên của nhóm mới được bỏ phiếu tham khảo cho ứng viên này (BR-25).");
+            ?? throw new BusinessRuleException("NOT_MEMBER", "Chỉ thành viên của nhóm mới được bỏ phiếu tham khảo cho ứng viên này.");
 
         if (r.Status != JoinRequestStatus.Pending)
         {

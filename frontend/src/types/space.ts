@@ -28,14 +28,15 @@ export interface CreateCourseSpaceRequest {
   maxMembersPerGroup: number;
   bufferRatio: number;
   maxConcurrentApplies: number;
-  registrationDeadline?: string | null;
+  registrationDeadline: string;
 }
 
 export interface UpdateSpaceConfigRequest {
+  name?: string;
   maxMembersPerGroup: number;
   bufferRatio: number;
   maxConcurrentApplies: number;
-  registrationDeadline?: string | null;
+  registrationDeadline: string;
   status: CourseSpaceStatus;
 }
 

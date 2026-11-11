@@ -554,24 +554,28 @@ input, select, textarea {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
+  z-index: 1200;
+  padding: 1.25rem;
 }
 
 .modal-content {
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
+  background: var(--bg-card, #ffffff);
+  padding: 1.5rem 1.75rem;
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 4px 16px rgba(15, 23, 42, 0.08);
   max-width: 650px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-light, #e2e8f0);
   animation: modalIn 200ms ease-out;
 }
 
@@ -928,7 +932,7 @@ input, select, textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -939,7 +943,7 @@ input, select, textarea {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 

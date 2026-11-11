@@ -67,5 +67,18 @@ public sealed class MatchingClient(MatchingService.MatchingServiceClient client,
         return response;
     }
 
+    public async Task<AnalyzeGroupResponse> AnalyzeGroupWithAIAsync(AnalyzeGroupRequest request, CancellationToken ct = default)
+    {
+        var sw = Stopwatch.StartNew();
+        // Deadline 25 giây cho tác vụ gọi AI/LLM
+        var aiDeadline = DateTime.UtcNow.AddSeconds(25);
+        var response = await client.AnalyzeGroupWithAIAsync(request, deadline: aiDeadline, cancellationToken: ct);
+
+        logger.LogInformation(
+            "[GRPC] AnalyzeGroupWithAI groupId={GroupId} isAi={IsAi} model={Model} duration={Duration}ms correlationId={CorrelationId}",
+            request.GroupId, response.IsAiGenerated, response.ModelName, sw.ElapsedMilliseconds, CorrelationContext.Current);
+        return response;
+    }
+
     private static DateTime Deadline() => DateTime.UtcNow.Add(Timeout);
 }

@@ -44,6 +44,9 @@ import {
   ListBullets,
   LockKey,
   SignOut,
+  SignIn,
+  Globe as PhGlobe,
+  Star as PhStar,
   EnvelopeSimpleOpen,
   MapPinLine,
   SidebarSimple,
@@ -71,7 +74,7 @@ import {
   IdentificationBadge,
   UserCheck as PhUserCheck,
   UserPlus as PhUserPlus,
-  UserMinus,
+  UserMinus as PhUserMinus,
   UsersThree,
   UsersFour,
   X as PhX,
@@ -177,10 +180,16 @@ export const Upload = createPhosphorAdapter(UploadSimple, 'bold');
 export const User = createPhosphorAdapter(IdentificationBadge, 'duotone');
 export const UserCheck = createPhosphorAdapter(PhUserCheck, 'duotone');
 export const UserPlus = createPhosphorAdapter(PhUserPlus, 'duotone');
-export const UserX = createPhosphorAdapter(UserMinus, 'duotone');
+export const UserX = createPhosphorAdapter(PhUserMinus, 'duotone');
+export const UserMinus = createPhosphorAdapter(PhUserMinus, 'duotone');
 export const Users = createPhosphorAdapter(UsersThree, 'duotone');
 export const Users2 = createPhosphorAdapter(UsersFour, 'duotone');
 export const Vote = createPhosphorAdapter(CheckSquareOffset, 'duotone');
 export const X = createPhosphorAdapter(PhX, 'bold');
 export const XCircle = createPhosphorAdapter(PhXCircle, 'duotone');
 export const Zap = createPhosphorAdapter(Target, 'duotone');
+export const Pencil = createPhosphorAdapter(PencilSimpleLine, 'duotone');
+export const Globe = createPhosphorAdapter(PhGlobe, 'duotone');
+export const LogIn = createPhosphorAdapter(SignIn, 'bold');
+export const Star = createPhosphorAdapter(PhStar, 'duotone');
+export const Award = createPhosphorAdapter(Medal, 'duotone');

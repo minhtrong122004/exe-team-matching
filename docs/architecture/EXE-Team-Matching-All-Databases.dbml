@@ -1,0 +1,463 @@
+// EXE Team Matching — DBML for dbdiagram.io
+// Current physical schema, organized by database/service.
+// Cross-service IDs are logical references only; no cross-database Ref is defined.
+
+Project exe_team_matching {
+  database_type: 'SQL Server'
+  Note: 'Six independent service databases. IDs shared across services are logical references and deliberately have no FK constraints.'
+}
+
+// ======================== ExeAuthDb ========================
+TableGroup ExeAuthDb {
+  accounts
+  refresh_tokens
+  outbox_messages
+}
+
+Table ExeAuthDb.accounts {
+  id uniqueidentifier [pk]
+  email nvarchar(256) [not null, unique]
+  registration_full_name nvarchar(100) [not null]
+  role nvarchar(20) [not null, note: 'Student, Moderator, Lecturer']
+  student_code nvarchar(32)
+  accepted_terms_at datetime2
+  is_active bit [not null, default: 1]
+  created_at datetime2 [not null]
+  updated_at datetime2 [not null]
+}
+
+Table ExeAuthDb.refresh_tokens {
+  id uniqueidentifier [pk]
+  account_id uniqueidentifier [not null]
+  token_hash varchar(64) [not null, unique]
+  expires_at datetime2 [not null]
+  created_at datetime2 [not null]
+  revoked_at datetime2
+  replaced_by_token_id uniqueidentifier
+  revoke_reason nvarchar(100)
+  indexes {
+    account_id
+    replaced_by_token_id
+  }
+}
+
+Table ExeAuthDb.outbox_messages {
+  id uniqueidentifier [pk]
+  event_type nvarchar(100) [not null]
+  payload nvarchar(max) [not null]
+  created_at datetime2 [not null]
+  processed_at datetime2
+  retry_count int [not null, default: 0]
+  last_error nvarchar(max)
+  indexes {
+    (processed_at) [name: 'IX_OutboxMessages_ProcessedAt', note: 'Filtered index where processed_at IS NULL']
+  }
+}
+
+Ref: ExeAuthDb.refresh_tokens.account_id > ExeAuthDb.accounts.id [delete: cascade]
+Ref: ExeAuthDb.refresh_tokens.replaced_by_token_id > ExeAuthDb.refresh_tokens.id [delete: no action]
+
+// ======================== ExeUserDb ========================
+TableGroup ExeUserDb {
+  user_profiles
+  skills
+  user_skills
+  processed_events
+}
+
+Table ExeUserDb.user_profiles {
+  user_id uniqueidentifier [pk, note: 'Same GUID as Auth accounts.id; cross-database logical reference, not FK']
+  email nvarchar(256) [not null, unique]
+  full_name nvarchar(100) [not null]
+  role nvarchar(50) [not null, default: 'Student']
+  student_code nvarchar(20) [unique, note: 'Filtered unique index: only non-NULL values']
+  campus nvarchar(50)
+  major nvarchar(20)
+  cohort nvarchar(10)
+  tech_score int [not null, default: 0]
+  management_score int [not null, default: 0]
+  graphic_design_score int [not null, default: 0]
+  marketing_score int [not null, default: 0]
+  sale_score int [not null, default: 0]
+  is_committed bit [not null, default: 0]
+  committed_at datetime2
+  is_profile_completed bit [not null, default: 0]
+  bio nvarchar(1000)
+  desired_role nvarchar(100)
+  availability nvarchar(30) [not null, default: 'LookingForTeam']
+  interests nvarchar(500)
+  created_at datetime2 [not null]
+  updated_at datetime2 [not null]
+  indexes {
+    availability
+  }
+}
+
+Table ExeUserDb.skills {
+  id uniqueidentifier [pk]
+  name nvarchar(100) [not null, unique]
+  category nvarchar(30) [not null]
+  description nvarchar(500)
+  created_at datetime2 [not null]
+  indexes {
+    category
+  }
+}
+
+Table ExeUserDb.user_skills {
+  user_id uniqueidentifier [not null]
+  skill_id uniqueidentifier [not null]
+  level int [not null, default: 1]
+  created_at datetime2 [not null]
+  indexes {
+    (user_id, skill_id) [pk]
+    skill_id
+  }
+}
+
+Table ExeUserDb.processed_events {
+  event_id uniqueidentifier [pk]
+  event_type nvarchar(100) [not null]
+  processed_at datetime2 [not null]
+}
+
+Ref: ExeUserDb.user_skills.user_id > ExeUserDb.user_profiles.user_id [delete: cascade]
+Ref: ExeUserDb.user_skills.skill_id > ExeUserDb.skills.id [delete: cascade]
+
+// ======================== ExeProjectDb ========================
+TableGroup ExeProjectDb {
+  projects
+  project_tags
+}
+
+Table ExeProjectDb.projects {
+  id uniqueidentifier [pk]
+  owner_id uniqueidentifier [not null, note: 'Logical reference to ExeAuthDb.accounts.id; no cross-database FK']
+  title nvarchar(200) [not null]
+  problem nvarchar(2000) [not null]
+  solution nvarchar(2000) [not null]
+  domain nvarchar(50) [not null]
+  status nvarchar(50) [not null]
+  created_at datetime2 [not null]
+  updated_at datetime2 [not null]
+}
+
+Table ExeProjectDb.project_tags {
+  project_id uniqueidentifier [not null]
+  tag nvarchar(100) [not null]
+  indexes {
+    (project_id, tag) [pk]
+  }
+}
+
+Ref: ExeProjectDb.project_tags.project_id > ExeProjectDb.projects.id [delete: cascade]
+
+// ======================== ExeGroupDb ========================
+TableGroup ExeGroupDb {
+  course_spaces
+  space_enrollments
+  groups
+  group_members
+  recruitment_slots
+  join_requests
+  application_votes
+  leader_elections
+  election_votes
+  member_removal_logs
+  group_transfer_requests
+}
+
+Table ExeGroupDb.course_spaces {
+  id uniqueidentifier [pk]
+  semester_code nvarchar(20) [not null]
+  subject_code nvarchar(20) [not null]
+  name nvarchar(100) [not null]
+  max_members_per_group int [not null]
+  group_threshold int [not null]
+  buffer_ratio decimal(5,2) [not null]
+  max_concurrent_applies int [not null]
+  registration_deadline datetime2 [not null]
+  status nvarchar(30) [not null]
+  created_at datetime2 [not null]
+  updated_at datetime2 [not null]
+  indexes {
+    (semester_code, subject_code) [unique, name: 'IX_CourseSpaces_SemesterCode_SubjectCode']
+    status
+  }
+}
+
+Table ExeGroupDb.space_enrollments {
+  id uniqueidentifier [pk]
+  space_id uniqueidentifier [not null]
+  student_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  student_code nvarchar(20) [not null]
+  email nvarchar(256) [not null]
+  full_name nvarchar(200) [not null]
+  major nvarchar(20) [not null]
+  cohort nvarchar(10) [not null]
+  is_profile_completed bit [not null, default: 0]
+  class_code nvarchar(50)
+  enrolled_at datetime2 [not null]
+  indexes {
+    (space_id, student_id) [unique]
+    (space_id, student_code) [unique]
+  }
+}
+
+Table ExeGroupDb.groups {
+  id uniqueidentifier [pk]
+  space_id uniqueidentifier [note: 'Nullable FK to course_spaces']
+  room_code nvarchar(50)
+  name nvarchar(100) [not null]
+  description nvarchar(1000)
+  leader_id uniqueidentifier [note: 'Logical reference to Auth account; no FK']
+  project_id uniqueidentifier [note: 'Nullable logical reference to ExeProjectDb.projects; no cross-database FK']
+  project_domain nvarchar(50)
+  max_members int [not null]
+  status nvarchar(20) [not null]
+  is_closed_by_leader bit [not null]
+  created_at datetime2 [not null]
+  updated_at datetime2 [not null]
+  row_version rowversion [not null]
+  indexes {
+    space_id
+    status
+    leader_id
+    (space_id, room_code) [unique, note: 'Filtered: space_id and room_code are not NULL']
+    project_id [unique, note: 'Filtered: project_id IS NOT NULL and status <> Disbanded']
+  }
+}
+
+Table ExeGroupDb.group_members {
+  group_id uniqueidentifier [not null]
+  user_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  role nvarchar(20) [not null]
+  slot_id uniqueidentifier [note: 'No FK constraint in current GroupDbContext']
+  full_name nvarchar(200) [not null]
+  email nvarchar(256) [not null]
+  joined_at datetime2 [not null]
+  indexes {
+    (group_id, user_id) [pk]
+    user_id
+  }
+}
+
+Table ExeGroupDb.recruitment_slots {
+  id uniqueidentifier [pk]
+  group_id uniqueidentifier [not null]
+  required_major nvarchar(20)
+  required_skills nvarchar(max) [note: 'Stored as JSON primitive collection; DB column/type may be provider-generated']
+  quantity int [not null]
+  filled int [not null]
+}
+
+Table ExeGroupDb.join_requests {
+  id uniqueidentifier [pk]
+  group_id uniqueidentifier [not null]
+  slot_id uniqueidentifier [note: 'No FK constraint in current GroupDbContext']
+  student_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  student_name nvarchar(200) [not null]
+  student_email nvarchar(256) [not null]
+  message nvarchar(1000)
+  status nvarchar(20) [not null]
+  created_at datetime2 [not null]
+  decided_at datetime2
+  indexes {
+    (student_id, status)
+    (group_id, status)
+    (student_id, group_id) [unique, note: 'Filtered unique index: status = Pending']
+  }
+}
+
+Table ExeGroupDb.application_votes {
+  join_request_id uniqueidentifier [not null]
+  voter_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  voter_name nvarchar(200) [not null]
+  is_upvote bit [not null]
+  comment nvarchar(500)
+  voted_at datetime2 [not null]
+  indexes {
+    (join_request_id, voter_id) [pk]
+  }
+}
+
+Table ExeGroupDb.leader_elections {
+  id uniqueidentifier [pk]
+  group_id uniqueidentifier [not null]
+  candidate_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  candidate_name nvarchar(200) [not null]
+  initiated_by_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  initiated_by_name nvarchar(200) [not null]
+  status nvarchar(20) [not null]
+  started_at datetime2 [not null]
+  expires_at datetime2 [not null]
+  completed_at datetime2
+  indexes {
+    (group_id, status) [unique, note: 'Filtered unique index: status = Active']
+  }
+}
+
+Table ExeGroupDb.election_votes {
+  election_id uniqueidentifier [not null]
+  voter_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  voter_name nvarchar(200) [not null]
+  is_agree bit [not null]
+  voted_at datetime2 [not null]
+  indexes {
+    (election_id, voter_id) [pk]
+  }
+}
+
+Table ExeGroupDb.member_removal_logs {
+  id uniqueidentifier [pk]
+  group_id uniqueidentifier [not null]
+  removed_user_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  removed_user_name nvarchar(200) [not null]
+  removed_user_email nvarchar(256) [not null]
+  leader_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  leader_name nvarchar(200) [not null]
+  category nvarchar(100) [not null]
+  reason nvarchar(1000) [not null]
+  removed_at datetime2 [not null]
+  indexes {
+    group_id
+    removed_user_id
+  }
+}
+
+Table ExeGroupDb.group_transfer_requests {
+  id uniqueidentifier [pk]
+  space_id uniqueidentifier [not null]
+  requester_student_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  requester_student_name nvarchar(200) [not null]
+  requester_student_code nvarchar(50) [not null]
+  from_group_id uniqueidentifier [not null]
+  from_group_code nvarchar(50) [not null]
+  target_group_id uniqueidentifier [not null]
+  target_group_code nvarchar(50) [not null]
+  swap_with_student_id uniqueidentifier [note: 'Logical reference to Auth account; no FK']
+  swap_with_student_name nvarchar(200)
+  swap_with_student_code nvarchar(50)
+  reason nvarchar(1000) [not null]
+  status nvarchar(30) [not null]
+  created_at datetime2 [not null]
+  decided_at datetime2
+  decided_by_moderator_id uniqueidentifier [note: 'Logical reference to Auth account; no FK']
+  decision_reason nvarchar(1000)
+  indexes {
+    space_id
+    requester_student_id
+    status
+    (space_id, requester_student_id, status)
+    from_group_id
+    target_group_id
+  }
+}
+
+Ref: ExeGroupDb.space_enrollments.space_id > ExeGroupDb.course_spaces.id [delete: cascade]
+Ref: ExeGroupDb.groups.space_id > ExeGroupDb.course_spaces.id [delete: set null]
+Ref: ExeGroupDb.group_members.group_id > ExeGroupDb.groups.id [delete: cascade]
+Ref: ExeGroupDb.recruitment_slots.group_id > ExeGroupDb.groups.id [delete: cascade]
+Ref: ExeGroupDb.join_requests.group_id > ExeGroupDb.groups.id [delete: cascade]
+Ref: ExeGroupDb.leader_elections.group_id > ExeGroupDb.groups.id [delete: cascade]
+Ref: ExeGroupDb.election_votes.election_id > ExeGroupDb.leader_elections.id [delete: cascade]
+Ref: ExeGroupDb.application_votes.join_request_id > ExeGroupDb.join_requests.id [delete: cascade]
+Ref: ExeGroupDb.member_removal_logs.group_id > ExeGroupDb.groups.id [delete: cascade]
+Ref: ExeGroupDb.group_transfer_requests.space_id > ExeGroupDb.course_spaces.id [delete: cascade]
+Ref: ExeGroupDb.group_transfer_requests.from_group_id > ExeGroupDb.groups.id [delete: no action]
+Ref: ExeGroupDb.group_transfer_requests.target_group_id > ExeGroupDb.groups.id [delete: no action]
+
+// ======================== ExeNotificationDb ========================
+TableGroup ExeNotificationDb {
+  notifications
+  email_logs
+  processed_events
+}
+
+Table ExeNotificationDb.notifications {
+  id uniqueidentifier [pk]
+  recipient_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  type nvarchar(64) [not null]
+  title nvarchar(250) [not null]
+  message nvarchar(1500) [not null]
+  related_entity_id uniqueidentifier [note: 'Polymorphic logical reference; no FK']
+  is_read bit [not null, default: 0]
+  created_at datetime2 [not null]
+  indexes {
+    (recipient_id, is_read, created_at)
+  }
+}
+
+Table ExeNotificationDb.email_logs {
+  id uniqueidentifier [pk]
+  to nvarchar(256) [not null]
+  subject nvarchar(300) [not null]
+  body nvarchar(4000) [not null]
+  status nvarchar(32) [not null]
+  attempts int [not null, default: 0]
+  last_error nvarchar(1000)
+  created_at datetime2 [not null]
+  sent_at datetime2
+  indexes {
+    (status, attempts, created_at)
+  }
+}
+
+Table ExeNotificationDb.processed_events {
+  event_id uniqueidentifier [pk]
+  processed_at datetime2 [not null]
+}
+
+// ======================== ExeReportDb ========================
+TableGroup ExeReportDb {
+  student_stats
+  group_stats
+  report_snapshots
+  processed_events
+}
+
+Table ExeReportDb.student_stats {
+  user_id uniqueidentifier [pk, note: 'Logical reference to Auth account; no FK']
+  email nvarchar(256) [not null]
+  full_name nvarchar(200) [not null]
+  major nvarchar(32)
+  has_group bit [not null, default: 0]
+  group_id uniqueidentifier [note: 'Logical/read-model ID; intentionally no FK to group_stats']
+  updated_at datetime2 [not null]
+  indexes {
+    (has_group, major)
+  }
+}
+
+Table ExeReportDb.group_stats {
+  group_id uniqueidentifier [pk, note: 'Logical reference to ExeGroupDb.groups.id; no FK']
+  name nvarchar(200) [not null]
+  leader_id uniqueidentifier [not null, note: 'Logical reference to Auth account; no FK']
+  member_count int [not null]
+  max_members int [not null]
+  status nvarchar(32) [not null]
+  updated_at datetime2 [not null]
+  indexes {
+    status
+  }
+}
+
+Table ExeReportDb.report_snapshots {
+  id uniqueidentifier [pk]
+  generated_at datetime2 [not null]
+  total_students int [not null]
+  students_in_group int [not null]
+  students_without_group int [not null]
+  total_groups int [not null]
+  recruiting_groups int [not null]
+  full_groups int [not null]
+  by_major_json nvarchar(4000) [not null]
+  indexes {
+    generated_at
+  }
+}
+
+Table ExeReportDb.processed_events {
+  event_id uniqueidentifier [pk]
+  processed_at datetime2 [not null]
+}

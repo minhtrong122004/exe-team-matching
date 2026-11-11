@@ -22,6 +22,10 @@ builder.Services.AddOptions<MatchingWeights>()
 builder.Services.AddSingleton<IMatchingCalculator>(sp =>
     new MatchingCalculator(sp.GetRequiredService<IOptions<MatchingWeights>>().Value));
 
+// ── Tier 2: AI Mentor Inference (Google Gemini) ─────────────────────────
+builder.Services.Configure<GeminiOptions>(builder.Configuration.GetSection(GeminiOptions.SectionName));
+builder.Services.AddHttpClient<IAiMentorService, AiMentorService>();
+
 var app = builder.Build();
 
 app.UseAuthentication();

@@ -16,7 +16,9 @@ public record UpdateSpaceConfigRequest(
     int MaxMembersPerGroup,
     decimal BufferRatio,
     int MaxConcurrentApplies,
-    DateTime RegistrationDeadline);
+    DateTime RegistrationDeadline,
+    string? Name = null,
+    CourseSpaceStatus? Status = null);
 
 public record FapStudentItem(
     string StudentCode,

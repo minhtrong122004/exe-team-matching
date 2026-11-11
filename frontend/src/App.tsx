@@ -8,26 +8,24 @@ import { CandidateDiscoveryPage } from './pages/CandidateDiscoveryPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
-import { ModeratorSpacesPage } from './pages/moderator/ModeratorSpacesPage';
-import { ModeratorDistributionPage } from './pages/moderator/ModeratorDistributionPage';
-import { ModeratorTransfersPage } from './pages/moderator/ModeratorTransfersPage';
-import { LecturerDashboardPage } from './pages/lecturer/LecturerDashboardPage';
+import { CourseSpacesPage } from './pages/CourseSpacesPage';
 import {
   GroupsPage,
   MyGroupPage,
   JoinRequestsPage,
   NotificationsPage,
+  ReportsPage,
 } from './pages/PlaceholderPages';
 
 const RootRedirect: React.FC = () => {
   const { user } = useAuth();
   if (user?.role === 'Moderator') {
-    return <Navigate to="/moderator/spaces" replace />;
+    return <Navigate to="/spaces" replace />;
   }
   if (user?.role === 'Lecturer') {
-    return <Navigate to="/lecturer/dashboard" replace />;
+    return <Navigate to="/spaces" replace />;
   }
-  return <Navigate to="/groups" replace />;
+  return <Navigate to="/spaces" replace />;
 };
 
 export const App: React.FC = () => {
@@ -47,7 +45,7 @@ export const App: React.FC = () => {
             <Route element={<MainLayout />}>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/spaces" element={<Navigate to="/moderator/spaces" replace />} />
+              <Route path="/spaces" element={<CourseSpacesPage />} />
               <Route path="/candidates" element={<CandidateDiscoveryPage />} />
               <Route path="/groups" element={<GroupsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
@@ -59,18 +57,18 @@ export const App: React.FC = () => {
                 <Route path="/join-requests" element={<JoinRequestsPage />} />
               </Route>
 
-              {/* Lecturer and Moderator reports & dashboard */}
+              {/* Lecturer and Moderator reports */}
               <Route element={<ProtectedRoute allowedRoles={['Lecturer', 'Moderator']} />}>
-                <Route path="/reports" element={<LecturerDashboardPage />} />
-                <Route path="/lecturer/dashboard" element={<LecturerDashboardPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/lecturer/dashboard" element={<ReportsPage />} />
               </Route>
 
-              {/* Moderator accounts, spaces and distribution */}
+              {/* Moderator accounts and FAP student provisioning */}
               <Route element={<ProtectedRoute allowedRoles={['Moderator']} />}>
                 <Route path="/admin/accounts" element={<AdminAccountsPage />} />
-                <Route path="/moderator/spaces" element={<ModeratorSpacesPage />} />
-                <Route path="/moderator/distribution" element={<ModeratorDistributionPage />} />
-                <Route path="/moderator/transfers" element={<ModeratorTransfersPage />} />
+                <Route path="/moderator/spaces" element={<CourseSpacesPage initialTab="rooms" />} />
+                <Route path="/moderator/distribution" element={<CourseSpacesPage initialTab="distribution" />} />
+                <Route path="/moderator/transfers" element={<CourseSpacesPage initialTab="transfers" />} />
               </Route>
             </Route>
           </Route>

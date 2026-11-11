@@ -29,7 +29,73 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         var matched = requiredSkills.Where(studentSkills.Contains).ToList();
         var missing = requiredSkills.Where(s => !studentSkills.Contains(s)).ToList();
 
-        var skillScore = requiredSkills.Count == 0 ? 1.0 : (double)matched.Count / requiredSkills.Count;
+        // 1. Chuẩn hóa Skill Score theo mô hình Bù trừ Khuyết thiếu (Skill Deficit Compensation)
+        double skillScore;
+        bool hasNumericSkills = student.TechScore > 0 || student.ManagementScore > 0 ||
+                               student.GraphicDesignScore > 0 || student.MarketingScore > 0 || student.SaleScore > 0;
+        bool hasGroupAverages = group.AvgTechScore > 0 || group.AvgManagementScore > 0 ||
+                                group.AvgGraphicDesignScore > 0 || group.AvgMarketingScore > 0 || group.AvgSaleScore > 0;
+
+        if (hasNumericSkills && hasGroupAverages)
+        {
+            // Vector khuyết thiếu của nhóm so với chuẩn khởi nghiệp T = 70
+            const double Target = 70.0;
+            double dTech = Math.Max(0.0, Target - group.AvgTechScore);
+            double dMgmt = Math.Max(0.0, Target - group.AvgManagementScore);
+            double dDesign = Math.Max(0.0, Target - group.AvgGraphicDesignScore);
+            double dMkt = Math.Max(0.0, Target - group.AvgMarketingScore);
+            double dSale = Math.Max(0.0, Target - group.AvgSaleScore);
+
+            double totalDeficit = dTech + dMgmt + dDesign + dMkt + dSale;
+            double deficitScore;
+            if (totalDeficit > 0)
+            {
+                deficitScore = (dTech * student.TechScore +
+                                dMgmt * student.ManagementScore +
+                                dDesign * student.GraphicDesignScore +
+                                dMkt * student.MarketingScore +
+                                dSale * student.SaleScore) / (totalDeficit * 100.0);
+            }
+            else
+            {
+                // Nhóm đã mạnh toàn diện, tính theo điểm trung bình của sinh viên
+                deficitScore = (student.TechScore + student.ManagementScore + student.GraphicDesignScore +
+                                student.MarketingScore + student.SaleScore) / 500.0;
+            }
+
+            if (requiredSkills.Count > 0)
+            {
+                double stringSkillScore = (double)matched.Count / requiredSkills.Count;
+                skillScore = 0.7 * deficitScore + 0.3 * stringSkillScore;
+            }
+            else
+            {
+                skillScore = deficitScore;
+            }
+
+            // Ghi nhận các kỹ năng thế mạnh bù trừ vào danh sách matched
+            if (dTech > 15 && student.TechScore >= 70 && !matched.Contains("Tech")) matched.Add($"Tech ({student.TechScore}%)");
+            if (dMgmt > 15 && student.ManagementScore >= 70 && !matched.Contains("Management")) matched.Add($"Management ({student.ManagementScore}%)");
+            if (dDesign > 15 && student.GraphicDesignScore >= 70 && !matched.Contains("Design")) matched.Add($"Design ({student.GraphicDesignScore}%)");
+            if (dMkt > 15 && student.MarketingScore >= 70 && !matched.Contains("Marketing")) matched.Add($"Marketing ({student.MarketingScore}%)");
+            if (dSale > 15 && student.SaleScore >= 70 && !matched.Contains("Sale")) matched.Add($"Sale ({student.SaleScore}%)");
+        }
+        else if (hasNumericSkills && requiredSkills.Count == 0)
+        {
+            // Có 5 kỹ năng nhưng nhóm chưa có thành viên hoặc chưa set yêu cầu: lấy trung bình
+            skillScore = (student.TechScore + student.ManagementScore + student.GraphicDesignScore +
+                          student.MarketingScore + student.SaleScore) / 500.0;
+            if (student.TechScore >= 70) matched.Add($"Tech ({student.TechScore}%)");
+            if (student.ManagementScore >= 70) matched.Add($"Management ({student.ManagementScore}%)");
+            if (student.GraphicDesignScore >= 70) matched.Add($"Design ({student.GraphicDesignScore}%)");
+            if (student.MarketingScore >= 70) matched.Add($"Marketing ({student.MarketingScore}%)");
+            if (student.SaleScore >= 70) matched.Add($"Sale ({student.SaleScore}%)");
+        }
+        else
+        {
+            // Fallback theo chuỗi kỹ năng
+            skillScore = requiredSkills.Count == 0 ? 1.0 : (double)matched.Count / requiredSkills.Count;
+        }
 
         var requiredMajors = Normalize(group.RequiredMajors).ToHashSet(Comparer);
         var majorScore = requiredMajors.Count == 0 || requiredMajors.Contains(student.Major?.Trim() ?? string.Empty)
@@ -44,7 +110,7 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         return new MatchOutcome(
             student.UserId,
             group.GroupId,
-            Math.Round(score, 1, MidpointRounding.AwayFromZero),
+            Math.Round(Math.Clamp(score, 0.0, 100.0), 1, MidpointRounding.AwayFromZero),
             matched,
             missing);
     }
@@ -305,32 +371,28 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         double avgMkt = currentMembers.Count > 0 ? currentMembers.Average(m => m.MarketingScore) : 50;
         double avgSale = currentMembers.Count > 0 ? currentMembers.Average(m => m.SaleScore) : 50;
 
-        var skillAverages = new (string Skill, double Avg)[]
-        {
-            ("Tech", avgTech),
-            ("Management", avgMgmt),
-            ("Design", avgDesign),
-            ("Marketing", avgMkt),
-            ("Sale", avgSale)
-        };
-
-        var weakestSkill = skillAverages.OrderBy(s => s.Avg).First().Skill;
+        const double Target = 75.0;
+        double dTech = Math.Max(0.0, Target - avgTech);
+        double dMgmt = Math.Max(0.0, Target - avgMgmt);
+        double dDesign = Math.Max(0.0, Target - avgDesign);
+        double dMkt = Math.Max(0.0, Target - avgMkt);
+        double dSale = Math.Max(0.0, Target - avgSale);
+        double totalDeficit = dTech + dMgmt + dDesign + dMkt + dSale;
 
         var scored = candidates.Select(c =>
         {
-            double majorScore = existingMajors.Contains(c.Major?.Trim() ?? string.Empty) ? 0 : 50;
-            int skillVal = weakestSkill switch
-            {
-                "Tech" => c.TechScore,
-                "Management" => c.ManagementScore,
-                "Design" => c.GraphicDesignScore,
-                "Marketing" => c.MarketingScore,
-                "Sale" => c.SaleScore,
-                _ => c.TotalScore / 5
-            };
-            double complementarityScore = (skillVal / 100.0) * 30.0;
-            double overallScore = (c.TotalScore / 500.0) * 20.0;
-            double fitness = majorScore + complementarityScore + overallScore;
+            // 1. Điểm bù đắp chuyên ngành BR-14 (ưu tiên đa dạng ngành học)
+            double majorBonus = existingMajors.Contains(c.Major?.Trim() ?? string.Empty) ? 0.0 : 40.0;
+
+            // 2. Điểm bù đắp đa kỹ năng (Multi-Skill Deficit Score)
+            double deficitScore = totalDeficit > 0
+                ? (dTech * c.TechScore + dMgmt * c.ManagementScore + dDesign * c.GraphicDesignScore +
+                   dMkt * c.MarketingScore + dSale * c.SaleScore) / (totalDeficit * 100.0) * 45.0
+                : (c.TotalScore / 500.0) * 45.0;
+
+            // 3. Điểm tổng thể
+            double overallScore = (c.TotalScore / 500.0) * 15.0;
+            double fitness = majorBonus + deficitScore + overallScore;
             return (Candidate: c, Fitness: fitness);
         });
 
@@ -341,8 +403,9 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
             .First().Candidate;
     }
 
-    private static double CalculateBalanceScore(List<DistributeRoomMemberInput> members)
+    public static double CalculateBalanceScore(IEnumerable<DistributeRoomMemberInput> memberSeq)
     {
+        var members = memberSeq.ToList();
         if (members.Count == 0) return 0;
 
         var distinctMajors = members
@@ -359,9 +422,18 @@ public sealed class MatchingCalculator(MatchingWeights weights) : IMatchingCalcu
         double avgSale = members.Average(m => m.SaleScore);
 
         double skillAvgSum = (avgTech + avgMgmt + avgDesign + avgMkt + avgSale) / 5.0;
-        double skillScore = (skillAvgSum / 100.0) * 60.0;
+        double rawSkillScore = (skillAvgSum / 100.0) * 60.0;
 
-        return Math.Round(Math.Clamp(majorDiversity + skillScore, 10.0, 100.0), 1);
+        // Tính độ lệch chuẩn sigma giữa 5 kỹ năng để phạt đội hình mất cân đối cực đoan
+        double[] skills = [avgTech, avgMgmt, avgDesign, avgMkt, avgSale];
+        double mean = skillAvgSum;
+        double variance = skills.Sum(s => Math.Pow(s - mean, 2)) / 5.0;
+        double stdDev = Math.Sqrt(variance);
+        double penalty = Math.Min(15.0, stdDev * 0.25);
+
+        double penalizedSkillScore = Math.Max(5.0, rawSkillScore - penalty);
+
+        return Math.Round(Math.Clamp(majorDiversity + penalizedSkillScore, 10.0, 100.0), 1);
     }
 
     /// <summary>

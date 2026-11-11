@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-11-10T16:30:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="system" name="00 Hệ thống &amp; quy ước">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="s_title" value="EXE TEAM MATCHING — CLASS DESIGN BY SERVICE" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1500" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_scope" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Phạm vi&lt;/div&gt;&lt;br&gt;Ứng dụng ghép nhóm cho EXE101 / EXE201 theo kỳ học; 3 vai trò Student, Moderator, Lecturer. Frontend gọi REST qua YARP; Group là core nghiệp vụ. Mỗi REST service sở hữu database riêng." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="45" y="75" width="1620" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="spa" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«frontend»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;React Web App&lt;/div&gt;&lt;hr&gt;App.tsx · role-based routes&lt;br&gt;Profile · spaces/rooms · groups/applications&lt;br&gt;moderator distribution/transfers · reports" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontFamily=Arial;fontColor=#26334b;strokeColor=#8294b4;strokeWidth=1.5;fillColor=#f4f7fc;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="245" width="330" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="gw" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«gateway»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;YARP API Gateway&lt;/div&gt;&lt;hr&gt;JWT authentication + reverse proxy&lt;br&gt;/api/auth, users, skills, projects, groups,&lt;br&gt;spaces, join-requests, notifications, reports" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontFamily=Arial;fontColor=#26334b;strokeColor=#8294b4;strokeWidth=1.5;fillColor=#f4f7fc;align=left;" vertex="1" parent="1">
+          <mxGeometry x="475" y="245" width="370" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="auths" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Auth Service&lt;/div&gt;&lt;hr&gt;Accounts, Google sign-in, JWT/refresh,&lt;br&gt;account provisioning, terms" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="70" y="525" width="300" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="users" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;User Service&lt;/div&gt;&lt;hr&gt;Profiles, skills, profile completion,&lt;br&gt;candidate search" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="490" y="525" width="300" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="projects" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Project Service&lt;/div&gt;&lt;hr&gt;Project ideas and tags" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="525" width="250" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="groups" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Group Service&lt;/div&gt;&lt;hr&gt;Spaces, enrollments, Rooms/Groups,&lt;br&gt;membership, voting, finalize/transfers" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="525" width="390" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="matching" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«gRPC service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Matching Service&lt;/div&gt;&lt;hr&gt;Stateless ranking/distribution&lt;br&gt;AI Mentor (Gemini with heuristic fallback)" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="70" y="790" width="300" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="notif" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST + workers»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Notification Service&lt;/div&gt;&lt;hr&gt;In-app notification + email queue&lt;br&gt;Redis consumers + SMTP worker" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="490" y="790" width="300" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="reports" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«REST + workers»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Report Service&lt;/div&gt;&lt;hr&gt;Event projection + snapshots&lt;br&gt;CSV export" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="910" y="790" width="250" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="redis" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«event broker»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Redis Streams&lt;/div&gt;&lt;hr&gt;exe:events:{EventType}&lt;br&gt;consumer groups per service" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontFamily=Arial;fontColor=#26334b;strokeColor=#8294b4;strokeWidth=1.5;fillColor=#f4f7fc;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="790" width="180" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="sql" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«relational DB»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;SQL Server&lt;/div&gt;&lt;hr&gt;ExeAuthDb · ExeUserDb · ExeProjectDb&lt;br&gt;ExeGroupDb · ExeNotificationDb · ExeReportDb" style="rounded=1;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;spacing=8;fontSize=14;fontFamily=Arial;fontColor=#26334b;strokeColor=#8294b4;strokeWidth=1.5;fillColor=#f4f7fc;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="790" width="180" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="se1" value="REST" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="spa" target="gw">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se2" value="routes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gw" target="auths">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se3" value="routes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gw" target="users">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se4" value="routes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gw" target="projects">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se5" value="routes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gw" target="groups">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se6" value="gRPC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7351a6;endArrow=block;endFill=1;" edge="1" parent="1" source="groups" target="matching">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se7" value="outbox producer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.8;strokeColor=#e76b2e;dashed=1;endArrow=open;" edge="1" parent="1" source="auths" target="redis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se8" value="profile producer / membership consumer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.8;strokeColor=#e76b2e;dashed=1;endArrow=open;" edge="1" parent="1" source="users" target="redis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se9" value="events + profile consumer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.8;strokeColor=#e76b2e;dashed=1;endArrow=open;" edge="1" parent="1" source="groups" target="redis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se10" value="event consumers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.8;strokeColor=#e76b2e;dashed=1;endArrow=open;" edge="1" parent="1" source="redis" target="notif">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="se11" value="event consumers" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.8;strokeColor=#e76b2e;dashed=1;endArrow=open;" edge="1" parent="1" source="redis" target="reports">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="s_legend" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Cách đọc mũi tên&lt;/div&gt;&lt;br&gt;Cam liền = HTTP/controller → service → repository dependency. Xám nét đứt = dependency tới validator hoặc ID logic giữa service. Xám liền có bội số = quan hệ dữ liệu FK trong cùng DbContext. Cam đứt = Redis event. Tím = gRPC. Các trang 01–08 trình bày class design theo format mẫu." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="45" y="955" width="1620" height="75" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="auth" name="01 Auth Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="auth_title" value="AUTH SERVICE — IDENTITY, SESSION &amp; PROVISIONING" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1550" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ac" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;AuthController&lt;/div&gt;&lt;hr&gt;+ LoginWithGoogle()&lt;br&gt;+ Refresh()&lt;br&gt;+ Logout()&lt;br&gt;+ GetCurrentUser()&lt;br&gt;+ AcceptTerms()&lt;br&gt;+ GetAccounts() / Lock / Unlock&lt;br&gt;+ CreateLecturer() / ProvisionFapStudents()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="420" height="255" as="geometry"/>
+        </mxCell>
+        <mxCell id="as" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;AuthService : IAuthService&lt;/div&gt;&lt;hr&gt;- IAccountRepository · IRefreshTokenRepository&lt;br&gt;- IUnitOfWork · ITokenService&lt;br&gt;- IGoogleTokenVerifier · request validators&lt;br&gt;+ LoginWithGoogleAsync()&lt;br&gt;+ RefreshTokenAsync() · LogoutAsync()&lt;br&gt;+ AcceptTermsAsync() · GetCurrentAccountAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="255" as="geometry"/>
+        </mxCell>
+        <mxCell id="aar" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;AccountRepository / RefreshTokenRepository&lt;/div&gt;&lt;hr&gt;+ GetByEmailAsync() · GetByIdAsync()&lt;br&gt;+ GetByTokenHashAsync()&lt;br&gt;+ AddAsync() · UpdateAsync()&lt;br&gt;+ RevokeAllForAccountAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae1" value="calls application service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ac" target="as">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae2" value="repository interfaces" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="as" target="aar">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="admin" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;AdminAccountService : IAdminAccountService&lt;/div&gt;&lt;hr&gt;+ GetAccountsPagedAsync()&lt;br&gt;+ LockAccountAsync() / UnlockAccountAsync()&lt;br&gt;+ CreateLecturerAsync()&lt;br&gt;+ ProvisionFapStudentsAsync()&lt;br&gt;- transactional account + OutboxMessage writes" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="420" width="465" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="validator" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«validator»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Auth request validators&lt;/div&gt;&lt;hr&gt;GoogleLoginRequestValidator&lt;br&gt;RefreshTokenRequestValidator · LogoutRequestValidator&lt;br&gt;CreateLecturerRequestValidator&lt;br&gt;ProvisionFapStudentsRequestValidator" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fffaf5;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="445" width="420" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="security" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«security interface / implementation»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ITokenService → TokenService&lt;br&gt;IGoogleTokenVerifier → GoogleTokenVerifier&lt;/div&gt;&lt;hr&gt;Access JWT HS256 · refresh token random value&lt;br&gt;persist SHA-256 hash only&lt;br&gt;Google ID token signature / audience / expiry verification" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="700" width="420" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="account" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Account&lt;/div&gt;&lt;hr&gt;PK Id: Guid · Email {unique}&lt;br&gt;RegistrationFullName · Role: AccountRole&lt;br&gt;StudentCode? · AcceptedTermsAt?&lt;br&gt;IsActive · CreatedAt · UpdatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="735" width="310" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="refresh" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;RefreshToken&lt;/div&gt;&lt;hr&gt;PK Id · FK AccountId&lt;br&gt;TokenHash {unique} · ExpiresAt · CreatedAt&lt;br&gt;RevokedAt? · ReplacedByTokenId? · RevokeReason?" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="735" width="320" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="outbox" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;OutboxMessage&lt;/div&gt;&lt;hr&gt;PK Id · EventType · Payload(JSON)&lt;br&gt;CreatedAt · ProcessedAt? · RetryCount&lt;br&gt;LastError?" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="735" width="250" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae3" value="account / refresh / outbox writes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="admin" target="aar">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae4" value="validates requests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="as" target="validator">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae5" value="token &amp; Google verification" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="as" target="security">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae6" value="1 owns 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="account" target="refresh">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ae7" value="atomic event outbox" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="admin" target="outbox">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="arules" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Rule placement&lt;/div&gt;&lt;br&gt;Google email must resolve to a pre-provisioned active Account. Refresh rotation stores only token hashes; reuse of a revoked replaced token revokes all refresh sessions. AcceptTermsAt records BR-34. Account lock blocks future login/refresh; existing access JWT remains stateless until expiry." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="925" width="1610" height="90" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="user" name="02 User Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="u_title" value="USER SERVICE — PROFILE, FIXED SKILLS &amp; SKILL CATALOG" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1550" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;UsersController / SkillsController&lt;/div&gt;&lt;hr&gt;+ GET/PUT /users/me&lt;br&gt;+ PUT /users/me/profile-skills&lt;br&gt;+ GET /users/{id} · search · batch&lt;br&gt;+ GET/POST /skills&lt;br&gt;+ GET/PUT/PATCH/DELETE /users/me/skills" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="420" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="up" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;UserProfileService : IUserProfileService&lt;/div&gt;&lt;hr&gt;+ GetCurrentUserProfileAsync()&lt;br&gt;+ UpdateUserProfileAsync()&lt;br&gt;+ UpdateProfileSkillsAsync()&lt;br&gt;+ SearchProfilesAsync() · GetBatchProfilesAsync()&lt;br&gt;+ CreateEmptyProfileAsync()&lt;br&gt;Publishes UserProfileUpdated after saves" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="235" as="geometry"/>
+        </mxCell>
+        <mxCell id="ur" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;UserProfileRepository&lt;/div&gt;&lt;hr&gt;+ GetByIdWithSkillsAsync()&lt;br&gt;+ GetByIdsWithSkillsAsync()&lt;br&gt;+ SearchAsync() · AddAsync() · Update()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue1" value="calls service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="uc" target="up">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue2" value="repository interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="up" target="ur">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ss" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;SkillService : ISkillService&lt;/div&gt;&lt;hr&gt;+ GetAllSkillsAsync() / GetByCategoryAsync()&lt;br&gt;+ CreateSkillAsync()&lt;br&gt;+ GetUserSkillsAsync() · SetUserSkillsAsync()&lt;br&gt;+ Add / UpdateProficiency / Remove skill" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="405" width="465" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="uv" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«validator»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;User profile validators&lt;/div&gt;&lt;hr&gt;UpdateUserProfileRequestValidator&lt;br&gt;UpdateProfileSkillsRequestValidator&lt;br&gt;StudentCode, Major, Cohort are not editable via profile update&lt;br&gt;Five numeric skill scores must be 0..100; commitment required" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fffaf5;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="405" width="420" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="skillrepo" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;SkillRepository / UserSkillRepository&lt;/div&gt;&lt;hr&gt;+ GetAllAsync() · GetByCategoryAsync()&lt;br&gt;+ GetByUserIdAsync() · GetAsync(userId, skillId)&lt;br&gt;+ AddRangeAsync() · RemoveRange()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="365" width="420" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue3" value="repository interfaces" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ss" target="skillrepo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="profile" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;UserProfile&lt;/div&gt;&lt;hr&gt;PK UserId (= Account.Id logically)&lt;br&gt;Email · FullName · Role · StudentCode? · Campus?&lt;br&gt;Major? · Cohort? · Bio? · DesiredRole?&lt;br&gt;Tech/Management/GraphicDesign/Marketing/SaleScore&lt;br&gt;IsCommitted · CommittedAt? · IsProfileCompleted&lt;br&gt;Availability · Interests(JSON/text)" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="680" width="465" height="235" as="geometry"/>
+        </mxCell>
+        <mxCell id="skill" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Skill&lt;/div&gt;&lt;hr&gt;PK Id · Name {unique}&lt;br&gt;Category · Description? · CreatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="725" width="300" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="userskill" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;UserSkill&lt;/div&gt;&lt;hr&gt;PK/FK UserId + SkillId&lt;br&gt;Level (1..5) · CreatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="370" y="725" width="220" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="processed" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProcessedEvent&lt;/div&gt;&lt;hr&gt;PK EventId · EventType · ProcessedAt&lt;br&gt;Idempotency ledger for consumed events" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="635" width="420" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue4" value="updates profile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="up" target="profile">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue5" value="core profile skill flow" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ss" target="profile">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue6" value="1 has 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="profile" target="userskill">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ue7" value="1 has 0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="skill" target="userskill">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="urules" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Rule placement&lt;/div&gt;&lt;br&gt;Five fixed numeric scores (0–100) are separate from the extensible Skill ↔ UserSkill catalogue (level 1–5). A successful profile-skills update sets IsCommitted, CommittedAt and IsProfileCompleted. MemberJoined/MemberLeft events update Availability asynchronously." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="930" width="1600" height="85" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="group_space" name="03 Group: Space &amp; Room setup">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="gs_title" value="GROUP SERVICE — SPACE CONFIGURATION, FAP ENROLLMENT &amp; ROOM GENERATION" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="gsc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;SpacesController&lt;/div&gt;&lt;hr&gt;+ CreateSpace() · GetAllSpaces() · GetMySpaces()&lt;br&gt;+ UpdateConfig() · ImportFapStudents()&lt;br&gt;+ GenerateRooms() · GetEnrollments() · GetRooms()&lt;br&gt;+ CloseRegistration() · roster / export" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="420" height="225" as="geometry"/>
+        </mxCell>
+        <mxCell id="gss" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;CourseSpaceService : ICourseSpaceService&lt;/div&gt;&lt;hr&gt;+ CreateSpaceAsync() · UpdateSpaceConfigAsync()&lt;br&gt;+ ImportFapStudentsAsync() · GenerateRoomsAsync()&lt;br&gt;+ GetMySpacesAsync() · GetSpaceRoomsAsync()&lt;br&gt;+ ProvisionAccountsAsync() via Auth client&lt;br&gt;Uses GroupUnitOfWork + profile/project clients" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="100" width="470" height="235" as="geometry"/>
+        </mxCell>
+        <mxCell id="gsr" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;CourseSpaceRepository : ICourseSpaceRepository&lt;/div&gt;&lt;hr&gt;+ GetByCodeAsync() · GetSpacesForStudentAsync()&lt;br&gt;+ GetEnrollmentsBySpaceAsync() · GetPagedRoomsBySpaceAsync()&lt;br&gt;+ AddEnrollmentsRange() · AddRoomsRange()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="410" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="gse1" value="calls application service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gsc" target="gss">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gse2" value="repository interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gss" target="gsr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gsv" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«validator»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Space request validators&lt;/div&gt;&lt;hr&gt;CreateCourseSpaceRequestValidator&lt;br&gt;UpdateSpaceConfigRequestValidator&lt;br&gt;ImportFapStudentsRequestValidator&lt;br&gt;Group size 4..6 · buffer 1..2 · pending apply cap 1..5" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fffaf5;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="405" width="420" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="sp" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;CourseSpace&lt;/div&gt;&lt;hr&gt;PK Id · SemesterCode + SubjectCode {unique}&lt;br&gt;Name · MaxMembersPerGroup · GroupThreshold&lt;br&gt;BufferRatio · MaxConcurrentApplies&lt;br&gt;RegistrationDeadline · Status · timestamps" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="450" width="440" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="en" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;SpaceEnrollment&lt;/div&gt;&lt;hr&gt;PK Id · FK SpaceId&lt;br&gt;StudentId (logical Account.Id) · StudentCode&lt;br&gt;Email · FullName · Major · Cohort · ClassCode?&lt;br&gt;IsProfileCompleted · EnrolledAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="450" width="470" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="room" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupEntity (Room / Group)&lt;/div&gt;&lt;hr&gt;PK Id · FK SpaceId?&lt;br&gt;RoomCode? · Name · Description?&lt;br&gt;LeaderId? (logical) · ProjectId? (logical)&lt;br&gt;MaxMembers · Status · IsClosedByLeader · RowVersion" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="730" width="440" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="gse3" value="1 — 0..* enrollments" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="sp" target="en">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gse4" value="1 — 0..* rooms" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="sp" target="room">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gse5" value="business rules + persistence" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="gss" target="sp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gsrule" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Business rules in CourseSpaceService&lt;/div&gt;&lt;br&gt;Room count = ceil(enrollment count ÷ MaxMembersPerGroup × BufferRatio). RoomCode is &lt;SemesterCode&gt;&lt;SubjectCode&gt;-&lt;sequence&gt;. Import persists eligibility rows and calls Auth provisioning; do not model StudentId as cross-database FK. RegistrationDeadlineWorker changes Open → ClosedRegistration. Profile-completion consumer updates enrollment read model." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="1180" y="700" width="470" height="225" as="geometry"/>
+        </mxCell>
+        <mxCell id="gslegend" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;UML relationship rule&lt;/div&gt;&lt;br&gt;Solid association + multiplicity means EF navigation/FK in ExeGroupDb. The StudentId/LeaderId/ProjectId fields are scalar references into other service databases, not relational associations." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="965" width="1600" height="65" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="group_members" name="04 Group: Membership lifecycle">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="gm_title" value="GROUP SERVICE — DIRECT JOIN, MEMBER LIFECYCLE &amp; LEADERSHIP" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="gmc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupsController&lt;/div&gt;&lt;hr&gt;+ DirectJoinRoom() · LeaveGroup()&lt;br&gt;+ RemoveMember() · TransferLeader()&lt;br&gt;+ CloseRecruitment() · ReopenRecruitment()&lt;br&gt;+ StartElection() · VoteElection() · GetCurrentElection()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="100" width="420" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="gms" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupService : IGroupService&lt;/div&gt;&lt;hr&gt;+ DirectJoinRoomAsync() · LeaveGroupAsync()&lt;br&gt;+ RemoveMemberAsync() · TransferLeaderAsync()&lt;br&gt;+ CloseRecruitmentAsync() / ReopenRecruitmentAsync()&lt;br&gt;Uses GroupMembershipManager + GroupUnitOfWork" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="100" width="470" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="gmr" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupRepository : IGroupRepository&lt;/div&gt;&lt;hr&gt;+ GetByIdAsync() · GetActiveGroupOfUserAsync()&lt;br&gt;+ IsUserInActiveGroupAsync()&lt;br&gt;+ GetActiveElectionAsync() · AddMemberRemovalLog()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="100" width="410" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme1" value="calls service" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gmc" target="gms">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme2" value="repository interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gms" target="gmr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gmm" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«domain service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupMembershipManager&lt;/div&gt;&lt;hr&gt;+ AddDirectMemberAsync()&lt;br&gt;+ AddMemberAsync()&lt;br&gt;+ RemoveMember()&lt;br&gt;+ RejectPendingOfGroupAsync()&lt;br&gt;+ CancelOtherPendingOfStudentAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="390" width="470" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="guard" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«static domain guards»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupGuards&lt;/div&gt;&lt;hr&gt;EnsureLeader() · EnsureMemberOrLeader()&lt;br&gt;EnsureNotLocked() · EnsureRecruiting()&lt;br&gt;EnsureNotDisbanded()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="410" width="420" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="gv" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«validator»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Group request validators&lt;/div&gt;&lt;hr&gt;UpdateGroupRequestValidator&lt;br&gt;SlotRequestValidator · TransferLeaderRequestValidator&lt;br&gt;RemoveMemberRequestValidator" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fffaf5;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="640" width="420" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="gentity" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupEntity&lt;/div&gt;&lt;hr&gt;PK Id · SpaceId? · RoomCode?&lt;br&gt;LeaderId? · ProjectId? · MaxMembers&lt;br&gt;Status · IsClosedByLeader · RowVersion" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="690" width="340" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="gmember" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupMember&lt;/div&gt;&lt;hr&gt;PK GroupId + UserId&lt;br&gt;Role · SlotId? · name/email snapshot · JoinedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="690" width="300" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="slot" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;RecruitmentSlot&lt;/div&gt;&lt;hr&gt;PK Id · FK GroupId&lt;br&gt;RequiredMajor? · RequiredSkills(JSON)&lt;br&gt;Quantity · Filled · IsOpen (derived)" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="690" width="260" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme3" value="delegates membership state changes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="gms" target="gmm">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme4" value="authorization/state guard" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="gms" target="guard">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme5" value="1 — 0..* members" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="gentity" target="gmember">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme6" value="1 — 0..* slots" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="gentity" target="slot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gme7" value="mutates in local transaction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="gmm" target="gentity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="gmrules" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;State &amp; concurrency rules&lt;/div&gt;&lt;br&gt;Empty → Forming → Recruiting → Closed → Locked; implementation enum also includes Disbanded. First direct join becomes temporary Leader. At threshold, direct join closes and Apply is required. Leader leave promotes earliest JoinedAt; empty group loses Leader. Below threshold returns to Forming. RowVersion + retry guards simultaneous joins." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="875" width="1610" height="150" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="group_workflows" name="05 Group: Apply, voting &amp; transfer">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="gw_title" value="GROUP SERVICE — APPLICATION, ELECTION &amp; POST-LOCK TRANSFER" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="jctrl" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;JoinRequestsController&lt;/div&gt;&lt;hr&gt;+ Create() · GetByGroup() · GetMine()&lt;br&gt;+ Accept() · Reject() · Cancel()&lt;br&gt;+ VoteApplication()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="360" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="jservice" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;JoinRequestService : IJoinRequestService&lt;/div&gt;&lt;hr&gt;+ CreateAsync() · AcceptAsync() · RejectAsync()&lt;br&gt;+ CancelAsync() · VoteApplicationAsync()&lt;br&gt;Uses GroupMembershipManager + GroupUnitOfWork" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="500" y="100" width="450" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="jrepo" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;JoinRequestRepository&lt;/div&gt;&lt;hr&gt;+ GetByIdAsync() · GetPagedByGroupAsync()&lt;br&gt;+ CountPendingByStudentAsync()&lt;br&gt;+ GetPendingByGroup/StudentAsync() · AddVote()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="100" width="380" height="185" as="geometry"/>
+        </mxCell>
+        <mxCell id="j1" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="jctrl" target="jservice">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="j2" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="jservice" target="jrepo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="tctrl" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;TransferRequestsController + SpacesController&lt;/div&gt;&lt;hr&gt;+ CreateTransferRequest() · MyRequests()&lt;br&gt;+ Cancel() · Approve() · Reject()&lt;br&gt;Moderator direct transfer / decision / roster" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="355" width="360" height="175" as="geometry"/>
+        </mxCell>
+        <mxCell id="tservice" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;CourseSpaceService : transfer operations&lt;/div&gt;&lt;hr&gt;+ DirectTransferAsync() · CreateTransferRequestAsync()&lt;br&gt;+ DecideTransferRequestAsync() · CancelTransferRequestAsync()&lt;br&gt;+ GetTransferRequestsAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="500" y="355" width="450" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="trepo" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;CourseSpaceRepository + GroupRepository&lt;/div&gt;&lt;hr&gt;CourseSpaceRepository: transfer queries&lt;br&gt;GroupRepository: load source/target groups&lt;br&gt;GroupUnitOfWork: atomic state changes" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="355" width="380" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="t1" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="tctrl" target="tservice">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t2" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="tservice" target="trepo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="join" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;JoinRequest&lt;/div&gt;&lt;hr&gt;PK Id · FK GroupId · SlotId?&lt;br&gt;StudentId (logical) · name/email snapshot&lt;br&gt;Message? · Status · CreatedAt · DecidedAt?" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="35" y="660" width="340" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="avote" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ApplicationVote&lt;/div&gt;&lt;hr&gt;PK JoinRequestId + VoterId&lt;br&gt;VoterName · IsUpvote · Comment? · VotedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="410" y="660" width="320" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="elect" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;LeaderElection&lt;/div&gt;&lt;hr&gt;PK Id · FK GroupId&lt;br&gt;CandidateId · InitiatedById (logical)&lt;br&gt;Status · StartedAt · ExpiresAt · CompletedAt?" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="790" y="660" width="340" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="evote" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ElectionVote&lt;/div&gt;&lt;hr&gt;PK ElectionId + VoterId&lt;br&gt;VoterName · IsAgree · VotedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="660" width="300" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="transfer" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupTransferRequest&lt;/div&gt;&lt;hr&gt;PK Id · FK SpaceId, FromGroupId, TargetGroupId&lt;br&gt;RequesterStudentId · SwapWithStudentId? (logical)&lt;br&gt;Reason · Status · decision/audit fields" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="720" y="845" width="520" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="j3" value="1 — 0..* votes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="join" target="avote">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="j4" value="1 — 0..* votes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="elect" target="evote">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="j5" value="creates / decides" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="jservice" target="join">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t3" value="creates / decides" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="tservice" target="transfer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrules" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Rule placement and outcome&lt;/div&gt;&lt;br&gt;Only Recruiting groups accept applications. Student must be eligible/enrolled, have completed profile, not already belong to a group in that space, and stay under MaxConcurrentApplies. Application votes are consultative; Leader makes final accept/reject. Accept adds membership transactionally, cancels the student’s other pending applications, and capacity/early-close rules reject pending requests. Transfer after lock is moderator-approved; target needs capacity, and source must remain at/above threshold unless swapped." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="40" y="815" width="640" height="220" as="geometry"/>
+        </mxCell>
+        <mxCell id="erules" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Leader election&lt;/div&gt;&lt;br&gt;ElectionService (not a separate controller class) lets a current member nominate another member. One active election per group; each member one vote; &gt;50% of all members passes; 24h expiry or all votes without majority fails. A passed election updates GroupMember.Role and GroupEntity.LeaderId." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="835" width="400" height="205" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="project" name="06 Project Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="pr_title" value="PROJECT SERVICE — PROJECT IDEAS &amp; TAGS" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1550" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="prc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProjectsController&lt;/div&gt;&lt;hr&gt;+ GetProjects() · GetProjectById()&lt;br&gt;+ CreateProject() · UpdateProject()&lt;br&gt;+ DeleteProject()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="420" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="prs" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProjectService : IProjectService&lt;/div&gt;&lt;hr&gt;+ GetProjectsAsync() · GetProjectByIdAsync()&lt;br&gt;+ CreateProjectAsync() · UpdateProjectAsync()&lt;br&gt;+ DeleteProjectAsync()&lt;br&gt;Owner authorization + validation + mapping" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="prr" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProjectRepository : IProjectRepository&lt;/div&gt;&lt;hr&gt;+ GetPagedAsync() · GetByIdAsync()&lt;br&gt;+ AddAsync() · UpdateAsync() · DeleteAsync()&lt;br&gt;Includes Tags for aggregate persistence" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="175" as="geometry"/>
+        </mxCell>
+        <mxCell id="pre1" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="prc" target="prs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pre2" value="repository interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="prs" target="prr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prv" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«validator»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;Project request validators&lt;/div&gt;&lt;hr&gt;CreateProjectRequestValidator&lt;br&gt;UpdateProjectRequestValidator" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fffaf5;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="435" width="420" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="projectent" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProjectEntity&lt;/div&gt;&lt;hr&gt;PK Id · OwnerId (Account.Id logical)&lt;br&gt;Title · Problem · Solution&lt;br&gt;Domain: ProjectDomain · Status: ProjectStatus&lt;br&gt;CreatedAt · UpdatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="490" width="465" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="tagent" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProjectTag&lt;/div&gt;&lt;hr&gt;PK ProjectId + Tag&lt;br&gt;Tag belongs to one ProjectEntity" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="490" width="420" height="125" as="geometry"/>
+        </mxCell>
+        <mxCell id="pre3" value="request validation" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="prs" target="prv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pre4" value="1 — 0..* tags; cascade" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#52647f;endArrow=none;startArrow=none;" edge="1" parent="1" source="projectent" target="tagent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prrule" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Boundary&lt;/div&gt;&lt;br&gt;Project owns its persistence and tags. OwnerId and GroupEntity.ProjectId are cross-service scalar IDs; the Group Service validates project references over REST. A project idea is optional for joining a Room." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="760" width="1600" height="135" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="notification" name="07 Notification Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="nt_title" value="NOTIFICATION SERVICE — EVENT HANDLING, IN-APP NOTIFICATION &amp; EMAIL QUEUE" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ntc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;NotificationsController&lt;/div&gt;&lt;hr&gt;+ GetMyNotifications()&lt;br&gt;+ GetUnreadCount()&lt;br&gt;+ MarkAsRead() · MarkAllAsRead()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="420" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="nts" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;NotificationService : INotificationService&lt;/div&gt;&lt;hr&gt;+ GetMyNotificationsAsync()&lt;br&gt;+ GetUnreadCountAsync()&lt;br&gt;+ MarkAsReadAsync() · MarkAllAsReadAsync()&lt;br&gt;Uses current-user identity + repository" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="ntr" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;NotificationRepository / EmailLogRepository&lt;/div&gt;&lt;hr&gt;+ GetPagedByRecipientAsync()&lt;br&gt;+ GetUnreadCountAsync() · MarkAllAsReadAsync()&lt;br&gt;+ GetPendingOrRetryableAsync() · Update()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte1" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ntc" target="nts">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte2" value="repository interface" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="nts" target="ntr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="handler" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«event handler»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;NotificationEventHandler : INotificationEventHandler&lt;/div&gt;&lt;hr&gt;Handle UserRegistered · JoinRequestCreated/Decided&lt;br&gt;MemberJoined/Left/Removed · MemberTransferredPostLock&lt;br&gt;Creates Notification and/or EmailLog; idempotent" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="390" width="465" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="worker" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«background worker»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;EmailSenderWorker → EmailQueueProcessor&lt;/div&gt;&lt;hr&gt;Polls retryable EmailLog batches&lt;br&gt;Updates Attempts / Status / LastError" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="410" width="420" height="155" as="geometry"/>
+        </mxCell>
+        <mxCell id="smtp" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«interface / implementation»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ISmtpEmailSender → MailKitSmtpEmailSender&lt;/div&gt;&lt;hr&gt;SendEmailAsync(to, subject, htmlBody)&lt;br&gt;SMTP host/port from SmtpOptions" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="410" width="420" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="notifyent" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;NotificationEntity&lt;/div&gt;&lt;hr&gt;PK Id · RecipientId (logical Account.Id)&lt;br&gt;Type · Title · Message · RelatedEntityId?&lt;br&gt;IsRead · CreatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="690" width="330" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="emaillog" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;EmailLog&lt;/div&gt;&lt;hr&gt;PK Id · To · Subject · Body&lt;br&gt;Status · Attempts · LastError?&lt;br&gt;CreatedAt · SentAt?" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="450" y="690" width="330" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="processedn" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProcessedEvent&lt;/div&gt;&lt;hr&gt;PK EventId · ProcessedAt&lt;br&gt;Duplicate event guard in handler transaction" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="850" y="690" width="300" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="emailenum" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«enum»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;EmailStatus&lt;/div&gt;&lt;hr&gt;Pending | Sent | Failed" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="690" width="420" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte3" value="persists in ExeNotificationDb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="handler" target="notifyent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte4" value="queue email" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="handler" target="emaillog">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte5" value="processes email queue" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="worker" target="ntr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="nte6" value="sends SMTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="worker" target="smtp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ntrule" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Event &amp; delivery behavior&lt;/div&gt;&lt;br&gt;Consumers create in-app notifications and email jobs for supported contract events. Email sending is asynchronous with bounded attempts and visible Sent/Failed state. MailHog is the local SMTP sink. The exact consumer retry/ACK implementation is in shared EventConsumerBase; it logs/ACKs after configured delivery attempts rather than writing a durable DLQ." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="895" width="1600" height="130" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="report" name="08 Report Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="rp_title" value="REPORT SERVICE — EVENT PROJECTIONS, SNAPSHOTS &amp; CSV" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«controller»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ReportsController&lt;/div&gt;&lt;hr&gt;+ GetSummary() · GetSnapshots()&lt;br&gt;+ GetSnapshotById() · GenerateSnapshot()&lt;br&gt;+ ExportSummaryCsv() / ExportSnapshotCsv()&lt;br&gt;+ GetStudentsWithoutGroup() · GetGroups()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="420" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="rps" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ReportService : IReportService&lt;/div&gt;&lt;hr&gt;+ GetSummaryAsync() · GetSnapshotsAsync()&lt;br&gt;+ CreateSnapshotAsync() · CSV exports&lt;br&gt;+ GetStudentsWithoutGroupAsync() · GetGroupsAsync()&lt;br&gt;Reads only ReportDb projection tables" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="205" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpr" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«repository»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;StudentStat / GroupStat / Snapshot repositories&lt;/div&gt;&lt;hr&gt;+ GetAllAsync() · GetPagedAsync()&lt;br&gt;+ GetWithoutGroupPagedAsync()&lt;br&gt;+ AddAsync() · Update() · SaveChangesAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="195" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpe1" value="uses" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="rpc" target="rps">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpe2" value="repository interfaces" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="rps" target="rpr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rph" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«event handler»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ReportEventHandler : IReportEventHandler&lt;/div&gt;&lt;hr&gt;Handles UserRegistered, UserProfileUpdated,&lt;br&gt;GroupCreated, MemberJoined, MemberLeft,&lt;br&gt;MemberTransferredPostLock&lt;br&gt;Updates local read models idempotently" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="410" width="465" height="175" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpw" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«background worker»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ReportSnapshotWorker&lt;/div&gt;&lt;hr&gt;Periodic timer from SnapshotOptions&lt;br&gt;Calls IReportService.CreateSnapshotAsync()" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="425" width="420" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="studentstat" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;StudentStat&lt;/div&gt;&lt;hr&gt;PK UserId (logical Account.Id)&lt;br&gt;Email · FullName · Major?&lt;br&gt;HasGroup · GroupId? · UpdatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="690" width="330" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="groupstat" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupStat&lt;/div&gt;&lt;hr&gt;PK GroupId (logical Group.Id)&lt;br&gt;Name · LeaderId · MemberCount · MaxMembers&lt;br&gt;Status · UpdatedAt" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="450" y="690" width="340" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="snapshot" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ReportSnapshot&lt;/div&gt;&lt;hr&gt;PK Id · GeneratedAt&lt;br&gt;TotalStudents · StudentsInGroup&lt;br&gt;StudentsWithoutGroup · TotalGroups&lt;br&gt;RecruitingGroups · FullGroups · ByMajorJson" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="850" y="690" width="370" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="proce" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«entity»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;ProcessedEvent&lt;/div&gt;&lt;hr&gt;PK EventId · ProcessedAt&lt;br&gt;Idempotency ledger" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="690" width="370" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpe3" value="projection update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="rph" target="studentstat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpe4" value="projection update" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="rph" target="groupstat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rpe5" value="scheduled snapshot" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="rpw" target="rps">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="rprule" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Data ownership&lt;/div&gt;&lt;br&gt;Report Service is an eventually consistent read model populated from Redis events; it does not join other service databases. Snapshot generation copies aggregate counts and the by-major JSON summary. CSV exports encode UTF-8 BOM for spreadsheet compatibility." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="900" width="1600" height="115" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="matching" name="09 Matching gRPC Service">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="ma_title" value="MATCHING SERVICE — gRPC CONTRACT, RANKING, DISTRIBUTION &amp; AI MENTOR" style="text;html=1;align=left;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#68738a;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="45" y="25" width="1600" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="ma_client" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«client service»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupMatchingService&lt;/div&gt;&lt;hr&gt;Loads student/profile, group slots and project data&lt;br&gt;+ GetMatchScoreAsync() · GetSuggestionsAsync()&lt;br&gt;+ GetCandidatesAsync() · GetAiMentorInsightsAsync()&lt;br&gt;Calls IMatchingClient over gRPC" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="440" height="225" as="geometry"/>
+        </mxCell>
+        <mxCell id="ma_proto" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«protobuf contract»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;MatchingService (matching.proto)&lt;/div&gt;&lt;hr&gt;RPC: CalculateMatch · RankGroups · RankCandidates&lt;br&gt;DistributeUnmatchedStudents · AnalyzeGroupWithAI&lt;br&gt;Messages: StudentProfile · GroupNeed · MatchResult&lt;br&gt;Distribution request/plan · AI analysis request/response" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="105" width="465" height="225" as="geometry"/>
+        </mxCell>
+        <mxCell id="ma_grpc" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«gRPC endpoint»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;MatchingGrpcService&lt;/div&gt;&lt;hr&gt;Maps protobuf ↔ domain models&lt;br&gt;Delegates calculator and AI mentor&lt;br&gt;No domain persistence" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="105" width="420" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae1" value="gRPC request" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7351a6;endArrow=block;endFill=1;" edge="1" parent="1" source="ma_client" target="ma_proto">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae2" value="implements RPC contract" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7351a6;endArrow=block;endFill=1;" edge="1" parent="1" source="ma_proto" target="ma_grpc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="ma_calci" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service interface / implementation»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;IMatchingCalculator → MatchingCalculator&lt;/div&gt;&lt;hr&gt;Calculate() · RankGroups() · RankCandidates()&lt;br&gt;DistributeUnmatchedStudents()&lt;br&gt;Stateless; deterministic tie-breaks" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="625" y="405" width="465" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="ma_ai" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«service interface / implementation»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;IAiMentorService → AiMentorService&lt;/div&gt;&lt;hr&gt;AnalyzeGroupAsync()&lt;br&gt;Gemini API when configured; heuristic fallback&lt;br&gt;Timeout + parse/response fallback" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#fff4ed;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="405" width="420" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae3" value="delegates scoring/distribution" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ma_grpc" target="ma_calci">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae4" value="delegates AI analysis" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#f36b2b;endArrow=block;endFill=1;" edge="1" parent="1" source="ma_grpc" target="ma_ai">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="studentinput" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«input model»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;StudentInput&lt;/div&gt;&lt;hr&gt;UserId · Major · Skills · Interests&lt;br&gt;Five fixed numeric skill scores" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="50" y="700" width="320" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="groupinput" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«input model»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;GroupInput&lt;/div&gt;&lt;hr&gt;GroupId · RequiredMajors/Skills&lt;br&gt;ProjectDomain · average five skill scores" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="430" y="700" width="320" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="outcomes" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«output models»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;MatchOutcome / distribution outcomes&lt;/div&gt;&lt;hr&gt;Score (0..100) · MatchedSkills · MissingSkills&lt;br&gt;RoomPlan · assignments · balance score" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;strokeWidth=1.3;align=left;" vertex="1" parent="1">
+          <mxGeometry x="810" y="700" width="350" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="weights" value="&lt;div style=&quot;text-align:center;color:#777;font-size:13px&quot;&gt;«configuration»&lt;/div&gt;&lt;div style=&quot;text-align:center;font-weight:bold;font-size:18px&quot;&gt;MatchingWeights&lt;/div&gt;&lt;hr&gt;Skill=50 · Major=30 · Domain=20&lt;br&gt;Weights must total 100" style="whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=9;fontSize=13;fontFamily=Arial;fontColor=#252b37;strokeColor=#ff641f;strokeWidth=1.5;fillColor=#ffffff;fillColor=#f8faff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="700" width="420" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae5" value="input" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="studentinput" target="ma_calci">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae6" value="input" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="groupinput" target="ma_calci">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae7" value="returns" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="ma_calci" target="outcomes">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="mae8" value="configuration" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=1.4;strokeColor=#68758a;dashed=1;endArrow=open;" edge="1" parent="1" source="weights" target="ma_calci">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="marule" value="&lt;div style=&quot;font-weight:bold;font-size:15px;color:#b94a12&quot;&gt;Algorithms&lt;/div&gt;&lt;br&gt;Match score combines weighted skill, major and domain fits (default weights 50/30/20); numeric skill deficit compensation supplements named-skill overlap. Distribution fills existing partial rooms first, uses balancing/skill-major fitness for unmatched students, forms new groups only at/above threshold, preserves existing leaders and selects new leader by ManagementScore (then total score / StudentCode tie-break). Matching is advisory/planning: Group Service confirms changes." style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacing=10;fontSize=13;fontFamily=Arial;fontColor=#46556f;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f8fafc;" vertex="1" parent="1">
+          <mxGeometry x="50" y="900" width="1600" height="125" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

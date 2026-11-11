@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import gsap from 'gsap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { spacesApi } from '../api/spaces';
@@ -34,7 +36,8 @@ import {
   Grid,
   Settings,
   Hash,
-  Sparkles,
+  LayoutGrid,
+  Pencil,
   Calculator,
   ShieldCheck,
   DoorOpen,
@@ -48,6 +51,7 @@ import {
   Zap,
   Crown,
   ArrowRight,
+  Clock,
   Lock,
   Send,
   Info,
@@ -55,6 +59,8 @@ import {
   ArrowLeftRight,
   UserCheck,
   Trash2,
+  Globe,
+  LogIn,
 } from '../utils/icons';
 
 /** Danh sách lỗi hiện ngay trong cửa sổ, vì thông báo chung của trang nằm phía sau lớp phủ. */
@@ -81,7 +87,380 @@ const ModalErrors: React.FC<{ messages: string[] }> = ({ messages }) =>
     </div>
   );
 
-export const CourseSpacesPage: React.FC = () => {
+/** Hộp thoại xác nhận với hiệu ứng chuyển động GSAP mượt mà */
+const AnimatedDialog: React.FC<{
+  children: React.ReactNode;
+  maxWidth?: number;
+  onClose: () => void;
+  disabled?: boolean;
+}> = ({ children, maxWidth = 460, onClose, disabled }) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ref.current,
+        { opacity: 0, scale: 0.95, y: 8 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return createPortal(
+    <div className="modal-overlay" onClick={() => !disabled && onClose()}>
+      <div
+        ref={ref}
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth,
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: '16px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+          border: '1px solid var(--border-light)',
+        }}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+interface EditSpaceModalProps {
+  space: CourseSpaceResponse;
+  name: string;
+  setName: (v: string) => void;
+  maxMembers: number;
+  setMaxMembers: (v: number) => void;
+  bufferRatio: number;
+  setBufferRatio: (v: number) => void;
+  maxApplies: number;
+  setMaxApplies: (v: number) => void;
+  deadline: string;
+  setDeadline: (v: string) => void;
+  status: CourseSpaceStatus;
+  setStatus: (v: CourseSpaceStatus) => void;
+  actionLoading: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+}
+
+/** Cửa sổ chỉnh sửa toàn diện Không gian học phần với hiệu ứng GSAP */
+const EditSpaceModal: React.FC<EditSpaceModalProps> = ({
+  space,
+  name,
+  setName,
+  maxMembers,
+  setMaxMembers,
+  bufferRatio,
+  setBufferRatio,
+  maxApplies,
+  setMaxApplies,
+  deadline,
+  setDeadline,
+  status,
+  setStatus,
+  actionLoading,
+  onClose,
+  onSubmit,
+}) => {
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!modalRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        modalRef.current,
+        { opacity: 0, scale: 0.95, y: 10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' }
+      );
+    });
+    return () => ctx.revert();
+  }, []);
+
+  return createPortal(
+    <div
+      className="modal-overlay"
+      onClick={() => !actionLoading && onClose()}
+      style={{ zIndex: 1200 }}
+    >
+      <div
+        ref={modalRef}
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: 580,
+          padding: 0,
+          borderRadius: '16px',
+          overflow: 'hidden',
+          border: '1px solid var(--border-light)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        }}
+      >
+        <div
+          style={{
+            padding: '1.25rem 1.5rem',
+            borderBottom: '1px solid var(--border-light)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-card)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '10px',
+                background: 'rgba(0, 84, 166, 0.1)',
+                color: 'var(--fpt-blue, #0054a6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Pencil size={18} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                Chỉnh sửa Không gian học phần
+              </h3>
+              <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.785rem', color: 'var(--text-muted)' }}>
+                Mã học phần:{' '}
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--fpt-blue, #0054a6)' }}>
+                  {space.semesterCode} • {space.subjectCode}
+                </span>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={actionLoading}
+            style={{
+              padding: '0.35rem',
+              color: 'var(--text-muted)',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              borderRadius: '6px',
+            }}
+            aria-label="Đóng cửa sổ"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} style={{ padding: '1.5rem', background: 'var(--bg-card)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+            <div>
+              <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tên Không gian học phần <strong style={{ color: 'var(--fpt-orange, #f26f21)' }}>*</strong>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="VD: Học kỳ FA26 - EXE101 Khởi nghiệp"
+                className="form-control"
+                required
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Sĩ số tối đa / nhóm
+                </label>
+                <input
+                  type="number"
+                  min={4}
+                  max={6}
+                  value={maxMembers}
+                  onChange={(e) => setMaxMembers(Number(e.target.value))}
+                  className="form-control"
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                  required
+                />
+                <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Ngưỡng lập nhóm: <strong style={{ fontFamily: 'var(--font-mono)' }}>{Math.floor(maxMembers / 2) + 1}</strong> SV
+                </p>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Hệ số dự phòng Room
+                </label>
+                <input
+                  type="number"
+                  step="0.05"
+                  min={1.0}
+                  max={2.0}
+                  value={bufferRatio}
+                  onChange={(e) => setBufferRatio(Number(e.target.value))}
+                  className="form-control"
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                  required
+                />
+                <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Mặc định: <strong style={{ fontFamily: 'var(--font-mono)' }}>1.2</strong> (x1.2 số Room)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Đơn nộp đồng thời tối đa
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={5}
+                  value={maxApplies}
+                  onChange={(e) => setMaxApplies(Number(e.target.value))}
+                  className="form-control"
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                  required
+                />
+                <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  Mặc định: 3 đơn/sinh viên
+                </p>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Trạng thái Không gian
+                </label>
+                {(() => {
+                  const hasStudents = (space.totalStudents ?? space.totalEligibleStudents ?? 0) > 0;
+                  const hasRooms = (space.totalRooms ?? space.totalRoomsGenerated ?? 0) > 0;
+                  const canOpen = hasStudents && hasRooms;
+                  return (
+                    <>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as CourseSpaceStatus)}
+                        className="form-control"
+                      >
+                        <option value="Draft">Bản nháp (Draft)</option>
+                        <option value="Open" disabled={!canOpen && space.status === 'Draft'}>
+                          Đang mở đăng ký (Open){!canOpen && space.status === 'Draft' ? ' (Cần nạp SV & tạo Room)' : ''}
+                        </option>
+                        <option value="ClosedRegistration" disabled={!canOpen && space.status === 'Draft'}>
+                          Đóng đăng ký tự do (ClosedRegistration){!canOpen && space.status === 'Draft' ? ' (Cần nạp SV & tạo Room)' : ''}
+                        </option>
+                        <option value="Locked" disabled={space.status !== 'Locked'}>
+                          Đã khóa chốt sổ toàn bộ (Locked)
+                        </option>
+                      </select>
+                      <p style={{ margin: '0.3rem 0 0 0', fontSize: '0.72rem', color: !canOpen && space.status === 'Draft' ? 'var(--fpt-orange, #f26f21)' : 'var(--text-muted)' }}>
+                        {!canOpen && space.status === 'Draft'
+                          ? !hasStudents
+                            ? 'Chưa nạp danh sách SV FAP — chỉ có thể lưu ở Bản nháp (Draft)'
+                            : 'Chưa khởi tạo Room — vui lòng tạo Room trước khi mở cổng'
+                          : status === 'Draft'
+                          ? 'Chưa mở cho SV'
+                          : status === 'Open'
+                          ? 'SV tự do ghép nhóm'
+                          : status === 'ClosedRegistration'
+                          ? 'Khóa đăng ký, chờ chốt'
+                          : 'Đã chốt sổ'}
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div>
+              <label
+                className="form-label"
+                style={{
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span>
+                  Hạn chót sinh viên đăng ký & lập nhóm <strong style={{ color: 'var(--fpt-orange, #f26f21)' }}>*</strong>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 500 }}>
+                  (Bắt buộc)
+                </span>
+              </label>
+              <input
+                type="datetime-local"
+                value={deadline}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDeadline(val);
+                  if (space.status === 'ClosedRegistration' && val) {
+                    const dlDate = new Date(val);
+                    if (!isNaN(dlDate.getTime()) && dlDate.getTime() > Date.now()) {
+                      setStatus('Open');
+                    }
+                  }
+                }}
+                className="form-control"
+                style={{ fontFamily: 'var(--font-mono)' }}
+                required
+              />
+              <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                Thời gian hiển thị và lưu theo múi giờ địa phương Việt Nam (GMT+7). Đến thời điểm này hệ thống tự động khóa đăng ký tự do.
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '0.75rem',
+              marginTop: '1.5rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border-light)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={actionLoading}
+              className="btn btn-secondary"
+              style={{ padding: '0.6rem 1.25rem' }}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              disabled={actionLoading}
+              className="btn btn-primary"
+              style={{ padding: '0.6rem 1.5rem', fontWeight: 700 }}
+            >
+              {actionLoading ? 'Đang lưu thay đổi...' : 'Lưu thay đổi'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export interface CourseSpacesPageProps {
+  initialTab?: 'rooms' | 'enrollments' | 'config' | 'distribution' | 'transfers' | 'roster';
+}
+
+export const CourseSpacesPage: React.FC<CourseSpacesPageProps> = ({ initialTab }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isModerator = user?.role === 'Moderator';
@@ -106,6 +485,7 @@ export const CourseSpacesPage: React.FC = () => {
 
   // Active space details (Lecturer defaults to 'roster' to view grades and locked groups immediately)
   const [activeTab, setActiveTab] = useState<'rooms' | 'enrollments' | 'config' | 'distribution' | 'transfers' | 'roster'>(() => {
+    if (initialTab) return initialTab;
     try {
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
@@ -115,6 +495,12 @@ export const CourseSpacesPage: React.FC = () => {
     } catch {}
     return 'rooms';
   });
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   const [rooms, setRooms] = useState<RoomSummaryResponse[]>([]);
   const [loadingRooms, setLoadingRooms] = useState<boolean>(false);
   const [roomStatusFilter, setRoomStatusFilter] = useState<string>('ALL');
@@ -160,6 +546,14 @@ export const CourseSpacesPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
   // Modal: Create Course Space
+  const getDefaultDeadline = useCallback(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    d.setHours(23, 59, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }, []);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [newSemesterCode, setNewSemesterCode] = useState<string>('FA26');
   const [newSubjectCode, setNewSubjectCode] = useState<string>('EXE101');
@@ -167,7 +561,13 @@ export const CourseSpacesPage: React.FC = () => {
   const [newMaxMembers, setNewMaxMembers] = useState<number>(5);
   const [newBufferRatio, setNewBufferRatio] = useState<number>(1.2);
   const [newMaxApplies, setNewMaxApplies] = useState<number>(3);
-  const [newDeadline, setNewDeadline] = useState<string>('');
+  const [newDeadline, setNewDeadline] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    d.setHours(23, 59, 0, 0);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
   const [newRoster, setNewRoster] = useState<(ParsedFapCsv & { fileName: string }) | null>(null);
   const [createErrors, setCreateErrors] = useState<string[]>([]);
   const newRosterInputRef = useRef<HTMLInputElement | null>(null);
@@ -175,12 +575,26 @@ export const CourseSpacesPage: React.FC = () => {
   // Modal: Generate Rooms Confirmation
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState<boolean>(false);
 
-  // Modal: Config Space
+  // Modal: Config & Edit Space
+  const [editName, setEditName] = useState<string>('');
   const [editMaxMembers, setEditMaxMembers] = useState<number>(5);
   const [editBufferRatio, setEditBufferRatio] = useState<number>(1.2);
   const [editMaxApplies, setEditMaxApplies] = useState<number>(3);
   const [editDeadline, setEditDeadline] = useState<string>('');
   const [editStatus, setEditStatus] = useState<CourseSpaceStatus>('Draft');
+  const [isEditSpaceModalOpen, setIsEditSpaceModalOpen] = useState<boolean>(false);
+  const [spaceToEdit, setSpaceToEdit] = useState<CourseSpaceResponse | null>(null);
+
+  const openEditSpaceModal = (sp: CourseSpaceResponse) => {
+    setSpaceToEdit(sp);
+    setEditName(sp.name || '');
+    setEditMaxMembers(sp.maxMembersPerGroup || 5);
+    setEditBufferRatio(Number(sp.bufferRatio) || 1.2);
+    setEditMaxApplies(sp.maxConcurrentApplies || 3);
+    setEditDeadline(sp.registrationDeadline ? toLocalInputString(sp.registrationDeadline) : '');
+    setEditStatus(sp.status);
+    setIsEditSpaceModalOpen(true);
+  };
 
   // Modal: CSV FAP Import (Multi-Tab)
   const [isCsvModalOpen, setIsCsvModalOpen] = useState<boolean>(false);
@@ -190,6 +604,11 @@ export const CourseSpacesPage: React.FC = () => {
   const [parsedStudentsCount, setParsedStudentsCount] = useState<number>(0);
   const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Custom Confirmation Dialog States (Replacing raw window.confirm)
+  const [spaceToDelete, setSpaceToDelete] = useState<CourseSpaceResponse | null>(null);
+  const [spaceToPublish, setSpaceToPublish] = useState<CourseSpaceResponse | null>(null);
+  const [roomToJoin, setRoomToJoin] = useState<RoomSummaryResponse | null>(null);
 
   const selectedSpace = useMemo(
     () => spaces.find((s) => s.id === selectedSpaceId) || null,
@@ -239,20 +658,102 @@ export const CourseSpacesPage: React.FC = () => {
     });
   }, [rooms, roomStatusFilter, roomSeatFilter]);
 
-  // Safe Date Formatter (Anti-NaN, Anti-Invalid Date)
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '—';
-    try {
-      const d = new Date(dateString);
-      if (isNaN(d.getTime())) return '—';
-      return d.toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
-    } catch {
-      return '—';
+  // Safe UTC Date Parser & Formatter (Anti-NaN, Anti-Invalid Date, Accurate Timezone)
+  const parseUtcDate = (dateString?: string | null): Date | null => {
+    if (!dateString) return null;
+    let s = dateString.trim();
+    if (!s.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(s)) {
+      s += 'Z';
     }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const toLocalInputString = (dateInput?: string | Date | null): string => {
+    if (!dateInput) return '';
+    const d = typeof dateInput === 'string' ? parseUtcDate(dateInput) : dateInput;
+    if (!d || isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const formatDate = (dateString?: string | null) => {
+    const d = parseUtcDate(dateString);
+    if (!d) return '—';
+    return d.toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  };
+
+  const formatDateTime = (dateString?: string | null) => {
+    const d = parseUtcDate(dateString);
+    if (!d) return '—';
+    return d.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const getDeadlineBadge = (sp: CourseSpaceResponse) => {
+    const d = parseUtcDate(sp.registrationDeadline);
+    if (!d) return null;
+    const dl = d.getTime();
+    const now = Date.now();
+    const diff = dl - now;
+    if (sp.status === 'Locked') {
+      return (
+        <span
+          className="badge badge-danger"
+          style={{ fontSize: '0.7rem', padding: '2px 7px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+        >
+          Đã chốt sổ
+        </span>
+      );
+    }
+    if (diff <= 0) {
+      return (
+        <span
+          className="badge badge-danger"
+          style={{ fontSize: '0.7rem', padding: '2px 7px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+        >
+          Đã hết hạn
+        </span>
+      );
+    }
+    if (sp.status === 'ClosedRegistration') {
+      return (
+        <span
+          className="badge badge-warning"
+          style={{ fontSize: '0.7rem', padding: '2px 7px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+        >
+          Đang đóng cổng
+        </span>
+      );
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.max(1, Math.ceil((diff % (1000 * 60 * 60)) / (1000 * 60)));
+    let timeText = '';
+    if (days > 0) {
+      timeText = `Còn ${days} ngày ${hours}h`;
+    } else if (hours > 0) {
+      timeText = `Còn ${hours} giờ ${minutes}p`;
+    } else {
+      timeText = `Còn ${minutes} phút`;
+    }
+    return (
+      <span
+        className="badge badge-warning"
+        style={{ fontSize: '0.7rem', padding: '2px 7px', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}
+      >
+        {timeText}
+      </span>
+    );
   };
 
   // Load Spaces on Mount
@@ -345,10 +846,11 @@ export const CourseSpacesPage: React.FC = () => {
       loadSpaceDetails(selectedSpaceId);
       const current = spaces.find((s) => s.id === selectedSpaceId);
       if (current) {
+        setEditName(current.name || '');
         setEditMaxMembers(current.maxMembersPerGroup || 5);
         setEditBufferRatio(Number(current.bufferRatio) || 1.2);
         setEditMaxApplies(current.maxConcurrentApplies || 3);
-        setEditDeadline(current.registrationDeadline ? current.registrationDeadline.substring(0, 16) : '');
+        setEditDeadline(current.registrationDeadline ? toLocalInputString(current.registrationDeadline) : '');
         setEditStatus(current.status);
       }
     } else {
@@ -742,20 +1244,32 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
+  const openCreateModal = () => {
+    setNewDeadline(getDefaultDeadline());
+    setNewRoster(null);
+    setCreateErrors([]);
+    setIsCreateModalOpen(true);
+  };
+
   const closeCreateModal = () => {
     setIsCreateModalOpen(false);
     setNewRoster(null);
     setCreateErrors([]);
   };
 
-  const handleDeleteSpace = async (space: CourseSpaceResponse) => {
-    if (!window.confirm(`Xóa Không gian học phần "${space.name}"? Thao tác này không hoàn tác được.`)) return;
+  const handleDeleteSpace = (space: CourseSpaceResponse) => {
+    setSpaceToDelete(space);
+  };
+
+  const executeDeleteSpace = async () => {
+    if (!spaceToDelete) return;
     setActionLoading(true);
     setActionError(null);
     setActionSuccess(null);
     try {
-      await spacesApi.deleteSpace(space.id);
-      setActionSuccess(`Đã xóa không gian học phần [${space.semesterCode} - ${space.subjectCode}].`);
+      await spacesApi.deleteSpace(spaceToDelete.id);
+      setActionSuccess(`Đã xóa không gian học phần [${spaceToDelete.semesterCode} - ${spaceToDelete.subjectCode}].`);
+      setSpaceToDelete(null);
       await loadSpaces();
     } catch (err: any) {
       setActionError(
@@ -768,11 +1282,61 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
+  const executePublishSpace = async () => {
+    if (!spaceToPublish) return;
+    if (getTotalStudents(spaceToPublish) === 0) {
+      setActionError('Không thể mở cổng đăng ký vì chưa nạp danh sách sinh viên FAP cho học phần này. Vui lòng nạp danh sách FAP trước.');
+      setSpaceToPublish(null);
+      return;
+    }
+    if (getTotalRooms(spaceToPublish) === 0) {
+      setActionError('Không thể mở cổng đăng ký vì chưa khởi tạo phòng nhóm cho học phần này. Vui lòng bấm "Khởi tạo Room tự động" trước.');
+      setSpaceToPublish(null);
+      return;
+    }
+    setActionLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      const payload: UpdateSpaceConfigRequest = {
+        maxMembersPerGroup: spaceToPublish.maxMembersPerGroup,
+        bufferRatio: Number(spaceToPublish.bufferRatio),
+        maxConcurrentApplies: spaceToPublish.maxConcurrentApplies,
+        registrationDeadline: spaceToPublish.registrationDeadline
+          ? new Date(spaceToPublish.registrationDeadline).toISOString()
+          : new Date().toISOString(),
+        status: 'Open',
+      };
+      const updated = await spacesApi.updateSpaceConfig(spaceToPublish.id, payload);
+      setActionSuccess(`Đã mở cổng đăng ký tự do cho Không gian [${updated.semesterCode} - ${updated.subjectCode}] thành công.`);
+      setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setSpaceToPublish(null);
+    } catch (err: any) {
+      setActionError(
+        err.response?.data?.detail ||
+          err.response?.data?.title ||
+          'Không thể mở cổng đăng ký Không gian học phần. Vui lòng kiểm tra lại.'
+      );
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Actions
   const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
     // File có dòng sai thì dừng trước khi tạo, để không sinh ra Space rỗng ngoài ý muốn.
     if (newRoster && newRoster.errors.length > 0) return;
+
+    if (!newDeadline) {
+      setCreateErrors(['Hạn chót đăng ký học phần là bắt buộc.']);
+      return;
+    }
+    const dlDate = new Date(newDeadline);
+    if (isNaN(dlDate.getTime()) || dlDate <= new Date()) {
+      setCreateErrors(['Hạn chót đăng ký phải lớn hơn thời điểm hiện tại.']);
+      return;
+    }
 
     setActionLoading(true);
     setActionError(null);
@@ -786,7 +1350,7 @@ export const CourseSpacesPage: React.FC = () => {
         maxMembersPerGroup: Number(newMaxMembers),
         bufferRatio: Number(newBufferRatio),
         maxConcurrentApplies: Number(newMaxApplies),
-        registrationDeadline: newDeadline ? new Date(newDeadline).toISOString() : null,
+        registrationDeadline: new Date(newDeadline).toISOString(),
       };
 
       let created: CourseSpaceResponse;
@@ -822,22 +1386,38 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
-  const handleUpdateConfig = async (e: React.FormEvent) => {
+  const handleUpdateConfig = async (e: React.FormEvent, targetSpaceId?: string) => {
     e.preventDefault();
-    if (!selectedSpaceId) return;
+    const spaceId = targetSpaceId || selectedSpaceId;
+    if (!spaceId) return;
+    if (!editDeadline) {
+      setActionError('Hạn chót đăng ký học phần là bắt buộc.');
+      return;
+    }
+    const dlDate = new Date(editDeadline);
+    if (isNaN(dlDate.getTime())) {
+      setActionError('Định dạng thời gian hạn chót không hợp lệ.');
+      return;
+    }
     setActionLoading(true);
     setActionError(null);
     try {
       const payload: UpdateSpaceConfigRequest = {
+        name: editName.trim() || undefined,
         maxMembersPerGroup: Number(editMaxMembers),
         bufferRatio: Number(editBufferRatio),
         maxConcurrentApplies: Number(editMaxApplies),
-        registrationDeadline: editDeadline ? new Date(editDeadline).toISOString() : null,
+        registrationDeadline: new Date(editDeadline).toISOString(),
         status: editStatus,
       };
-      const updated = await spacesApi.updateSpaceConfig(selectedSpaceId, payload);
-      setActionSuccess(`Đã cập nhật cấu hình [${updated.semesterCode} - ${updated.subjectCode}] thành công.`);
+      const updated = await spacesApi.updateSpaceConfig(spaceId, payload);
+      setActionSuccess(`Đã cập nhật cấu hình [${updated.semesterCode} - ${updated.subjectCode}] "${updated.name}" thành công.`);
       setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setIsEditSpaceModalOpen(false);
+      setSpaceToEdit(null);
+      if (selectedSpaceId === spaceId) {
+        await loadSpaceDetails(spaceId);
+      }
     } catch (err: any) {
       setActionError(
         err.response?.data?.detail ||
@@ -911,7 +1491,7 @@ export const CourseSpacesPage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: CourseSpaceStatus) => {
+  const getStatusBadge = (status: CourseSpaceStatus, compact = false) => {
     switch (status) {
       case 'Open':
         return (
@@ -919,18 +1499,21 @@ export const CourseSpacesPage: React.FC = () => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.25rem 0.65rem',
+              gap: '0.25rem',
+              padding: compact ? '0.15rem 0.5rem' : '0.22rem 0.65rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: compact ? '0.685rem' : '0.725rem',
               fontWeight: 700,
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
               background: 'rgba(16, 185, 129, 0.12)',
               color: '#059669',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
+              border: '1px solid rgba(16, 185, 129, 0.28)',
             }}
           >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981' }} />
-            Đang mở ghi danh (Open)
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+            {compact ? 'Đang mở' : 'Đang mở ghi danh (Open)'}
           </span>
         );
       case 'Draft':
@@ -939,16 +1522,21 @@ export const CourseSpacesPage: React.FC = () => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '0.25rem 0.65rem',
+              gap: '0.25rem',
+              padding: compact ? '0.15rem 0.5rem' : '0.22rem 0.65rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: compact ? '0.685rem' : '0.725rem',
               fontWeight: 700,
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
               background: 'rgba(245, 158, 11, 0.12)',
               color: '#d97706',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
+              border: '1px solid rgba(245, 158, 11, 0.28)',
             }}
           >
-            Bản nháp (Draft)
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+            {compact ? 'Bản nháp' : 'Bản nháp (Draft)'}
           </span>
         );
       case 'ClosedRegistration':
@@ -957,16 +1545,20 @@ export const CourseSpacesPage: React.FC = () => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '0.25rem 0.65rem',
+              gap: '0.25rem',
+              padding: compact ? '0.15rem 0.5rem' : '0.22rem 0.65rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: compact ? '0.685rem' : '0.725rem',
               fontWeight: 700,
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
               background: 'rgba(37, 99, 235, 0.12)',
               color: '#2563eb',
-              border: '1px solid rgba(37, 99, 235, 0.3)',
+              border: '1px solid rgba(37, 99, 235, 0.28)',
             }}
           >
-            Đóng ghi danh
+            {compact ? 'Đóng đăng ký' : 'Đóng đăng ký tự do'}
           </span>
         );
       case 'Locked':
@@ -975,16 +1567,20 @@ export const CourseSpacesPage: React.FC = () => {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              padding: '0.25rem 0.65rem',
+              gap: '0.25rem',
+              padding: compact ? '0.15rem 0.5rem' : '0.22rem 0.65rem',
               borderRadius: '9999px',
-              fontSize: '0.75rem',
+              fontSize: compact ? '0.685rem' : '0.725rem',
               fontWeight: 700,
-              background: 'rgba(100, 116, 139, 0.15)',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              background: 'rgba(100, 116, 139, 0.12)',
               color: '#64748b',
-              border: '1px solid rgba(100, 116, 139, 0.3)',
+              border: '1px solid rgba(100, 116, 139, 0.28)',
             }}
           >
-            Đã khóa chốt sổ (Locked)
+            {compact ? 'Đã chốt sổ' : 'Đã khóa chốt sổ (Locked)'}
           </span>
         );
       default:
@@ -1250,7 +1846,7 @@ export const CourseSpacesPage: React.FC = () => {
   };
 
   // Phase 4 Handlers for Student direct join, apply, and view room detail
-  const handleDirectJoin = async (room: RoomSummaryResponse) => {
+  const handleDirectJoin = (room: RoomSummaryResponse) => {
     if (selectedSpace?.status !== 'Open') {
       setActionError(
         'Không gian học phần đã đóng cổng đăng ký tự do hoặc đã chốt sổ. Bạn không thể tự do chọn phòng vào lúc này.'
@@ -1266,19 +1862,22 @@ export const CourseSpacesPage: React.FC = () => {
       return;
     }
 
-    if (!window.confirm(`Bạn có chắc chắn muốn tham gia trực tiếp vào phòng "${room.roomCode || room.name}"?`)) {
-      return;
-    }
-    setJoiningRoomId(room.id);
+    setRoomToJoin(room);
+  };
+
+  const executeDirectJoinRoom = async () => {
+    if (!roomToJoin) return;
+    setJoiningRoomId(roomToJoin.id);
     setActionError(null);
     setActionSuccess(null);
     try {
-      const res = await groupsApi.directJoinRoom(room.id);
+      const res = await groupsApi.directJoinRoom(roomToJoin.id);
       setActionSuccess(
         `Chúc mừng bạn đã vào phòng ${res.roomCode || res.name} thành công! (${
           res.role === 'Leader' ? 'Bạn là Trưởng nhóm (Leader) - ' : 'Thành viên mới'
         })`
       );
+      setRoomToJoin(null);
       await Promise.all([
         loadMyGroup(),
         selectedSpaceId ? loadSpaceDetails(selectedSpaceId) : Promise.resolve(),
@@ -1446,7 +2045,7 @@ export const CourseSpacesPage: React.FC = () => {
           {isModerator && (
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={openCreateModal}
               className="btn btn-primary"
               style={{ padding: '0.6rem 1.25rem' }}
             >
@@ -1750,7 +2349,7 @@ export const CourseSpacesPage: React.FC = () => {
             {isModerator && (
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={openCreateModal}
                 className="btn btn-primary"
               >
                 <Plus size={16} />
@@ -1779,15 +2378,18 @@ export const CourseSpacesPage: React.FC = () => {
                     transition: 'all 0.2s ease',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                       <span
                         style={{
                           fontFamily: 'var(--font-mono)',
-                          fontSize: '0.75rem',
+                          fontSize: '0.685rem',
                           fontWeight: 700,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '6px',
+                          lineHeight: 1,
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '5px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
                           background: 'var(--bg-main, #f1f5f9)',
                           color: 'var(--text-main, #0f172a)',
                           border: '1px solid var(--border-light, #e2e8f0)',
@@ -1798,20 +2400,88 @@ export const CourseSpacesPage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono)',
-                          fontSize: '0.75rem',
+                          fontSize: '0.685rem',
                           fontWeight: 700,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '6px',
-                          background: 'rgba(0, 84, 166, 0.1)',
+                          lineHeight: 1,
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '5px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          background: 'rgba(0, 84, 166, 0.08)',
                           color: 'var(--fpt-blue, #0054a6)',
-                          border: '1px solid rgba(0, 84, 166, 0.25)',
+                          border: '1px solid rgba(0, 84, 166, 0.22)',
                         }}
                       >
                         {sp.subjectCode}
                       </span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-                      {getStatusBadge(sp.status)}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+                      {getStatusBadge(sp.status, true)}
+
+                      {isModerator && sp.status === 'Draft' && getTotalStudents(sp) > 0 && getTotalRooms(sp) > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSpaceToPublish(sp);
+                          }}
+                          disabled={actionLoading}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                            padding: '0.18rem 0.5rem',
+                            height: 24,
+                            fontSize: '0.685rem',
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            background: 'var(--fpt-green, #008837)',
+                            color: '#ffffff',
+                            border: '1px solid var(--fpt-green, #008837)',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 2px rgba(0, 136, 55, 0.18)',
+                            transition: 'all 0.15s ease',
+                          }}
+                          title="Mở cổng đăng ký tự do cho sinh viên"
+                        >
+                          <Globe size={11} strokeWidth={2.2} />
+                          <span>Mở cổng</span>
+                        </button>
+                      )}
+
+                      {isModerator && sp.status !== 'Locked' && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditSpaceModal(sp);
+                          }}
+                          disabled={actionLoading}
+                          title="Chỉnh sửa thông tin Không gian học phần"
+                          aria-label={`Chỉnh sửa Không gian học phần ${sp.name}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 24,
+                            height: 24,
+                            borderRadius: '5px',
+                            color: 'var(--fpt-blue, #0054a6)',
+                            background: 'rgba(0, 84, 166, 0.08)',
+                            border: '1px solid rgba(0, 84, 166, 0.22)',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Pencil size={12} strokeWidth={2} />
+                        </button>
+                      )}
+
                       {isModerator && sp.status === 'Draft' && totalStu === 0 && totalRm === 0 && (
                         <button
                           type="button"
@@ -1822,9 +2492,22 @@ export const CourseSpacesPage: React.FC = () => {
                           disabled={actionLoading}
                           title="Xóa Không gian học phần"
                           aria-label={`Xóa Không gian học phần ${sp.name}`}
-                          style={{ display: 'inline-flex', padding: '0.25rem', color: '#dc2626', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 24,
+                            height: 24,
+                            borderRadius: '5px',
+                            color: '#dc2626',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.22)',
+                            cursor: 'pointer',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease',
+                          }}
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={12} strokeWidth={2} />
                         </button>
                       )}
                     </div>
@@ -1874,6 +2557,43 @@ export const CourseSpacesPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
+                  {sp.registrationDeadline && (
+                    <div
+                      style={{
+                        marginTop: '0.65rem',
+                        paddingTop: '0.55rem',
+                        borderTop: '1px dashed var(--border-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0, overflow: 'hidden' }}>
+                        <Clock size={13} style={{ color: 'var(--fpt-orange)', flexShrink: 0 }} />
+                        <span style={{ whiteSpace: 'nowrap' }}>Hạn:</span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            color: 'var(--text-main)',
+                            fontVariantNumeric: 'tabular-nums',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {formatDateTime(sp.registrationDeadline)}
+                        </span>
+                      </div>
+                      <div style={{ flexShrink: 0 }}>
+                        {getDeadlineBadge(sp)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -2174,7 +2894,7 @@ export const CourseSpacesPage: React.FC = () => {
                   className="btn btn-primary"
                   style={{ padding: '0.55rem 1rem', fontSize: '0.825rem' }}
                 >
-                  <Sparkles size={15} />
+                  <LayoutGrid size={15} />
                   <span>Khởi tạo Room tự động</span>
                 </button>
               </div>
@@ -2186,6 +2906,152 @@ export const CourseSpacesPage: React.FC = () => {
              ══════════════════════════════════════════════════════════════ */}
           {activeTab === 'rooms' && (
             <div>
+              {/* Draft Status Banner for Moderator & Student */}
+              {selectedSpace?.status === 'Draft' && (
+                <div
+                  className="card"
+                  style={{
+                    padding: '1rem 1.25rem',
+                    marginBottom: '1.25rem',
+                    background: 'rgba(242, 111, 33, 0.06)',
+                    border: '1px solid rgba(242, 111, 33, 0.25)',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Info size={20} style={{ color: 'var(--fpt-orange, #f26f21)', flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                      <strong>Không gian đang ở trạng thái Bản nháp (Draft):</strong>{' '}
+                      {isModerator ? (
+                        getTotalStudents(selectedSpace) === 0 ? (
+                          <span>
+                            Chưa có danh sách sinh viên FAP. Vui lòng bấm <strong>"Nạp danh sách FAP ngay"</strong> để ghi danh sinh viên trước khi khởi tạo Room và mở cổng đăng ký.
+                          </span>
+                        ) : getTotalRooms(selectedSpace) === 0 ? (
+                          <span>
+                            Đã ghi danh <strong style={{ fontFamily: 'var(--font-mono)' }}>{getTotalStudents(selectedSpace)}</strong> sinh viên FAP. Tiếp theo, hãy bấm <strong>"Khởi tạo Room tự động"</strong> để sinh phòng và mở cổng cho sinh viên vào ghép nhóm.
+                          </span>
+                        ) : (
+                          <span>
+                            Đã ghi danh <strong style={{ fontFamily: 'var(--font-mono)' }}>{getTotalStudents(selectedSpace)}</strong> sinh viên và tạo <strong style={{ fontFamily: 'var(--font-mono)' }}>{getTotalRooms(selectedSpace)}</strong> Room. Bạn có thể bấm <strong>"Mở cổng đăng ký ngay"</strong> để kích hoạt cho sinh viên vào ghép nhóm.
+                          </span>
+                        )
+                      ) : (
+                        <span>
+                          Điều phối viên đang chuẩn bị cấu hình học kỳ và danh sách lớp. Cổng đăng ký tự do sẽ sớm được mở cho sinh viên.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {isModerator && (
+                    getTotalStudents(selectedSpace) === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCsvModalTab('upload');
+                          setIsCsvModalOpen(true);
+                        }}
+                        className="btn btn-primary"
+                        style={{
+                          padding: '0.45rem 0.95rem',
+                          fontSize: '0.825rem',
+                          background: 'var(--fpt-orange, #f26f21)',
+                          borderColor: 'var(--fpt-orange, #f26f21)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <Upload size={14} />
+                        <span>Nạp danh sách FAP ngay</span>
+                      </button>
+                    ) : getTotalRooms(selectedSpace) === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsGenerateModalOpen(true)}
+                        className="btn btn-primary"
+                        style={{
+                          padding: '0.45rem 0.95rem',
+                          fontSize: '0.825rem',
+                          background: 'var(--fpt-blue, #0054a6)',
+                          borderColor: 'var(--fpt-blue, #0054a6)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <LayoutGrid size={14} />
+                        <span>Khởi tạo Room tự động</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setSpaceToPublish(selectedSpace)}
+                        className="btn btn-primary"
+                        style={{
+                          padding: '0.45rem 0.95rem',
+                          fontSize: '0.825rem',
+                          background: 'var(--fpt-green, #008837)',
+                          borderColor: 'var(--fpt-green, #008837)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <Globe size={14} />
+                        <span>Mở cổng đăng ký ngay</span>
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+
+              {/* Registration Deadline Banner for Open Space */}
+              {selectedSpace?.status === 'Open' && selectedSpace?.registrationDeadline && (
+                <div
+                  className="card"
+                  style={{
+                    padding: '0.85rem 1.25rem',
+                    marginBottom: '1.25rem',
+                    background: 'rgba(0, 84, 166, 0.04)',
+                    border: '1px solid rgba(0, 84, 166, 0.2)',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Clock size={18} style={{ color: 'var(--fpt-blue)', flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+                      <span>Hạn chót sinh viên tự do lập nhóm & đăng ký phòng: </span>
+                      <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-blue)' }}>
+                        {formatDateTime(selectedSpace.registrationDeadline)}
+                      </strong>
+                      <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
+                        (Sau thời điểm này, hệ thống sẽ tự động đóng đăng ký tự do)
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    {getDeadlineBadge(selectedSpace)}
+                  </div>
+                </div>
+              )}
+
               {/* Status Banner when space is ClosedRegistration or Locked */}
               {isStudent && selectedSpace?.status === 'ClosedRegistration' && (
                 <div
@@ -2255,7 +3121,7 @@ export const CourseSpacesPage: React.FC = () => {
                           flexShrink: 0,
                         }}
                       >
-                        <Sparkles size={22} />
+                        <LayoutGrid size={22} />
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
@@ -2297,7 +3163,7 @@ export const CourseSpacesPage: React.FC = () => {
                         style={{ padding: '0.65rem 1.15rem' }}
                       >
                         <Upload size={16} />
-                        <span>Tải lên file từ máy</span>
+                        <span>📁 Tải lên file từ máy</span>
                       </button>
                     </div>
                   </div>
@@ -2373,7 +3239,7 @@ export const CourseSpacesPage: React.FC = () => {
                         className="btn btn-primary"
                         style={{ padding: '0.65rem 1.35rem', fontWeight: 800 }}
                       >
-                        <Sparkles size={17} />
+                        <LayoutGrid size={17} />
                         <span>Khởi tạo {previewRoomsCount} Room tự động ngay</span>
                       </button>
                     </div>
@@ -2585,7 +3451,7 @@ export const CourseSpacesPage: React.FC = () => {
                       onClick={() => setIsGenerateModalOpen(true)}
                       className="btn btn-primary"
                     >
-                      <Sparkles size={16} />
+                      <LayoutGrid size={16} />
                       <span>Khởi tạo {previewRoomsCount} Room tự động ngay</span>
                     </button>
                   )}
@@ -2600,7 +3466,7 @@ export const CourseSpacesPage: React.FC = () => {
                         className="btn btn-secondary"
                       >
                         <Upload size={16} />
-                        <span>Tải lên file</span>
+                        <span>Tải lên file FAP</span>
                       </button>
                     </div>
                   )}
@@ -2998,7 +3864,7 @@ export const CourseSpacesPage: React.FC = () => {
                           <th style={{ padding: '0.85rem 1rem' }}>Chuyên ngành</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Khóa</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Lớp FAP</th>
-                          <th style={{ padding: '0.85rem 1rem' }}>Hồ sơ kỹ năng (BR-07)</th>
+                          <th style={{ padding: '0.85rem 1rem' }}>Hồ sơ kỹ năng</th>
                           <th style={{ padding: '0.85rem 1rem' }}>Ngày ghi danh</th>
                         </tr>
                       </thead>
@@ -3129,6 +3995,20 @@ export const CourseSpacesPage: React.FC = () => {
                 <form onSubmit={handleUpdateConfig} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Tên Không gian học phần <strong style={{ color: 'var(--fpt-orange)' }}>*</strong>
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="VD: Học kỳ FA26 - EXE101 Khởi nghiệp"
+                      className="form-control"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Sĩ số tối đa một nhóm
                     </label>
                     <input
@@ -3183,32 +4063,70 @@ export const CourseSpacesPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Hạn chót sinh viên tự do lập nhóm & ứng tuyển
+                    <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>Hạn chót sinh viên tự do lập nhóm & ứng tuyển <strong style={{ color: 'var(--fpt-orange)' }}>*</strong></span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 500 }}>
+                        (Bắt buộc)
+                      </span>
                     </label>
                     <input
                       type="datetime-local"
                       value={editDeadline}
-                      onChange={(e) => setEditDeadline(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditDeadline(val);
+                        if (selectedSpace?.status === 'ClosedRegistration' && val) {
+                          const dlDate = new Date(val);
+                          if (!isNaN(dlDate.getTime()) && dlDate.getTime() > Date.now()) {
+                            setEditStatus('Open');
+                          }
+                        }
+                      }}
                       className="form-control"
                       style={{ fontFamily: 'var(--font-mono)' }}
+                      required
                     />
+                    <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Khi đến thời điểm này, hệ thống sẽ tự động đóng đăng ký tự do (ClosedRegistration) và ngăn sinh viên vào phòng hoặc gửi đơn mới.
+                    </p>
                   </div>
 
                   <div>
                     <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       Trạng thái Không gian học phần
                     </label>
-                    <select
-                      value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value as CourseSpaceStatus)}
-                      className="form-control"
-                    >
-                      <option value="Draft">Bản nháp (Draft)</option>
-                      <option value="Open">Đang mở đăng ký (Open)</option>
-                      <option value="ClosedRegistration">Đóng đăng ký tự do (ClosedRegistration)</option>
-                      <option value="Locked">Đã khóa chốt sổ toàn bộ (Locked)</option>
-                    </select>
+                    {(() => {
+                      const hasStudents = getTotalStudents(selectedSpace) > 0;
+                      const hasRooms = getTotalRooms(selectedSpace) > 0;
+                      const canOpen = hasStudents && hasRooms;
+                      return (
+                        <>
+                          <select
+                            value={editStatus}
+                            onChange={(e) => setEditStatus(e.target.value as CourseSpaceStatus)}
+                            className="form-control"
+                          >
+                            <option value="Draft">Bản nháp (Draft)</option>
+                            <option value="Open" disabled={!canOpen && selectedSpace?.status === 'Draft'}>
+                              Đang mở đăng ký (Open){!canOpen && selectedSpace?.status === 'Draft' ? ' (Cần nạp SV & tạo Room trước)' : ''}
+                            </option>
+                            <option value="ClosedRegistration" disabled={!canOpen && selectedSpace?.status === 'Draft'}>
+                              Đóng đăng ký tự do (ClosedRegistration){!canOpen && selectedSpace?.status === 'Draft' ? ' (Cần nạp SV & tạo Room trước)' : ''}
+                            </option>
+                            <option value="Locked" disabled={selectedSpace?.status !== 'Locked'}>
+                              Đã khóa chốt sổ toàn bộ (Locked)
+                            </option>
+                          </select>
+                          {!canOpen && selectedSpace?.status === 'Draft' && (
+                            <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--fpt-orange, #f26f21)' }}>
+                              {!hasStudents
+                                ? 'Chưa nạp danh sách SV FAP — Không gian chỉ có thể giữ ở Bản nháp (Draft).'
+                                : 'Chưa khởi tạo Room — vui lòng bấm "Khởi tạo Room tự động" trước khi mở cổng.'}
+                            </p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <button
@@ -3286,7 +4204,7 @@ export const CourseSpacesPage: React.FC = () => {
                     className="btn btn-primary"
                     style={{ width: '100%', padding: '0.75rem', fontWeight: 800 }}
                   >
-                    <Sparkles size={16} />
+                    <LayoutGrid size={16} />
                     <span>Khởi tạo {Math.max(1, Math.ceil((getTotalStudents(selectedSpace) / (editMaxMembers || 5)) * (editBufferRatio || 1.2)))} Room ngay</span>
                   </button>
                 </div>
@@ -3397,7 +4315,7 @@ export const CourseSpacesPage: React.FC = () => {
                         borderColor: 'rgba(0, 84, 166, 0.25)',
                       }}
                     >
-                      <Sparkles size={15} />
+                      <Cpu size={15} />
                       <span>{loadingPreview ? 'Đang gọi gRPC Matching...' : 'Chạy gRPC Matching (Preview)'}</span>
                     </button>
 
@@ -3420,23 +4338,33 @@ export const CourseSpacesPage: React.FC = () => {
                       </button>
                     )}
 
-                    {selectedSpace.status !== 'Locked' && (
-                      <button
-                        type="button"
-                        onClick={() => setIsFinalizeModalOpen(true)}
-                        disabled={actionLoading || selectedSpace.status !== 'ClosedRegistration'}
-                        className="btn btn-danger"
-                        style={{
-                          fontSize: '0.825rem',
-                          fontWeight: 700,
-                          gap: '0.45rem',
-                        }}
-                        title={selectedSpace.status === 'ClosedRegistration' ? 'Khóa cứng các phòng và chốt sổ học kỳ' : 'Phải đóng đăng ký trước khi chốt sổ'}
-                      >
-                        <ShieldCheck size={15} />
-                        <span>Chốt sổ Học kỳ</span>
-                      </button>
-                    )}
+                    {selectedSpace.status !== 'Locked' && (() => {
+                      const remainingUnmatched = unmatchedSummary?.totalUnmatched ?? 0;
+                      const cannotFinalizeReason =
+                        selectedSpace.status !== 'ClosedRegistration'
+                          ? 'Phải đóng đăng ký trước khi chốt sổ'
+                          : remainingUnmatched > 0
+                          ? `Còn ${remainingUnmatched} sinh viên lẻ chưa được ghép nhóm. Vui lòng thực hiện 'Điều phối Sinh viên lẻ' trước khi chốt sổ.`
+                          : 'Khóa cứng các phòng và chốt sổ học kỳ';
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setIsFinalizeModalOpen(true)}
+                          disabled={actionLoading || selectedSpace.status !== 'ClosedRegistration' || remainingUnmatched > 0}
+                          className="btn btn-danger"
+                          style={{
+                            fontSize: '0.825rem',
+                            fontWeight: 700,
+                            gap: '0.45rem',
+                            opacity: selectedSpace.status !== 'ClosedRegistration' || remainingUnmatched > 0 ? 0.55 : 1,
+                          }}
+                          title={cannotFinalizeReason}
+                        >
+                          <ShieldCheck size={15} />
+                          <span>Chốt sổ Học kỳ{remainingUnmatched > 0 ? ` (Còn ${remainingUnmatched} SV lẻ)` : ''}</span>
+                        </button>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div
@@ -3676,7 +4604,7 @@ export const CourseSpacesPage: React.FC = () => {
                               color: 'var(--fpt-blue)',
                             }}
                           >
-                            <Sparkles size={20} />
+                            <Cpu size={20} />
                           </div>
                           <div>
                             <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
@@ -4011,7 +4939,7 @@ export const CourseSpacesPage: React.FC = () => {
                           className="btn btn-primary"
                           style={{ padding: '0.65rem 1.35rem', fontWeight: 700, gap: '0.45rem' }}
                         >
-                          <Sparkles size={16} />
+                          <Cpu size={16} />
                           <span>{loadingPreview ? 'Đang tính toán thuật toán gRPC...' : 'Chạy gRPC Matching (Preview)'}</span>
                         </button>
                       )}
@@ -4116,7 +5044,7 @@ export const CourseSpacesPage: React.FC = () => {
                         <option value="">-- Chọn sinh viên trong nhóm --</option>
                         {assignedStudentsList.map((st) => (
                           <option key={st.studentId} value={st.studentId}>
-                            [{st.group.groupCode}] {st.studentCode} - {st.fullName} {st.isLeader ? '(Leader)' : ''}
+                            [{st.group.groupCode}] {st.studentCode} - {st.fullName} {st.isLeader ? '(Leader 👑)' : ''}
                           </option>
                         ))}
                       </select>
@@ -4247,7 +5175,7 @@ export const CourseSpacesPage: React.FC = () => {
                             <option value="">-- Chọn sinh viên đổi ngược --</option>
                             {selectedTargetGroup?.members.map((m) => (
                               <option key={m.studentId} value={m.studentId}>
-                                {m.studentCode} - {m.fullName} ({m.major}) {m.isLeader ? '(Leader)' : ''}
+                                {m.studentCode} - {m.fullName} ({m.major}) {m.isLeader ? '(Leader 👑)' : ''}
                               </option>
                             ))}
                           </select>
@@ -4713,9 +5641,14 @@ export const CourseSpacesPage: React.FC = () => {
       )}
 
       {/* ── MODAL: TẠO KHÔNG GIAN MỚI ───────────────────────────────── */}
-      {isCreateModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 540 }}>
+      {isCreateModalOpen &&
+        createPortal(
+          <div className="modal-overlay" onClick={closeCreateModal}>
+            <div
+              className="modal-content"
+              style={{ padding: '1.75rem', maxWidth: 540 }}
+              onClick={(e) => e.stopPropagation()}
+            >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
                 <div
@@ -4843,16 +5776,24 @@ export const CourseSpacesPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>
-                  Hạn chót đăng ký (tùy chọn)
+                <label className="form-label" style={{ fontSize: '0.8rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Hạn chót đăng ký tự nguyện <strong style={{ color: 'var(--fpt-orange)' }}>*</strong></span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 500 }}>
+                    (Mặc định: 14 ngày tới lúc 23:59)
+                  </span>
                 </label>
                 <input
                   type="datetime-local"
                   value={newDeadline}
+                  min={new Date().toISOString().slice(0, 16)}
                   onChange={(e) => setNewDeadline(e.target.value)}
                   className="form-control"
                   style={{ fontFamily: 'var(--font-mono)' }}
+                  required
                 />
+                <p style={{ margin: '0.35rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Sau mốc này, hệ thống sẽ tự động khóa đăng ký tự do để Moderator tiến hành điều phối sinh viên lẻ.
+                </p>
               </div>
 
               <div>
@@ -4925,13 +5866,19 @@ export const CourseSpacesPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── MODAL: KHỞI TẠO ROOM TỰ ĐỘNG CONFIRMATION ─────────────────── */}
-      {isGenerateModalOpen && selectedSpace && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 480 }}>
+      {isGenerateModalOpen && selectedSpace &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsGenerateModalOpen(false)}>
+            <div
+              className="modal-content"
+              style={{ padding: '1.75rem', maxWidth: 480 }}
+              onClick={(e) => e.stopPropagation()}
+            >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.15rem' }}>
               <div
                 style={{
@@ -4946,7 +5893,7 @@ export const CourseSpacesPage: React.FC = () => {
                   flexShrink: 0,
                 }}
               >
-                <Sparkles size={24} />
+                <LayoutGrid size={24} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
@@ -5019,13 +5966,19 @@ export const CourseSpacesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── MODAL: ĐA NĂNG ĐỒNG BỘ FAP & IMPORT CSV ──────────────────── */}
-      {isCsvModalOpen && selectedSpace && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 640 }}>
+      {isCsvModalOpen && selectedSpace &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsCsvModalOpen(false)}>
+            <div
+              className="modal-content"
+              style={{ padding: '1.75rem', maxWidth: 640 }}
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
@@ -5093,7 +6046,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <FolderUp size={14} />
-                <span>Tải lên File</span>
+                <span>📁 Tải lên File</span>
               </button>
 
               <button
@@ -5116,7 +6069,7 @@ export const CourseSpacesPage: React.FC = () => {
                 }}
               >
                 <FileText size={14} />
-                <span>Dán văn bản CSV</span>
+                <span>📝 Dán văn bản CSV</span>
               </button>
             </div>
 
@@ -5150,7 +6103,7 @@ export const CourseSpacesPage: React.FC = () => {
                     style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', color: 'var(--fpt-blue)' }}
                   >
                     <Download size={14} />
-                    <span>Tải file mẫu CSV chuẩn</span>
+                    <span>📥 Tải file mẫu CSV chuẩn</span>
                   </button>
                 </div>
 
@@ -5302,551 +6255,963 @@ export const CourseSpacesPage: React.FC = () => {
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ══════════════════════════════════════════════════════════════
           MODAL 4: PHASE 4 — ROOM DETAIL & MEMBER LIST
          ══════════════════════════════════════════════════════════════ */}
-      {showRoomDetailModal && (
-        <div className="modal-overlay" onClick={() => setShowRoomDetailModal(false)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: 620, width: '92%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 800,
-                      padding: '0.2rem 0.55rem',
-                      borderRadius: '6px',
-                      background: 'var(--bg-main)',
-                      border: '1px solid var(--border-light)',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    {selectedRoomDetail?.roomCode || 'ROOM'}
-                  </span>
-                  {selectedRoomDetail && getRoomStatusBadge(selectedRoomDetail.status, selectedRoomDetail.members.length, selectedSpace?.status)}
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {selectedRoomDetail?.name || 'Chi tiết phòng học phần'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRoomDetailModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+      {showRoomDetailModal &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setShowRoomDetailModal(false)}>
+            <div
+              className="modal-content"
+              style={{
+                maxWidth: 640,
+                width: '92%',
+                padding: 0,
+                overflow: 'hidden',
+                borderRadius: '18px',
+                border: '1px solid var(--border-light, #e2e8f0)',
+                background: 'var(--bg-card, #ffffff)',
+                boxShadow: '0 24px 50px -12px rgba(15, 23, 42, 0.28), 0 4px 16px rgba(15, 23, 42, 0.08)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  padding: '1.35rem 1.65rem',
+                  borderBottom: '1px solid var(--border-light, #e2e8f0)',
+                  background: 'var(--bg-subtle, #f8fafc)',
+                }}
               >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '1.25rem 0' }}>
-              {loadingRoomDetail ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Đang tải thông tin thành viên...
-                </div>
-              ) : selectedRoomDetail ? (
                 <div>
-                  {/* Summary Grid */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                      gap: '0.75rem',
-                      marginBottom: '1.25rem',
-                    }}
-                  >
-                    <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sĩ số</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--text-main)', marginTop: '0.2rem' }}>
-                        {selectedRoomDetail.members.length} / {selectedRoomDetail.maxMembers}
-                      </div>
-                    </div>
-                    <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ngưỡng chuyển Group</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--fpt-orange)', marginTop: '0.2rem' }}>
-                        {selectedSpace?.groupThreshold || Math.floor((selectedRoomDetail.maxMembers || 5) / 2) + 1} SV
-                      </div>
-                    </div>
-                    <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Trưởng nhóm</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.35rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedRoomDetail.members.find((m) => m.role === 'Leader')?.fullName ||
-                          selectedRoomDetail.members.find((m) => m.userId === selectedRoomDetail.leaderId)?.fullName ||
-                          (selectedRoomDetail.members.length === 0 ? 'Chưa có' : 'Đang cập nhật')}
-                      </div>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        padding: '0.22rem 0.65rem',
+                        borderRadius: '7px',
+                        background: 'var(--bg-card, #ffffff)',
+                        border: '1px solid var(--border-light, #e2e8f0)',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-main)',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      {selectedRoomDetail?.roomCode || 'ROOM'}
+                    </span>
+                    {selectedRoomDetail && getRoomStatusBadge(selectedRoomDetail.status, selectedRoomDetail.members.length, selectedSpace?.status)}
                   </div>
-
-                  {/* Members List */}
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.65rem', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Users size={16} />
-                    Danh sách thành viên hiện tại ({selectedRoomDetail.members.length})
-                  </h4>
-
-                  {selectedRoomDetail.members.length === 0 ? (
-                    <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-light)', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                      {selectedSpace?.status === 'Locked' ? (
-                        <>Phòng này là <strong>phòng dự phòng dư thừa</strong> không sử dụng và đã được đóng sau khi chốt sổ học kỳ. Toàn bộ sinh viên đã được phân bổ vào các nhóm chính thức khác.</>
-                      ) : selectedSpace?.status === 'ClosedRegistration' ? (
-                        <>Phòng hiện chưa có thành viên. Cổng đăng ký tự do đã đóng, phòng sẽ được hệ thống điều phối phân bổ tự động.</>
-                      ) : (
-                        <>Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong>.</>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ border: '1px solid var(--border-light)', borderRadius: '8px', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-light)', textAlign: 'left' }}>
-                            <th style={{ padding: '0.55rem 0.75rem', fontWeight: 700 }}>Thành viên</th>
-                            <th style={{ padding: '0.55rem 0.75rem', fontWeight: 700 }}>Vai trò</th>
-                            <th style={{ padding: '0.55rem 0.75rem', fontWeight: 700 }}>Ngày tham gia</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedRoomDetail.members.map((m, idx) => (
-                            <tr key={m.id || idx} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                              <td style={{ padding: '0.65rem 0.75rem' }}>
-                                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                                  {m.fullName || m.userId}
-                                </div>
-                                {m.studentCode && (
-                                  <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                                    {m.studentCode}
-                                  </div>
-                                )}
-                              </td>
-                              <td style={{ padding: '0.65rem 0.75rem' }}>
-                                {m.role === 'Leader' || m.userId === selectedRoomDetail.leaderId ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.15rem 0.5rem', borderRadius: 9999, background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', fontWeight: 700, fontSize: '0.75rem' }}>
-                                    <Crown size={12} /> Trưởng nhóm
-                                  </span>
-                                ) : (
-                                  <span style={{ padding: '0.15rem 0.5rem', borderRadius: 9999, background: '#f1f5f9', color: '#475569', fontWeight: 600, fontSize: '0.75rem' }}>
-                                    Thành viên
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ padding: '0.65rem 0.75rem', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                {formatDate(m.joinedAt)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.015em' }}>
+                    {selectedRoomDetail?.name || 'Chi tiết phòng học phần'}
+                  </h3>
                 </div>
-              ) : null}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setShowRoomDetailModal(false)}
+                  aria-label="Đóng chi tiết phòng"
+                  title="Đóng"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: '9px',
+                    background: 'var(--bg-card, #ffffff)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
-              <button
-                type="button"
-                onClick={() => setShowRoomDetailModal(false)}
-                className="btn btn-secondary"
+              {/* Modal Body */}
+              <div style={{ padding: '1.4rem 1.65rem', maxHeight: '68vh', overflowY: 'auto' }}>
+                {loadingRoomDetail ? (
+                  <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    Đang tải thông tin thành viên...
+                  </div>
+                ) : selectedRoomDetail ? (
+                  <div>
+                    {/* Summary Grid */}
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                        gap: '0.85rem',
+                        marginBottom: '1.4rem',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '12px',
+                          background: 'var(--bg-main, #f8fafc)',
+                          border: '1px solid var(--border-light, #e2e8f0)',
+                        }}
+                      >
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Sĩ số hiện tại</div>
+                        <div
+                          style={{
+                            fontSize: '1.2rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: 'var(--text-main)',
+                            marginTop: '0.25rem',
+                          }}
+                        >
+                          {selectedRoomDetail.members.length} / {selectedRoomDetail.maxMembers}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '12px',
+                          background: 'var(--bg-main, #f8fafc)',
+                          border: '1px solid var(--border-light, #e2e8f0)',
+                        }}
+                      >
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Ngưỡng chuyển Group</div>
+                        <div
+                          style={{
+                            fontSize: '1.2rem',
+                            fontWeight: 800,
+                            fontFamily: 'var(--font-mono)',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: 'var(--fpt-orange)',
+                            marginTop: '0.25rem',
+                          }}
+                        >
+                          {selectedSpace?.groupThreshold || Math.floor((selectedRoomDetail.maxMembers || 5) / 2) + 1} SV
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '12px',
+                          background: 'var(--bg-main, #f8fafc)',
+                          border: '1px solid var(--border-light, #e2e8f0)',
+                          minWidth: 0,
+                        }}
+                      >
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Trưởng nhóm</div>
+                        <div
+                          title={
+                            selectedRoomDetail.members.find((m) => m.role === 'Leader')?.fullName ||
+                            selectedRoomDetail.members.find((m) => m.userId === selectedRoomDetail.leaderId)?.fullName ||
+                            (selectedRoomDetail.members.length === 0 ? 'Chưa có' : 'Đang cập nhật')
+                          }
+                          style={{
+                            fontSize: '0.92rem',
+                            fontWeight: 700,
+                            color: 'var(--text-main)',
+                            marginTop: '0.35rem',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {selectedRoomDetail.members.find((m) => m.role === 'Leader')?.fullName ||
+                            selectedRoomDetail.members.find((m) => m.userId === selectedRoomDetail.leaderId)?.fullName ||
+                            (selectedRoomDetail.members.length === 0 ? 'Chưa có' : 'Đang cập nhật')}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Members List */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <Users size={16} color="var(--fpt-orange)" />
+                        <span>Danh sách thành viên hiện tại ({selectedRoomDetail.members.length})</span>
+                      </h4>
+                    </div>
+
+                    {selectedRoomDetail.members.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '1.75rem 1.25rem',
+                          textAlign: 'center',
+                          background: 'var(--bg-main, #f8fafc)',
+                          borderRadius: '12px',
+                          border: '1px solid var(--border-light, #e2e8f0)',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.85rem',
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        {selectedSpace?.status === 'Locked' ? (
+                          <>Phòng này là <strong>phòng dự phòng dư thừa</strong> không sử dụng và đã được đóng sau khi chốt sổ học kỳ. Toàn bộ sinh viên đã được phân bổ vào các nhóm chính thức khác.</>
+                        ) : selectedSpace?.status === 'ClosedRegistration' ? (
+                          <>Phòng hiện chưa có thành viên. Cổng đăng ký tự do đã đóng, phòng sẽ được hệ thống điều phối phân bổ tự động.</>
+                        ) : (
+                          <>Phòng hiện chưa có thành viên nào. Sinh viên đầu tiên vào phòng sẽ tự động trở thành <strong>Trưởng nhóm (Leader)</strong>.</>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ border: '1px solid var(--border-light, #e2e8f0)', borderRadius: '12px', overflow: 'hidden' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--bg-main, #f8fafc)', borderBottom: '1px solid var(--border-light, #e2e8f0)', textAlign: 'left' }}>
+                              <th style={{ padding: '0.65rem 1rem', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.78rem' }}>Thành viên</th>
+                              <th style={{ padding: '0.65rem 1rem', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.78rem' }}>Vai trò</th>
+                              <th style={{ padding: '0.65rem 1rem', fontWeight: 700, color: 'var(--text-muted)', fontSize: '0.78rem', textAlign: 'right' }}>Ngày tham gia</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedRoomDetail.members.map((m, idx) => {
+                              const isLeader = m.role === 'Leader' || m.userId === selectedRoomDetail.leaderId;
+                              const initial = (m.fullName || m.userId || 'S').trim().charAt(0).toUpperCase();
+                              const isLastRow = idx === selectedRoomDetail.members.length - 1;
+                              return (
+                                <tr
+                                  key={m.id || idx}
+                                  style={{
+                                    borderBottom: isLastRow ? 'none' : '1px solid var(--border-light, #e2e8f0)',
+                                    background: isLeader ? 'rgba(242, 111, 33, 0.03)' : 'transparent',
+                                  }}
+                                >
+                                  <td style={{ padding: '0.75rem 1rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
+                                      <div
+                                        style={{
+                                          width: 34,
+                                          height: 34,
+                                          borderRadius: '50%',
+                                          background: isLeader ? 'rgba(242, 111, 33, 0.14)' : 'var(--bg-main, #f1f5f9)',
+                                          border: isLeader ? '1px solid rgba(242, 111, 33, 0.35)' : '1px solid var(--border-light, #e2e8f0)',
+                                          color: isLeader ? 'var(--fpt-orange, #f26f21)' : 'var(--text-main, #334155)',
+                                          fontWeight: 700,
+                                          fontSize: '0.82rem',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        {initial}
+                                      </div>
+                                      <div style={{ minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.35 }}>
+                                          {m.fullName || m.userId}
+                                        </div>
+                                        {m.studentCode && (
+                                          <div style={{ fontSize: '0.74rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                                            {m.studentCode}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: '0.75rem 1rem' }}>
+                                    {isLeader ? (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '0.3rem',
+                                          padding: '0.2rem 0.6rem',
+                                          borderRadius: 9999,
+                                          background: '#fff7ed',
+                                          color: '#c2410c',
+                                          border: '1px solid #fed7aa',
+                                          fontWeight: 700,
+                                          fontSize: '0.75rem',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        <Crown size={12} /> Trưởng nhóm
+                                      </span>
+                                    ) : (
+                                      <span
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          padding: '0.2rem 0.6rem',
+                                          borderRadius: 9999,
+                                          background: 'var(--bg-main, #f1f5f9)',
+                                          color: 'var(--text-muted, #475569)',
+                                          border: '1px solid var(--border-light, #e2e8f0)',
+                                          fontWeight: 600,
+                                          fontSize: '0.75rem',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        Thành viên
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '0.75rem 1rem',
+                                      fontFamily: 'var(--font-mono)',
+                                      fontVariantNumeric: 'tabular-nums',
+                                      fontSize: '0.8rem',
+                                      color: 'var(--text-muted)',
+                                      textAlign: 'right',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    {formatDate(m.joinedAt)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '0.65rem',
+                  padding: '1rem 1.65rem',
+                  borderTop: '1px solid var(--border-light, #e2e8f0)',
+                  background: 'var(--bg-subtle, #f8fafc)',
+                }}
               >
-                Đóng
-              </button>
-              {isStudent && selectedRoomDetail && (
-                <>
-                  {myGroup?.id === selectedRoomDetail.id ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRoomDetailModal(false);
-                        navigate('/my-group');
-                      }}
-                      className="btn btn-primary"
-                    >
-                      <span>Vào quản lý Nhóm của tôi →</span>
-                    </button>
-                  ) : !myGroup && selectedSpace?.status === 'Open' && (selectedRoomDetail.status === 'Empty' || selectedRoomDetail.status === 'Forming') ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRoomDetailModal(false);
-                        const matchedRoom = rooms.find((r) => r.id === selectedRoomDetail.id);
-                        if (matchedRoom) void handleDirectJoin(matchedRoom);
-                      }}
-                      className="btn btn-primary"
-                      style={{ gap: '0.35rem' }}
-                    >
-                      <Zap size={15} />
-                      <span>Vào phòng trực tiếp</span>
-                    </button>
-                  ) : !myGroup && selectedSpace?.status === 'Open' && selectedRoomDetail.status === 'Recruiting' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowRoomDetailModal(false);
-                        const matchedRoom = rooms.find((r) => r.id === selectedRoomDetail.id);
-                        if (matchedRoom) handleOpenApplyModal(matchedRoom);
-                      }}
-                      className="btn btn-primary"
-                      style={{ gap: '0.35rem' }}
-                    >
-                      <Send size={15} />
-                      <span>Nộp đơn ứng tuyển</span>
-                    </button>
-                  ) : !myGroup && selectedSpace?.status === 'ClosedRegistration' ? (
-                    <button
-                      type="button"
-                      disabled
-                      className="btn btn-secondary"
-                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                    >
-                      <span>Đã đóng cổng đăng ký</span>
-                    </button>
-                  ) : !myGroup && selectedSpace?.status === 'Locked' ? (
-                    <button
-                      type="button"
-                      disabled
-                      className="btn btn-secondary"
-                      style={{ opacity: 0.6, cursor: 'not-allowed' }}
-                    >
-                      <span>Học kỳ đã khóa</span>
-                    </button>
-                  ) : null}
-                </>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setShowRoomDetailModal(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '0.55rem 1.15rem' }}
+                >
+                  Đóng
+                </button>
+                {isStudent && selectedRoomDetail && (
+                  <>
+                    {myGroup?.id === selectedRoomDetail.id ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRoomDetailModal(false);
+                          navigate('/my-group');
+                        }}
+                        className="btn btn-primary"
+                      >
+                        <span>Vào quản lý Nhóm của tôi →</span>
+                      </button>
+                    ) : !myGroup && selectedSpace?.status === 'Open' && (selectedRoomDetail.status === 'Empty' || selectedRoomDetail.status === 'Forming') ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRoomDetailModal(false);
+                          const matchedRoom = rooms.find((r) => r.id === selectedRoomDetail.id);
+                          if (matchedRoom) void handleDirectJoin(matchedRoom);
+                        }}
+                        className="btn btn-primary"
+                        style={{ gap: '0.35rem' }}
+                      >
+                        <Zap size={15} />
+                        <span>Vào phòng trực tiếp</span>
+                      </button>
+                    ) : !myGroup && selectedSpace?.status === 'Open' && selectedRoomDetail.status === 'Recruiting' ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRoomDetailModal(false);
+                          const matchedRoom = rooms.find((r) => r.id === selectedRoomDetail.id);
+                          if (matchedRoom) handleOpenApplyModal(matchedRoom);
+                        }}
+                        className="btn btn-primary"
+                        style={{ gap: '0.35rem' }}
+                      >
+                        <Send size={15} />
+                        <span>Nộp đơn ứng tuyển</span>
+                      </button>
+                    ) : !myGroup && selectedSpace?.status === 'ClosedRegistration' ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="btn btn-secondary"
+                        style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                      >
+                        <span>Đã đóng cổng đăng ký</span>
+                      </button>
+                    ) : !myGroup && selectedSpace?.status === 'Locked' ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="btn btn-secondary"
+                        style={{ opacity: 0.6, cursor: 'not-allowed' }}
+                      >
+                        <span>Học kỳ đã khóa</span>
+                      </button>
+                    ) : null}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ══════════════════════════════════════════════════════════════
           MODAL 5: PHASE 4 — APPLY TO RECRUITING GROUP
          ══════════════════════════════════════════════════════════════ */}
-      {applyingRoom && (
-        <div className="modal-overlay" onClick={() => setApplyingRoom(null)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: 500, width: '92%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  Nộp đơn ứng tuyển vào nhóm
-                </h3>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Gửi đơn tới: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-orange)' }}>{applyingRoom.roomCode || applyingRoom.name}</strong>
-                </p>
+      {applyingRoom &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setApplyingRoom(null)}>
+            <div
+              className="modal-content"
+              style={{ maxWidth: 500, width: '92%' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    Nộp đơn ứng tuyển vào nhóm
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    Gửi đơn tới: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--fpt-orange)' }}>{applyingRoom.roomCode || applyingRoom.name}</strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setApplyingRoom(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setApplyingRoom(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-              >
-                <X size={20} />
-              </button>
+
+              <form onSubmit={handleSubmitApply} style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {/* Quota alert */}
+                <div
+                  style={{
+                    padding: '0.85rem 1rem',
+                    borderRadius: '8px',
+                    background: 'rgba(0, 84, 166, 0.05)',
+                    border: '1px solid rgba(0, 84, 166, 0.2)',
+                    fontSize: '0.825rem',
+                    color: 'var(--text-main)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <strong>Hạn mức ứng tuyển đồng thời:</strong> Bạn có thể nộp tối đa{' '}
+                  <strong style={{ color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>
+                    {selectedSpace?.maxConcurrentApplies || 3} đơn
+                  </strong>{' '}
+                  cùng lúc. Khi bạn được chấp thuận vào một nhóm, các đơn còn lại sẽ tự động hủy.
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
+                    Lời giới thiệu / Lý do muốn gia nhập nhóm:
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="form-control"
+                    required
+                    placeholder="Ví dụ: Em có thế mạnh về Backend C#/.NET và làm việc nhóm tích cực, mong muốn gia nhập nhóm cùng phát triển đề tài..."
+                    value={applyMessage}
+                    onChange={(e) => setApplyMessage(e.target.value)}
+                    style={{ resize: 'vertical', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setApplyingRoom(null)}
+                    className="btn btn-secondary"
+                    disabled={submittingApply}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingApply}
+                    className="btn btn-primary"
+                    style={{ gap: '0.35rem', fontWeight: 700 }}
+                  >
+                    <Send size={15} />
+                    <span>{submittingApply ? 'Đang gửi đơn...' : 'Xác nhận nộp đơn'}</span>
+                  </button>
+                </div>
+              </form>
             </div>
+          </div>,
+          document.body
+        )}
 
-            <form onSubmit={handleSubmitApply} style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Quota alert */}
-              <div
-                style={{
-                  padding: '0.85rem 1rem',
-                  borderRadius: '8px',
-                  background: 'rgba(0, 84, 166, 0.05)',
-                  border: '1px solid rgba(0, 84, 166, 0.2)',
-                  fontSize: '0.825rem',
-                  color: 'var(--text-main)',
-                  lineHeight: 1.5,
-                }}
-              >
-                <strong>Hạn mức ứng tuyển đồng thời:</strong> Bạn có thể nộp tối đa{' '}
-                <strong style={{ color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)' }}>
-                  {selectedSpace?.maxConcurrentApplies || 3} đơn
-                </strong>{' '}
-                cùng lúc. Khi bạn được chấp thuận vào một nhóm, các đơn còn lại sẽ tự động hủy.
+      {/* ══════════════════════════════════════════════════════════════
+          MODAL 6: CONFIRM FORCED DISTRIBUTION
+         ══════════════════════════════════════════════════════════════ */}
+      {isConfirmDistributeModalOpen && distributePreview &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsConfirmDistributeModalOpen(false)}>
+            <div
+              className="modal-content"
+              style={{ maxWidth: 540, width: '92%' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(5, 150, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Xác nhận Phân phối Sinh viên Lẻ
+                    </h3>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Áp dụng quy tắc phân bổ cưỡng chế</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmDistributeModalOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              <div>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Lời giới thiệu / Lý do muốn gia nhập nhóm:
-                </label>
-                <textarea
-                  rows={4}
-                  className="form-control"
-                  required
-                  placeholder="Ví dụ: Em có thế mạnh về Backend C#/.NET và làm việc nhóm tích cực, mong muốn gia nhập nhóm cùng phát triển đề tài..."
-                  value={applyMessage}
-                  onChange={(e) => setApplyMessage(e.target.value)}
-                  style={{ resize: 'vertical', fontSize: '0.85rem' }}
-                />
+              <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    background: 'var(--bg-main, #f8fafc)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontSize: '0.85rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
+                    Hệ thống chuẩn bị thực hiện ghi nhận vào Database:
+                  </p>
+                  <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-muted)' }}>
+                    <li>Gán <strong style={{ color: 'var(--text-main)' }}>{distributePreview.totalDistributed} sinh viên</strong> vào <strong style={{ color: 'var(--text-main)' }}>{distributePreview.roomPlans.length} phòng</strong>.</li>
+                    <li>Bảo lưu nguyên vẹn Leader của các phòng đã có người.</li>
+                    <li>Chỉ định Leader cho các nhóm mới lập dựa trên điểm Kỹ năng Quản lý cao nhất.</li>
+                    <li>Phát sự kiện <code style={{ fontFamily: 'var(--font-mono)' }}>MemberJoined</code> tới Notification Service để gửi email thông báo qua MailHog.</li>
+                  </ul>
+                </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
                 <button
                   type="button"
-                  onClick={() => setApplyingRoom(null)}
+                  onClick={() => setIsConfirmDistributeModalOpen(false)}
                   className="btn btn-secondary"
-                  disabled={submittingApply}
+                  disabled={actionLoading}
                 >
                   Hủy
                 </button>
                 <button
-                  type="submit"
-                  disabled={submittingApply}
+                  type="button"
+                  onClick={handleConfirmDistribution}
+                  disabled={actionLoading}
                   className="btn btn-primary"
-                  style={{ gap: '0.35rem', fontWeight: 700 }}
+                  style={{ background: '#059669', borderColor: '#059669', gap: '0.35rem', fontWeight: 700 }}
                 >
-                  <Send size={15} />
-                  <span>{submittingApply ? 'Đang gửi đơn...' : 'Xác nhận nộp đơn'}</span>
+                  <Check size={16} />
+                  <span>{actionLoading ? 'Đang thực thi phân phối...' : 'Đồng ý & Phân phối vào Database'}</span>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════
-          MODAL 6: CONFIRM FORCED DISTRIBUTION
-         ══════════════════════════════════════════════════════════════ */}
-      {isConfirmDistributeModalOpen && distributePreview && (
-        <div className="modal-overlay" onClick={() => setIsConfirmDistributeModalOpen(false)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: 540, width: '92%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(5, 150, 105, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                  <CheckCircle2 size={20} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    Xác nhận Phân phối Sinh viên Lẻ
-                  </h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Áp dụng quy tắc phân bổ cưỡng chế</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsConfirmDistributeModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-              >
-                <X size={20} />
-              </button>
             </div>
-
-            <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div
-                style={{
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  background: 'var(--bg-main, #f8fafc)',
-                  border: '1px solid var(--border-light, #e2e8f0)',
-                  fontSize: '0.85rem',
-                  lineHeight: 1.5,
-                }}
-              >
-                <p style={{ margin: 0, fontWeight: 700, color: 'var(--text-main)' }}>
-                  Hệ thống chuẩn bị thực hiện ghi nhận vào Database:
-                </p>
-                <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-muted)' }}>
-                  <li>Gán <strong style={{ color: 'var(--text-main)' }}>{distributePreview.totalDistributed} sinh viên</strong> vào <strong style={{ color: 'var(--text-main)' }}>{distributePreview.roomPlans.length} phòng</strong>.</li>
-                  <li>Bảo lưu nguyên vẹn Leader của các phòng đã có người.</li>
-                  <li>Chỉ định Leader cho các nhóm mới lập dựa trên điểm Kỹ năng Quản lý cao nhất.</li>
-                  <li>Phát sự kiện <code style={{ fontFamily: 'var(--font-mono)' }}>MemberJoined</code> tới Notification Service để gửi email thông báo qua MailHog.</li>
-                </ul>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
-              <button
-                type="button"
-                onClick={() => setIsConfirmDistributeModalOpen(false)}
-                className="btn btn-secondary"
-                disabled={actionLoading}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDistribution}
-                disabled={actionLoading}
-                className="btn btn-primary"
-                style={{ background: '#059669', borderColor: '#059669', gap: '0.35rem', fontWeight: 700 }}
-              >
-                <Check size={16} />
-                <span>{actionLoading ? 'Đang thực thi phân phối...' : 'Đồng ý & Phân phối vào Database'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {/* ══════════════════════════════════════════════════════════════
           MODAL 7: CONFIRM FINALIZE & LOCK
          ══════════════════════════════════════════════════════════════ */}
-      {isFinalizeModalOpen && selectedSpace && (
-        <div className="modal-overlay" onClick={() => setIsFinalizeModalOpen(false)}>
-          <div
-            className="modal-content"
-            style={{ maxWidth: 540, width: '92%' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                  <ShieldCheck size={20} />
+      {isFinalizeModalOpen && selectedSpace &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsFinalizeModalOpen(false)}>
+            <div
+              className="modal-content"
+              style={{ maxWidth: 540, width: '92%' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1rem', borderBottom: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                      Chốt sổ Học kỳ (Finalize & Lock)
+                    </h3>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Khóa cứng danh sách nhóm toàn học kỳ
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                    Chốt sổ Học kỳ (Finalize & Lock — )
-                  </h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Khóa cứng danh sách nhóm toàn học kỳ
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsFinalizeModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div
-                style={{
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.05)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  fontSize: '0.85rem',
-                  lineHeight: 1.5,
-                }}
-              >
-                <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c' }}>
-                  Hành động này mang tính chất chốt chặn học kỳ:
-                </p>
-                <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-main)' }}>
-                  <li>Khóa cứng (<code style={{ fontFamily: 'var(--font-mono)' }}>Locked</code>) toàn bộ các phòng đã có thành viên.</li>
-                  <li>Tự động từ chối (<code style={{ fontFamily: 'var(--font-mono)' }}>Rejected</code>) tất cả các đơn ứng tuyển còn đang chờ duyệt trong học kỳ.</li>
-                  <li>Chuyển trạng thái Không gian học phần sang <strong style={{ color: '#b91c1c' }}>Locked</strong>.</li>
-                  <li>Sinh viên không thể tự do vào, rời hay xin gia nhập nhóm nữa. Mọi thay đổi sau bước này do Moderator chuyển nhóm.</li>
-                </ul>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
-              <button
-                type="button"
-                onClick={() => setIsFinalizeModalOpen(false)}
-                className="btn btn-secondary"
-                disabled={actionLoading}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={handleFinalizeSpace}
-                disabled={actionLoading}
-                className="btn btn-danger"
-                style={{ gap: '0.35rem', fontWeight: 700 }}
-              >
-                <Lock size={16} />
-                <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── MODAL: QUYẾT ĐỊNH ĐƠN CHUYỂN NHÓM ────────────────── */}
-      {decidingRequest && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ padding: '1.75rem', maxWidth: 480 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                <div
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: '8px',
-                    background: decisionStatus === 'Approved' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: decisionStatus === 'Approved' ? '#059669' : '#dc2626',
-                  }}
-                >
-                  <ArrowLeftRight size={18} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  {decisionStatus === 'Approved' ? 'Phê duyệt Đơn chuyển nhóm' : 'Từ chối Đơn chuyển nhóm'}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDecidingRequest(null)}
-                style={{ color: 'var(--text-muted)', padding: '0.25rem' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
-              <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div><strong>Sinh viên:</strong> {decidingRequest.studentName} ({decidingRequest.studentCode})</div>
-                <div><strong>Lộ trình:</strong> {decidingRequest.fromGroupCode} → {decidingRequest.targetGroupCode}</div>
-                {decidingRequest.swapStudentId && (
-                  <div><strong>Đổi chéo với:</strong> {decidingRequest.swapStudentName} ({decidingRequest.swapStudentCode})</div>
-                )}
-                <div><strong>Lý do sinh viên:</strong> <em>"{decidingRequest.reason}"</em></div>
-              </div>
-
-              <div>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                  Lý do quyết định / Ghi chú cho sinh viên
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={decisionReason}
-                  onChange={(e) => setDecisionReason(e.target.value)}
-                  placeholder={decisionStatus === 'Approved' ? 'VD: Chấp thuận đơn chuyển nhóm theo nguyện vọng.' : 'VD: Nhóm đích đã đủ người hoặc không thỏa mãn điều kiện sĩ số.'}
-                  style={{ fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem' }}>
                 <button
                   type="button"
-                  onClick={() => setDecidingRequest(null)}
+                  onClick={() => setIsFinalizeModalOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ padding: '1.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.05)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    fontSize: '0.85rem',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c' }}>
+                    Hành động này mang tính chất chốt chặn học kỳ:
+                  </p>
+                  <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0, color: 'var(--text-main)' }}>
+                    <li>Khóa cứng (<code style={{ fontFamily: 'var(--font-mono)' }}>Locked</code>) toàn bộ các phòng đã có thành viên.</li>
+                    <li>Tự động từ chối (<code style={{ fontFamily: 'var(--font-mono)' }}>Rejected</code>) tất cả các đơn ứng tuyển còn đang chờ duyệt trong học kỳ.</li>
+                    <li>Chuyển trạng thái Không gian học phần sang <strong style={{ color: '#b91c1c' }}>Locked</strong>.</li>
+                    <li>Sinh viên không thể tự do vào, rời hay xin gia nhập nhóm nữa. Mọi thay đổi sau bước này do Moderator chuyển nhóm.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.65rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsFinalizeModalOpen(false)}
                   className="btn btn-secondary"
-                  disabled={submittingDecision}
+                  disabled={actionLoading}
                 >
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={handleDecideTransfer}
-                  disabled={submittingDecision}
-                  className={decisionStatus === 'Approved' ? 'btn btn-primary' : 'btn btn-danger'}
-                  style={{ fontWeight: 700 }}
+                  onClick={handleFinalizeSpace}
+                  disabled={actionLoading}
+                  className="btn btn-danger"
+                  style={{ gap: '0.35rem', fontWeight: 700 }}
                 >
-                  {submittingDecision ? 'Đang xử lý...' : (decisionStatus === 'Approved' ? 'Xác nhận Chấp thuận' : 'Xác nhận Từ chối')}
+                  <Lock size={16} />
+                  <span>{actionLoading ? 'Đang chốt sổ học kỳ...' : 'Xác nhận Chốt sổ & Khóa Toàn bộ'}</span>
                 </button>
               </div>
             </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ── MODAL: QUYẾT ĐỊNH ĐƠN CHUYỂN NHÓM ────────────────── */}
+      {decidingRequest &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setDecidingRequest(null)}>
+            <div
+              className="modal-content"
+              style={{ padding: '1.75rem', maxWidth: 480 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.85rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '8px',
+                      background: decisionStatus === 'Approved' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: decisionStatus === 'Approved' ? '#059669' : '#dc2626',
+                    }}
+                  >
+                    <ArrowLeftRight size={18} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                    {decisionStatus === 'Approved' ? 'Phê duyệt Đơn chuyển nhóm' : 'Từ chối Đơn chuyển nhóm'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDecidingRequest(null)}
+                  style={{ color: 'var(--text-muted)', padding: '0.25rem' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.85rem' }}>
+                <div style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--bg-main)', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <div><strong>Sinh viên:</strong> {decidingRequest.studentName} ({decidingRequest.studentCode})</div>
+                  <div><strong>Lộ trình:</strong> {decidingRequest.fromGroupCode} → {decidingRequest.targetGroupCode}</div>
+                  {decidingRequest.swapStudentId && (
+                    <div><strong>Đổi chéo với:</strong> {decidingRequest.swapStudentName} ({decidingRequest.swapStudentCode})</div>
+                  )}
+                  <div><strong>Lý do sinh viên:</strong> <em>"{decidingRequest.reason}"</em></div>
+                </div>
+
+                <div>
+                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                    Lý do quyết định / Ghi chú cho sinh viên
+                  </label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={decisionReason}
+                    onChange={(e) => setDecisionReason(e.target.value)}
+                    placeholder={decisionStatus === 'Approved' ? 'VD: Chấp thuận đơn chuyển nhóm theo nguyện vọng.' : 'VD: Nhóm đích đã đủ người hoặc không thỏa mãn điều kiện sĩ số.'}
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem', marginTop: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDecidingRequest(null)}
+                    className="btn btn-secondary"
+                    disabled={submittingDecision}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDecideTransfer}
+                    disabled={submittingDecision}
+                    className={decisionStatus === 'Approved' ? 'btn btn-primary' : 'btn btn-danger'}
+                    style={{ fontWeight: 700 }}
+                  >
+                    {submittingDecision ? 'Đang xử lý...' : (decisionStatus === 'Approved' ? 'Xác nhận Chấp thuận' : 'Xác nhận Từ chối')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* ── MODAL: CHỈNH SỬA KHÔNG GIAN HỌC PHẦN (GSAP ANIMATED) ── */}
+      {isEditSpaceModalOpen && spaceToEdit && (
+        <EditSpaceModal
+          space={spaceToEdit}
+          name={editName}
+          setName={setEditName}
+          maxMembers={editMaxMembers}
+          setMaxMembers={setEditMaxMembers}
+          bufferRatio={editBufferRatio}
+          setBufferRatio={setEditBufferRatio}
+          maxApplies={editMaxApplies}
+          setMaxApplies={setEditMaxApplies}
+          deadline={editDeadline}
+          setDeadline={setEditDeadline}
+          status={editStatus}
+          setStatus={setEditStatus}
+          actionLoading={actionLoading}
+          onClose={() => setIsEditSpaceModalOpen(false)}
+          onSubmit={(e) => handleUpdateConfig(e, spaceToEdit.id)}
+        />
+      )}
+
+      {/* ── DIALOG 1: XÁC NHẬN XÓA KHÔNG GIAN HỌC PHẦN (GSAP ANIMATED) ── */}
+      {spaceToDelete && (
+        <AnimatedDialog
+          maxWidth={450}
+          onClose={() => setSpaceToDelete(null)}
+          disabled={actionLoading}
+        >
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <Trash2 size={26} strokeWidth={2} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
+              Xác nhận xóa Không gian?
+            </h3>
+
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 1.5rem 0', lineHeight: 1.5 }}>
+              Bạn có chắc chắn muốn xóa vĩnh viễn Không gian học phần{' '}
+              <strong style={{ color: 'var(--text-main)' }}>"{spaceToDelete.name}"</strong> (
+              {spaceToDelete.semesterCode} - {spaceToDelete.subjectCode}) không? Thao tác này không thể hoàn tác.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSpaceToDelete(null)}
+                disabled={actionLoading}
+                style={{ flex: 1, padding: '0.65rem 1rem' }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={executeDeleteSpace}
+                disabled={actionLoading}
+                style={{ flex: 1, padding: '0.65rem 1rem', fontWeight: 700 }}
+              >
+                {actionLoading ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
           </div>
-        </div>
+        </AnimatedDialog>
+      )}
+
+      {/* ── DIALOG 2: XÁC NHẬN MỞ CỔNG ĐĂNG KÝ HỌC PHẦN (GSAP ANIMATED) ── */}
+      {spaceToPublish && (
+        <AnimatedDialog
+          maxWidth={460}
+          onClose={() => setSpaceToPublish(null)}
+          disabled={actionLoading}
+        >
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(0, 136, 55, 0.12)',
+                color: 'var(--fpt-green, #008837)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <Globe size={26} strokeWidth={2} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
+              Mở cổng đăng ký tự do?
+            </h3>
+
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+              Không gian <strong style={{ color: 'var(--text-main)' }}>"{spaceToPublish.name}"</strong> sẽ chuyển sang trạng thái <strong>Đang mở (Open)</strong>.
+              Sinh viên trong danh sách FAP sẽ bắt đầu thấy các Room và được tự do ghép nhóm đến hạn chót:{' '}
+              <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono)' }}>
+                {formatDateTime(spaceToPublish.registrationDeadline)}
+              </strong>.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setSpaceToPublish(null)}
+                disabled={actionLoading}
+                style={{ flex: 1, padding: '0.65rem 1rem' }}
+              >
+                Để sau
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={executePublishSpace}
+                disabled={actionLoading}
+                style={{
+                  flex: 1,
+                  padding: '0.65rem 1rem',
+                  fontWeight: 700,
+                  background: 'var(--fpt-green, #008837)',
+                  borderColor: 'var(--fpt-green, #008837)',
+                }}
+              >
+                {actionLoading ? 'Đang mở cổng...' : 'Mở cổng ngay'}
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
+      )}
+
+      {/* ── DIALOG 3: XÁC NHẬN THAM GIA ROOM (GSAP ANIMATED) ── */}
+      {roomToJoin && (
+        <AnimatedDialog
+          maxWidth={460}
+          onClose={() => setRoomToJoin(null)}
+          disabled={!!joiningRoomId}
+        >
+          <div style={{ padding: '1.75rem 1.5rem', textAlign: 'center' }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                background: 'rgba(0, 84, 166, 0.12)',
+                color: 'var(--fpt-blue, #0054a6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.15rem auto',
+              }}
+            >
+              <LogIn size={26} strokeWidth={2} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.5rem 0' }}>
+              Tham gia vào phòng {roomToJoin.roomCode || roomToJoin.name}?
+            </h3>
+
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+              Bạn đang thực hiện tham gia trực tiếp vào phòng{' '}
+              <strong style={{ color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+                {roomToJoin.roomCode || roomToJoin.name}
+              </strong>{' '}
+              (Sĩ số hiện tại: {roomToJoin.memberCount}/{roomToJoin.maxMembers} SV).
+              {roomToJoin.memberCount === 0 && (
+                <span style={{ display: 'block', marginTop: '0.55rem', color: 'var(--fpt-orange, #f26f21)', fontWeight: 600 }}>
+                  Vì bạn là người đầu tiên vào phòng nên sẽ tự động giữ vai trò Trưởng nhóm tạm thời.
+                </span>
+              )}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setRoomToJoin(null)}
+                disabled={!!joiningRoomId}
+                style={{ flex: 1, padding: '0.65rem 1rem' }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={executeDirectJoinRoom}
+                disabled={!!joiningRoomId}
+                style={{ flex: 1, padding: '0.65rem 1rem', fontWeight: 700 }}
+              >
+                {joiningRoomId ? 'Đang gia nhập...' : 'Xác nhận tham gia'}
+              </button>
+            </div>
+          </div>
+        </AnimatedDialog>
       )}
     </div>
   );

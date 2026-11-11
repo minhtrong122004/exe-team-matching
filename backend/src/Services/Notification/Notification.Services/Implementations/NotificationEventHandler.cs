@@ -290,8 +290,8 @@ public class NotificationEventHandler : INotificationEventHandler
 
         var isSwap = @event.SwapWithStudentId.HasValue;
         var title = isSwap
-            ? $"Điều chuyển đổi chéo sang nhóm {@event.TargetGroupName} (BR-37)"
-            : $"Điều chuyển sang nhóm {@event.TargetGroupName} (BR-35)";
+            ? $"Điều chuyển đổi chéo sang nhóm {@event.TargetGroupName}"
+            : $"Điều chuyển sang nhóm {@event.TargetGroupName}";
 
         var message = isSwap
             ? $"Bạn đã được điều chuyển từ nhóm {@event.FromGroupName} sang nhóm {@event.TargetGroupName} (đổi chéo với {@event.SwapWithStudentName ?? "thành viên"}). Lý do: {@event.Reason}"
