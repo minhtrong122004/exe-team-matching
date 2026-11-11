@@ -165,11 +165,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       defaultIcon: <AlertCircle size={26} />,
     },
     primary: {
-      iconBg: 'rgba(0, 84, 166, 0.12)',
-      iconBorder: 'rgba(0, 84, 166, 0.25)',
-      iconColor: 'var(--fpt-blue, #0054a6)',
-      btnBg: 'var(--fpt-blue, #0054a6)',
-      btnBorder: 'var(--fpt-blue, #0054a6)',
+      iconBg: 'var(--accent-soft, rgba(242, 111, 33, 0.12))',
+      iconBorder: 'var(--primary-border, rgba(242, 111, 33, 0.28))',
+      iconColor: 'var(--accent-color, #f26f21)',
+      btnBg: 'var(--accent-color, #f26f21)',
+      btnBorder: 'var(--accent-color, #f26f21)',
       defaultIcon: <HelpCircle size={26} />,
     },
     success: {
@@ -241,9 +241,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           style={{
             margin: '0 0 0.65rem 0',
             fontSize: '1.15rem',
-            fontWeight: 800,
+            fontWeight: 700,
             color: 'var(--text-main, #0f172a)',
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.015em',
           }}
         >
           {title}

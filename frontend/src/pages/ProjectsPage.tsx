@@ -114,6 +114,7 @@ export const ProjectsPage: React.FC = () => {
   // Data & State
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [totalPages, setTotalPages] = useState<number>(1);
 
@@ -165,6 +166,7 @@ export const ProjectsPage: React.FC = () => {
   // Fetch Projects from API
   const fetchProjects = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
@@ -190,10 +192,23 @@ export const ProjectsPage: React.FC = () => {
       setProjects([]);
       setTotalCount(0);
       setTotalPages(1);
+      setFetchError('Không thể tải danh sách ý tưởng dự án. Vui lòng kiểm tra kết nối và thử lại.');
     } finally {
       setLoading(false);
     }
   }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (confirmDelete) setConfirmDelete(null);
+      else if (groupLinkModal) setGroupLinkModal(null);
+      else if (selectedProject) setSelectedProject(null);
+      else if (isModalOpen && !submitting) setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [confirmDelete, groupLinkModal, selectedProject, isModalOpen, submitting]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -483,8 +498,9 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.95rem',
+              fontSize: '0.925rem',
               color: 'var(--text-muted)',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             <span>Tổng cộng:</span>
@@ -500,8 +516,9 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.95rem',
+              fontSize: '0.925rem',
               color: 'var(--text-muted)',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             <span>Đang tuyển người:</span>
@@ -517,8 +534,9 @@ export const ProjectsPage: React.FC = () => {
               borderRadius: '9999px',
               backgroundColor: 'var(--bg-subtle)',
               border: '1px solid var(--border-light)',
-              fontSize: '0.95rem',
+              fontSize: '0.925rem',
               color: 'var(--text-muted)',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             <span>Đang triển khai:</span>
@@ -526,7 +544,8 @@ export const ProjectsPage: React.FC = () => {
           </div>
 
           {user?.id && (
-            <div
+            <button
+              type="button"
               onClick={() => {
                 setFilterMyProjects((prev) => !prev);
                 setPage(1);
@@ -539,17 +558,18 @@ export const ProjectsPage: React.FC = () => {
                 borderRadius: '9999px',
                 backgroundColor: filterMyProjects ? 'var(--pill-active-bg)' : 'var(--pill-inactive-bg)',
                 border: '1px solid ' + (filterMyProjects ? 'var(--pill-active-border)' : 'var(--pill-inactive-border)'),
-                fontSize: '0.95rem',
+                fontSize: '0.925rem',
                 color: filterMyProjects ? 'var(--pill-active-text)' : 'var(--pill-inactive-text)',
                 cursor: 'pointer',
                 transition: 'all 150ms ease',
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
               <span>Dự án của bạn:</span>
               <strong style={{ color: filterMyProjects ? 'var(--pill-active-text)' : 'var(--text-main)', fontWeight: 600 }}>
                 {counts.myProjects}
               </strong>
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -679,27 +699,28 @@ export const ProjectsPage: React.FC = () => {
             style={{
               display: 'inline-flex',
               gap: '2px',
-              backgroundColor: '#F1F5F9',
+              backgroundColor: 'var(--bg-subtle)',
               borderRadius: '9px',
               padding: '3px',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-light)',
             }}
           >
             <button
+              type="button"
               className={`motion-tab-pill${viewMode === 'grid' ? ' is-active-tab' : ''}`}
               onClick={() => setViewMode('grid')}
               style={{
                 padding: '6px 12px',
                 borderRadius: '6px',
                 border: 'none',
-                background: viewMode === 'grid' ? '#0F172A' : 'transparent',
-                color: viewMode === 'grid' ? '#FFFFFF' : '#64748B',
+                background: viewMode === 'grid' ? 'var(--pill-active-bg)' : 'transparent',
+                color: viewMode === 'grid' ? 'var(--pill-active-text)' : 'var(--text-muted)',
                 boxShadow: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
                 fontSize: '13px',
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
               title="Dạng lưới"
@@ -708,20 +729,21 @@ export const ProjectsPage: React.FC = () => {
               Lưới
             </button>
             <button
+              type="button"
               className={`motion-tab-pill${viewMode === 'list' ? ' is-active-tab' : ''}`}
               onClick={() => setViewMode('list')}
               style={{
                 padding: '6px 12px',
                 borderRadius: '6px',
                 border: 'none',
-                background: viewMode === 'list' ? '#0F172A' : 'transparent',
-                color: viewMode === 'list' ? '#FFFFFF' : '#64748B',
+                background: viewMode === 'list' ? 'var(--pill-active-bg)' : 'transparent',
+                color: viewMode === 'list' ? 'var(--pill-active-text)' : 'var(--text-muted)',
                 boxShadow: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
                 fontSize: '13px',
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
               title="Dạng danh sách"
@@ -734,7 +756,7 @@ export const ProjectsPage: React.FC = () => {
 
         {/* Row 2: Quick Filter Segmented Control */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', paddingTop: '4px' }}>
-          <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 500, marginRight: '0.25rem' }}>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>
             Lĩnh vực:
           </span>
           <div
@@ -742,26 +764,27 @@ export const ProjectsPage: React.FC = () => {
               display: 'inline-flex',
               gap: '2px',
               flexWrap: 'wrap',
-              backgroundColor: '#F1F5F9',
+              backgroundColor: 'var(--bg-subtle)',
               padding: '3px',
               borderRadius: '9px',
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--border-light)',
             }}
           >
             <button
+              type="button"
               className={`motion-tab-pill${!domain ? ' is-active-tab' : ''}`}
               onClick={() => {
                 setDomain('');
                 setPage(1);
               }}
               style={{
-                backgroundColor: !domain ? '#0F172A' : 'transparent',
-                color: !domain ? '#FFFFFF' : '#64748B',
+                backgroundColor: !domain ? 'var(--pill-active-bg)' : 'transparent',
+                color: !domain ? 'var(--pill-active-text)' : 'var(--text-muted)',
                 border: 'none',
                 padding: '6px 13px',
                 borderRadius: '6px',
                 fontSize: '13px',
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: 'none',
               }}
@@ -772,6 +795,7 @@ export const ProjectsPage: React.FC = () => {
               const isSelected = domain === d.domain;
               return (
                 <button
+                  type="button"
                   key={d.domain}
                   className={`motion-tab-pill${isSelected ? ' is-active-tab' : ''}`}
                   onClick={() => {
@@ -779,13 +803,13 @@ export const ProjectsPage: React.FC = () => {
                     setPage(1);
                   }}
                   style={{
-                    backgroundColor: isSelected ? '#0F172A' : 'transparent',
-                    color: isSelected ? '#FFFFFF' : '#64748B',
+                    backgroundColor: isSelected ? 'var(--pill-active-bg)' : 'transparent',
+                    color: isSelected ? 'var(--pill-active-text)' : 'var(--text-muted)',
                     border: 'none',
                     padding: '6px 13px',
                     borderRadius: '6px',
                     fontSize: '13px',
-                    fontWeight: 500,
+                    fontWeight: 600,
                     cursor: 'pointer',
                     boxShadow: 'none',
                   }}
@@ -814,6 +838,41 @@ export const ProjectsPage: React.FC = () => {
         >
           <RefreshCw size={32} color="var(--primary)" className="spinner-smooth" />
           <div style={{ fontWeight: 600 }}>Đang tải danh sách ý tưởng dự án EXE...</div>
+        </div>
+      ) : fetchError ? (
+        <div
+          className="card"
+          style={{
+            padding: '3rem 2rem',
+            textAlign: 'center',
+            color: 'var(--text-muted)',
+            maxWidth: 560,
+            margin: '0 auto',
+          }}
+        >
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: '14px',
+              background: 'var(--danger-light)',
+              color: 'var(--danger)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto',
+            }}
+          >
+            <AlertTriangle size={24} />
+          </div>
+          <h3 style={{ color: 'var(--text-main)', fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+            Không thể tải danh sách dự án
+          </h3>
+          <p style={{ fontSize: '0.95rem', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>{fetchError}</p>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => void fetchProjects()}>
+            <RefreshCw size={15} />
+            Thử lại
+          </button>
         </div>
       ) : projects.length === 0 ? (
         <div
@@ -878,7 +937,7 @@ export const ProjectsPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))',
             gap: '24px',
             marginTop: '24px',
           }}
@@ -892,42 +951,42 @@ export const ProjectsPage: React.FC = () => {
                 case 'Recruiting':
                   return {
                     label: 'Đang tuyển người',
-                    bg: '#F8FAFC',
-                    text: '#334155',
-                    border: '#E2E8F0',
-                    dot: '#10B981',
+                    bg: 'var(--bg-subtle, #F8FAFC)',
+                    text: 'var(--text-secondary, #334155)',
+                    border: 'var(--border-light, #E2E8F0)',
+                    dot: 'var(--status-recruiting, #F26F21)',
                   };
                 case 'Active':
                   return {
                     label: 'Đang triển khai',
-                    bg: '#F8FAFC',
-                    text: '#334155',
-                    border: '#E2E8F0',
-                    dot: '#0F172A',
+                    bg: 'var(--bg-subtle, #F8FAFC)',
+                    text: 'var(--text-secondary, #334155)',
+                    border: 'var(--border-light, #E2E8F0)',
+                    dot: '#10B981',
                   };
                 case 'Completed':
                   return {
                     label: 'Hoàn thành',
-                    bg: '#F8FAFC',
-                    text: '#475569',
-                    border: '#E2E8F0',
+                    bg: 'var(--bg-subtle, #F8FAFC)',
+                    text: 'var(--text-muted, #475569)',
+                    border: 'var(--border-light, #E2E8F0)',
                     dot: '#64748B',
                   };
                 case 'Cancelled':
                   return {
                     label: 'Đã hủy',
-                    bg: '#F8FAFC',
-                    text: '#64748B',
-                    border: '#E2E8F0',
+                    bg: 'var(--bg-subtle, #F8FAFC)',
+                    text: 'var(--text-muted, #64748B)',
+                    border: 'var(--border-light, #E2E8F0)',
                     dot: '#94A3B8',
                   };
                 case 'Draft':
                 default:
                   return {
                     label: 'Bản nháp',
-                    bg: '#F8FAFC',
-                    text: '#475569',
-                    border: '#E2E8F0',
+                    bg: 'var(--bg-subtle, #F8FAFC)',
+                    text: 'var(--text-muted, #475569)',
+                    border: 'var(--border-light, #E2E8F0)',
                     dot: '#94A3B8',
                   };
               }
@@ -936,20 +995,29 @@ export const ProjectsPage: React.FC = () => {
             return (
               <div
                 key={proj.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleOpenDetail(proj)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleOpenDetail(proj);
+                  }
+                }}
                 className="project-card-interactive motion-stagger-item"
                 style={
                   {
                     '--stagger-index': Math.min(idx, 7),
+                    height: '100%',
                     border: '1px solid var(--border-light, #E2E8F0)',
                     backgroundColor: 'var(--bg-card, #FFFFFF)',
-                    padding: '26px',
+                    padding: '24px',
                     borderRadius: '20px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     cursor: 'pointer',
-                    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
+                    boxShadow: 'var(--shadow-sm)',
                   } as React.CSSProperties
                 }
               >
@@ -964,6 +1032,7 @@ export const ProjectsPage: React.FC = () => {
                       marginBottom: '16px',
                       borderBottom: '1px solid var(--border-subtle, #F1F5F9)',
                       gap: '10px',
+                      flexWrap: 'wrap',
                     }}
                   >
                     <div
@@ -977,22 +1046,24 @@ export const ProjectsPage: React.FC = () => {
                         fontWeight: 600,
                         backgroundColor: 'var(--bg-tag, #F1F5F9)',
                         color: 'var(--text-secondary, #334155)',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {domMeta.icon}
                       <span>{domMeta.label}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                       {isOwner && (
                         <span
                           style={{
                             fontSize: '12px',
-                            fontWeight: 700,
-                            padding: '4px 10px',
-                            borderRadius: '8px',
+                            fontWeight: 600,
+                            padding: '3px 9px',
+                            borderRadius: '6px',
                             background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
                             color: '#FFFFFF',
+                            whiteSpace: 'nowrap',
                           }}
                         >
                           Của bạn
@@ -1012,6 +1083,7 @@ export const ProjectsPage: React.FC = () => {
                           color: statusConfig.text,
                           border: `1px solid ${statusConfig.border}`,
                           letterSpacing: '-0.005em',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         <span
@@ -1022,9 +1094,9 @@ export const ProjectsPage: React.FC = () => {
                             backgroundColor: statusConfig.dot,
                             boxShadow:
                               proj.status === 'Recruiting'
-                                ? '0 0 0 2px rgba(16, 185, 129, 0.18)'
-                                : proj.status === 'Active'
                                 ? '0 0 0 2px rgba(242, 111, 33, 0.18)'
+                                : proj.status === 'Active'
+                                ? '0 0 0 2px rgba(16, 185, 129, 0.18)'
                                 : 'none',
                             display: 'inline-block',
                             flexShrink: 0,
@@ -1039,12 +1111,12 @@ export const ProjectsPage: React.FC = () => {
                   <h3
                     className="line-clamp-2"
                     style={{
-                      fontSize: '1.22rem',
-                      fontWeight: 800,
-                      lineHeight: 1.42,
-                      letterSpacing: '-0.01em',
+                      fontSize: '1.15rem',
+                      fontWeight: 650,
+                      lineHeight: 1.4,
+                      letterSpacing: '-0.012em',
                       color: 'var(--text-main, #0F172A)',
-                      marginBottom: '12px',
+                      marginBottom: '10px',
                     }}
                   >
                     {proj.title}
@@ -1055,51 +1127,47 @@ export const ProjectsPage: React.FC = () => {
                     className="line-clamp-3"
                     style={{
                       fontSize: '14.5px',
-                      lineHeight: 1.62,
+                      lineHeight: 1.6,
                       color: 'var(--text-secondary, #475569)',
-                      marginBottom: '18px',
+                      marginBottom: '16px',
                     }}
                   >
-                    <strong style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Giải pháp: </strong>
+                    <strong style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>Giải pháp: </strong>
                     {proj.solution || proj.problem || 'Chưa cập nhật nội dung giải pháp.'}
                   </p>
 
-                  {/* Hàng 4 (Khu vực "Cần tuyển") */}
+                  {/* Hàng 4 (Thông tin Chủ đề xuất & Trạng thái gắn nhóm thực tế) */}
                   <div
                     style={{
                       backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                       border: '1px solid var(--border-light, #E2E8F0)',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      marginBottom: '18px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      marginBottom: '16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '10px',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
-                      Cần tuyển:
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-muted, #64748B)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      Đề xuất: <strong style={{ color: 'var(--text-main)', fontWeight: 600 }}>{proj.ownerName || 'Sinh viên EXE'}</strong>
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      {['+1 MKT', '+1 GD'].map((role) => (
-                        <span
-                          key={role}
-                          style={{
-                            backgroundColor: 'var(--bg-card, #FFFFFF)',
-                            color: 'var(--text-main, #0F172A)',
-                            border: '1px solid var(--border-light, #CBD5E1)',
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
-                          }}
-                        >
-                          {role}
-                        </span>
-                      ))}
-                    </div>
+                    <span
+                      style={{
+                        backgroundColor: 'var(--bg-card, #FFFFFF)',
+                        color: 'var(--text-secondary, #334155)',
+                        border: '1px solid var(--border-light, #CBD5E1)',
+                        padding: '3px 9px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {proj.teamId ? 'Đã gắn nhóm' : 'Đề xuất độc lập'}
+                    </span>
                   </div>
                 </div>
 
@@ -1115,7 +1183,7 @@ export const ProjectsPage: React.FC = () => {
                     gap: '10px',
                   }}
                 >
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {proj.tags && proj.tags.length > 0 ? (
                       proj.tags.slice(0, 3).map((t) => (
                         <span
@@ -1128,8 +1196,8 @@ export const ProjectsPage: React.FC = () => {
                           style={{
                             fontSize: '12.5px',
                             fontWeight: 600,
-                            padding: '4px 10px',
-                            borderRadius: '7px',
+                            padding: '3px 9px',
+                            borderRadius: '6px',
                             backgroundColor: 'var(--bg-tag, #F1F5F9)',
                             color: 'var(--text-secondary, #475569)',
                             cursor: 'pointer',
@@ -1145,8 +1213,8 @@ export const ProjectsPage: React.FC = () => {
                         style={{
                           fontSize: '12.5px',
                           fontWeight: 600,
-                          padding: '4px 10px',
-                          borderRadius: '7px',
+                          padding: '3px 9px',
+                          borderRadius: '6px',
                           backgroundColor: 'var(--bg-tag, #F1F5F9)',
                           color: 'var(--text-secondary, #475569)',
                         }}
@@ -1159,16 +1227,14 @@ export const ProjectsPage: React.FC = () => {
                   <span
                     style={{
                       fontSize: '12.5px',
-                      fontWeight: 700,
-                      padding: '5px 12px',
-                      borderRadius: '999px',
-                      backgroundColor: 'var(--bg-tag, #F1F5F9)',
-                      color: 'var(--text-secondary, #334155)',
+                      fontWeight: 500,
+                      color: 'var(--text-muted, #64748B)',
                       whiteSpace: 'nowrap',
                       flexShrink: 0,
+                      fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    3/5 thành viên
+                    {new Date(proj.createdAt).toLocaleDateString('vi-VN')}
                   </span>
                 </div>
               </div>
@@ -1217,12 +1283,13 @@ export const ProjectsPage: React.FC = () => {
 
                     <span
                       style={{
-                        fontSize: '14px',
+                        fontSize: '13.5px',
                         fontWeight: 500,
                         color: 'var(--text-muted)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       <span
@@ -1232,11 +1299,11 @@ export const ProjectsPage: React.FC = () => {
                           borderRadius: '50%',
                           backgroundColor:
                             proj.status === 'Recruiting'
-                              ? '#10B981'
+                              ? 'var(--status-recruiting, #F26F21)'
                               : proj.status === 'Active'
-                              ? '#3B82F6'
+                              ? '#10B981'
                               : proj.status === 'Completed'
-                              ? '#8B5CF6'
+                              ? '#64748B'
                               : '#94A3B8',
                         }}
                       />
@@ -1246,41 +1313,37 @@ export const ProjectsPage: React.FC = () => {
                     {isOwner && (
                       <span
                         style={{
-                          fontSize: '13px',
-                          fontWeight: 500,
-                          color: 'var(--text-muted)',
-                          backgroundColor: 'var(--bg-tag)',
-                          border: '1px solid var(--border-light)',
-                          padding: '1px 6px',
-                          borderRadius: '4px',
+                          fontSize: '12.5px',
+                          fontWeight: 600,
+                          color: '#FFFFFF',
+                          background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         Của bạn
                       </span>
                     )}
 
-                    {/* Needs badge */}
-                    <span style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Cần tuyển:</span>
-                      {['+1 MKT', '+1 GD'].map((r) => (
-                        <span
-                          key={r}
-                          style={{
-                            backgroundColor: 'var(--bg-tag)',
-                            color: 'var(--text-secondary)',
-                            border: '1px solid var(--border-light)',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {r}
-                        </span>
-                      ))}
+                    <span
+                      style={{
+                        fontSize: '12.5px',
+                        color: 'var(--text-muted)',
+                        marginLeft: 'auto',
+                        backgroundColor: 'var(--bg-subtle)',
+                        border: '1px solid var(--border-light)',
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {proj.teamId ? 'Đã gắn nhóm' : 'Đề xuất độc lập'}
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 650, color: 'var(--text-main)', margin: '0 0 0.35rem 0' }}>
                     {proj.title}
                   </h3>
 
@@ -1329,20 +1392,24 @@ export const ProjectsPage: React.FC = () => {
                     {isOwner && (
                       <>
                         <button
+                          type="button"
                           onClick={(e) => handleOpenEdit(proj, e)}
                           className="btn btn-secondary btn-sm"
                           title="Sửa"
+                          aria-label="Chỉnh sửa ý tưởng dự án"
                           style={{ padding: '0.35rem 0.6rem' }}
                         >
                           <Edit3 size={13} />
                         </button>
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setConfirmDelete({ id: proj.id, title: proj.title });
                           }}
                           className="btn btn-danger btn-sm"
                           title="Xóa"
+                          aria-label="Xóa ý tưởng dự án"
                           style={{ padding: '0.35rem 0.6rem' }}
                         >
                           <Trash2 size={13} />
@@ -1393,7 +1460,17 @@ export const ProjectsPage: React.FC = () => {
             <div
               className="modal-content"
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: 700, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
+              style={{
+                maxWidth: 700,
+                width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                padding: 0,
+              }}
             >
             <div
               style={{
@@ -1403,6 +1480,7 @@ export const ProjectsPage: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 backgroundColor: 'var(--bg-card)',
+                flexShrink: 0,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1412,19 +1490,20 @@ export const ProjectsPage: React.FC = () => {
                     height: 36,
                     borderRadius: '8px',
                     background: 'var(--bg-tag)',
-                    color: 'var(--text-main)',
+                    color: 'var(--accent-color, #F26F21)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
                   <Sparkles size={18} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.01em' }}>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0, letterSpacing: '-0.015em' }}>
                     {editingProject ? 'Chỉnh sửa Ý tưởng Dự án EXE' : 'Đề xuất Ý tưởng Khởi nghiệp EXE'}
                   </h2>
-                  <p style={{ fontSize: '0.925rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
                     {editingProject
                       ? 'Cập nhật lại định hướng giải pháp hoặc trạng thái tuyển thành viên của nhóm.'
                       : 'Chia sẻ vấn đề thực tế và mô hình giải pháp để bắt đầu tìm kiếm cộng sự đa ngành.'}
@@ -1432,22 +1511,27 @@ export const ProjectsPage: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
                 title="Đóng"
+                aria-label="Đóng cửa sổ"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveProject} style={{ padding: '1.75rem', backgroundColor: 'var(--bg-card)' }}>
+            <form
+              onSubmit={handleSaveProject}
+              style={{ padding: '1.5rem 1.75rem', backgroundColor: 'var(--bg-card)', overflowY: 'auto', flex: 1 }}
+            >
               {/* Tên dự án */}
               <div className="form-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                   <label className="form-label" style={{ margin: 0, fontWeight: 600, color: 'var(--text-main)' }}>
                     Tên ý tưởng dự án *
                   </label>
-                  <span style={{ fontSize: '0.875rem', color: title.length > 180 ? 'var(--danger)' : 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '0.875rem', color: title.length > 180 ? 'var(--danger)' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                     {title.length}/200
                   </span>
                 </div>
@@ -1463,7 +1547,7 @@ export const ProjectsPage: React.FC = () => {
               </div>
 
               {/* Lĩnh vực & Trạng thái */}
-              <div style={{ display: 'grid', gridTemplateColumns: editingProject ? '1fr 1fr' : '1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: editingProject ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
                     Lĩnh vực (Domain) *
@@ -1567,11 +1651,11 @@ export const ProjectsPage: React.FC = () => {
                         alignItems: 'center',
                         gap: 4,
                         padding: '0.25rem 0.65rem',
-                        background: '#F1F5F9',
+                        background: 'var(--bg-tag)',
                         border: '1px solid var(--border-light, #E2E8F0)',
                         color: 'var(--text-secondary, #334155)',
                         borderRadius: '6px',
-                        fontSize: '0.925rem',
+                        fontSize: '0.9rem',
                         fontWeight: 600,
                       }}
                     >
@@ -1579,7 +1663,8 @@ export const ProjectsPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(t)}
-                        style={{ color: '#64748b', cursor: 'pointer', padding: 1 }}
+                        aria-label={`Xóa tag ${t}`}
+                        style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: 1 }}
                       >
                         <X size={12} />
                       </button>
@@ -1602,7 +1687,7 @@ export const ProjectsPage: React.FC = () => {
 
                 {/* Suggested popular tags */}
                 <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Gợi ý nhanh:</span>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Gợi ý nhanh:</span>
                   {POPULAR_TAGS.map((pt) => {
                     const isAdded = tags.includes(pt.toLowerCase());
                     return (
@@ -1612,12 +1697,12 @@ export const ProjectsPage: React.FC = () => {
                         onClick={() => handleAddTag(pt)}
                         disabled={isAdded}
                         style={{
-                          fontSize: '0.72rem',
-                          padding: '0.15rem 0.5rem',
+                          fontSize: '0.78rem',
+                          padding: '0.18rem 0.55rem',
                           borderRadius: '6px',
-                          background: isAdded ? '#F8FAFC' : '#FFFFFF',
+                          background: isAdded ? 'var(--bg-subtle)' : 'var(--bg-card)',
                           border: '1px solid var(--border-light, #E2E8F0)',
-                          color: isAdded ? '#94a3b8' : '#475569',
+                          color: isAdded ? 'var(--text-light)' : 'var(--text-secondary)',
                           cursor: isAdded ? 'default' : 'pointer',
                         }}
                       >
@@ -1634,7 +1719,7 @@ export const ProjectsPage: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'flex-end',
                   gap: '0.75rem',
-                  marginTop: '1.75rem',
+                  marginTop: '1.5rem',
                   paddingTop: '1rem',
                   borderTop: '1px solid var(--border-subtle, #F1F5F9)',
                 }}
@@ -1644,16 +1729,12 @@ export const ProjectsPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
+                  className="btn btn-primary"
                   disabled={submitting}
                   style={{
-                    backgroundColor: '#0F172A',
-                    color: '#FFFFFF',
-                    border: '1px solid #0F172A',
                     padding: '0.6rem 1.4rem',
-                    borderRadius: '8px',
-                    fontSize: '1.025rem',
+                    fontSize: '0.975rem',
                     fontWeight: 600,
-                    cursor: submitting ? 'not-allowed' : 'pointer',
                     opacity: submitting ? 0.7 : 1,
                   }}
                 >
@@ -1673,7 +1754,17 @@ export const ProjectsPage: React.FC = () => {
             <div
               className="modal-content"
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: 720, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
+              style={{
+                maxWidth: 720,
+                width: '100%',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                backgroundColor: 'var(--bg-card)',
+                borderRadius: '20px',
+                overflow: 'hidden',
+                padding: 0,
+              }}
             >
             {/* Header */}
             <div
@@ -1684,12 +1775,13 @@ export const ProjectsPage: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 backgroundColor: 'var(--bg-card)',
+                flexShrink: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <span
                   style={{
-                    fontSize: '14px',
+                    fontSize: '13.5px',
                     fontWeight: 600,
                     color: 'var(--text-secondary)',
                     backgroundColor: 'var(--bg-tag)',
@@ -1702,7 +1794,7 @@ export const ProjectsPage: React.FC = () => {
 
                 <span
                   style={{
-                    fontSize: '14px',
+                    fontSize: '13.5px',
                     fontWeight: 500,
                     color: 'var(--text-muted)',
                     display: 'inline-flex',
@@ -1717,11 +1809,11 @@ export const ProjectsPage: React.FC = () => {
                       borderRadius: '50%',
                       backgroundColor:
                         selectedProject.status === 'Recruiting'
-                          ? '#10B981'
+                          ? 'var(--status-recruiting, #F26F21)'
                           : selectedProject.status === 'Active'
-                          ? '#3B82F6'
+                          ? '#10B981'
                           : selectedProject.status === 'Completed'
-                          ? '#8B5CF6'
+                          ? '#64748B'
                           : '#94A3B8',
                     }}
                   />
@@ -1731,27 +1823,29 @@ export const ProjectsPage: React.FC = () => {
                 {isDetailLoading && (
                   <RefreshCw
                     size={14}
-                    className="animate-spin"
-                    style={{ color: 'var(--text-main)', animation: 'spin 1s linear infinite' }}
+                    className="spinner-smooth"
+                    style={{ color: 'var(--text-main)' }}
                   />
                 )}
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedProject(null)}
                 style={{ color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}
                 title="Đóng"
+                aria-label="Đóng cửa sổ chi tiết"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Body */}
-            <div style={{ padding: '1.75rem', backgroundColor: 'var(--bg-card)' }}>
+            <div style={{ padding: '1.75rem', backgroundColor: 'var(--bg-card)', overflowY: 'auto', flex: 1 }}>
               <h2
                 style={{
-                  fontSize: '1.45rem',
-                  fontWeight: 800,
+                  fontSize: '1.35rem',
+                  fontWeight: 700,
                   color: 'var(--text-main)',
                   marginBottom: '1rem',
                   lineHeight: 1.35,
@@ -1859,22 +1953,15 @@ export const ProjectsPage: React.FC = () => {
                     </>
                   )}
 
-                  {/* Create Group for project action in Charcoal Black */}
+                  {/* Create Group for project action synced to accent */}
                   <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
                     onClick={() => setGroupLinkModal(selectedProject)}
                     style={{
-                      backgroundColor: '#0F172A',
-                      color: '#FFFFFF',
-                      border: '1px solid #0F172A',
                       padding: '0.45rem 1rem',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
+                      fontSize: '0.925rem',
                       fontWeight: 600,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.45rem',
-                      cursor: 'pointer',
-                      transition: 'all 150ms ease',
                     }}
                   >
                     <Users2 size={15} />
@@ -1910,23 +1997,24 @@ export const ProjectsPage: React.FC = () => {
                 <Users2 size={28} />
               </div>
 
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                 Thành lập Nhóm Khởi nghiệp
               </h3>
 
               <div
                 style={{
-                  background: 'var(--bg-main)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)',
                   padding: '1rem',
                   borderRadius: 'var(--radius-md)',
                   marginBottom: '1rem',
-                  fontSize: '1.025rem',
+                  fontSize: '1rem',
                   color: 'var(--text-main)',
                   textAlign: 'left',
                   lineHeight: 1.5,
                 }}
               >
-                <div style={{ fontWeight: 650, color: '#0F172A', marginBottom: '0.35rem' }}>
+                <div style={{ fontWeight: 650, color: 'var(--text-main)', marginBottom: '0.35rem' }}>
                   Quy tắc ghép nhóm học phần EXE:
                 </div>
                 <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
@@ -1941,10 +2029,11 @@ export const ProjectsPage: React.FC = () => {
               </p>
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-                <button className="btn btn-secondary" onClick={() => setGroupLinkModal(null)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setGroupLinkModal(null)}>
                   Đóng
                 </button>
                 <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={() => {
                     setGroupLinkModal(null);
@@ -1992,7 +2081,7 @@ export const ProjectsPage: React.FC = () => {
                   <Trash2 size={24} />
                 </div>
 
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
                   Xác nhận xóa ý tưởng dự án?
                 </h3>
 

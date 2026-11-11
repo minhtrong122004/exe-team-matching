@@ -90,6 +90,7 @@ export function applyAccentCssVariables(accentId: string): void {
   root.style.setProperty('--fpt-orange-hover', opt.hoverHex);
   root.style.setProperty('--fpt-orange-light', `rgba(${opt.rgb}, 0.08)`);
   root.style.setProperty('--pill-active-bg', opt.hex);
+  root.style.setProperty('--pill-active-text', '#FFFFFF');
   root.style.setProperty('--pill-active-border', opt.hex);
   root.style.setProperty('--status-progress', opt.hex);
 }
@@ -245,7 +246,7 @@ export const UserAvatarBubble: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontWeight: 800,
+        fontWeight: 700,
         fontSize: Math.round(size * 0.38),
         flexShrink: 0,
         boxShadow: `0 2px 6px rgba(${accent.rgb}, 0.28)`,
@@ -276,6 +277,15 @@ export const AppearanceCustomizerModal: React.FC<AppearanceCustomizerModalProps>
   initials,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -320,14 +330,14 @@ export const AppearanceCustomizerModal: React.FC<AppearanceCustomizerModalProps>
         style={{
           width: '100%',
           maxWidth: 880,
-          minHeight: 540,
+          maxHeight: '90vh',
+          overflowY: 'auto',
           borderRadius: 24,
-          overflow: 'hidden',
           backgroundColor: isDarkMode ? '#151D2F' : '#FFFFFF',
           border: `1px solid ${isDarkMode ? '#223049' : '#E2E8F0'}`,
           boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.3)',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
           animation: 'cycleModalPop 200ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >

@@ -114,6 +114,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
 
   useEffect(() => {
     if (data && containerRef.current) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const ctx = gsap.context(() => {
         gsap.from('.ai-mentor-animate-item', {
           opacity: 0,
@@ -140,35 +141,35 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
           boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div
               style={{
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'var(--primary-light)',
+                background: 'var(--accent-soft, var(--primary-light))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--fpt-orange)',
+                color: 'var(--accent-color, #f26f21)',
               }}
             >
-              <Sparkles size={20} className="animate-spin" />
+              <Sparkles size={20} className="spinner-smooth" />
             </div>
             <div>
-              <div style={{ width: '180px', height: '18px', background: 'var(--bg-subtle)', borderRadius: '4px', marginBottom: '6px' }} />
-              <div style={{ width: '280px', height: '12px', background: 'var(--bg-subtle)', borderRadius: '4px' }} />
+              <div className="skeleton-shimmer" style={{ width: '180px', height: '18px', borderRadius: '4px', marginBottom: '6px' }} />
+              <div className="skeleton-shimmer" style={{ width: '240px', maxWidth: '70vw', height: '12px', borderRadius: '4px' }} />
             </div>
           </div>
-          <div style={{ width: '110px', height: '32px', background: 'var(--bg-subtle)', borderRadius: '6px' }} />
+          <div className="skeleton-shimmer" style={{ width: '110px', height: '32px', borderRadius: '6px' }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-          <div style={{ height: '130px', background: 'var(--bg-subtle)', borderRadius: '10px' }} />
-          <div style={{ height: '130px', background: 'var(--bg-subtle)', borderRadius: '10px' }} />
+          <div className="skeleton-shimmer" style={{ height: '130px', borderRadius: '10px' }} />
+          <div className="skeleton-shimmer" style={{ height: '130px', borderRadius: '10px' }} />
         </div>
-        <div style={{ marginTop: '18px', height: '160px', background: 'var(--bg-subtle)', borderRadius: '10px' }} />
+        <div className="skeleton-shimmer" style={{ marginTop: '18px', height: '160px', borderRadius: '10px' }} />
       </div>
     );
   }
@@ -226,8 +227,8 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
             width: '48px',
             height: '48px',
             borderRadius: '12px',
-            background: 'var(--primary-light)',
-            color: 'var(--fpt-orange)',
+            background: 'var(--accent-soft, var(--primary-light))',
+            color: 'var(--accent-color, #f26f21)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -298,12 +299,12 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
               width: '42px',
               height: '42px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--fpt-orange) 0%, #ea580c 100%)',
+              background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 10px rgba(242, 111, 33, 0.25)',
+              boxShadow: '0 4px 10px var(--accent-shadow, rgba(242, 111, 33, 0.25))',
               flexShrink: 0,
             }}
           >
@@ -320,16 +321,16 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
                   fontWeight: 600,
                   padding: '3px 8px',
                   borderRadius: '6px',
-                  background: data.isAiGenerated ? 'var(--secondary-light)' : 'var(--bg-subtle)',
-                  color: data.isAiGenerated ? 'var(--secondary)' : 'var(--text-muted)',
-                  border: `1px solid ${data.isAiGenerated ? 'rgba(37, 99, 235, 0.25)' : 'var(--border-medium)'}`,
+                  background: 'var(--bg-subtle)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-light)',
                   fontFamily: 'var(--font-mono)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
-                <Cpu size={12} />
+                <Cpu size={12} color="var(--accent-color, #f26f21)" />
                 {data.isAiGenerated ? data.modelName : 'Heuristic Engine'}
               </span>
             </div>
@@ -354,7 +355,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
           }}
           title="Phân tích lại đội hình với AI"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'spinner-smooth' : ''} />
           <span>Làm mới phân tích</span>
         </button>
       </div>
@@ -364,7 +365,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
         className="ai-mentor-animate-item"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
           gap: '16px',
           alignItems: 'stretch',
         }}
@@ -394,7 +395,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
               gap: '6px',
             }}
           >
-            <TrendingUp size={14} color="var(--fpt-orange)" /> Đánh giá tổng quan
+            <TrendingUp size={14} color="var(--accent-color, #f26f21)" /> Đánh giá tổng quan
           </span>
           <p
             style={{
@@ -436,8 +437,8 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
             <span
               style={{
                 fontSize: '18px',
-                fontWeight: 800,
-                color: synergyPct >= 80 ? 'var(--fpt-green)' : 'var(--fpt-orange)',
+                fontWeight: 700,
+                color: synergyPct >= 80 ? 'var(--fpt-green)' : 'var(--accent-color, #f26f21)',
                 fontFamily: 'var(--font-mono)',
                 fontVariantNumeric: 'tabular-nums',
               }}
@@ -464,7 +465,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
                 background:
                   synergyPct >= 80
                     ? 'linear-gradient(90deg, #10b981 0%, #059669 100%)'
-                    : 'linear-gradient(90deg, var(--fpt-orange) 0%, #f59e0b 100%)',
+                    : 'var(--accent-gradient, linear-gradient(90deg, #f26f21 0%, #ea580c 100%))',
                 transformOrigin: 'left',
                 transform: `scaleX(${synergyPct / 100})`,
                 transition: 'transform 300ms cubic-bezier(0.23, 1, 0.32, 1)',
@@ -555,7 +556,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
       {/* 4. Recommended Startup Topics */}
       <div className="ai-mentor-animate-item">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <Lightbulb size={18} color="var(--fpt-orange)" />
+          <Lightbulb size={18} color="var(--accent-color, #f26f21)" />
           <h4 style={{ margin: 0, fontSize: '15.5px', fontWeight: 700, color: 'var(--text-main)' }}>
             Gợi ý 3 Đề tài Khởi nghiệp EXE Phù hợp Nhất
           </h4>
@@ -564,7 +565,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '14px',
           }}
         >
@@ -582,7 +583,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
                 transition: 'border-color 150ms ease, box-shadow 150ms ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--fpt-orange)';
+                e.currentTarget.style.borderColor = 'var(--accent-color, #f26f21)';
                 e.currentTarget.style.boxShadow = 'var(--shadow-md)';
               }}
               onMouseLeave={(e) => {
@@ -597,8 +598,8 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
                     fontSize: '11px',
                     fontWeight: 700,
                     fontFamily: 'var(--font-mono)',
-                    color: 'var(--fpt-orange)',
-                    background: 'var(--primary-light)',
+                    color: 'var(--accent-color, #f26f21)',
+                    background: 'var(--accent-soft, var(--primary-light))',
                     padding: '2px 8px',
                     borderRadius: '4px',
                     marginBottom: '8px',
@@ -665,7 +666,7 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <Calendar size={18} color="var(--secondary)" />
+            <Calendar size={18} color="var(--accent-color, #f26f21)" />
             <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-main)' }}>
               Lộ trình Hành động 4 Tuần Đầu (EXE Milestones)
             </h4>
@@ -697,8 +698,9 @@ export const AiMentorCard: React.FC<AiMentorCardProps> = ({
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
-                      background: 'var(--secondary-light)',
-                      color: 'var(--secondary)',
+                      background: 'var(--bg-tag)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--accent-color, #f26f21)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',

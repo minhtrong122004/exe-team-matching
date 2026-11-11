@@ -134,6 +134,16 @@ export const AdminAccountsPage: React.FC = () => {
     });
   }, [fetchAccounts]);
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (accountToLock && !actionLoadingId) setAccountToLock(null);
+      else if (isCreateModalOpen && !createLoading) setIsCreateModalOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [accountToLock, actionLoadingId, isCreateModalOpen, createLoading]);
+
   // Xử lý tạo tài khoản Giảng viên
   const handleCreateLecturerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,27 +321,43 @@ export const AdminAccountsPage: React.FC = () => {
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--text-muted, #64748B)',
+              marginBottom: '6px',
+            }}
+          >
+            <span>Điều phối & Quản trị</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 600 }}>Quản trị tài khoản</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.3rem' }}>
             <div
               style={{
-                width: 38,
-                height: 44,
-                borderRadius: 'var(--radius-md, 10px)',
-                background: 'linear-gradient(135deg, #f26f21 0%, #ea580c 100%)',
+                width: 36,
+                height: 36,
+                borderRadius: '10px',
+                backgroundColor: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#fff',
-                boxShadow: '0 2px 6px rgba(242, 111, 33, 0.3)',
+                color: 'var(--accent-color, #f26f21)',
+                flexShrink: 0,
               }}
             >
-              <Shield size={20} />
+              <Shield size={18} />
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-main, #0f172a)' }}>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 650, color: 'var(--text-main, #0f172a)', letterSpacing: '-0.02em', margin: 0 }}>
               Quản trị Tài khoản
             </h1>
           </div>
-          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '1.05rem' }}>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.95rem', margin: 0, lineHeight: 1.5 }}>
             Cấp tài khoản Giảng viên / Moderator và kiểm soát quyền truy cập. Danh sách sinh viên được import trong từng Không gian học phần.
           </p>
         </div>
@@ -359,22 +385,24 @@ export const AdminAccountsPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#ecfdf5',
-            color: '#065f46',
-            border: '1px solid #a7f3d0',
+            backgroundColor: 'var(--bg-card, #ffffff)',
+            color: 'var(--text-main, #0f172a)',
+            border: '1px solid var(--border-light, #e2e8f0)',
             padding: '0.85rem 1.25rem',
             borderRadius: 'var(--radius-md, 10px)',
             marginBottom: '1.25rem',
-            fontSize: '1.025rem',
+            fontSize: '0.925rem',
+            fontWeight: 500,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+            <CheckCircle2 size={18} color="#10b981" style={{ flexShrink: 0 }} />
             <span>{successMessage}</span>
           </div>
           <button
+            type="button"
             onClick={() => setSuccessMessage(null)}
-            style={{ color: '#065f46', cursor: 'pointer', padding: 4 }}
+            style={{ color: 'var(--text-muted, #64748b)', cursor: 'pointer', padding: 4, background: 'transparent', border: 'none' }}
             aria-label="Đóng thông báo thành công"
           >
             <X size={16} />
@@ -388,22 +416,24 @@ export const AdminAccountsPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: '#fef2f2',
-            color: '#991b1b',
-            border: '1px solid #fecaca',
+            backgroundColor: 'var(--bg-card, #ffffff)',
+            color: 'var(--text-main, #0f172a)',
+            border: '1px solid var(--border-light, #e2e8f0)',
             padding: '0.85rem 1.25rem',
             borderRadius: 'var(--radius-md, 10px)',
             marginBottom: '1.25rem',
-            fontSize: '1.025rem',
+            fontSize: '0.925rem',
+            fontWeight: 500,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <AlertCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+            <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
           <button
+            type="button"
             onClick={() => setError(null)}
-            style={{ color: '#991b1b', cursor: 'pointer', padding: 4 }}
+            style={{ color: 'var(--text-muted, #64748b)', cursor: 'pointer', padding: 4, background: 'transparent', border: 'none' }}
             aria-label="Đóng thông báo lỗi"
           >
             <X size={16} />
@@ -422,7 +452,7 @@ export const AdminAccountsPage: React.FC = () => {
           }}
         >
           {/* Ô tìm kiếm từ khóa */}
-          <div style={{ gridColumn: 'span 2' }}>
+          <div className="admin-search-col">
             <label
               htmlFor={searchInputId}
               style={{
@@ -584,7 +614,7 @@ export const AdminAccountsPage: React.FC = () => {
               title="Tải lại danh sách"
               style={{ flex: 1 }}
             >
-              <RefreshCw size={16} className={loading ? 'spin' : ''} />
+              <RefreshCw size={16} className={loading ? 'spinner-smooth' : ''} />
               <span>Làm mới</span>
             </button>
             {hasActiveFilters && (
@@ -608,47 +638,38 @@ export const AdminAccountsPage: React.FC = () => {
           <table
             style={{
               width: '100%',
+              minWidth: 880,
               borderCollapse: 'collapse',
               textAlign: 'left',
-              fontSize: '1.025rem',
+              fontSize: '0.95rem',
               color: 'var(--text-main)',
             }}
           >
             <thead>
               <tr
                 style={{
-                  borderBottom: '2px solid var(--border-light, #e2e8f0)',
-                  backgroundColor: 'var(--bg-sidebar-hover, #f8fafc)',
+                  borderBottom: '1px solid var(--border-light, #e2e8f0)',
+                  backgroundColor: 'var(--bg-subtle, #f8fafc)',
                   color: 'var(--text-muted, #64748b)',
                   fontSize: '0.78rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                 }}
               >
-                <th style={{ padding: '0.85rem 1.25rem' }}>Người dùng</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Email</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Vai trò</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Trạng thái</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Ngày đăng ký</th>
-                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Thao tác</th>
+                <th style={{ padding: '0.85rem 1.25rem', whiteSpace: 'nowrap' }}>Người dùng</th>
+                <th style={{ padding: '0.85rem 1.25rem', whiteSpace: 'nowrap' }}>Email</th>
+                <th style={{ padding: '0.85rem 1.25rem', whiteSpace: 'nowrap' }}>Vai trò</th>
+                <th style={{ padding: '0.85rem 1.25rem', whiteSpace: 'nowrap' }}>Trạng thái</th>
+                <th style={{ padding: '0.85rem 1.25rem', whiteSpace: 'nowrap' }}>Ngày đăng ký</th>
+                <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right', whiteSpace: 'nowrap' }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading && accounts.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: '3.5rem 1rem', textAlign: 'center' }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        border: '3px solid #f26f21',
-                        borderTopColor: 'transparent',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        margin: '0 auto 12px auto',
-                      }}
-                    />
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1.025rem' }}>
+                    <div className="spinner-smooth" style={{ width: 32, height: 32, margin: '0 auto 12px auto' }} />
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.975rem' }}>
                       Đang tải danh sách tài khoản từ hệ thống...
                     </p>
                   </td>
@@ -716,18 +737,17 @@ export const AdminAccountsPage: React.FC = () => {
                               width: 36,
                               height: 36,
                               borderRadius: '50%',
-                              backgroundColor:
-                                acc.role === 'Moderator'
-                                  ? '#008837'
-                                  : acc.role === 'Lecturer'
-                                  ? '#f26f21'
-                                  : '#2563eb',
-                              color: '#fff',
+                              backgroundColor: 'var(--bg-tag)',
+                              border: '1px solid var(--border-light)',
+                              color:
+                                acc.role === 'Lecturer'
+                                  ? 'var(--accent-color, #f26f21)'
+                                  : 'var(--text-secondary)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 700,
-                              fontSize: '0.925rem',
+                              fontSize: '0.825rem',
                               flexShrink: 0,
                             }}
                           >
@@ -755,12 +775,12 @@ export const AdminAccountsPage: React.FC = () => {
                                     fontFamily: 'var(--font-mono, monospace)',
                                     fontVariantNumeric: 'tabular-nums',
                                     fontSize: '0.72rem',
-                                    fontWeight: 700,
-                                    backgroundColor: '#eff6ff',
-                                    color: '#0054a6',
+                                    fontWeight: 600,
+                                    backgroundColor: 'var(--bg-subtle)',
+                                    color: 'var(--text-secondary)',
                                     padding: '0.1rem 0.45rem',
                                     borderRadius: 6,
-                                    border: '1px solid #bfdbfe',
+                                    border: '1px solid var(--border-light)',
                                     flexShrink: 0,
                                   }}
                                 >
@@ -772,18 +792,19 @@ export const AdminAccountsPage: React.FC = () => {
                                   style={{
                                     fontSize: '0.68rem',
                                     fontWeight: 700,
-                                    backgroundColor: '#fff7ed',
-                                    color: '#ea580c',
+                                    backgroundColor: 'var(--accent-soft, rgba(242, 111, 33, 0.12))',
+                                    color: 'var(--accent-color, #f26f21)',
                                     padding: '0.1rem 0.45rem',
                                     borderRadius: 'var(--radius-full, 9999px)',
-                                    border: '1px solid #fed7aa',
+                                    border: '1px solid var(--accent-color, #f26f21)',
+                                    whiteSpace: 'nowrap',
                                   }}
                                 >
                                   Bạn
                                 </span>
                               )}
                             </div>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--text-light, #94a3b8)' }}>
+                            <div style={{ fontSize: '0.825rem', color: 'var(--text-light, #94a3b8)', fontFamily: 'var(--font-mono, monospace)' }}>
                               ID: {acc.id.substring(0, 8)}...
                             </div>
                           </div>
@@ -799,17 +820,17 @@ export const AdminAccountsPage: React.FC = () => {
                       </td>
 
                       {/* Vai trò */}
-                      <td style={{ padding: '1rem 1.25rem' }}>
+                      <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap' }}>
                         {acc.role === 'Moderator' && (
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: '#f0fdf4',
-                              color: '#008837',
-                              border: '1px solid #bbf7d0',
+                              backgroundColor: 'var(--bg-subtle)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border-light)',
                             }}
                           >
-                            <ShieldCheck size={12} />
+                            <ShieldCheck size={12} color="#10B981" />
                             Điều phối viên
                           </span>
                         )}
@@ -817,12 +838,12 @@ export const AdminAccountsPage: React.FC = () => {
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: '#fff7ed',
-                              color: '#c2410c',
-                              border: '1px solid #ffedd5',
+                              backgroundColor: 'var(--bg-subtle)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border-light)',
                             }}
                           >
-                            <GraduationCap size={12} />
+                            <GraduationCap size={12} color="var(--accent-color, #f26f21)" />
                             Giảng viên
                           </span>
                         )}
@@ -830,12 +851,12 @@ export const AdminAccountsPage: React.FC = () => {
                           <span
                             className="badge"
                             style={{
-                              backgroundColor: '#eff6ff',
-                              color: '#1d4ed8',
-                              border: '1px solid #dbeafe',
+                              backgroundColor: 'var(--bg-subtle)',
+                              color: 'var(--text-secondary)',
+                              border: '1px solid var(--border-light)',
                             }}
                           >
-                            <UserIcon size={12} />
+                            <UserIcon size={12} color="var(--text-muted)" />
                             Sinh viên
                           </span>
                         )}
@@ -861,11 +882,12 @@ export const AdminAccountsPage: React.FC = () => {
                                 style={{
                                   fontSize: '0.68rem',
                                   fontWeight: 600,
-                                  padding: '0.1rem 0.4rem',
+                                  padding: '0.1rem 0.45rem',
                                   borderRadius: 4,
-                                  backgroundColor: acc.hasAcceptedTerms ? '#f0fdf4' : '#fffbeb',
-                                  color: acc.hasAcceptedTerms ? '#15803d' : '#b45309',
-                                  border: acc.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                                  backgroundColor: 'var(--bg-subtle)',
+                                  color: acc.hasAcceptedTerms ? 'var(--text-secondary)' : 'var(--text-muted)',
+                                  border: '1px solid var(--border-light)',
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
                                 {acc.hasAcceptedTerms ? 'Đã đồng ý điều khoản' : 'Chờ đồng ý điều khoản'}
@@ -880,15 +902,16 @@ export const AdminAccountsPage: React.FC = () => {
                         style={{
                           padding: '1rem 1.25rem',
                           color: 'var(--text-muted)',
-                          fontSize: '0.95rem',
+                          fontSize: '0.9rem',
                           whiteSpace: 'nowrap',
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
                         {formatDate(acc.createdAt)}
                       </td>
 
                       {/* Thao tác */}
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {acc.isActive ? (
                           <button
                             type="button"
@@ -906,12 +929,12 @@ export const AdminAccountsPage: React.FC = () => {
                             style={{
                               opacity: isSelf ? 0.5 : 1,
                               cursor: isSelf ? 'not-allowed' : 'pointer',
-                              color: isSelf ? 'var(--text-muted)' : '#dc2626',
-                              borderColor: isSelf ? undefined : '#fecaca',
+                              color: isSelf ? 'var(--text-muted)' : 'var(--danger)',
+                              borderColor: isSelf ? undefined : 'rgba(239, 68, 68, 0.35)',
                             }}
                           >
                             {isActionLoading ? (
-                              <RefreshCw size={13} className="spin" />
+                              <RefreshCw size={13} className="spinner-smooth" />
                             ) : (
                               <Lock size={13} />
                             )}
@@ -926,7 +949,7 @@ export const AdminAccountsPage: React.FC = () => {
                             title="Mở khóa tài khoản người dùng này"
                           >
                             {isActionLoading ? (
-                              <RefreshCw size={13} className="spin" />
+                              <RefreshCw size={13} className="spinner-smooth" />
                             ) : (
                               <Unlock size={13} />
                             )}
@@ -1026,6 +1049,10 @@ export const AdminAccountsPage: React.FC = () => {
       {/* ── MODAL: KHỞI TẠO TÀI KHOẢN GIẢNG VIÊN ─────────────────────── */}
       {isCreateModalOpen && (
         <div
+          className="motion-modal-backdrop"
+          onClick={() => {
+            if (!createLoading) setIsCreateModalOpen(false);
+          }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -1034,19 +1061,24 @@ export const AdminAccountsPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 9999,
             padding: '1rem',
           }}
         >
           <div
-            className="card modal-content"
+            className="modal-content motion-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
               maxWidth: 520,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: '1.75rem',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-light)',
               boxShadow: 'var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.2))',
               position: 'relative',
-              animation: 'fadeIn 0.2s ease',
             }}
           >
             {/* Header Modal */}
@@ -1065,17 +1097,18 @@ export const AdminAccountsPage: React.FC = () => {
                   style={{
                     width: 34,
                     height: 34,
-                    borderRadius: 'var(--radius-sm, 6px)',
-                    backgroundColor: '#fff7ed',
-                    color: '#ea580c',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-tag)',
+                    color: 'var(--accent-color, #f26f21)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  <GraduationCap size={20} />
+                  <GraduationCap size={18} />
                 </div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                   Khởi tạo tài khoản Giảng viên / Moderator
                 </h3>
               </div>
@@ -1095,21 +1128,22 @@ export const AdminAccountsPage: React.FC = () => {
             {/* Thông báo nhắc nhở vai trò */}
             <div
               style={{
-                backgroundColor: 'var(--bg-main, #f8fafc)',
+                backgroundColor: 'var(--bg-subtle)',
                 border: '1px solid var(--border-light, #e2e8f0)',
                 borderRadius: 'var(--radius-md, 10px)',
                 padding: '0.75rem 1rem',
                 marginBottom: '1.25rem',
-                fontSize: '0.95rem',
+                fontSize: '0.9rem',
                 color: 'var(--text-muted)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '0.55rem',
+                lineHeight: 1.5,
               }}
             >
-              <ShieldCheck size={16} color="#0054a6" style={{ flexShrink: 0, marginTop: 2 }} />
+              <ShieldCheck size={16} color="var(--accent-color, #f26f21)" style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0 }}>
-                <strong>Lưu ý phân quyền:</strong> <strong>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
+                <strong style={{ color: 'var(--text-main)' }}>Lưu ý phân quyền:</strong> <strong style={{ color: 'var(--text-main)' }}>Giảng viên (Lecturer)</strong> có quyền quan sát nhóm và xem báo cáo. <strong style={{ color: 'var(--text-main)' }}>Điều phối viên (Moderator)</strong> có quyền đồng bộ sinh viên FAP và vận hành điều phối học kỳ.
               </p>
             </div>
 
@@ -1119,16 +1153,16 @@ export const AdminAccountsPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
-                  backgroundColor: '#fef2f2',
-                  color: '#991b1b',
-                  border: '1px solid #fecaca',
+                  backgroundColor: 'var(--danger-light)',
+                  color: 'var(--danger)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
                   padding: '0.75rem 1rem',
                   borderRadius: 'var(--radius-md, 10px)',
                   marginBottom: '1.25rem',
-                  fontSize: '0.95rem',
+                  fontSize: '0.925rem',
                 }}
               >
-                <AlertCircle size={16} style={{ flexShrink: 0, color: '#ef4444' }} />
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
                 <span>{createError}</span>
               </div>
             )}
@@ -1137,7 +1171,7 @@ export const AdminAccountsPage: React.FC = () => {
               {/* Vai trò khởi tạo */}
               <div className="form-group">
                 <label className="form-label">
-                  Vai trò hệ thống <span style={{ color: '#ef4444' }}>*</span>
+                  Vai trò hệ thống <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <select
                   className="form-control"
@@ -1153,7 +1187,7 @@ export const AdminAccountsPage: React.FC = () => {
               {/* Họ và tên */}
               <div className="form-group">
                 <label htmlFor={lecturerNameId} className="form-label">
-                  Họ và tên giảng viên <span style={{ color: '#ef4444' }}>*</span>
+                  {createRole === 'Moderator' ? 'Họ và tên điều phối viên' : 'Họ và tên giảng viên'} <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   id={lecturerNameId}
@@ -1170,7 +1204,7 @@ export const AdminAccountsPage: React.FC = () => {
               {/* Email */}
               <div className="form-group">
                 <label htmlFor={lecturerEmailId} className="form-label">
-                  Địa chỉ Email <span style={{ color: '#ef4444' }}>*</span>
+                  Địa chỉ Email <span style={{ color: 'var(--danger)' }}>*</span>
                 </label>
                 <input
                   id={lecturerEmailId}
@@ -1206,13 +1240,13 @@ export const AdminAccountsPage: React.FC = () => {
                 <button type="submit" className="btn btn-primary" disabled={createLoading}>
                   {createLoading ? (
                     <>
-                      <RefreshCw size={16} className="spin" />
+                      <RefreshCw size={16} className="spinner-smooth" />
                       <span>Đang tạo tài khoản...</span>
                     </>
                   ) : (
                     <>
                       <UserPlus size={16} />
-                      <span>Tạo tài khoản Giảng viên</span>
+                      <span>{createRole === 'Moderator' ? 'Tạo tài khoản Điều phối viên' : 'Tạo tài khoản Giảng viên'}</span>
                     </>
                   )}
                 </button>
@@ -1225,6 +1259,10 @@ export const AdminAccountsPage: React.FC = () => {
       {/* ── MODAL: XÁC NHẬN KHÓA TÀI KHOẢN ─────────────────────────── */}
       {accountToLock && (
         <div
+          className="motion-modal-backdrop"
+          onClick={() => {
+            if (actionLoadingId !== accountToLock.id) setAccountToLock(null);
+          }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -1233,18 +1271,23 @@ export const AdminAccountsPage: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 9999,
             padding: '1rem',
           }}
         >
           <div
-            className="card modal-content"
+            className="modal-content motion-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
               maxWidth: 460,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: '1.75rem',
+              backgroundColor: 'var(--bg-card)',
+              borderRadius: '20px',
+              border: '1px solid var(--border-light)',
               boxShadow: 'var(--shadow-xl)',
-              animation: 'fadeIn 0.2s ease',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -1253,8 +1296,8 @@ export const AdminAccountsPage: React.FC = () => {
                   width: 40,
                   height: 40,
                   borderRadius: '50%',
-                  backgroundColor: '#fee2e2',
-                  color: '#dc2626',
+                  backgroundColor: 'var(--danger-light)',
+                  color: 'var(--danger)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1263,34 +1306,35 @@ export const AdminAccountsPage: React.FC = () => {
               >
                 <Lock size={20} />
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
                 Xác nhận khóa tài khoản
               </h3>
             </div>
 
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.025rem', marginBottom: '1rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.975rem', marginBottom: '1rem', lineHeight: 1.5 }}>
               Bạn có chắc chắn muốn khóa tài khoản người dùng{' '}
               <strong style={{ color: 'var(--text-main)' }}>{accountToLock.fullName}</strong> (
-              <span style={{ color: '#2563eb' }}>{accountToLock.email}</span>)?
+              <span style={{ color: 'var(--accent-color, #f26f21)', fontWeight: 600 }}>{accountToLock.email}</span>)?
             </p>
 
             <div
               style={{
-                backgroundColor: '#fffbeb',
-                border: '1px solid #fef3c7',
+                backgroundColor: 'var(--warning-light)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
                 borderRadius: 'var(--radius-md, 10px)',
                 padding: '0.75rem 1rem',
                 marginBottom: '1.5rem',
-                fontSize: '0.95rem',
-                color: '#92400e',
+                fontSize: '0.9rem',
+                color: 'var(--text-main)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '0.5rem',
+                lineHeight: 1.5,
               }}
             >
-              <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+              <AlertCircle size={16} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
               <span>
-                Khi bị khóa, người dùng sẽ bị thu hồi phiên đăng nhập hiện tại và không thể truy cập vào hệ thống cho đến khi được Moderator hoặc Admin mở khóa trở lại.
+                Khi bị khóa, người dùng sẽ bị thu hồi phiên đăng nhập hiện tại và không thể truy cập vào hệ thống cho đến khi được Moderator mở khóa trở lại.
               </span>
             </div>
 
@@ -1311,7 +1355,7 @@ export const AdminAccountsPage: React.FC = () => {
               >
                 {actionLoadingId === accountToLock.id ? (
                   <>
-                    <RefreshCw size={16} className="spin" />
+                    <RefreshCw size={16} className="spinner-smooth" />
                     <span>Đang khóa...</span>
                   </>
                 ) : (
@@ -1325,21 +1369,6 @@ export const AdminAccountsPage: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Animation spin keyframe */}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.96); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
     </div>
   );
 };

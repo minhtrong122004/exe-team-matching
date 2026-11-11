@@ -20,7 +20,6 @@ import {
   Sparkles,
   Search,
   X,
-  Crown,
   LogOut,
   Edit3,
   CheckCircle2,
@@ -320,8 +319,8 @@ export const GroupsPage: React.FC = () => {
           style={{
             padding: '12px 18px',
             borderRadius: 12,
-            backgroundColor: 'rgba(242, 111, 33, 0.08)',
-            border: '1px solid rgba(242, 111, 33, 0.3)',
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
@@ -331,14 +330,14 @@ export const GroupsPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(242, 111, 33, 0.15)', color: '#F26F21', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <AlertCircle size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                 Yêu cầu hoàn tất Hồ sơ 5 Kỹ năng cốt lõi (BR-07)
               </div>
-              <div style={{ fontSize: '13px', color: '#64748B', marginTop: 2 }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', marginTop: 2 }}>
                 Vui lòng cập nhật điểm 5 kỹ năng và cam kết trách nhiệm cá nhân để mở khóa quyền vào phòng và nộp đơn ứng tuyển.
               </div>
             </div>
@@ -409,9 +408,12 @@ export const GroupsPage: React.FC = () => {
       </div>
 
       {myGroupId && (
-        <div style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: 'rgba(5, 150, 105, 0.08)', border: '1px solid rgba(5, 150, 105, 0.25)', color: '#047857', fontSize: '14.5px', fontWeight: 600, marginBottom: '1rem' }}>
-          Bạn đã có nhóm trong học phần này ({rooms.find((r) => r.id === myGroupId)?.code ?? ''}).{' '}
-          <Link to="/my-group" style={{ color: 'inherit' }}>
+        <div style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-main, #0F172A)', fontSize: '14px', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+            Bạn đã có nhóm trong học phần này ({rooms.find((r) => r.id === myGroupId)?.code ?? ''}).
+          </span>
+          <Link to="/my-group" style={{ color: 'var(--accent-color, #F26F21)', textDecoration: 'none', fontWeight: 650 }}>
             Mở Nhóm của tôi →
           </Link>
         </div>
@@ -438,8 +440,8 @@ export const GroupsPage: React.FC = () => {
             gap: '3px',
             padding: '4px',
             borderRadius: 10,
-            backgroundColor: '#F1F5F9',
-            border: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-tag, #F1F5F9)',
+            border: '1px solid var(--border-light, #E2E8F0)',
           }}
         >
           {[
@@ -464,8 +466,8 @@ export const GroupsPage: React.FC = () => {
                   fontWeight: active ? 500 : 450,
                   cursor: 'pointer',
                   border: 'none',
-                  backgroundColor: active ? '#0F172A' : 'transparent',
-                  color: active ? '#FFFFFF' : '#475569',
+                  backgroundColor: active ? 'var(--pill-active-bg, #0F172A)' : 'transparent',
+                  color: active ? 'var(--pill-active-text, #FFFFFF)' : 'var(--text-secondary, #475569)',
                   boxShadow: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -480,8 +482,8 @@ export const GroupsPage: React.FC = () => {
                     fontWeight: 500,
                     padding: '1px 6.5px',
                     borderRadius: 999,
-                    backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : '#E2E8F0',
-                    color: active ? '#FFFFFF' : '#64748B',
+                    backgroundColor: active ? 'rgba(255, 255, 255, 0.2)' : 'var(--border-light, #E2E8F0)',
+                    color: active ? 'var(--pill-active-text, #FFFFFF)' : 'var(--text-muted, #64748B)',
                     fontVariantNumeric: 'tabular-nums',
                     transition: 'background-color 180ms ease, color 180ms ease',
                   }}
@@ -495,11 +497,12 @@ export const GroupsPage: React.FC = () => {
 
         {/* 2. Secondary Search + 3. Advanced Slot Filter (Aligned on 38px height baseline) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <div className="motion-search-wrap" style={{ position: 'relative', width: 256 }}>
-            <Search size={15} className="motion-search-icon" style={{ position: 'absolute', left: 12, top: 11.5, color: '#94A3B8' }} />
+          <div className="motion-search-wrap" style={{ position: 'relative', width: 'min(100%, 256px)' }}>
+            <Search size={15} className="motion-search-icon" style={{ position: 'absolute', left: 12, top: 11.5, color: 'var(--text-light, #94A3B8)', pointerEvents: 'none' }} />
             <input
               type="text"
               className="motion-search-input"
+              aria-label="Tìm mã phòng, tên, đề tài hoặc thành viên"
               placeholder="Tìm mã phòng, tên, đề tài..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -507,32 +510,58 @@ export const GroupsPage: React.FC = () => {
                 width: '100%',
                 height: 38,
                 paddingLeft: '2.15rem',
-                paddingRight: '0.85rem',
+                paddingRight: searchQuery ? '2rem' : '0.85rem',
                 borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                 fontSize: '13.5px',
                 fontWeight: 400,
-                color: '#0F172A',
+                color: 'var(--text-main, #0F172A)',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                className="motion-clear-btn"
+                aria-label="Xóa từ khóa tìm phòng"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: 7,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 22,
+                  height: 22,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-muted, #64748B)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
 
           <select
             value={slotFilter}
             onChange={(e) => setSlotFilter(e.target.value)}
+            aria-label="Bộ lọc nâng cao theo số chỗ trống"
             title="Bộ lọc nâng cao theo số chỗ trống"
             style={{
               height: 38,
               padding: '0 12px',
               borderRadius: 8,
-              border: '1px solid #E2E8F0',
-              backgroundColor: '#FFFFFF',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: 'var(--bg-card, #FFFFFF)',
               fontSize: '13.5px',
               fontWeight: 450,
-              color: '#475569',
+              color: 'var(--text-secondary, #475569)',
               outline: 'none',
               cursor: 'pointer',
               transition: 'border-color 165ms ease, box-shadow 165ms ease',
@@ -547,10 +576,35 @@ export const GroupsPage: React.FC = () => {
       </div>
 
       {/* A. 4-Column Room Cards Grid — Equal Row Height (No Staircase), Balanced Zones & Readable SaaS Scale */}
+      {filteredRooms.length === 0 ? (
+        <StateBox
+          kind="empty"
+          title={rooms.length === 0 ? 'Chưa có phòng nhóm nào trong học phần' : 'Không tìm thấy phòng phù hợp'}
+          message={
+            rooms.length === 0
+              ? 'Điều phối viên chưa khởi tạo danh sách phòng cho không gian học phần này.'
+              : 'Thử điều chỉnh từ khóa tìm kiếm hoặc đặt lại bộ lọc trạng thái phòng.'
+          }
+          action={
+            rooms.length > 0 && (filterTab !== 'ALL' || slotFilter !== 'ALL' || searchQuery.trim() !== '') ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterTab('ALL');
+                  setSlotFilter('ALL');
+                  setSearchQuery('');
+                }}
+              >
+                Xóa bộ lọc
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
           gap: '1.15rem',
           alignItems: 'stretch',
         }}
@@ -588,7 +642,7 @@ export const GroupsPage: React.FC = () => {
                       fontVariantNumeric: 'tabular-nums',
                       fontWeight: 400,
                       fontSize: '13px',
-                      color: '#64748B',
+                      color: 'var(--text-muted, #64748B)',
                     }}
                   >
                     {room.code}
@@ -599,9 +653,9 @@ export const GroupsPage: React.FC = () => {
                       style={{
                         fontSize: '12.5px',
                         fontWeight: 500,
-                        color: '#334155',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
+                        color: 'var(--text-secondary, #334155)',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px solid var(--border-light, #E2E8F0)',
                         padding: '3px 9px',
                         borderRadius: 6,
                         display: 'inline-flex',
@@ -629,9 +683,9 @@ export const GroupsPage: React.FC = () => {
                       style={{
                         fontSize: '12.5px',
                         fontWeight: 500,
-                        color: '#334155',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
+                        color: 'var(--text-secondary, #334155)',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px solid var(--border-light, #E2E8F0)',
                         padding: '3px 9px',
                         borderRadius: 6,
                         display: 'inline-flex',
@@ -646,8 +700,8 @@ export const GroupsPage: React.FC = () => {
                           width: 6,
                           height: 6,
                           borderRadius: '50%',
-                          backgroundColor: '#F59E0B',
-                          boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                          backgroundColor: 'var(--status-recruiting, #F26F21)',
+                          boxShadow: '0 0 0 2px var(--accent-soft, rgba(242, 111, 33, 0.2))',
                           flexShrink: 0,
                         }}
                       />
@@ -659,9 +713,9 @@ export const GroupsPage: React.FC = () => {
                       style={{
                         fontSize: '12.5px',
                         fontWeight: 500,
-                        color: '#64748B',
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
+                        color: 'var(--text-muted, #64748B)',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px solid var(--border-light, #E2E8F0)',
                         padding: '3px 9px',
                         borderRadius: 6,
                         display: 'inline-flex',
@@ -694,7 +748,7 @@ export const GroupsPage: React.FC = () => {
                   style={{
                     fontSize: '17.5px',
                     fontWeight: 600,
-                    color: '#0F172A',
+                    color: 'var(--text-main, #0F172A)',
                     margin: '0 0 8px 0',
                     letterSpacing: '-0.015em',
                   }}
@@ -710,7 +764,7 @@ export const GroupsPage: React.FC = () => {
                         style={{
                           fontSize: '14.5px',
                           fontWeight: 600,
-                          color: '#1E293B',
+                          color: 'var(--text-main, #0F172A)',
                           lineHeight: 1.38,
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
@@ -726,7 +780,7 @@ export const GroupsPage: React.FC = () => {
                           style={{
                             fontSize: '13px',
                             fontWeight: 400,
-                            color: '#64748B',
+                            color: 'var(--text-muted, #64748B)',
                             marginTop: '3px',
                             lineHeight: 1.4,
                             whiteSpace: 'nowrap',
@@ -744,7 +798,7 @@ export const GroupsPage: React.FC = () => {
                           style={{
                             fontSize: '12.5px',
                             fontWeight: 400,
-                            color: '#64748B',
+                            color: 'var(--text-muted, #64748B)',
                             marginTop: '6px',
                             display: 'flex',
                             alignItems: 'center',
@@ -754,7 +808,7 @@ export const GroupsPage: React.FC = () => {
                         >
                           {room.neededSkills && room.neededSkills.length > 0 && (
                             <span>
-                              Cần thêm: <span style={{ color: '#0F172A', fontWeight: 500 }}>{room.neededSkills.join(', ')}</span>
+                              Cần thêm: <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>{room.neededSkills.join(', ')}</span>
                             </span>
                           )}
                           {room.skillBalance && (
@@ -768,7 +822,7 @@ export const GroupsPage: React.FC = () => {
                     </div>
                   ) : room.status === 'Empty' ? (
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#475569', lineHeight: 1.38 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary, #475569)', lineHeight: 1.38 }}>
                         Chưa đăng ký đề tài dự án
                       </div>
                       <div style={{ fontSize: '13px', fontWeight: 400, color: '#94A3B8', marginTop: '3px' }}>
@@ -777,10 +831,10 @@ export const GroupsPage: React.FC = () => {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: '#334155', lineHeight: 1.38 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary, #334155)', lineHeight: 1.38 }}>
                         Đang thảo luận ý tưởng khởi nghiệp
                       </div>
-                      <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted, #64748B)', marginTop: '3px' }}>
                         Chốt đề tài chính thức khi đủ 3 thành viên
                       </div>
                     </div>
@@ -789,20 +843,20 @@ export const GroupsPage: React.FC = () => {
 
                 {/* Micro 5-Skill Distribution Meter */}
                 {room.avgSkills && (
-                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #E2E8F0' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+                  <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed var(--border-light, #E2E8F0)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '5px' }}>
                       {[
-                        { label: 'Tech', val: room.avgSkills.techScore, color: '#0284C7' },
-                        { label: 'Mgt', val: room.avgSkills.managementScore, color: '#F59E0B' },
-                        { label: 'Des', val: room.avgSkills.graphicDesignScore, color: '#EC4899' },
-                        { label: 'Mkt', val: room.avgSkills.marketingScore, color: '#8B5CF6' },
-                        { label: 'Sale', val: room.avgSkills.saleScore, color: '#10B981' },
+                        { label: 'Tech', val: room.avgSkills.techScore, color: 'var(--accent-color, #F26F21)' },
+                        { label: 'Mgt', val: room.avgSkills.managementScore, color: 'var(--accent-color, #F26F21)' },
+                        { label: 'Des', val: room.avgSkills.graphicDesignScore, color: 'var(--accent-color, #F26F21)' },
+                        { label: 'Mkt', val: room.avgSkills.marketingScore, color: 'var(--accent-color, #F26F21)' },
+                        { label: 'Sale', val: room.avgSkills.saleScore, color: 'var(--accent-color, #F26F21)' },
                       ].map((sk) => (
-                        <div key={sk.label} title={`${sk.label}: ${sk.val}%`} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <div style={{ height: 3.5, borderRadius: 2, backgroundColor: '#E2E8F0', overflow: 'hidden' }}>
+                        <div key={sk.label} title={`${sk.label}: ${sk.val}%`} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <div style={{ height: 4, borderRadius: 2, backgroundColor: 'var(--border-light, #E2E8F0)', overflow: 'hidden' }}>
                             <div style={{ width: `${sk.val}%`, height: '100%', backgroundColor: sk.color, borderRadius: 2 }} />
                           </div>
-                          <span style={{ fontSize: '9.5px', color: '#64748B', textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted, #64748B)', textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                             {sk.label} {sk.val}%
                           </span>
                         </div>
@@ -815,7 +869,7 @@ export const GroupsPage: React.FC = () => {
                 <div
                   style={{
                     height: 1,
-                    backgroundColor: '#F1F5F9',
+                    backgroundColor: 'var(--bg-tag, #F1F5F9)',
                     margin: '14px 0',
                   }}
                 />
@@ -834,7 +888,7 @@ export const GroupsPage: React.FC = () => {
                       style={{
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: '#475569',
+                        color: 'var(--text-secondary, #475569)',
                       }}
                     >
                       Thành viên
@@ -843,7 +897,7 @@ export const GroupsPage: React.FC = () => {
                       style={{
                         fontSize: '13px',
                         fontWeight: 500,
-                        color: '#64748B',
+                        color: 'var(--text-muted, #64748B)',
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >
@@ -870,8 +924,8 @@ export const GroupsPage: React.FC = () => {
                             height: 4,
                             borderRadius: 999,
                             backgroundColor: isFilled
-                              ? 'var(--status-progress, #7C3AED)'
-                              : '#E2E8F0',
+                              ? 'var(--accent-color, #F26F21)'
+                              : 'var(--border-light, #E2E8F0)',
                           }}
                         />
                       );
@@ -885,19 +939,19 @@ export const GroupsPage: React.FC = () => {
                         flex: 1,
                         padding: '14px',
                         borderRadius: 10,
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #F1F5F9',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px solid var(--border-subtle, #F1F5F9)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
                         gap: '4px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: 'var(--text-secondary, #334155)' }}>
                         <Lock size={14} color="#64748B" style={{ flexShrink: 0 }} />
                         <span>Danh sách thành viên được bảo mật</span>
                       </div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '22px', lineHeight: 1.45 }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: 'var(--text-muted, #64748B)', paddingLeft: '22px', lineHeight: 1.45 }}>
                         Phòng đã hoàn tất ghép đội hoặc khóa sổ học kỳ.
                       </div>
                     </div>
@@ -908,19 +962,19 @@ export const GroupsPage: React.FC = () => {
                         flex: 1,
                         padding: '14px',
                         borderRadius: 10,
-                        backgroundColor: '#F8FAFC',
-                        border: '1px dashed #E2E8F0',
+                        backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                        border: '1px dashed var(--border-light, #E2E8F0)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'center',
                         gap: '5px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: '#334155' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13.5px', fontWeight: 500, color: 'var(--text-secondary, #334155)' }}>
                         <UserPlus size={15} color="#64748B" style={{ flexShrink: 0 }} />
                         <span>Chưa có thành viên tham gia</span>
                       </div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', paddingLeft: '23px', lineHeight: 1.45 }}>
+                      <div style={{ fontSize: '12.5px', fontWeight: 400, color: 'var(--text-muted, #64748B)', paddingLeft: '23px', lineHeight: 1.45 }}>
                         Sinh viên vào đầu tiên giữ vai trò Nhóm trưởng. Cổng vào thẳng mở tự do đến {space.groupThreshold}/{room.maxMembers}.
                       </div>
                     </div>
@@ -948,9 +1002,9 @@ export const GroupsPage: React.FC = () => {
                                     width: 26,
                                     height: 26,
                                     borderRadius: '50%',
-                                    backgroundColor: '#F1F5F9',
-                                    color: '#334155',
-                                    border: '1px solid #E2E8F0',
+                                    backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                                    color: 'var(--text-secondary, #334155)',
+                                    border: '1px solid var(--border-light, #E2E8F0)',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -965,7 +1019,7 @@ export const GroupsPage: React.FC = () => {
                                   style={{
                                     fontSize: '14px',
                                     fontWeight: 500,
-                                    color: '#0F172A',
+                                    color: 'var(--text-main, #0F172A)',
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
@@ -979,8 +1033,8 @@ export const GroupsPage: React.FC = () => {
                                     style={{
                                       fontSize: '11.5px',
                                       fontWeight: 500,
-                                      color: '#475569',
-                                      backgroundColor: '#F1F5F9',
+                                      color: 'var(--text-secondary, #475569)',
+                                      backgroundColor: 'var(--bg-tag, #F1F5F9)',
                                       padding: '1.5px 6px',
                                       borderRadius: 5,
                                       flexShrink: 0,
@@ -998,7 +1052,7 @@ export const GroupsPage: React.FC = () => {
                                   fontVariantNumeric: 'tabular-nums',
                                   fontWeight: 400,
                                   fontSize: '12.5px',
-                                  color: '#64748B',
+                                  color: 'var(--text-muted, #64748B)',
                                   flexShrink: 0,
                                   whiteSpace: 'nowrap',
                                 }}
@@ -1015,10 +1069,10 @@ export const GroupsPage: React.FC = () => {
                           style={{
                             padding: '6px 10px',
                             borderRadius: 7,
-                            backgroundColor: '#F8FAFC',
+                            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                             fontSize: '12.5px',
                             fontWeight: 400,
-                            color: '#64748B',
+                            color: 'var(--text-muted, #64748B)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -1036,7 +1090,7 @@ export const GroupsPage: React.FC = () => {
               {/* ZONE 4: Card Footer — Pinned at Bottom so all 4 Cards Align Horizontally */}
               <div
                 style={{
-                  borderTop: '1px solid #F1F5F9',
+                  borderTop: '1px solid var(--border-subtle, #F1F5F9)',
                   paddingTop: '13px',
                   marginTop: '16px',
                   display: 'flex',
@@ -1049,7 +1103,7 @@ export const GroupsPage: React.FC = () => {
                   style={{
                     fontSize: '13px',
                     fontWeight: 400,
-                    color: '#64748B',
+                    color: 'var(--text-muted, #64748B)',
                   }}
                 >
                   {isDirectJoin && `Còn ${remainingSlots} vị trí · Vào thẳng`}
@@ -1066,9 +1120,9 @@ export const GroupsPage: React.FC = () => {
                     style={{
                       padding: '6.5px 13px',
                       borderRadius: 8,
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
-                      color: '#0F172A',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
+                      color: 'var(--text-main, #0F172A)',
                       fontSize: '13px',
                       fontWeight: 500,
                       cursor: 'pointer',
@@ -1091,9 +1145,9 @@ export const GroupsPage: React.FC = () => {
                         style={{
                           padding: '6.5px 13px',
                           borderRadius: 8,
-                          backgroundColor: '#F8FAFC',
-                          border: '1px solid #E2E8F0',
-                          color: '#0F172A',
+                          backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
+                          color: 'var(--text-main, #0F172A)',
                           fontSize: '13px',
                           fontWeight: 500,
                           cursor: 'pointer',
@@ -1116,8 +1170,8 @@ export const GroupsPage: React.FC = () => {
                         style={{
                           padding: '6.5px 13px',
                           borderRadius: 8,
-                          backgroundColor: '#0F172A',
-                          border: '1px solid #0F172A',
+                          background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
+                          border: 'none',
                           color: '#FFFFFF',
                           fontSize: '13px',
                           fontWeight: 500,
@@ -1156,6 +1210,7 @@ export const GroupsPage: React.FC = () => {
           );
         })}
       </div>
+      )}
 
       {/* Modal Ứng tuyển vào nhóm */}
       {applyModalRoom &&
@@ -1183,18 +1238,21 @@ export const GroupsPage: React.FC = () => {
               padding: '24px',
               maxWidth: 500,
               width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
               boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Send size={18} color="#0054A6" />
-                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <Send size={18} color="var(--accent-color, #F26F21)" />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Nộp đơn ứng tuyển — {applyModalRoom.code}
                 </h3>
               </div>
               <button
                 type="button"
+                aria-label="Đóng hộp thoại ứng tuyển"
                 onClick={() => setApplyModalRoom(null)}
                 style={{ background: 'none', border: 'none', color: 'var(--text-muted, #64748B)', cursor: 'pointer' }}
               >
@@ -1208,7 +1266,7 @@ export const GroupsPage: React.FC = () => {
 
             <form onSubmit={handleConfirmApply}>
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>
                   Lời giới thiệu & Kỹ năng bạn có thể đóng góp cho nhóm:
                 </label>
                 <textarea
@@ -1222,6 +1280,8 @@ export const GroupsPage: React.FC = () => {
                     padding: '10px 12px',
                     borderRadius: 12,
                     border: '1px solid var(--border-medium, #CBD5E1)',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    color: 'var(--text-main, #0F172A)',
                     fontSize: '15px',
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -1240,7 +1300,7 @@ export const GroupsPage: React.FC = () => {
                     backgroundColor: 'var(--bg-tag, #F1F5F9)',
                     border: '1px solid var(--border-light, #E2E8F0)',
                     color: 'var(--text-secondary, #475569)',
-                    fontSize: '15px',
+                    fontSize: '14.5px',
                     fontWeight: 600,
                     cursor: 'pointer',
                   }}
@@ -1252,11 +1312,11 @@ export const GroupsPage: React.FC = () => {
                   style={{
                     padding: '9px 20px',
                     borderRadius: 12,
-                    backgroundColor: '#0054A6',
+                    background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                     border: 'none',
                     color: '#FFFFFF',
-                    fontSize: '15px',
-                    fontWeight: 700,
+                    fontSize: '14.5px',
+                    fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1309,20 +1369,21 @@ export const GroupsPage: React.FC = () => {
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle, #F1F5F9)', paddingBottom: '14px' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '17px', color: '#0054A6', backgroundColor: 'rgba(0, 84, 166, 0.12)', padding: '3px 10px', borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, fontSize: '14px', color: 'var(--text-main, #0F172A)', backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', padding: '3px 10px', borderRadius: 8 }}>
                     {inspectRoomModal.code}
                   </span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, padding: '3px 10px', borderRadius: 999, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669' }}>
+                  <span style={{ fontSize: '13.5px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', padding: '3px 10px', borderRadius: 999, backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#059669' }}>
                     Sĩ số: {inspectRoomModal.currentMembers}/{inspectRoomModal.maxMembers} thành viên
                   </span>
                 </div>
-                <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   {inspectRoomModal.name}
                 </h2>
               </div>
               <button
                 type="button"
+                aria-label="Đóng cửa sổ giám sát"
                 onClick={() => setInspectRoomModal(null)}
                 style={{ width: 34, height: 34, borderRadius: 10, border: '1px solid var(--border-light, #E2E8F0)', backgroundColor: 'var(--bg-card, #FFFFFF)', color: 'var(--text-muted, #64748B)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
@@ -1387,7 +1448,7 @@ export const GroupsPage: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontWeight: 800,
+                            fontWeight: 700,
                             fontSize: '14px',
                           }}
                         >
@@ -1397,13 +1458,13 @@ export const GroupsPage: React.FC = () => {
                           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span>{m.name}</span>
                             {m.role === 'Leader' && (
-                              <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', padding: '1px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)', backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', padding: '1px 7px', borderRadius: 6, display: 'inline-flex', alignItems: 'center' }}>
                                 Trưởng nhóm
                               </span>
                             )}
                           </div>
                           <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>
-                            MSSV: <strong style={{ color: '#0054A6' }}>{m.studentCode}</strong> • Chuyên ngành: {m.major} • Khóa: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{m.classCode}</strong>
+                            MSSV: <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{m.studentCode || '—'}</strong> • Chuyên ngành: {m.major || '—'}{m.classCode ? <> • Khóa: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{m.classCode}</strong></> : null}
                           </div>
                         </div>
                       </div>
@@ -1838,8 +1899,8 @@ export const MyGroupPage: React.FC = () => {
           style={{
             padding: '12px 18px',
             borderRadius: 12,
-            backgroundColor: 'rgba(242, 111, 33, 0.08)',
-            border: '1px solid rgba(242, 111, 33, 0.3)',
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
@@ -1849,14 +1910,14 @@ export const MyGroupPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(242, 111, 33, 0.15)', color: '#F26F21', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <AlertCircle size={18} />
             </div>
             <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>
                 Yêu cầu hoàn tất Hồ sơ 5 Kỹ năng cốt lõi (BR-07)
               </div>
-              <div style={{ fontSize: '13px', color: '#64748B', marginTop: 2 }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', marginTop: 2 }}>
                 Vui lòng cập nhật điểm 5 kỹ năng và cam kết trách nhiệm cá nhân để hồ sơ năng lực của nhóm đạt độ chính xác cao nhất.
               </div>
             </div>
@@ -1924,9 +1985,9 @@ export const MyGroupPage: React.FC = () => {
                 fontWeight: 500,
                 padding: '3px 9px',
                 borderRadius: 6,
-                backgroundColor: '#F8FAFC',
-                color: isLockedSemester || isEarlyClosed ? '#64748B' : '#334155',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                color: isLockedSemester || isEarlyClosed ? 'var(--text-muted, #64748B)' : 'var(--text-secondary, #334155)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
@@ -1941,11 +2002,15 @@ export const MyGroupPage: React.FC = () => {
                   backgroundColor:
                     isLockedSemester || isEarlyClosed
                       ? '#94A3B8'
-                      : '#F59E0B',
+                      : group.status === 'Forming'
+                      ? '#10B981'
+                      : 'var(--status-recruiting, #F26F21)',
                   boxShadow:
                     isLockedSemester || isEarlyClosed
                       ? 'none'
-                      : '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                      : group.status === 'Forming'
+                      ? '0 0 0 2px rgba(16, 185, 129, 0.18)'
+                      : '0 0 0 2px var(--accent-soft, rgba(242, 111, 33, 0.2))',
                   flexShrink: 0,
                 }}
               />
@@ -1966,8 +2031,8 @@ export const MyGroupPage: React.FC = () => {
       {isLockedSemester && (
         <div
           style={{
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
+            backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+            border: '1px solid var(--border-light, #E2E8F0)',
             borderRadius: 16,
             padding: '14px 18px',
             marginBottom: '1.5rem',
@@ -1983,10 +2048,10 @@ export const MyGroupPage: React.FC = () => {
               <Lock size={17} />
             </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '14.5px' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-main, #0F172A)', fontSize: '14.5px' }}>
                 Học kỳ đã chốt sổ danh sách (Locked)
               </div>
-              <div style={{ fontSize: '13.5px', color: '#475569', marginTop: '2px' }}>
+              <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)', marginTop: '2px' }}>
                 Cổng đăng ký và kết nạp tự do đã đóng. Mọi điều chỉnh thành viên chỉ được thực hiện qua quy trình nộp đơn xin Chuyển nhóm / Đổi chéo để Điều phối viên phê duyệt.
               </div>
             </div>
@@ -2018,7 +2083,7 @@ export const MyGroupPage: React.FC = () => {
       )}
 
       {/* Main Section: 2 Columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', marginBottom: '1.75rem' }}>
         {/* Left Column: Project Info & 5 Skills Bar Chart (shadcn Card Architecture) */}
         <div
           className="motion-stagger-item"
@@ -2058,7 +2123,7 @@ export const MyGroupPage: React.FC = () => {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: '#64748B',
+                    color: 'var(--text-muted, #64748B)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -2096,8 +2161,8 @@ export const MyGroupPage: React.FC = () => {
             {/* Topic Callout Box (shadcn Muted Surface) */}
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: '14px',
                 padding: '16px 18px',
                 marginBottom: '22px',
@@ -2106,8 +2171,8 @@ export const MyGroupPage: React.FC = () => {
               <h3
                 style={{
                   fontSize: '1.25rem',
-                  fontWeight: 800,
-                  color: '#0F172A',
+                  fontWeight: 700,
+                  color: 'var(--text-main, #0F172A)',
                   letterSpacing: '-0.02em',
                   margin: '0 0 6px 0',
                   lineHeight: 1.3,
@@ -2118,7 +2183,7 @@ export const MyGroupPage: React.FC = () => {
               <p
                 style={{
                   fontSize: '14px',
-                  color: '#475569',
+                  color: 'var(--text-secondary, #475569)',
                   lineHeight: 1.55,
                   margin: 0,
                 }}
@@ -2131,7 +2196,7 @@ export const MyGroupPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <TrendingUp size={16} color="var(--accent-color, #F26F21)" strokeWidth={2.2} />
-                <span style={{ fontSize: '14.5px', fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                <span style={{ fontSize: '14.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)', letterSpacing: '-0.01em' }}>
                   Năng lực tổng hợp 5 Kỹ năng của cả nhóm
                 </span>
               </div>
@@ -2153,28 +2218,21 @@ export const MyGroupPage: React.FC = () => {
             {/* 5 Core Skills Rows (Synced with user's chosen accent color + Clean Neutral Badges) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
               {teamSkills.map((s) => {
-                const skillColorMap: Record<string, string> = {
-                  Tech: '#0284C7',
-                  Management: '#F59E0B',
-                  'Graphic Design': '#EC4899',
-                  Marketing: '#8B5CF6',
-                  Sale: '#10B981',
-                };
-                const skillColor = skillColorMap[s.name] || 'var(--accent-color, #F26F21)';
+                const skillColor = 'var(--accent-color, #F26F21)';
                 return (
                 <div
                   key={s.name}
                   style={{
                     padding: '10px 14px',
                     borderRadius: '11px',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '7px', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '14px', fontWeight: 700, color: skillColor }}>{s.name}</span>
-                      <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748B' }}>· {s.sub}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted, #64748B)' }}>· {s.sub}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -2184,9 +2242,9 @@ export const MyGroupPage: React.FC = () => {
                           fontWeight: 500,
                           padding: '2px 8px',
                           borderRadius: 999,
-                          backgroundColor: '#FFFFFF',
-                          color: s.score >= 65 ? '#0F172A' : '#64748B',
-                          border: '1px solid #E2E8F0',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          color: s.score >= 65 ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           whiteSpace: 'nowrap',
                         }}
                       >
@@ -2196,7 +2254,7 @@ export const MyGroupPage: React.FC = () => {
                         style={{
                           fontSize: '14px',
                           fontWeight: 700,
-                          color: s.score >= 50 ? skillColor : '#0F172A',
+                          color: s.score >= 50 ? skillColor : 'var(--text-main, #0F172A)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: '38px',
                           textAlign: 'right',
@@ -2258,12 +2316,12 @@ export const MyGroupPage: React.FC = () => {
                     width: 28,
                     height: 28,
                     borderRadius: 8,
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#334155',
+                    color: 'var(--text-secondary, #334155)',
                   }}
                 >
                   <Layers size={14} strokeWidth={2.2} />
@@ -2272,7 +2330,7 @@ export const MyGroupPage: React.FC = () => {
                   style={{
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: '#64748B',
+                    color: 'var(--text-muted, #64748B)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.06em',
                   }}
@@ -2282,7 +2340,7 @@ export const MyGroupPage: React.FC = () => {
               </div>
             </div>
 
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', margin: '0 0 18px 0' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', letterSpacing: '-0.02em', margin: '0 0 18px 0' }}>
               Bảng điều khiển & Tác vụ Nhóm
             </h3>
 
@@ -2296,9 +2354,9 @@ export const MyGroupPage: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  color: 'var(--text-main, #0F172A)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: isLockedSemester || !isCurrentUserLeader || group.status === 'Forming' ? 'not-allowed' : 'pointer',
@@ -2315,13 +2373,13 @@ export const MyGroupPage: React.FC = () => {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    color: '#334155',
+                    color: 'var(--text-secondary, #334155)',
                   }}
                 >
                   {isEarlyClosed ? <Unlock size={15} /> : <Lock size={15} />}
@@ -2337,9 +2395,9 @@ export const MyGroupPage: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  color: 'var(--text-main, #0F172A)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: isLockedSemester || !isCurrentUserLeader ? 'not-allowed' : 'pointer',
@@ -2356,15 +2414,15 @@ export const MyGroupPage: React.FC = () => {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <Crown size={15} color="#334155" />
+                  <UserPlus size={15} color="#334155" />
                 </div>
                 <span>Chuyển quyền Leader</span>
               </button>
@@ -2377,9 +2435,9 @@ export const MyGroupPage: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
-                  color: '#0F172A',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  color: 'var(--text-main, #0F172A)',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: isLockedSemester ? 'not-allowed' : 'pointer',
@@ -2396,8 +2454,8 @@ export const MyGroupPage: React.FC = () => {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2417,8 +2475,8 @@ export const MyGroupPage: React.FC = () => {
                 style={{
                   padding: '12px 14px',
                   borderRadius: 11,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#F8FAFC',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
                   color: '#DC2626',
                   fontSize: '14px',
                   fontWeight: 600,
@@ -2436,8 +2494,8 @@ export const MyGroupPage: React.FC = () => {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
+                    backgroundColor: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2454,29 +2512,29 @@ export const MyGroupPage: React.FC = () => {
             {(showElectionCard || election?.status === 'Active') && election && (
               <div
                 style={{
-                  backgroundColor: '#FFFBEB',
-                  border: '1.5px solid #FDE68A',
+                  backgroundColor: 'var(--bg-card, #FFFFFF)',
+                  border: '1px solid var(--border-medium, #CBD5E1)',
                   borderRadius: 14,
                   padding: '18px',
                   marginBottom: '1rem',
-                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.12)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Vote size={18} color="#D97706" />
+                  <div style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Vote size={18} color="var(--accent-color, #F26F21)" />
                     <span>Bầu chọn Trưởng nhóm mới: <strong>{election.candidateName}</strong></span>
                   </div>
-                  <span style={{ fontSize: '12.5px', color: '#B45309', backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', padding: '3px 10px', borderRadius: 999, fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary, #334155)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', padding: '3px 10px', borderRadius: 999, fontWeight: 600, fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <Clock size={13} />
                     <span>Còn {formatCountdown(secondsLeft)}</span>
                   </span>
                 </div>
-                <div style={{ fontSize: '13.5px', color: '#78350F', marginBottom: '8px' }}>
-                  Tiến độ biểu quyết: <strong style={{ color: '#92400E' }}>{electionVotes}/{electionRequired} phiếu đồng ý (&gt; 50% quân số nhóm)</strong>
+                <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #334155)', marginBottom: '8px' }}>
+                  Tiến độ biểu quyết: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{electionVotes}/{electionRequired} phiếu đồng ý (&gt; 50% quân số nhóm)</strong>
                 </div>
-                <div style={{ height: 8, borderRadius: 999, backgroundColor: '#FDE68A', overflow: 'hidden', marginBottom: '14px' }}>
-                  <div style={{ width: `${Math.min(100, (electionVotes / electionRequired) * 100)}%`, height: '100%', backgroundColor: '#D97706', transition: 'width 200ms ease' }} />
+                <div style={{ height: 8, borderRadius: 999, backgroundColor: 'var(--bg-tag, #F1F5F9)', overflow: 'hidden', marginBottom: '14px' }}>
+                  <div style={{ width: `${Math.min(100, (electionVotes / electionRequired) * 100)}%`, height: '100%', backgroundColor: 'var(--accent-color, #F26F21)', transition: 'width 200ms ease' }} />
                 </div>
                 <button
                   type="button"
@@ -2505,8 +2563,8 @@ export const MyGroupPage: React.FC = () => {
           {/* shadcn Alert / Callout Box */}
           <div
             style={{
-              backgroundColor: '#F8FAFC',
-              border: '1px solid #E2E8F0',
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              border: '1px solid var(--border-light, #E2E8F0)',
               borderRadius: '14px',
               padding: '14px 16px',
               display: 'flex',
@@ -2515,8 +2573,8 @@ export const MyGroupPage: React.FC = () => {
             }}
           >
             <ShieldAlert size={17} color="#64748B" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.55 }}>
-              <strong style={{ color: '#0F172A' }}>Quy định chuyển nhóm:</strong> Khi nhóm trưởng rời nhóm, quyền Trưởng nhóm tự động trao cho thành viên vào sớm nhất kế tiếp. Nếu sĩ số giảm từ 3 xuống 2, nhóm quay về trạng thái phòng đang lập và mở lại cổng vào thẳng.
+            <div style={{ fontSize: '13.5px', color: 'var(--text-secondary, #475569)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--text-main, #0F172A)' }}>Quy định chuyển nhóm:</strong> Khi nhóm trưởng rời nhóm, quyền Trưởng nhóm tự động trao cho thành viên vào sớm nhất kế tiếp. Nếu sĩ số giảm từ 3 xuống 2, nhóm quay về trạng thái phòng đang lập và mở lại cổng vào thẳng.
             </div>
           </div>
         </div>
@@ -2532,10 +2590,10 @@ export const MyGroupPage: React.FC = () => {
           {members
             .filter((m) => m.role !== 'Leader')
             .map((m) => (
-              <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: nomineeId === m.id ? '1px solid #F27024' : '1px solid #E2E8F0', backgroundColor: nomineeId === m.id ? '#FFF7ED' : '#FFFFFF' }}>
-                <input type="radio" name="nominee" checked={nomineeId === m.id} onChange={() => setNomineeId(m.id)} />
-                <span style={{ fontWeight: 650 }}>{m.name}</span>
-                <span style={{ fontSize: 13, color: '#64748B' }}>{m.major}</span>
+              <label key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, cursor: 'pointer', border: nomineeId === m.id ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)', backgroundColor: nomineeId === m.id ? 'var(--accent-soft, #FFF7ED)' : 'var(--bg-card, #FFFFFF)' }}>
+                <input type="radio" name="nominee" checked={nomineeId === m.id} onChange={() => setNomineeId(m.id)} style={{ accentColor: 'var(--accent-color, #F26F21)' }} />
+                <span style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>{m.name}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-muted, #64748B)' }}>{m.major}</span>
               </label>
             ))}
         </div>
@@ -2561,17 +2619,17 @@ export const MyGroupPage: React.FC = () => {
           boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         }}
       >
-        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: '0 0 1rem 0', letterSpacing: '-0.015em' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0', letterSpacing: '-0.015em' }}>
           Danh sách Thành viên Nhóm ({members.length}/{maxMembers})
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem', alignItems: 'stretch' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '1rem', alignItems: 'stretch' }}>
           {members.map((m) => (
             <div
               key={m.id}
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 12,
                 padding: '15px 16px',
                 display: 'flex',
@@ -2586,9 +2644,9 @@ export const MyGroupPage: React.FC = () => {
                     width: 40,
                     height: 40,
                     borderRadius: '50%',
-                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#F1F5F9',
-                    color: m.role === 'Leader' ? '#FFFFFF' : '#334155',
-                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
+                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : 'var(--bg-tag, #F1F5F9)',
+                    color: m.role === 'Leader' ? '#FFFFFF' : 'var(--text-secondary, #334155)',
+                    border: m.role === 'Leader' ? 'none' : '1px solid var(--border-light, #E2E8F0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2600,7 +2658,7 @@ export const MyGroupPage: React.FC = () => {
                   {m.name.charAt(0)}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: '15px', fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
                     {m.id === currentUserId && (
                       <span style={{ fontSize: '12.5px', color: 'var(--accent-color, #F26F21)', fontWeight: 500, whiteSpace: 'nowrap' }}>
@@ -2608,8 +2666,8 @@ export const MyGroupPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '13px', fontWeight: 400, color: '#64748B', marginTop: '3px', lineHeight: 1.4 }}>
-                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{m.studentCode}</span> · {m.major}
+                  <div style={{ fontSize: '13px', fontWeight: 400, color: 'var(--text-muted, #64748B)', marginTop: '3px', lineHeight: 1.4, fontVariantNumeric: 'tabular-nums' }}>
+                    {[m.studentCode, m.major].filter(Boolean).join(' · ') || 'Chưa cập nhật ngành'}
                   </div>
                   <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8', marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
                     Tham gia: {m.joinedAt}
@@ -2627,23 +2685,25 @@ export const MyGroupPage: React.FC = () => {
                   flexShrink: 0,
                 }}
               >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    fontVariantNumeric: 'tabular-nums',
-                    fontWeight: 500,
-                    fontSize: '12.5px',
-                    backgroundColor: '#FFFFFF',
-                    color: '#475569',
-                    border: '1px solid #E2E8F0',
-                    padding: '2.5px 9px',
-                    borderRadius: 6,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {m.classCode}
-                </span>
+                {m.classCode && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      fontVariantNumeric: 'tabular-nums',
+                      fontWeight: 500,
+                      fontSize: '12.5px',
+                      backgroundColor: 'var(--bg-card, #FFFFFF)',
+                      color: 'var(--text-secondary, #475569)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
+                      padding: '2.5px 9px',
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {m.classCode}
+                  </span>
+                )}
                 <span
                   style={{
                     display: 'inline-flex',
@@ -2652,9 +2712,9 @@ export const MyGroupPage: React.FC = () => {
                     fontWeight: 500,
                     padding: '3px 10px',
                     borderRadius: 999,
-                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : '#FFFFFF',
-                    color: m.role === 'Leader' ? '#FFFFFF' : '#64748B',
-                    border: m.role === 'Leader' ? 'none' : '1px solid #E2E8F0',
+                    background: m.role === 'Leader' ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))' : 'var(--bg-card, #FFFFFF)',
+                    color: m.role === 'Leader' ? '#FFFFFF' : 'var(--text-muted, #64748B)',
+                    border: m.role === 'Leader' ? 'none' : '1px solid var(--border-light, #E2E8F0)',
                     whiteSpace: 'nowrap',
                   }}
                 >
@@ -2678,22 +2738,37 @@ export const MyGroupPage: React.FC = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.015em' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.015em' }}>
               Đơn ứng tuyển & Biểu quyết Thành viên ({applicants.filter((a) => a.status === 'Pending').length} đang chờ)
             </h3>
-            <p style={{ fontSize: '14px', color: '#64748B', margin: '3px 0 0 0' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', margin: '3px 0 0 0' }}>
               Toàn bộ thành viên có quyền biểu quyết tham khảo cho ứng viên. Trưởng nhóm sẽ là người ra quyết định chấp thuận cuối cùng.
             </p>
           </div>
         </div>
 
+        {applicants.length === 0 ? (
+          <div
+            style={{
+              padding: '24px 18px',
+              borderRadius: 14,
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              border: '1px dashed var(--border-light, #E2E8F0)',
+              textAlign: 'center',
+              color: 'var(--text-muted, #64748B)',
+              fontSize: '14px',
+            }}
+          >
+            Hiện chưa có đơn ứng tuyển nào gửi đến nhóm của bạn.
+          </div>
+        ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {applicants.map((app) => (
             <div
               key={app.id}
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 16,
                 padding: '16px',
               }}
@@ -2701,29 +2776,30 @@ export const MyGroupPage: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '10px' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                    <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                       {app.name}
                     </h4>
-                    <span style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)', fontVariantNumeric: 'tabular-nums', fontSize: '13px', fontWeight: 600, color: '#334155', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '2px 8px', borderRadius: 6 }}>
-                      {app.major}{app.classCode ? ` • Khóa ${app.classCode}` : ''}
-                    </span>
-                    <span style={{ fontSize: '13.5px', color: '#64748B' }}>
-                      ({app.major})
-                    </span>
+                    {(app.major || app.classCode) && (
+                      <span style={{ fontFamily: 'var(--font-sans, Inter, sans-serif)', fontVariantNumeric: 'tabular-nums', fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary, #334155)', backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '2px 8px', borderRadius: 6 }}>
+                        {[app.major, app.classCode ? `Khóa ${app.classCode}` : ''].filter(Boolean).join(' • ')}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#475569', marginTop: '6px', fontStyle: 'italic' }}>
-                    "{app.intro}"
-                  </div>
+                  {app.intro && (
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary, #475569)', marginTop: '6px', fontStyle: 'italic' }}>
+                      "{app.intro}"
+                    </div>
+                  )}
                 </div>
 
                 {app.status === 'Accepted' && (
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#0F172A', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main, #0F172A)', backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '3.5px 10px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }} />
                     Đã chấp nhận vào nhóm
                   </span>
                 )}
                 {app.status === 'Rejected' && (
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3.5px 10px', borderRadius: 999 }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted, #64748B)', backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '3.5px 10px', borderRadius: 999 }}>
                     Đã từ chối
                   </span>
                 )}
@@ -2742,35 +2818,35 @@ export const MyGroupPage: React.FC = () => {
                     key={sk.label}
                     style={{
                       fontSize: '13px',
-                      backgroundColor: '#FFFFFF',
-                      color: '#334155',
-                      border: '1px solid #E2E8F0',
+                      backgroundColor: 'var(--bg-card, #FFFFFF)',
+                      color: 'var(--text-secondary, #334155)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
                       padding: '3px 9px',
                       borderRadius: 6,
                       fontWeight: 600,
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {sk.label}: <strong style={{ color: '#0F172A' }}>{sk.val}/100</strong>
+                    {sk.label}: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{sk.val}/100</strong>
                   </span>
                 ))}
               </div>
 
               {/* Voting Bar & Actions */}
               {app.status === 'Pending' && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #E2E8F0', paddingTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light, #E2E8F0)', paddingTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
                   {/* Member voting buttons */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: '#64748B' }}>Biểu quyết của bạn:</span>
+                    <span style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>Biểu quyết của bạn:</span>
                     <button
                       type="button"
                       onClick={() => handleVoteApplicant(app.id, 'YES')}
                       style={{
                         padding: '5px 11px',
                         borderRadius: 7,
-                        border: app.userVote === 'YES' ? '1px solid #0F172A' : '1px solid #E2E8F0',
-                        backgroundColor: app.userVote === 'YES' ? '#0F172A' : '#FFFFFF',
-                        color: app.userVote === 'YES' ? '#FFFFFF' : '#475569',
+                        border: app.userVote === 'YES' ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                        backgroundColor: app.userVote === 'YES' ? 'var(--accent-color, #F26F21)' : 'var(--bg-card, #FFFFFF)',
+                        color: app.userVote === 'YES' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
                         fontSize: '13.5px',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -2788,9 +2864,9 @@ export const MyGroupPage: React.FC = () => {
                       style={{
                         padding: '5px 11px',
                         borderRadius: 7,
-                        border: app.userVote === 'NO' ? '1px solid #334155' : '1px solid #E2E8F0',
-                        backgroundColor: app.userVote === 'NO' ? '#334155' : '#FFFFFF',
-                        color: app.userVote === 'NO' ? '#FFFFFF' : '#475569',
+                        border: app.userVote === 'NO' ? '1px solid #475569' : '1px solid var(--border-light, #E2E8F0)',
+                        backgroundColor: app.userVote === 'NO' ? '#475569' : 'var(--bg-card, #FFFFFF)',
+                        color: app.userVote === 'NO' ? '#FFFFFF' : 'var(--text-secondary, #475569)',
                         fontSize: '13.5px',
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -2803,8 +2879,8 @@ export const MyGroupPage: React.FC = () => {
                       <span>Từ chối</span>
                     </button>
 
-                    <span style={{ fontSize: '13.5px', color: '#64748B', marginLeft: '4px' }}>
-                      (Tổng kết: <strong style={{ color: '#0F172A' }}>{app.yesVotes} Đồng ý • {app.noVotes} Từ chối</strong>)
+                    <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginLeft: '4px' }}>
+                      (Tổng kết: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{app.yesVotes} Đồng ý • {app.noVotes} Từ chối</strong>)
                     </span>
                   </div>
 
@@ -2817,9 +2893,9 @@ export const MyGroupPage: React.FC = () => {
                         style={{
                           padding: '7px 13px',
                           borderRadius: 8,
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
-                          color: '#475569',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
+                          color: 'var(--text-secondary, #475569)',
                           fontSize: '13.5px',
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -2850,40 +2926,41 @@ export const MyGroupPage: React.FC = () => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Modal: Cập nhật đề tài */}
       {showEditTopicModal &&
         createPortal(
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 480, width: '100%' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
+          <div role="dialog" aria-modal="true" onClick={() => setShowEditTopicModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
               Cập nhật Đề tài Dự án Khởi nghiệp
             </h3>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Tên đề tài</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Tên đề tài</label>
               <input
                 type="text"
                 value={editTopicTitle}
                 onChange={(e) => setEditTopicTitle(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-main, #0F172A)', fontSize: '15px', boxSizing: 'border-box' }}
               />
             </div>
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Mô tả ngắn</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Mô tả ngắn</label>
               <textarea
                 rows={3}
                 value={editTopicDesc}
                 onChange={(e) => setEditTopicDesc(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-main, #0F172A)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowEditTopicModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
+              <button type="button" onClick={() => setShowEditTopicModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
               <button
                 type="button"
                 onClick={() => void handleSaveTopic()}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
+                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Lưu thay đổi
               </button>
@@ -2896,12 +2973,12 @@ export const MyGroupPage: React.FC = () => {
       {/* Modal: Chuyển quyền Leader */}
       {showTransferLeaderModal &&
         createPortal(
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 440, width: '100%' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
+          <div role="dialog" aria-modal="true" onClick={() => setShowTransferLeaderModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 440, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 1rem 0' }}>
               Chuyển quyền Trưởng nhóm
             </h3>
-            <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', marginBottom: '1rem' }}>
               Chọn một thành viên trong nhóm để chuyển giao trọng trách Trưởng nhóm:
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '1.25rem' }}>
@@ -2916,8 +2993,8 @@ export const MyGroupPage: React.FC = () => {
                       gap: '10px',
                       padding: '10px 12px',
                       borderRadius: 12,
-                      border: selectedNewLeaderId === m.id ? '1px solid #F27024' : '1px solid #E2E8F0',
-                      backgroundColor: selectedNewLeaderId === m.id ? '#FFF7ED' : '#FFFFFF',
+                      border: selectedNewLeaderId === m.id ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                      backgroundColor: selectedNewLeaderId === m.id ? 'var(--accent-soft, #FFF7ED)' : 'var(--bg-card, #FFFFFF)',
                       cursor: 'pointer',
                     }}
                   >
@@ -2927,21 +3004,22 @@ export const MyGroupPage: React.FC = () => {
                       value={m.id}
                       checked={selectedNewLeaderId === m.id}
                       onChange={() => setSelectedNewLeaderId(m.id)}
+                      style={{ accentColor: 'var(--accent-color, #F26F21)' }}
                     />
                     <div>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>{m.name}</div>
-                      <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>{m.studentCode} • {m.major}</div>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>{m.name}</div>
+                      <div style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)' }}>{[m.studentCode, m.major].filter(Boolean).join(' • ')}</div>
                     </div>
                   </label>
                 ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowTransferLeaderModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
+              <button type="button" onClick={() => setShowTransferLeaderModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
               <button
                 type="button"
                 onClick={handleConfirmTransferLeader}
                 disabled={!selectedNewLeaderId}
-                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700, cursor: selectedNewLeaderId ? 'pointer' : 'not-allowed' }}
+                style={{ padding: '8px 16px', borderRadius: 10, backgroundColor: 'var(--accent-color, #F26F21)', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 600, cursor: selectedNewLeaderId ? 'pointer' : 'not-allowed', opacity: selectedNewLeaderId ? 1 : 0.6 }}
               >
                 Xác nhận chuyển quyền
               </button>
@@ -2954,10 +3032,10 @@ export const MyGroupPage: React.FC = () => {
       {/* Modal: Gửi yêu cầu Chuyển nhóm / Đổi chéo (Hậu chốt sổ) */}
       {showTransferSwapModal &&
         createPortal(
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
-          <div style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 520, width: '100%' }}>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ArrowLeftRight size={18} color="#0054A6" />
+          <div role="dialog" aria-modal="true" onClick={() => setShowTransferSwapModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 20, padding: 24, maxWidth: 520, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ArrowLeftRight size={18} color="var(--accent-color, #F26F21)" />
               <span>Đơn xin Chuyển nhóm / Đổi chéo Hậu Chốt sổ</span>
             </h3>
             <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0' }}>
@@ -2966,16 +3044,16 @@ export const MyGroupPage: React.FC = () => {
 
             {/* Constraint check: If current members <= 3 */}
             {members.length <= space.groupThreshold && (
-              <div style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 12, padding: '10px 14px', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.28)', borderRadius: 12, padding: '10px 14px', marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                 <ShieldAlert size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 2 }} />
-                <div style={{ fontSize: '14.5px', color: '#991B1B', lineHeight: 1.45 }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-main, #991B1B)', lineHeight: 1.45 }}>
                   <strong>Quy định bảo toàn sĩ số:</strong> Nhóm hiện tại của bạn chỉ có đúng <strong>{members.length} thành viên</strong> (ngưỡng tối thiểu môn học). Bắt buộc phải chọn hình thức <strong>Đổi chéo 2 sinh viên (Swap 1-1)</strong> để không làm nhóm thiếu người!
                 </div>
               </div>
             )}
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>Hình thức chuyển:</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '6px' }}>Hình thức chuyển:</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <button
                   type="button"
@@ -2984,11 +3062,11 @@ export const MyGroupPage: React.FC = () => {
                   style={{
                     padding: '10px',
                     borderRadius: 12,
-                    border: transferType === 'ONE_WAY' ? '1px solid #0054A6' : '1px solid #E2E8F0',
-                    backgroundColor: transferType === 'ONE_WAY' ? '#EFF6FF' : '#FFFFFF',
-                    color: members.length <= space.groupThreshold ? '#94A3B8' : transferType === 'ONE_WAY' ? '#0054A6' : '#334155',
-                    fontSize: '14.5px',
-                    fontWeight: 700,
+                    border: transferType === 'ONE_WAY' ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                    backgroundColor: transferType === 'ONE_WAY' ? 'var(--accent-soft, rgba(242, 111, 33, 0.1))' : 'var(--bg-card, #FFFFFF)',
+                    color: members.length <= space.groupThreshold ? 'var(--text-light, #94A3B8)' : transferType === 'ONE_WAY' ? 'var(--accent-color, #F26F21)' : 'var(--text-secondary, #334155)',
+                    fontSize: '14px',
+                    fontWeight: 600,
                     cursor: members.length <= space.groupThreshold ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -3000,11 +3078,11 @@ export const MyGroupPage: React.FC = () => {
                   style={{
                     padding: '10px',
                     borderRadius: 12,
-                    border: transferType === 'SWAP' ? '1px solid #0054A6' : '1px solid #E2E8F0',
-                    backgroundColor: transferType === 'SWAP' ? '#EFF6FF' : '#FFFFFF',
-                    color: transferType === 'SWAP' ? '#0054A6' : '#334155',
-                    fontSize: '14.5px',
-                    fontWeight: 700,
+                    border: transferType === 'SWAP' ? '1px solid var(--accent-color, #F26F21)' : '1px solid var(--border-light, #E2E8F0)',
+                    backgroundColor: transferType === 'SWAP' ? 'var(--accent-soft, rgba(242, 111, 33, 0.1))' : 'var(--bg-card, #FFFFFF)',
+                    color: transferType === 'SWAP' ? 'var(--accent-color, #F26F21)' : 'var(--text-secondary, #334155)',
+                    fontSize: '14px',
+                    fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -3014,19 +3092,19 @@ export const MyGroupPage: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Chọn phòng nhóm muốn đến:</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Chọn phòng nhóm muốn đến:</label>
               <select
                 value={targetRoomCode}
                 onChange={(e) => {
                   setTargetRoomCode(e.target.value);
                   setSwapStudentName('');
                 }}
-                style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px' }}
+                style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-main, #0F172A)', fontSize: '15px' }}
               >
                 <option value="">— Chọn phòng nhóm —</option>
                 {transferTargets.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.code}{t.name ? ` (${t.name}` : ' ('} - {t.memberCount}/{t.maxMembers} SV)
+                    {t.code}{t.name ? ` — ${t.name}` : ''} ({t.memberCount}/{t.maxMembers} SV)
                   </option>
                 ))}
               </select>
@@ -3034,11 +3112,11 @@ export const MyGroupPage: React.FC = () => {
 
             {transferType === 'SWAP' && (
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Sinh viên đối tác đồng ý đổi chéo:</label>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Sinh viên đối tác đồng ý đổi chéo:</label>
                 <select
                   value={swapStudentName}
                   onChange={(e) => setSwapStudentName(e.target.value)}
-                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px' }}
+                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-main, #0F172A)', fontSize: '15px' }}
                 >
                   <option value="">— Chọn sinh viên —</option>
                   {transferTarget?.members.map((m) => (
@@ -3051,24 +3129,24 @@ export const MyGroupPage: React.FC = () => {
             )}
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Lý do xin chuyển / đổi chéo (bắt buộc):</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '4px' }}>Lý do xin chuyển / đổi chéo (bắt buộc):</label>
               <textarea
                 rows={3}
                 required
                 placeholder="Nêu rõ lý do học vụ, định hướng đề tài hoặc sự phù hợp kỹ năng để Điều phối viên xem xét..."
                 value={transferReason}
                 onChange={(e) => setTransferReason(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-medium, #CBD5E1)', backgroundColor: 'var(--bg-subtle, #F8FAFC)', color: 'var(--text-main, #0F172A)', fontSize: '15px', boxSizing: 'border-box', fontFamily: 'inherit' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button type="button" onClick={() => setShowTransferSwapModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600 }}>Hủy</button>
+              <button type="button" onClick={() => setShowTransferSwapModal(false)} style={{ padding: '8px 14px', borderRadius: 10, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #475569)', fontSize: '14.5px', fontWeight: 600, cursor: 'pointer' }}>Hủy</button>
               <button
                 type="button"
                 onClick={() => void handleSubmitTransfer()}
                 disabled={!targetRoomCode || (transferType === 'SWAP' && !swapStudentName)}
-                style={{ padding: '8px 18px', borderRadius: 10, backgroundColor: '#0054A6', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 700 }}
+                style={{ padding: '8px 18px', borderRadius: 10, background: 'var(--accent-gradient, var(--accent-color, #F26F21))', border: 'none', color: '#FFFFFF', fontSize: '14.5px', fontWeight: 600, cursor: !targetRoomCode || (transferType === 'SWAP' && !swapStudentName) ? 'not-allowed' : 'pointer', opacity: !targetRoomCode || (transferType === 'SWAP' && !swapStudentName) ? 0.6 : 1 }}
               >
                 Gửi đơn điều chuyển
               </button>
@@ -3161,6 +3239,7 @@ export const JoinRequestsPage: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3.5rem' }}>
+      {dialog.node}
       {toastMessage && (
         <div
           style={{
@@ -3229,28 +3308,28 @@ export const JoinRequestsPage: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: 'var(--bg-tag, #F1F5F9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #475569)' }}>
             <Clock size={16} />
           </div>
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
-              Đơn đang chờ duyệt: <span style={{ fontWeight: 600, color: '#0F172A' }}>{pendingCount} / {maxPending} đơn tối đa</span> cùng lúc
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>
+              Đơn đang chờ duyệt: <span style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)' }}>{pendingCount} / {maxPending} đơn tối đa</span> cùng lúc
             </div>
-            <div style={{ fontSize: '12.5px', fontWeight: 400, color: '#64748B', marginTop: '2px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 400, color: 'var(--text-muted, #64748B)', marginTop: '2px' }}>
               Quy định giới hạn tối đa 3 đơn đồng thời để đảm bảo tính cam kết và tránh gửi đơn trùng lặp.
             </div>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '5px' }}>
-          {[1, 2, 3].map((slot) => (
+          {Array.from({ length: maxPending }, (_, idx) => idx + 1).map((slot) => (
             <div
               key={slot}
               style={{
                 width: 24,
                 height: 4,
                 borderRadius: 999,
-                backgroundColor: slot <= pendingCount ? 'var(--status-progress, #7C3AED)' : '#E2E8F0',
+                backgroundColor: slot <= pendingCount ? 'var(--accent-color, #F26F21)' : 'var(--border-light, #E2E8F0)',
               }}
             />
           ))}
@@ -3258,6 +3337,18 @@ export const JoinRequestsPage: React.FC = () => {
       </div>
 
       {/* Request List */}
+      {requests.length === 0 ? (
+        <StateBox
+          kind="empty"
+          title="Chưa có đơn ứng tuyển nào"
+          message="Bạn chưa gửi đơn ứng tuyển vào nhóm nào. Hãy khám phá danh sách Phòng & Nhóm để tìm đội ngũ phù hợp."
+          action={
+            <Link to="/groups" style={{ textDecoration: 'none' }}>
+              <Button icon={<Layers size={15} />}>Khám phá Phòng & Nhóm</Button>
+            </Link>
+          }
+        />
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {requests.map((req, idx) => (
           <div
@@ -3279,8 +3370,8 @@ export const JoinRequestsPage: React.FC = () => {
             }
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '14.5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main, #0F172A)', fontSize: '14.5px' }}>
                   {req.topic}
                 </span>
                 <span style={{ color: '#CBD5E1' }}>·</span>
@@ -3288,26 +3379,26 @@ export const JoinRequestsPage: React.FC = () => {
                   {req.roomCode}
                 </span>
               </div>
-              <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8' }}>
+              <div style={{ fontSize: '12px', fontWeight: 400, color: '#94A3B8', fontVariantNumeric: 'tabular-nums' }}>
                 Thời điểm nộp đơn: {req.submittedAt}
               </div>
               {req.reason && (
-                <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px', fontWeight: 450 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary, #475569)', marginTop: '4px', fontWeight: 450 }}>
                   Ghi chú: {req.reason}
                 </div>
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               {req.status === 'Pending' && (
                 <>
                   <span
                     style={{
                       fontSize: '12.5px',
                       fontWeight: 500,
-                      color: '#334155',
-                      backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
+                      color: 'var(--text-secondary, #334155)',
+                      backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
                       padding: '3px 9px',
                       borderRadius: 6,
                       display: 'inline-flex',
@@ -3321,8 +3412,8 @@ export const JoinRequestsPage: React.FC = () => {
                         width: 6,
                         height: 6,
                         borderRadius: '50%',
-                        backgroundColor: '#F59E0B',
-                        boxShadow: '0 0 0 2px rgba(245, 158, 11, 0.2)',
+                        backgroundColor: 'var(--status-recruiting, #F26F21)',
+                        boxShadow: '0 0 0 2px var(--accent-soft, rgba(242, 111, 33, 0.2))',
                         flexShrink: 0,
                       }}
                     />
@@ -3334,9 +3425,9 @@ export const JoinRequestsPage: React.FC = () => {
                     style={{
                       padding: '5px 12px',
                       borderRadius: 8,
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid #E2E8F0',
-                      color: '#475569',
+                      backgroundColor: 'var(--bg-card, #FFFFFF)',
+                      border: '1px solid var(--border-light, #E2E8F0)',
+                      color: 'var(--text-secondary, #475569)',
                       fontSize: '12.5px',
                       fontWeight: 500,
                       cursor: 'pointer',
@@ -3346,14 +3437,34 @@ export const JoinRequestsPage: React.FC = () => {
                   </button>
                 </>
               )}
+              {req.status === 'Rejected' && (
+                <span
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    color: '#DC2626',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
+                    padding: '3px 9px',
+                    borderRadius: 6,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#EF4444', flexShrink: 0 }} />
+                  Đã từ chối
+                </span>
+              )}
               {req.status === 'Cancelled' && (
                 <span
                   style={{
                     fontSize: '12.5px',
                     fontWeight: 500,
-                    color: '#64748B',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    color: 'var(--text-muted, #64748B)',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     padding: '3px 9px',
                     borderRadius: 6,
                     display: 'inline-flex',
@@ -3371,9 +3482,9 @@ export const JoinRequestsPage: React.FC = () => {
                   style={{
                     fontSize: '12.5px',
                     fontWeight: 500,
-                    color: '#334155',
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
+                    color: 'var(--text-secondary, #334155)',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     padding: '3px 9px',
                     borderRadius: 6,
                     display: 'inline-flex',
@@ -3399,6 +3510,7 @@ export const JoinRequestsPage: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
