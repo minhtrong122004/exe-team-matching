@@ -17,11 +17,12 @@ import {
   Plus,
   Lock,
   AlertCircle,
+  X,
 } from '../../utils/icons';
 import { useSelectedSpace, selectSpace, reloadSpaces } from '../../hooks/useSelectedSpace';
 import { workspaceApi, errorMessage, SPACE_PHASE, type RoomSummary, type Space } from '../../api/workspace';
 import { readFapFile } from '../../utils/fapImport';
-import { Modal, Field, fieldStyle, Button, StateBox, useConfirm } from '../../components/workspace/ui';
+import { Button, StateBox, useConfirm } from '../../components/workspace/ui';
 
 // Giao diện giữ nguyên bản thiết kế của Tú; dữ liệu lấy từ Group Service thay cho dữ liệu mẫu.
 
@@ -48,7 +49,28 @@ const toLocalInput = (iso?: string | null) => {
 
 const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
-/** Tạo không gian môn học (bản mockup không có, cần để bắt đầu học kỳ thật). */
+/** Tạo không gian môn học — cùng phong cách hộp thoại "Nộp đơn ứng tuyển" của Tú. */
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '14px',
+  fontWeight: 700,
+  color: 'var(--text-secondary, #334155)',
+  marginBottom: '6px',
+};
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  height: 44,
+  padding: '0 12px',
+  borderRadius: 12,
+  border: '1px solid var(--border-medium, #CBD5E1)',
+  backgroundColor: 'var(--bg-input, #FFFFFF)',
+  color: 'var(--text-main, #0F172A)',
+  fontSize: '15px',
+  outline: 'none',
+  boxSizing: 'border-box',
+  fontFamily: 'inherit',
+};
+
 const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated: (space: Space) => void }> = ({ open, onClose, onCreated }) => {
   const [form, setForm] = useState({
     semesterCode: 'FA26',
@@ -61,6 +83,8 @@ const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (!open) return null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,33 +109,118 @@ const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Tạo không gian môn học">
-      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {error && <div style={{ color: '#B91C1C', fontSize: 14 }}>{error}</div>}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field label="Học kỳ">
-            <input style={fieldStyle} required value={form.semesterCode} onChange={(e) => setForm({ ...form, semesterCode: e.target.value })} />
-          </Field>
-          <Field label="Mã môn">
-            <input style={fieldStyle} required value={form.subjectCode} onChange={(e) => setForm({ ...form, subjectCode: e.target.value })} />
-          </Field>
+    <div
+      className="motion-modal-backdrop"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.6)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: 16,
+      }}
+    >
+      <div
+        className="motion-modal-dialog"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          backgroundColor: 'var(--bg-card, #FFFFFF)',
+          border: '1px solid var(--border-light, #E2E8F0)',
+          borderRadius: '20px',
+          padding: '24px',
+          maxWidth: 520,
+          width: '100%',
+          boxShadow: '0 20px 45px rgba(0,0,0,0.2)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} color="var(--accent-color, #F26F21)" />
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: 0 }}>Tạo không gian môn học</h3>
+          </div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted, #64748B)', cursor: 'pointer' }}>
+            <X size={18} />
+          </button>
         </div>
-        <Field label="Tên môn (không bắt buộc)">
-          <input style={fieldStyle} placeholder="Trải nghiệm Khởi nghiệp 1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </Field>
-        <Field label="Hạn đóng đăng ký">
-          <input type="datetime-local" required style={fieldStyle} value={form.registrationDeadline} onChange={(e) => setForm({ ...form, registrationDeadline: e.target.value })} />
-        </Field>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <Button variant="outline" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button type="submit" loading={saving} icon={<Plus size={16} />}>
-            Tạo
-          </Button>
-        </div>
-      </form>
-    </Modal>
+
+        <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', lineHeight: 1.5, marginTop: 0, marginBottom: '1.25rem' }}>
+          Mỗi môn học trong một học kỳ là một không gian riêng, có danh sách sinh viên FAP và các phòng nhóm riêng.
+        </p>
+
+        <form onSubmit={submit}>
+          {error && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: '14px', fontWeight: 600, marginBottom: '1rem' }}>
+              {error}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Học kỳ:</label>
+              <input style={inputStyle} required placeholder="FA26" value={form.semesterCode} onChange={(e) => setForm({ ...form, semesterCode: e.target.value })} />
+            </div>
+            <div>
+              <label style={labelStyle}>Mã môn học:</label>
+              <input style={inputStyle} required placeholder="EXE101" value={form.subjectCode} onChange={(e) => setForm({ ...form, subjectCode: e.target.value })} />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={labelStyle}>Tên môn học (không bắt buộc):</label>
+            <input style={inputStyle} placeholder="Ví dụ: Trải nghiệm Khởi nghiệp 1" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={labelStyle}>Hạn đóng đăng ký tự nguyện:</label>
+            <input type="datetime-local" required style={inputStyle} value={form.registrationDeadline} onChange={(e) => setForm({ ...form, registrationDeadline: e.target.value })} />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '9px 16px',
+                borderRadius: 12,
+                backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #475569)',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                padding: '9px 20px',
+                borderRadius: 12,
+                background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
+                border: 'none',
+                color: '#FFFFFF',
+                fontSize: '15px',
+                fontWeight: 700,
+                cursor: saving ? 'wait' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <Plus size={14} />
+              <span>{saving ? 'Đang tạo...' : 'Tạo không gian'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
