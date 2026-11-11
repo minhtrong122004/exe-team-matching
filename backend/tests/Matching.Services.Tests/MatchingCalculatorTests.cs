@@ -346,4 +346,86 @@ public class MatchingCalculatorTests
         Assert.All(result.RoomPlans, p => Assert.Equal(3, p.MemberCountAfter));
         Assert.All(result.RoomPlans, p => Assert.True(p.IsNewlyFormed));
     }
+
+    [Fact]
+    public void Calculate_With5SkillsDeficit_CandidateCompensatingWeaknessScoresHigherThanRedundantCandidate()
+    {
+        // Nhóm đã rất mạnh Tech (90) nhưng yếu Marketing (20) và Sale (20)
+        var group = new GroupInput(
+            "g1",
+            ["SE", "MKT"],
+            [],
+            "EdTech",
+            AvgTechScore: 90,
+            AvgManagementScore: 70,
+            AvgGraphicDesignScore: 65,
+            AvgMarketingScore: 20,
+            AvgSaleScore: 20);
+
+        // Ứng viên 1: Trùng lặp Tech (95), Marketing = 10, Sale = 10
+        var redundantStudent = new StudentInput(
+            "s1", "SE", [], ["EdTech"],
+            TechScore: 95, ManagementScore: 50, GraphicDesignScore: 50, MarketingScore: 10, SaleScore: 10);
+
+        // Ứng viên 2: Bù đắp Marketing (90), Sale (85), Tech = 40
+        var complementaryStudent = new StudentInput(
+            "s2", "MKT", [], ["EdTech"],
+            TechScore: 40, ManagementScore: 60, GraphicDesignScore: 60, MarketingScore: 90, SaleScore: 85);
+
+        var scoreRedundant = _calculator.Calculate(redundantStudent, group);
+        var scoreComp = _calculator.Calculate(complementaryStudent, group);
+
+        // Ứng viên bù đắp khoảng trống phải có điểm cao hơn đáng kể ứng viên thừa kỹ năng
+        Assert.True(scoreComp.Score > scoreRedundant.Score,
+            $"Expected complementary student score ({scoreComp.Score}) > redundant student score ({scoreRedundant.Score})");
+        Assert.Contains(scoreComp.MatchedSkills, s => s.StartsWith("Marketing", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Distribute_Step2_LeaderChosenWithHighestManagementScore_PerBR32()
+    {
+        var room = new DistributeRoomInput("r1", "FA26EXE101-01", "Phòng 01", null, [], true);
+
+        var candidates = new List<DistributeCandidateInput>
+        {
+            new("c1", "Nguyễn Văn Tech", "SE180001", "SE", 95, 45, 50, 50, 50),
+            new("c2", "Trần Quản Lý", "IB180001", "IB", 50, 95, 60, 60, 60), // Highest Management: 95
+            new("c3", "Lê Thiết Kế", "GD180001", "GD", 60, 60, 95, 50, 50)
+        };
+
+        var request = new DistributeRequestInput("sp1", 5, 3, candidates, [], [room]);
+        var result = _calculator.DistributeUnmatchedStudents(request);
+
+        Assert.Single(result.RoomPlans);
+        var plan = result.RoomPlans[0];
+        Assert.Equal("c2", plan.LeaderId);
+        Assert.Equal("Trần Quản Lý", plan.LeaderName);
+    }
+
+    [Fact]
+    public void CalculateBalanceScore_PenalizesExtremeSkillImbalance()
+    {
+        // Nhóm A: Các kỹ năng rất cân đối (Tech: 70, Mgt: 70, GD: 70, Mkt: 70, Sale: 70)
+        var balancedMembers = new List<DistributeRoomMemberInput>
+        {
+            new("m1", "M1", "SE1", "SE", true, 70, 70, 70, 70, 70),
+            new("m2", "M2", "IB1", "IB", false, 70, 70, 70, 70, 70),
+            new("m3", "M3", "MKT1", "MKT", false, 70, 70, 70, 70, 70)
+        };
+
+        // Nhóm B: Kỹ năng bị lệch cực đoan (Tech: 100, còn lại: 10)
+        var skewedMembers = new List<DistributeRoomMemberInput>
+        {
+            new("s1", "S1", "SE1", "SE", true, 100, 10, 10, 10, 10),
+            new("s2", "S2", "SE2", "SE", false, 100, 10, 10, 10, 10),
+            new("s3", "S3", "SE3", "SE", false, 100, 10, 10, 10, 10)
+        };
+
+        var scoreBalanced = MatchingCalculator.CalculateBalanceScore(balancedMembers);
+        var scoreSkewed = MatchingCalculator.CalculateBalanceScore(skewedMembers);
+
+        // Nhóm cân đối phải có BalanceScore cao hơn nhóm lệch cực đoan
+        Assert.True(scoreBalanced > scoreSkewed,
+            $"Expected balanced score ({scoreBalanced}) > skewed score ({scoreSkewed})");
+    }
 }

@@ -22,6 +22,7 @@ import type {
   DistributePreviewResponse,
   DistributeConfirmResponse,
   FinalizeSpaceResponse,
+  AiMentorResponse,
 } from '../types';
 
 export const groupsApi = {
@@ -248,6 +249,12 @@ export const groupsApi = {
 
   async finalizeSpace(spaceId: string): Promise<FinalizeSpaceResponse> {
     const res = await apiClient.post<FinalizeSpaceResponse>(`/spaces/${spaceId}/finalize`);
+    return res.data;
+  },
+
+  // ── Tier 2: AI Mentor Insights (Gemini / Heuristic) ─────────────────────────
+  async getAiMentorInsights(groupId: string): Promise<AiMentorResponse> {
+    const res = await apiClient.get<AiMentorResponse>(`/groups/${groupId}/ai-mentor`);
     return res.data;
   },
 };

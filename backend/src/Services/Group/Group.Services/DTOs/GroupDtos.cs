@@ -89,6 +89,32 @@ public record GroupDetailResponse(
     string? RoomCode = null,
     bool IsClosedByLeader = false);
 
-public record MemberResponse(Guid UserId, string FullName, string Role, Guid? SlotId, DateTime JoinedAt);
+public record MemberResponse(
+    Guid UserId,
+    string FullName,
+    string Role,
+    Guid? SlotId,
+    DateTime JoinedAt,
+    string? Email = null,
+    string? StudentCode = null);
 
 public record SlotResponse(Guid Id, string? RequiredMajor, IReadOnlyList<string> RequiredSkills, int Quantity, int Filled);
+
+/// <summary>Đề tài khởi nghiệp khuyến nghị từ AI Mentor cho nhóm.</summary>
+public record AiRecommendedTopicDto(
+    string Title,
+    string Description,
+    string TargetMarket,
+    string BusinessModel);
+
+/// <summary>Kết quả phân tích nhóm từ AI Mentor (Tier 2: Gemini API / Heuristic Fallback).</summary>
+public record AiMentorResponse(
+    Guid GroupId,
+    string OverallAssessment,
+    IReadOnlyList<string> Strengths,
+    IReadOnlyList<string> BlindSpots,
+    IReadOnlyList<AiRecommendedTopicDto> RecommendedTopics,
+    IReadOnlyList<string> FirstMonthRoadmap,
+    double SynergyScore,
+    bool IsAiGenerated,
+    string ModelName);

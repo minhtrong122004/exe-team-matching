@@ -20,13 +20,17 @@ public class CreateCourseSpaceRequestValidator : AbstractValidator<CreateCourseS
             .MaximumLength(100).WithMessage("Tên không gian không quá 100 ký tự.");
 
         RuleFor(x => x.MaxMembersPerGroup)
-            .InclusiveBetween(4, 6).WithMessage("Sĩ số tối đa một nhóm phải từ 4 đến 6 thành viên (BR-02, mặc định 5).");
+            .InclusiveBetween(4, 6).WithMessage("Sĩ số tối đa một nhóm phải từ 4 đến 6 thành viên (mặc định 5).");
 
         RuleFor(x => x.BufferRatio)
             .InclusiveBetween(1.0m, 2.0m).WithMessage("Hệ số dự phòng phải từ 1.0 đến 2.0 (mặc định 1.2).");
 
         RuleFor(x => x.MaxConcurrentApplies)
             .InclusiveBetween(1, 5).WithMessage("Số lượng đơn ứng tuyển chờ xử lý cùng lúc phải từ 1 đến 5 (mặc định 3).");
+
+        RuleFor(x => x.RegistrationDeadline)
+            .NotNull().WithMessage("Hạn chót đăng ký học phần là bắt buộc.")
+            .GreaterThan(DateTime.UtcNow).WithMessage("Hạn chót đăng ký phải lớn hơn thời điểm hiện tại.");
     }
 }
 
@@ -35,13 +39,20 @@ public class UpdateSpaceConfigRequestValidator : AbstractValidator<UpdateSpaceCo
     public UpdateSpaceConfigRequestValidator()
     {
         RuleFor(x => x.MaxMembersPerGroup)
-            .InclusiveBetween(4, 6).WithMessage("Sĩ số tối đa một nhóm phải từ 4 đến 6 thành viên (BR-02, mặc định 5).");
+            .InclusiveBetween(4, 6).WithMessage("Sĩ số tối đa một nhóm phải từ 4 đến 6 thành viên (mặc định 5).");
 
         RuleFor(x => x.BufferRatio)
             .InclusiveBetween(1.0m, 2.0m).WithMessage("Hệ số dự phòng phải từ 1.0 đến 2.0 (mặc định 1.2).");
 
         RuleFor(x => x.MaxConcurrentApplies)
             .InclusiveBetween(1, 5).WithMessage("Số lượng đơn ứng tuyển chờ xử lý cùng lúc phải từ 1 đến 5 (mặc định 3).");
+
+        RuleFor(x => x.RegistrationDeadline)
+            .NotEmpty().WithMessage("Hạn chót đăng ký học phần là bắt buộc.");
+
+        RuleFor(x => x.Name)
+            .MaximumLength(200).WithMessage("Tên Không gian học phần không được vượt quá 200 ký tự.")
+            .When(x => !string.IsNullOrEmpty(x.Name));
     }
 }
 

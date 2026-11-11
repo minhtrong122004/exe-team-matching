@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import type { FapStudentItem } from '../types/space';
 
 const SPREADSHEET_NS = 'urn:schemas-microsoft-com:office:spreadsheet';
@@ -12,13 +13,13 @@ const majorFromStudentCode = (studentCode: string): string => {
   if (/^(GD|HA|SA|CA)/.test(code)) return 'GD';
   if (/^(MKT|MK|MC)/.test(code)) return 'MKT';
   if (/^(IB|HS|SS|CS|BA)/.test(code)) return 'IB';
-  return 'Other';
+  return 'SE';
 };
 
 /** Khóa theo 2 chữ số đầu của MSSV, ví dụ SE190218 → K19 (BR-04). */
 const cohortFromStudentCode = (studentCode: string): string => {
   const match = /^[A-Za-z]*(\d{2})/.exec(studentCode);
-  return match ? `K${match[1]}` : '';
+  return match ? `K${match[1]}` : 'K19';
 };
 
 const csvCell = (value: string): string => value.replace(/[,\r\n]+/g, ' ').trim();
@@ -52,13 +53,15 @@ export const convertFapFileToCsv = (content: string): string => {
   const rows = readSpreadsheetRows(content);
   const header = (rows[0] ?? []).map((name) => name.toLowerCase());
   const column = (name: string) => header.indexOf(name.toLowerCase());
-  const codeColumn = column('RollNumber');
+  const codeColumn = column('RollNumber') >= 0 ? column('RollNumber') : column('studentcode');
   const emailColumn = column('Email');
-  const nameColumn = column('FullName');
-  const classColumn = column('Class');
+  const nameColumn = column('FullName') >= 0 ? column('FullName') : column('name');
+  const classColumn = column('Class') >= 0 ? column('Class') : column('classcode');
+  const majorCol = column('Major');
+  const cohortCol = column('Cohort');
 
   if (codeColumn < 0 || emailColumn < 0 || nameColumn < 0) {
-    throw new Error('File Excel phải có các cột RollNumber, Email và FullName.');
+    throw new Error('File Excel phải có các cột RollNumber (hoặc StudentCode), Email và FullName.');
   }
 
   // Giữ cả dòng trống và dòng thiếu dữ liệu để số dòng báo lỗi khớp với số dòng trong Excel.
@@ -66,13 +69,18 @@ export const convertFapFileToCsv = (content: string): string => {
     const studentCode = row[codeColumn] ?? '';
     const email = row[emailColumn] ?? '';
     if (!studentCode && !email) return '';
+    const major = majorCol >= 0 && row[majorCol] ? row[majorCol] : (studentCode ? majorFromStudentCode(studentCode) : 'SE');
+    const cohort = cohortCol >= 0 && row[cohortCol] ? row[cohortCol] : cohortFromStudentCode(studentCode);
+    const classCode = classColumn >= 0 ? row[classColumn] ?? '' : '';
+    const fullName = row[nameColumn] ?? '';
+
     return [
       studentCode,
       email,
-      row[nameColumn] ?? '',
-      studentCode ? majorFromStudentCode(studentCode) : '',
-      cohortFromStudentCode(studentCode),
-      classColumn >= 0 ? row[classColumn] ?? '' : '',
+      fullName,
+      major,
+      cohort,
+      classCode,
     ]
       .map(csvCell)
       .join(',');
@@ -131,8 +139,48 @@ export const parseFapCsv = (text: string): ParsedFapCsv => {
   return { students, errors };
 };
 
-/** Đọc file .xls hoặc .csv người dùng chọn. Ném lỗi nếu file Excel không đọc được. */
+/** Đọc file .xlsx, .xls hoặc .csv người dùng chọn. */
 export const readFapFile = async (file: File): Promise<ParsedFapCsv & { csv: string }> => {
-  const csv = convertFapFileToCsv(await file.text());
+  if (file.name.toLowerCase().endsWith('.xlsx')) {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!data || data.length === 0) {
+      return { csv: CSV_HEADER, students: [], errors: ['File Excel trống.'] };
+    }
+
+    const header = (data[0] ?? []).map((name: any) => String(name).toLowerCase().trim());
+    const column = (name: string) => header.indexOf(name.toLowerCase());
+    const codeColumn = column('RollNumber') >= 0 ? column('RollNumber') : column('studentcode');
+    const emailColumn = column('Email');
+    const nameColumn = column('FullName') >= 0 ? column('FullName') : column('name');
+    const classColumn = column('Class') >= 0 ? column('Class') : column('classcode');
+    const majorCol = column('Major');
+    const cohortCol = column('Cohort');
+
+    if (codeColumn < 0 || emailColumn < 0 || nameColumn < 0) {
+      throw new Error('File Excel phải có các cột RollNumber (hoặc StudentCode), Email và FullName.');
+    }
+
+    const lines = data.slice(1).map((row) => {
+      const studentCode = String(row[codeColumn] ?? '').trim();
+      const email = String(row[emailColumn] ?? '').trim();
+      if (!studentCode && !email) return '';
+      const major = majorCol >= 0 && row[majorCol] ? String(row[majorCol]).trim() : majorFromStudentCode(studentCode);
+      const cohort = cohortCol >= 0 && row[cohortCol] ? String(row[cohortCol]).trim() : cohortFromStudentCode(studentCode);
+      const classCode = classColumn >= 0 ? String(row[classColumn] ?? '').trim() : '';
+      const fullName = String(row[nameColumn] ?? '').trim();
+      return [studentCode, email, fullName, major, cohort, classCode].map(csvCell).join(',');
+    });
+
+    const csv = [CSV_HEADER, ...lines.filter(Boolean)].join('\n');
+    return { csv, ...parseFapCsv(csv) };
+  }
+
+  // XML Spreadsheet hoặc CSV
+  const text = await file.text();
+  const csv = convertFapFileToCsv(text);
   return { csv, ...parseFapCsv(csv) };
 };

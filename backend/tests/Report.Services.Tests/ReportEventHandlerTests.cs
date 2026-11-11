@@ -178,4 +178,65 @@ public class ReportEventHandlerTests
         Assert.Equal(4, _groupRepo.Items[0].MemberCount);
         Assert.Equal(GroupStatStatus.Recruiting, _groupRepo.Items[0].Status);
     }
+
+    [Fact]
+    public async Task HandleMemberTransferredPostLockAsync_UpdatesStudentAndBothGroupStatuses()
+    {
+        var fromGroupId = Guid.NewGuid();
+        var targetGroupId = Guid.NewGuid();
+        var studentId = Guid.NewGuid();
+
+        _groupRepo.Items.Add(new GroupStat
+        {
+            GroupId = fromGroupId,
+            Name = "EXE101 - Phòng 01",
+            LeaderId = Guid.NewGuid(),
+            MemberCount = 5,
+            MaxMembers = 5,
+            Status = GroupStatStatus.Full
+        });
+
+        _groupRepo.Items.Add(new GroupStat
+        {
+            GroupId = targetGroupId,
+            Name = "EXE101 - Phòng 02",
+            LeaderId = Guid.NewGuid(),
+            MemberCount = 4,
+            MaxMembers = 5,
+            Status = GroupStatStatus.Recruiting
+        });
+
+        _studentRepo.Items.Add(new StudentStat
+        {
+            UserId = studentId,
+            Email = "student@fpt.edu.vn",
+            FullName = "Student Transfer",
+            HasGroup = true,
+            GroupId = fromGroupId
+        });
+
+        var ev = new MemberTransferredPostLock(
+            Guid.NewGuid(),
+            studentId,
+            "Student Transfer",
+            "student@fpt.edu.vn",
+            fromGroupId,
+            "EXE101 - Phòng 01",
+            targetGroupId,
+            "EXE101 - Phòng 02",
+            null,
+            null,
+            "Lý do chuyển nhóm",
+            DateTime.UtcNow
+        );
+
+        var processed = await _sut.HandleMemberTransferredPostLockAsync(ev, Guid.NewGuid());
+
+        Assert.True(processed);
+        Assert.Equal(targetGroupId, _studentRepo.Items[0].GroupId);
+        Assert.Equal(4, _groupRepo.Items[0].MemberCount);
+        Assert.Equal(GroupStatStatus.Recruiting, _groupRepo.Items[0].Status);
+        Assert.Equal(5, _groupRepo.Items[1].MemberCount);
+        Assert.Equal(GroupStatStatus.Full, _groupRepo.Items[1].Status);
+    }
 }

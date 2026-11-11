@@ -43,7 +43,7 @@ public partial class CourseSpaceService(
         if (existing != null)
         {
             throw new BusinessRuleException("DUPLICATE_COURSE_SPACE",
-                $"Không gian môn học cho kỳ {normSem} và môn {normSub} đã tồn tại trong hệ thống (BR-01, BR-08).");
+                $"Không gian môn học cho kỳ {normSem} và môn {normSub} đã tồn tại trong hệ thống.");
         }
 
         var deadline = request.RegistrationDeadline ?? DateTime.UtcNow.AddDays(14);
@@ -97,9 +97,30 @@ public partial class CourseSpaceService(
         logger.LogInformation("Deleted empty CourseSpace {Id} - {SemesterCode} {SubjectCode}", space.Id, space.SemesterCode, space.SubjectCode);
     }
 
+    private async Task CheckAndUpdateExpiredDeadlinesAsync(IEnumerable<CourseSpace> spaces, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        bool hasChanges = false;
+        foreach (var s in spaces)
+        {
+            if (s.Status == CourseSpaceStatus.Open && s.RegistrationDeadline <= now)
+            {
+                s.Status = CourseSpaceStatus.ClosedRegistration;
+                s.UpdatedAt = now;
+                hasChanges = true;
+                logger.LogInformation("CourseSpace {SpaceId} auto-closed registration because deadline {Deadline} passed.", s.Id, s.RegistrationDeadline);
+            }
+        }
+        if (hasChanges)
+        {
+            await uow.SaveChangesAsync(ct);
+        }
+    }
+
     public async Task<IReadOnlyList<CourseSpaceResponse>> GetAllSpacesAsync(string? semesterCode, CourseSpaceStatus? status, CancellationToken ct = default)
     {
         var spaces = await spaceRepo.GetAllAsync(semesterCode, status, ct);
+        await CheckAndUpdateExpiredDeadlinesAsync(spaces, ct);
         return spaces.Select(s => ToResponse(s, s.Enrollments.Count, s.Rooms.Count)).ToList();
     }
 
@@ -107,6 +128,8 @@ public partial class CourseSpaceService(
     {
         var space = await spaceRepo.GetByIdAsync(spaceId, ct)
             ?? throw new NotFoundException("CourseSpace", spaceId);
+
+        await CheckAndUpdateExpiredDeadlinesAsync([space], ct);
 
         return ToResponse(space, space.Enrollments.Count, space.Rooms.Count);
     }
@@ -120,18 +143,18 @@ public partial class CourseSpaceService(
 
         if (space.Status == CourseSpaceStatus.Locked)
         {
-            throw new BusinessRuleException("SPACE_LOCKED", "Không thể chỉnh sửa cấu hình không gian môn học đã chốt sổ (BR-33).");
+            throw new BusinessRuleException("SPACE_LOCKED", "Không thể chỉnh sửa cấu hình không gian môn học đã chốt sổ.");
         }
 
         var newThreshold = (request.MaxMembersPerGroup / 2) + 1;
 
         // BR-08: sĩ số mới áp dụng cho cả các Room đã tạo, nên không được thấp hơn số người đang ở trong phòng.
-        var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
+        var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct) ?? [];
         var overfullRoom = trackedRooms.FirstOrDefault(r => r.Members.Count > request.MaxMembersPerGroup);
         if (overfullRoom != null)
         {
             throw new BusinessRuleException("MAX_MEMBERS_BELOW_MEMBER_COUNT",
-                $"Phòng {overfullRoom.RoomCode ?? overfullRoom.Name} đang có {overfullRoom.Members.Count} thành viên, không thể giảm sĩ số xuống {request.MaxMembersPerGroup} (BR-08).");
+                $"Phòng {overfullRoom.RoomCode ?? overfullRoom.Name} đang có {overfullRoom.Members.Count} thành viên, không thể giảm sĩ số xuống {request.MaxMembersPerGroup}.");
         }
 
         foreach (var room in trackedRooms)
@@ -141,11 +164,59 @@ public partial class CourseSpaceService(
             room.UpdatedAt = DateTime.UtcNow;
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            space.Name = request.Name.Trim();
+        }
+        var previousDeadline = space.RegistrationDeadline;
+        var isDeadlineExtendedToFuture =
+            request.RegistrationDeadline > DateTime.UtcNow &&
+            Math.Abs((request.RegistrationDeadline - previousDeadline).TotalSeconds) > 1;
+
         space.MaxMembersPerGroup = request.MaxMembersPerGroup;
         space.GroupThreshold = newThreshold;
         space.BufferRatio = request.BufferRatio;
         space.MaxConcurrentApplies = request.MaxConcurrentApplies;
         space.RegistrationDeadline = request.RegistrationDeadline;
+
+        var targetStatus = request.Status;
+        if (space.Status == CourseSpaceStatus.ClosedRegistration &&
+            isDeadlineExtendedToFuture &&
+            (!targetStatus.HasValue || targetStatus.Value == CourseSpaceStatus.ClosedRegistration))
+        {
+            targetStatus = CourseSpaceStatus.Open;
+        }
+
+        if (targetStatus.HasValue && targetStatus.Value != CourseSpaceStatus.Locked)
+        {
+            if (targetStatus.Value == CourseSpaceStatus.Open || targetStatus.Value == CourseSpaceStatus.ClosedRegistration)
+            {
+                var totalStudents = space.Enrollments.Count > 0
+                    ? space.Enrollments.Count
+                    : await spaceRepo.GetTotalEnrollmentsCountAsync(spaceId, ct);
+
+                if (totalStudents == 0)
+                {
+                    throw new BusinessRuleException("NO_ENROLLED_STUDENTS",
+                        "Không thể mở cổng đăng ký vì chưa nạp danh sách sinh viên FAP cho học phần này. Vui lòng nạp danh sách FAP trước.");
+                }
+
+                var totalRooms = space.Rooms.Count > 0 ? space.Rooms.Count : trackedRooms.Count;
+                if (totalRooms == 0)
+                {
+                    throw new BusinessRuleException("NO_ROOMS_GENERATED",
+                        "Không thể mở cổng đăng ký vì chưa khởi tạo phòng nhóm cho học phần này. Vui lòng bấm 'Khởi tạo Room tự động' trước.");
+                }
+
+                if (targetStatus.Value == CourseSpaceStatus.Open && request.RegistrationDeadline <= DateTime.UtcNow)
+                {
+                    throw new BusinessRuleException("DEADLINE_IN_PAST",
+                        "Không thể mở cổng đăng ký vì hạn chót đang ở trong quá khứ. Vui lòng gia hạn thời gian 'Hạn chót đăng ký' lớn hơn thời điểm hiện tại trước khi mở cổng.");
+                }
+            }
+
+            space.Status = targetStatus.Value;
+        }
         space.UpdatedAt = DateTime.UtcNow;
 
         await uow.SaveChangesAsync(ct);
@@ -164,7 +235,7 @@ public partial class CourseSpaceService(
 
         if (space.Status == CourseSpaceStatus.Locked)
         {
-            throw new BusinessRuleException("SPACE_LOCKED", "Không thể import sinh viên vào môn học đã chốt sổ (BR-33).");
+            throw new BusinessRuleException("SPACE_LOCKED", "Không thể import sinh viên vào môn học đã chốt sổ.");
         }
 
         var existingEnrollments = (await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct))
@@ -224,7 +295,7 @@ public partial class CourseSpaceService(
         if (totalStudents == 0)
         {
             throw new BusinessRuleException("NO_ENROLLED_STUDENTS",
-                "Không thể tạo phòng vì chưa có sinh viên nào được ghi danh trong môn học này (BR-01, BR-09). Vui lòng import danh sách FAP trước.");
+                "Không thể tạo phòng vì chưa có sinh viên nào được ghi danh trong môn học này. Vui lòng import danh sách FAP trước.");
         }
 
         // Công thức BR-09: TotalRooms = ceil(TotalStudents / MaxMembersPerGroup * BufferRatio)
@@ -240,7 +311,7 @@ public partial class CourseSpaceService(
         if (activeRoomsWithMembers.Count > 0)
         {
             throw new BusinessRuleException("ROOMS_IN_USE",
-                $"Không thể tái khởi tạo toàn bộ phòng vì đã có {activeRoomsWithMembers.Count} phòng có thành viên tham gia hoặc đang trong quy trình hoạt động (BR-09).");
+                $"Không thể tái khởi tạo toàn bộ phòng vì đã có {activeRoomsWithMembers.Count} phòng có thành viên tham gia hoặc đang trong quy trình hoạt động.");
         }
 
         if (existingRooms.Count > 0)
@@ -262,7 +333,7 @@ public partial class CourseSpaceService(
                 SpaceId = space.Id,
                 RoomCode = roomCode,
                 Name = $"{space.SubjectCode} - Phòng {i:D2}",
-                Description = $"Phòng ghép nhóm tự do môn {space.SubjectCode} học kỳ {space.SemesterCode} (BR-09, BR-11)",
+                Description = $"Phòng ghép nhóm tự do môn {space.SubjectCode} học kỳ {space.SemesterCode}",
                 LeaderId = null,
                 ProjectId = null,
                 ProjectDomain = "General",
@@ -314,6 +385,7 @@ public partial class CourseSpaceService(
     public async Task<IReadOnlyList<CourseSpaceResponse>> GetMySpacesAsync(Guid studentId, string? email = null, CancellationToken ct = default)
     {
         var spaces = await spaceRepo.GetSpacesForStudentAsync(studentId, email, ct);
+        await CheckAndUpdateExpiredDeadlinesAsync(spaces, ct);
         return spaces.Select(s => ToResponse(s, s.Enrollments.Count, s.Rooms.Count)).ToList();
     }
 
@@ -344,9 +416,10 @@ public partial class CourseSpaceService(
 
         return page.Map(r =>
         {
-            // BR-13: phòng đã đủ hoặc đã đóng thì ẩn Leader với sinh viên ngoài nhóm.
+            // BR-13: phòng đã đủ hoặc đã đóng trong giai đoạn tuyển dụng (Closed) thì ẩn Leader với sinh viên ngoài nhóm.
+            // Hậu chốt sổ (Locked), hiển thị Leader để sinh viên dễ dàng nhận diện phòng khi điều chuyển.
             var hideLeader = isStudent
-                             && r.Status is GroupStatus.Closed or GroupStatus.Locked
+                             && r.Status == GroupStatus.Closed
                              && r.Members.All(m => m.UserId != currentUser.UserId);
 
             return new RoomSummaryResponse(
@@ -370,7 +443,7 @@ public partial class CourseSpaceService(
 
         if (space.Status == CourseSpaceStatus.Locked)
         {
-            throw new BusinessRuleException("SPACE_LOCKED", "Không gian môn học đã chốt sổ, không thể thay đổi trạng thái (BR-33).");
+            throw new BusinessRuleException("SPACE_LOCKED", "Không gian môn học đã chốt sổ, không thể thay đổi trạng thái.");
         }
 
         space.Status = CourseSpaceStatus.ClosedRegistration;
@@ -588,7 +661,7 @@ public partial class CourseSpaceService(
 
         if (space.Status == CourseSpaceStatus.Locked)
         {
-            throw new BusinessRuleException("SPACE_LOCKED", "Không thể phân phối sinh viên vào không gian môn học đã chốt sổ (BR-33).");
+            throw new BusinessRuleException("SPACE_LOCKED", "Không thể phân phối sinh viên vào không gian môn học đã chốt sổ.");
         }
 
         var preview = await PreviewDistributionAsync(spaceId, ct);
@@ -693,27 +766,33 @@ public partial class CourseSpaceService(
 
         if (space.Status == CourseSpaceStatus.Locked)
         {
-            throw new BusinessRuleException("ALREADY_FINALIZED", "Không gian môn học này đã được chốt sổ trước đó (BR-33).");
+            throw new BusinessRuleException("ALREADY_FINALIZED", "Không gian môn học này đã được chốt sổ trước đó.");
         }
 
         if (space.Status != CourseSpaceStatus.ClosedRegistration)
         {
             throw new BusinessRuleException("REGISTRATION_NOT_CLOSED",
-                "Phải đóng đăng ký trước khi chốt sổ (BR-30, BR-33).");
+                "Phải đóng đăng ký trước khi chốt sổ.");
         }
 
         var now = DateTime.UtcNow;
 
-        space.Status = CourseSpaceStatus.Locked;
-        space.UpdatedAt = now;
-
         var trackedRooms = await spaceRepo.GetTrackedRoomsBySpaceAsync(spaceId, ct);
         int lockedRoomsCount = 0;
 
-        // Vẫn cho chốt khi còn sinh viên lẻ, nhưng báo số lượng để Moderator biết và xử lý bằng chuyển nhóm.
         var joinedUserIds = trackedRooms.SelectMany(r => r.Members.Select(m => m.UserId)).ToHashSet();
         var unmatchedStudentsCount = (await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct))
             .Count(e => !joinedUserIds.Contains(e.StudentId));
+
+        var availableCapacity = trackedRooms.Sum(r => Math.Max(0, space.MaxMembersPerGroup - r.Members.Count));
+        if (unmatchedStudentsCount > 0 && availableCapacity > 0)
+        {
+            throw new BusinessRuleException("UNMATCHED_STUDENTS_REMAINING",
+                $"Không thể chốt sổ học kỳ vì còn {unmatchedStudentsCount} sinh viên lẻ chưa được ghép nhóm. Vui lòng thực hiện 'Điều phối Sinh viên lẻ' trước khi chốt sổ.");
+        }
+
+        space.Status = CourseSpaceStatus.Locked;
+        space.UpdatedAt = now;
 
         foreach (var room in trackedRooms)
         {
@@ -829,12 +908,12 @@ public partial class CourseSpaceService(
             s.GroupThreshold,
             s.BufferRatio,
             s.MaxConcurrentApplies,
-            s.RegistrationDeadline,
+            DateTime.SpecifyKind(s.RegistrationDeadline, DateTimeKind.Utc),
             s.Status.ToString(),
             totalStudents,
             totalRooms,
-            s.CreatedAt,
-            s.UpdatedAt
+            DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc),
+            DateTime.SpecifyKind(s.UpdatedAt, DateTimeKind.Utc)
         );
     }
 
@@ -944,12 +1023,12 @@ public partial class CourseSpaceService(
         if (space.Status != CourseSpaceStatus.Locked)
         {
             throw new BusinessRuleException("SPACE_NOT_LOCKED",
-                "Điều chuyển sinh viên sau chốt sổ chỉ được thực hiện khi Không gian học phần đã Chốt sổ (Locked) theo BR-35.");
+                "Điều chuyển sinh viên sau chốt sổ chỉ được thực hiện khi Không gian học phần đã Chốt sổ (Locked).");
         }
 
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do điều chuyển sinh viên (BR-36).");
+            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do điều chuyển sinh viên.");
         }
 
         var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
@@ -983,13 +1062,13 @@ public partial class CourseSpaceService(
             if (targetGroup.Members.Count >= space.MaxMembersPerGroup)
             {
                 throw new BusinessRuleException("TARGET_GROUP_FULL",
-                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Theo BR-37, hãy chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
+                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Hãy chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
             }
 
             if (fromGroup.Members.Count - 1 < space.GroupThreshold)
             {
                 throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
-                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ có {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV của môn học). Theo BR-37, bắt buộc phải chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
+                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ có {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV của môn học). Bắt buộc phải chọn Đổi chéo (Swap) với 1 sinh viên của nhóm đích.");
             }
         }
         else
@@ -1059,7 +1138,7 @@ public partial class CourseSpaceService(
             CreatedAt = DateTime.UtcNow,
             DecidedAt = DateTime.UtcNow,
             DecidedByModeratorId = moderatorId,
-            DecisionReason = "Điều chuyển trực tiếp bởi Moderator (BR-35)"
+            DecisionReason = "Điều chuyển trực tiếp bởi Moderator"
         };
 
         spaceRepo.AddTransferRequest(transferLog);
@@ -1095,19 +1174,19 @@ public partial class CourseSpaceService(
         if (space.Status != CourseSpaceStatus.Locked)
         {
             throw new BusinessRuleException("SPACE_NOT_LOCKED",
-                "Yêu cầu chuyển nhóm chỉ được gửi sau khi Không gian học phần đã Chốt sổ (Locked) theo BR-36.");
+                "Yêu cầu chuyển nhóm chỉ được gửi sau khi Không gian học phần đã Chốt sổ (Locked).");
         }
 
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do xin chuyển nhóm (BR-36).");
+            throw new BusinessRuleException("REASON_REQUIRED", "Vui lòng nhập lý do xin chuyển nhóm.");
         }
 
         var hasPending = await spaceRepo.HasPendingTransferRequestAsync(spaceId, studentId, ct);
         if (hasPending)
         {
             throw new BusinessRuleException("PENDING_REQUEST_EXISTS",
-                "Bạn đã có một yêu cầu chuyển nhóm đang chờ Moderator duyệt trong môn học này (BR-36).");
+                "Bạn đã có một yêu cầu chuyển nhóm đang chờ Moderator duyệt trong môn học này.");
         }
 
         var enrollments = await spaceRepo.GetEnrollmentsBySpaceAsync(spaceId, ct);
@@ -1140,13 +1219,13 @@ public partial class CourseSpaceService(
             if (targetGroup.Members.Count >= space.MaxMembersPerGroup)
             {
                 throw new BusinessRuleException("TARGET_GROUP_FULL",
-                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Theo BR-37, bạn cần chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
+                    $"Nhóm đích ({targetGroup.RoomCode ?? targetGroup.Name}) đã đạt sĩ số tối đa ({space.MaxMembersPerGroup} SV). Bạn cần chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
             }
 
             if (fromGroup.Members.Count - 1 < space.GroupThreshold)
             {
                 throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
-                    $"Nhóm hiện tại của bạn ({fromGroup.RoomCode ?? fromGroup.Name}) chỉ có {fromGroup.Members.Count} SV. Nếu bạn chuyển đi sẽ còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Theo BR-37, bạn bắt buộc phải chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
+                    $"Nhóm hiện tại của bạn ({fromGroup.RoomCode ?? fromGroup.Name}) chỉ có {fromGroup.Members.Count} SV. Nếu bạn chuyển đi sẽ còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Bạn bắt buộc phải chọn Đổi chéo (Swap) với một thành viên của nhóm đích.");
             }
         }
         else
@@ -1288,7 +1367,7 @@ public partial class CourseSpaceService(
             if (fromGroup.Members.Count - 1 < space.GroupThreshold)
             {
                 throw new BusinessRuleException("FROM_GROUP_BELOW_THRESHOLD",
-                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ còn {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Theo BR-37, bắt buộc phải đổi chéo (Swap).");
+                    $"Nhóm cũ ({fromGroup.RoomCode ?? fromGroup.Name}) hiện chỉ còn {fromGroup.Members.Count} SV. Chuyển đi sẽ giảm còn {fromGroup.Members.Count - 1} SV (dưới ngưỡng tối thiểu {space.GroupThreshold} SV). Bắt buộc phải đổi chéo (Swap).");
             }
         }
         else
@@ -1339,7 +1418,7 @@ public partial class CourseSpaceService(
         transferReq.Status = TransferRequestStatus.Approved;
         transferReq.DecidedAt = DateTime.UtcNow;
         transferReq.DecidedByModeratorId = moderatorId;
-        transferReq.DecisionReason = request.DecisionReason?.Trim() ?? "Moderator đã duyệt yêu cầu chuyển nhóm (BR-36).";
+        transferReq.DecisionReason = request.DecisionReason?.Trim() ?? "Moderator đã duyệt yêu cầu chuyển nhóm.";
 
         await uow.SaveChangesAsync(ct);
         logger.LogInformation("Moderator {ModId} APPROVED transfer request {ReqId}: Student {StudentCode} moved to Group {TargetGroup}",

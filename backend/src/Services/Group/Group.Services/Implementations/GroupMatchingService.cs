@@ -92,6 +92,58 @@ public class GroupMatchingService(
             .ToList();
     }
 
+    public async Task<AiMentorResponse> GetAiMentorInsightsAsync(Guid groupId, CancellationToken ct = default)
+    {
+        var group = await groups.GetByIdAsync(groupId, ct) ?? throw new NotFoundException("Group", groupId);
+        var memberProfiles = await userClient.GetProfilesAsync(group.Members.Select(m => m.UserId), ct);
+
+        ProjectDto? project = null;
+        if (group.ProjectId.HasValue)
+        {
+            project = await projectClient.GetProjectAsync(group.ProjectId.Value, ct);
+        }
+
+        var req = new AnalyzeGroupRequest
+        {
+            GroupId = group.Id.ToString(),
+            GroupCode = group.RoomCode ?? group.Name,
+            GroupName = group.Name,
+            ProjectDomain = project?.Domain ?? group.ProjectDomain ?? "Khởi nghiệp chung",
+            ProjectTopic = project?.Title ?? group.Description ?? string.Empty
+        };
+
+        foreach (var m in group.Members)
+        {
+            var prof = memberProfiles.FirstOrDefault(p => p.UserId == m.UserId);
+            req.Members.Add(new AnalyzeGroupMember
+            {
+                UserId = m.UserId.ToString(),
+                FullName = prof?.FullName ?? m.FullName,
+                StudentCode = prof?.Major ?? string.Empty,
+                Major = prof?.Major ?? "Chưa rõ",
+                IsLeader = group.LeaderId == m.UserId,
+                TechScore = prof?.TechScore ?? 50,
+                ManagementScore = prof?.ManagementScore ?? 50,
+                GraphicDesignScore = prof?.GraphicDesignScore ?? 50,
+                MarketingScore = prof?.MarketingScore ?? 50,
+                SaleScore = prof?.SaleScore ?? 50
+            });
+        }
+
+        var result = await matchingClient.AnalyzeGroupWithAIAsync(req, ct);
+
+        return new AiMentorResponse(
+            group.Id,
+            result.OverallAssessment,
+            result.Strengths.ToList(),
+            result.BlindSpots.ToList(),
+            result.RecommendedTopics.Select(t => new AiRecommendedTopicDto(t.Title, t.Description, t.TargetMarket, t.BusinessModel)).ToList(),
+            result.FirstMonthRoadmap.ToList(),
+            result.SynergyScore,
+            result.IsAiGenerated,
+            result.ModelName);
+    }
+
     private async Task<UserProfileDto> GetCurrentProfileAsync(CancellationToken ct) =>
         await userClient.GetProfileAsync(currentUser.UserId, ct)
         ?? throw new NotFoundException("User profile", currentUser.UserId);

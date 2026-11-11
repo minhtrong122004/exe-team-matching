@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
-import { errorMessage } from '../api/workspace';
 import { useAuth } from '../contexts/AuthContext';
 import type { ProjectItem, ProjectDomain, ProjectStatus, PagedResult } from '../types';
 import {
@@ -162,7 +162,7 @@ export const ProjectsPage: React.FC = () => {
     }, 3200);
   }, []);
 
-  // Fetch Projects from API (không còn dữ liệu mẫu: lỗi thì báo lỗi, rỗng thì hiện trạng thái rỗng)
+  // Fetch Projects from API
   const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
@@ -177,19 +177,23 @@ export const ProjectsPage: React.FC = () => {
       params.append('pageSize', viewMode === 'grid' ? '6' : '10');
 
       const res = await apiClient.get<PagedResult<ProjectItem>>(`/projects?${params.toString()}`);
-      const items = res.data?.items ?? [];
-      setProjects(items);
-      setTotalCount(res.data?.totalCount ?? items.length);
-      setTotalPages(Math.max(1, res.data?.totalPages || 1));
-    } catch (err) {
+      if (res.data && res.data.items) {
+        setProjects(res.data.items);
+        setTotalCount(res.data.totalCount || res.data.items.length);
+        setTotalPages(Math.max(1, res.data.totalPages || 1));
+      } else {
+        setProjects([]);
+        setTotalCount(0);
+        setTotalPages(1);
+      }
+    } catch {
       setProjects([]);
       setTotalCount(0);
       setTotalPages(1);
-      showToast(errorMessage(err, 'Không tải được danh sách dự án.'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user, showToast]);
+  }, [search, domain, status, filterMyProjects, sortBy, sortDir, page, viewMode, user]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1383,13 +1387,14 @@ export const ProjectsPage: React.FC = () => {
       )}
 
       {/* ── Modal: Tạo mới / Chỉnh sửa Ý tưởng ── */}
-      {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 700, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
-          >
+      {isModalOpen &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 700, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
+            >
             <div
               style={{
                 padding: '1.25rem 1.75rem',
@@ -1657,17 +1662,19 @@ export const ProjectsPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Modal: Chi tiết Ý tưởng Dự án ── */}
-      {selectedProject && (
-        <div className="modal-overlay" onClick={() => setSelectedProject(null)}>
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 720, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
-          >
+      {selectedProject &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setSelectedProject(null)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 720, backgroundColor: 'var(--bg-card)', borderRadius: '20px', overflow: 'hidden', padding: 0 }}
+            >
             {/* Header */}
             <div
               style={{
@@ -1877,13 +1884,15 @@ export const ProjectsPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Dialog: Hướng dẫn & Liên kết tạo nhóm EXE (Thay thế alert thô sơ) ── */}
-      {groupLinkModal && (
-        <div className="modal-overlay" onClick={() => setGroupLinkModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
+      {groupLinkModal &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setGroupLinkModal(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 540 }}>
             <div style={{ padding: '1.5rem', textAlign: 'center' }}>
               <div
                 style={{
@@ -1957,51 +1966,54 @@ export const ProjectsPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Dialog: Xác nhận Xóa Ý tưởng (Thay thế window.confirm) ── */}
-      {confirmDelete && (
-        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
-            <div style={{ padding: '1.5rem', textAlign: 'center' }}>
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: '50%',
-                  background: 'var(--danger-light)',
-                  color: 'var(--danger)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1rem auto',
-                }}
-              >
-                <Trash2 size={24} />
-              </div>
+      {confirmDelete &&
+        createPortal(
+          <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+              <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    background: 'var(--danger-light)',
+                    color: 'var(--danger)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 1rem auto',
+                  }}
+                >
+                  <Trash2 size={24} />
+                </div>
 
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
-                Xác nhận xóa ý tưởng dự án?
-              </h3>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+                  Xác nhận xóa ý tưởng dự án?
+                </h3>
 
-              <p style={{ fontSize: '0.975rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-                Bạn có chắc chắn muốn xóa vĩnh viễn ý tưởng <strong>"{confirmDelete.title}"</strong> không? Thao tác này
-                không thể hoàn tác.
-              </p>
+                <p style={{ fontSize: '0.975rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+                  Bạn có chắc chắn muốn xóa vĩnh viễn ý tưởng <strong>"{confirmDelete.title}"</strong> không? Thao tác này
+                  không thể hoàn tác.
+                </p>
 
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-                <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>
-                  Hủy bỏ
-                </button>
-                <button className="btn btn-danger" onClick={executeDelete}>
-                  Xác nhận xóa
-                </button>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+                  <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>
+                    Hủy bỏ
+                  </button>
+                  <button className="btn btn-danger" onClick={executeDelete}>
+                    Xác nhận xóa
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

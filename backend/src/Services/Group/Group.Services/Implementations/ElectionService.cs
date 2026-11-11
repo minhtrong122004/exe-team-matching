@@ -25,7 +25,7 @@ public class ElectionService(
 
         if (group.Members.Count < 2)
         {
-            throw new BusinessRuleException("INSUFFICIENT_MEMBERS", "Nhóm phải có từ 2 thành viên trở lên mới có thể tổ chức bầu chọn Leader (BR-19).");
+            throw new BusinessRuleException("INSUFFICIENT_MEMBERS", "Nhóm phải có từ 2 thành viên trở lên mới có thể tổ chức bầu chọn Leader.");
         }
 
         var candidate = group.Members.FirstOrDefault(m => m.UserId == request.CandidateId)
@@ -43,7 +43,7 @@ public class ElectionService(
             if (DateTime.UtcNow < existing.ExpiresAt)
             {
                 throw new BusinessRuleException("ACTIVE_ELECTION_EXISTS",
-                    $"Nhóm đang có cuộc bầu chọn cho ứng viên {existing.CandidateName} còn hiệu lực đến {existing.ExpiresAt:HH:mm dd/MM/yyyy} (BR-19).");
+                    $"Nhóm đang có cuộc bầu chọn cho ứng viên {existing.CandidateName} còn hiệu lực đến {existing.ExpiresAt:HH:mm dd/MM/yyyy}.");
             }
             existing.Status = ElectionStatus.TimedOut;
             existing.CompletedAt = existing.ExpiresAt;
@@ -101,7 +101,7 @@ public class ElectionService(
             election.Status = ElectionStatus.TimedOut;
             election.CompletedAt = election.ExpiresAt;
             await uow.SaveChangesAsync(ct);
-            throw new BusinessRuleException("ELECTION_EXPIRED", "Cuộc bầu cử đã hết thời hạn 24 giờ (BR-19).");
+            throw new BusinessRuleException("ELECTION_EXPIRED", "Cuộc bầu cử đã hết thời hạn 24 giờ.");
         }
 
         // BR-19: ứng viên đã rời nhóm thì cuộc bầu không còn hiệu lực.
@@ -110,7 +110,7 @@ public class ElectionService(
             election.Status = ElectionStatus.Failed;
             election.CompletedAt = now;
             await uow.SaveChangesAsync(ct);
-            throw new BusinessRuleException("ELECTION_CANDIDATE_LEFT", $"{election.CandidateName} đã rời nhóm nên cuộc bầu này đã kết thúc (BR-19).");
+            throw new BusinessRuleException("ELECTION_CANDIDATE_LEFT", $"{election.CandidateName} đã rời nhóm nên cuộc bầu này đã kết thúc.");
         }
 
         if (election.Votes.Any(v => v.VoterId == currentUserId))

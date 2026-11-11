@@ -501,6 +501,39 @@ public class BusinessRuleServiceTests
         Assert.Equal(6, room.MaxMembers);
     }
 
+    [Fact]
+    public async Task OpeningSpaceWithoutStudents_IsRejected_BR08()
+    {
+        var space = Space(CourseSpaceStatus.Draft, 5);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetByIdAsync), (CourseSpace?)space);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTotalEnrollmentsCountAsync), 0);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            CreateSpaceService().UpdateSpaceConfigAsync(
+                space.Id,
+                new UpdateSpaceConfigRequest(5, 1.2m, 3, DateTime.UtcNow.AddDays(1), Status: CourseSpaceStatus.Open)));
+
+        Assert.Equal("NO_ENROLLED_STUDENTS", ex.Code);
+        Assert.Equal(CourseSpaceStatus.Draft, space.Status);
+    }
+
+    [Fact]
+    public async Task OpeningSpaceWithoutRooms_IsRejected_BR09()
+    {
+        var space = Space(CourseSpaceStatus.Draft, 5);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetByIdAsync), (CourseSpace?)space);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTotalEnrollmentsCountAsync), 25);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTrackedRoomsBySpaceAsync), (IReadOnlyList<GroupEntity>)[]);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            CreateSpaceService().UpdateSpaceConfigAsync(
+                space.Id,
+                new UpdateSpaceConfigRequest(5, 1.2m, 3, DateTime.UtcNow.AddDays(1), Status: CourseSpaceStatus.Open)));
+
+        Assert.Equal("NO_ROOMS_GENERATED", ex.Code);
+        Assert.Equal(CourseSpaceStatus.Draft, space.Status);
+    }
+
     // ── Finalize ────────────────────────────────────────────────────────────
 
     [Theory]
@@ -518,7 +551,26 @@ public class BusinessRuleServiceTests
     }
 
     [Fact]
-    public async Task Finalize_LocksGroups_RejectsPending_AndReportsUnmatchedStudents_BR33()
+    public async Task Finalize_WhenUnmatchedStudentsRemainAndCapacityAvailable_IsRejected_BR31_BR33()
+    {
+        var space = Space(CourseSpaceStatus.ClosedRegistration);
+        var room = Room(GroupStatus.Recruiting, 3, spaceId: space.Id);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetByIdAsync), (CourseSpace?)space);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTrackedRoomsBySpaceAsync), (IReadOnlyList<GroupEntity>)[room]);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetEnrollmentsBySpaceAsync), (IReadOnlyList<SpaceEnrollment>)
+        [
+            new SpaceEnrollment { StudentId = room.Members[0].UserId },
+            new SpaceEnrollment { StudentId = Guid.NewGuid() },
+        ]);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => CreateSpaceService().FinalizeSpaceAsync(space.Id));
+
+        Assert.Equal("UNMATCHED_STUDENTS_REMAINING", ex.Code);
+        Assert.Equal(CourseSpaceStatus.ClosedRegistration, space.Status);
+    }
+
+    [Fact]
+    public async Task Finalize_LocksGroups_AndRejectsPending_WhenAllStudentsMatched_BR33()
     {
         var space = Space(CourseSpaceStatus.ClosedRegistration);
         var room = Room(GroupStatus.Recruiting, 3, spaceId: space.Id);
@@ -529,7 +581,8 @@ public class BusinessRuleServiceTests
         _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetEnrollmentsBySpaceAsync), (IReadOnlyList<SpaceEnrollment>)
         [
             new SpaceEnrollment { StudentId = room.Members[0].UserId },
-            new SpaceEnrollment { StudentId = Guid.NewGuid() },
+            new SpaceEnrollment { StudentId = room.Members[1].UserId },
+            new SpaceEnrollment { StudentId = room.Members[2].UserId },
         ]);
 
         var result = await CreateSpaceService().FinalizeSpaceAsync(space.Id);
@@ -537,7 +590,24 @@ public class BusinessRuleServiceTests
         Assert.Equal(CourseSpaceStatus.Locked, space.Status);
         Assert.Equal(GroupStatus.Locked, room.Status);
         Assert.Equal(JoinRequestStatus.Rejected, pending.Status);
-        Assert.Equal(1, result.UnmatchedStudentsCount);
+        Assert.Equal(0, result.UnmatchedStudentsCount);
+    }
+
+    [Fact]
+    public async Task ExtendingDeadlineOnClosedRegistrationSpace_AutomaticallyReopensSpace()
+    {
+        var space = Space(CourseSpaceStatus.ClosedRegistration);
+        space.RegistrationDeadline = DateTime.UtcNow.AddHours(-1);
+        var room = Room(GroupStatus.Recruiting, 3, spaceId: space.Id);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetByIdAsync), (CourseSpace?)space);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTotalEnrollmentsCountAsync), 25);
+        _spaces.Config.Returns(nameof(ICourseSpaceRepository.GetTrackedRoomsBySpaceAsync), (IReadOnlyList<GroupEntity>)[room]);
+
+        await CreateSpaceService().UpdateSpaceConfigAsync(
+            space.Id,
+            new UpdateSpaceConfigRequest(5, 1.2m, 3, DateTime.UtcNow.AddHours(2), Status: CourseSpaceStatus.ClosedRegistration));
+
+        Assert.Equal(CourseSpaceStatus.Open, space.Status);
     }
 
     // ── BR-31, BR-26 ────────────────────────────────────────────────────────

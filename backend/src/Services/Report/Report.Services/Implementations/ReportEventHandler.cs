@@ -247,6 +247,9 @@ public class ReportEventHandler : IReportEventHandler
             if (fromGroup is not null)
             {
                 fromGroup.MemberCount = Math.Max(0, fromGroup.MemberCount - 1);
+                fromGroup.Status = fromGroup.MemberCount >= fromGroup.MaxMembers
+                    ? GroupStatStatus.Full
+                    : (fromGroup.MemberCount == 0 ? GroupStatStatus.Archived : GroupStatStatus.Recruiting);
                 fromGroup.UpdatedAt = DateTime.UtcNow;
                 _groupRepo.Update(fromGroup);
             }
@@ -255,6 +258,9 @@ public class ReportEventHandler : IReportEventHandler
             if (targetGroup is not null)
             {
                 targetGroup.MemberCount++;
+                targetGroup.Status = targetGroup.MemberCount >= targetGroup.MaxMembers
+                    ? GroupStatStatus.Full
+                    : GroupStatStatus.Recruiting;
                 targetGroup.UpdatedAt = DateTime.UtcNow;
                 _groupRepo.Update(targetGroup);
             }

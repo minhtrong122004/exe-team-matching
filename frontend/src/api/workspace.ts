@@ -35,10 +35,12 @@ export interface CreateSpacePayload {
   maxMembersPerGroup: number;
   bufferRatio: number;
   maxConcurrentApplies: number;
-  registrationDeadline?: string | null;
+  /** Bắt buộc và phải sau thời điểm hiện tại (validator Group Service). */
+  registrationDeadline: string;
 }
 
 export interface SpaceConfigPayload {
+  name?: string | null;
   maxMembersPerGroup: number;
   bufferRatio: number;
   maxConcurrentApplies: number;
@@ -94,6 +96,8 @@ export interface GroupMember {
   role: 'Leader' | 'Member';
   slotId?: string | null;
   joinedAt: string;
+  email?: string | null;
+  studentCode?: string | null;
 }
 
 export interface GroupSlot {

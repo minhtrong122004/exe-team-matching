@@ -195,6 +195,7 @@ services:
       - "5005:8080"
     environment:
       <<: *dotnet-env
+      Gemini__ApiKey: ${GEMINI_API_KEY:-AQ.Ab8RN6ILZMjQVU_F2S7P0XdPn_sI2icUpuCZTpYp_7DZB6DbgQ}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "--http2-prior-knowledge", "http://localhost:8080/health"]
       interval: 10s

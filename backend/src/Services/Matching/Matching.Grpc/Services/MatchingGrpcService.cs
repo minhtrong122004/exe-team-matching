@@ -8,9 +8,12 @@ namespace Matching.Grpc.Services;
 
 /// <summary>
 /// gRPC endpoint của Matching Service (CLAUDE.md mục 8). Chỉ map proto ↔ model rồi gọi
-/// <see cref="IMatchingCalculator"/>; không chứa công thức.
+/// <see cref="IMatchingCalculator"/> và <see cref="IAiMentorService"/>; không chứa công thức.
 /// </summary>
-public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<MatchingGrpcService> logger)
+public sealed class MatchingGrpcService(
+    IMatchingCalculator calculator,
+    IAiMentorService aiMentorService,
+    ILogger<MatchingGrpcService> logger)
     : MatchingService.MatchingServiceBase
 {
     public override Task<MatchResult> CalculateMatch(MatchRequest request, ServerCallContext context)
@@ -126,6 +129,61 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         return Task.FromResult(response);
     }
 
+    public override async Task<AnalyzeGroupResponse> AnalyzeGroupWithAI(AnalyzeGroupRequest request, ServerCallContext context)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var sw = Stopwatch.StartNew();
+
+        var members = request.Members.Select(m => new AnalyzeGroupMemberInput(
+            m.UserId,
+            m.FullName,
+            m.StudentCode,
+            m.Major,
+            m.IsLeader,
+            m.TechScore,
+            m.ManagementScore,
+            m.GraphicDesignScore,
+            m.MarketingScore,
+            m.SaleScore)).ToList();
+
+        var input = new AnalyzeGroupInput(
+            request.GroupId,
+            request.GroupCode,
+            request.GroupName,
+            request.ProjectDomain,
+            request.ProjectTopic,
+            members);
+
+        var outcome = await aiMentorService.AnalyzeGroupAsync(input, context.CancellationToken);
+
+        logger.LogInformation(
+            "[GRPC] AnalyzeGroupWithAI groupId={GroupId} isAi={IsAi} model={Model} duration={Duration}ms correlationId={CorrelationId}",
+            outcome.GroupId, outcome.IsAiGenerated, outcome.ModelName, sw.ElapsedMilliseconds, CorrelationId(context));
+
+        var response = new AnalyzeGroupResponse
+        {
+            GroupId = outcome.GroupId,
+            OverallAssessment = outcome.OverallAssessment,
+            SynergyScore = outcome.SynergyScore,
+            IsAiGenerated = outcome.IsAiGenerated,
+            ModelName = outcome.ModelName
+        };
+
+        response.Strengths.AddRange(outcome.Strengths);
+        response.BlindSpots.AddRange(outcome.BlindSpots);
+        response.FirstMonthRoadmap.AddRange(outcome.FirstMonthRoadmap);
+        response.RecommendedTopics.AddRange(outcome.RecommendedTopics.Select(t => new AiRecommendedTopic
+        {
+            Title = t.Title,
+            Description = t.Description,
+            TargetMarket = t.TargetMarket,
+            BusinessModel = t.BusinessModel
+        }));
+
+        return response;
+    }
+
     private static DistributeRoomInput ToRoomInput(DistributeRoom r) =>
         new(
             r.RoomId,
@@ -157,10 +215,12 @@ public sealed class MatchingGrpcService(IMatchingCalculator calculator, ILogger<
         };
 
     private static StudentInput ToInput(StudentProfile p) =>
-        new(p.UserId, p.Major, p.Skills, p.Interests);
+        new(p.UserId, p.Major, p.Skills, p.Interests,
+            p.TechScore, p.ManagementScore, p.GraphicDesignScore, p.MarketingScore, p.SaleScore);
 
     private static GroupInput ToInput(GroupNeed g) =>
-        new(g.GroupId, g.RequiredMajors, g.RequiredSkills, g.ProjectDomain);
+        new(g.GroupId, g.RequiredMajors, g.RequiredSkills, g.ProjectDomain,
+            g.AvgTechScore, g.AvgManagementScore, g.AvgGraphicDesignScore, g.AvgMarketingScore, g.AvgSaleScore);
 
     private static MatchResult ToResult(MatchOutcome o)
     {

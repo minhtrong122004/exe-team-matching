@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedSpace } from '../hooks/useSelectedSpace';
+import { AiMentorCard } from '../components/AiMentorCard';
 import {
   workspaceApi,
   errorMessage,
@@ -890,6 +891,11 @@ export const MyGroupPage: React.FC = () => {
             </div>
           )}
         </Card>
+      </div>
+
+      {/* AI Mentor (PR #26): phân tích nhóm, gợi ý đề tài và lộ trình */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <AiMentorCard groupId={group.id} groupName={group.name} />
       </div>
 
       {/* Thành viên */}

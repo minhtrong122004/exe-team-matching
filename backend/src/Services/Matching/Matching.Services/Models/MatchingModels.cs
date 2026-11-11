@@ -7,7 +7,12 @@ public sealed record StudentInput(
     string UserId,
     string Major,
     IReadOnlyCollection<string> Skills,
-    IReadOnlyCollection<string> Interests);
+    IReadOnlyCollection<string> Interests,
+    int TechScore = 0,
+    int ManagementScore = 0,
+    int GraphicDesignScore = 0,
+    int MarketingScore = 0,
+    int SaleScore = 0);
 
 /// <summary>
 /// Nhu cầu của nhóm đầu vào cho công thức Matching.
@@ -16,7 +21,12 @@ public sealed record GroupInput(
     string GroupId,
     IReadOnlyCollection<string> RequiredMajors,
     IReadOnlyCollection<string> RequiredSkills,
-    string ProjectDomain);
+    string ProjectDomain,
+    int AvgTechScore = 0,
+    int AvgManagementScore = 0,
+    int AvgGraphicDesignScore = 0,
+    int AvgMarketingScore = 0,
+    int AvgSaleScore = 0);
 
 /// <summary>
 /// Kết quả so khớp một sinh viên với một nhóm. Score trong khoảng 0–100, làm tròn 1 chữ số.
@@ -102,3 +112,42 @@ public sealed record DistributeResponseOutcome(
     int TotalDistributed,
     int TotalRemaining,
     IReadOnlyList<DistributedRoomPlanOutcome> RoomPlans);
+
+// ── Models cho AI Mentor (Google Gemini) ─────────────────────────────────
+
+public sealed record AnalyzeGroupMemberInput(
+    string UserId,
+    string FullName,
+    string StudentCode,
+    string Major,
+    bool IsLeader,
+    int TechScore,
+    int ManagementScore,
+    int GraphicDesignScore,
+    int MarketingScore,
+    int SaleScore);
+
+public sealed record AnalyzeGroupInput(
+    string GroupId,
+    string GroupCode,
+    string GroupName,
+    string ProjectDomain,
+    string ProjectTopic,
+    IReadOnlyList<AnalyzeGroupMemberInput> Members);
+
+public sealed record AiRecommendedTopicOutcome(
+    string Title,
+    string Description,
+    string TargetMarket,
+    string BusinessModel);
+
+public sealed record AnalyzeGroupOutcome(
+    string GroupId,
+    string OverallAssessment,
+    IReadOnlyList<string> Strengths,
+    IReadOnlyList<string> BlindSpots,
+    IReadOnlyList<AiRecommendedTopicOutcome> RecommendedTopics,
+    IReadOnlyList<string> FirstMonthRoadmap,
+    double SynergyScore,
+    bool IsAiGenerated,
+    string ModelName);

@@ -77,7 +77,8 @@ const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated
     maxMembersPerGroup: 5,
     bufferRatio: 1.2,
     maxConcurrentApplies: 3,
-    registrationDeadline: '',
+    // Backend bắt buộc hạn đăng ký và phải sau thời điểm hiện tại: mặc định 14 ngày tới.
+    registrationDeadline: toLocalInput(new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString()),
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +94,7 @@ const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated
         semesterCode: form.semesterCode.trim().toUpperCase(),
         subjectCode: subject,
         name: form.name.trim() || subject,
-        registrationDeadline: form.registrationDeadline ? new Date(form.registrationDeadline).toISOString() : null,
+        registrationDeadline: new Date(form.registrationDeadline).toISOString(),
       });
       onCreated(space);
     } catch (err) {
@@ -130,7 +131,7 @@ const CreateSpaceModal: React.FC<{ open: boolean; onClose: () => void; onCreated
           </Field>
         </div>
         <Field label="Hạn đăng ký">
-          <input type="datetime-local" style={fieldStyle} value={form.registrationDeadline} onChange={(e) => setForm({ ...form, registrationDeadline: e.target.value })} />
+          <input type="datetime-local" required style={fieldStyle} value={form.registrationDeadline} onChange={(e) => setForm({ ...form, registrationDeadline: e.target.value })} />
         </Field>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
           <Button variant="outline" onClick={onClose}>
@@ -547,8 +548,8 @@ export const ModeratorSpacesPage: React.FC = () => {
           subtitle={totalStudents > 0 ? `${completedProfiles}/${totalStudents} đã hoàn tất hồ sơ` : undefined}
           right={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <InfoTip text="Nhận file .xls xuất từ FAP (cột Class, RollNumber, Email, FullName) hoặc .csv với tiêu đề studentCode,email,fullName,major,cohort,classCode. Tải lại cùng danh sách không tạo trùng." />
-              <input ref={fileRef} type="file" accept=".csv,.xls,.xml" style={{ display: 'none' }} onChange={handleImport} />
+              <InfoTip text="Nhận file .xlsx / .xls xuất từ FAP (cột Class, RollNumber, Email, FullName) hoặc .csv với tiêu đề studentCode,email,fullName,major,cohort,classCode. Tải lại cùng danh sách không tạo trùng." />
+              <input ref={fileRef} type="file" accept=".csv,.xls,.xlsx,.xml" style={{ display: 'none' }} onChange={handleImport} />
               <Button variant="dark" icon={<Upload size={15} />} loading={importing} disabled={isLocked} onClick={() => fileRef.current?.click()}>
                 Tải file FAP
               </Button>

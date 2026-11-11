@@ -98,6 +98,15 @@ public class UserRegisteredConsumerWorker : BackgroundService
                 _logger.LogWarning(ex, "Redis timeout occurred. Retrying in 2 seconds...");
                 await Task.Delay(2000, stoppingToken);
             }
+            catch (RedisServerException ex) when (ex.Message.Contains("NOGROUP"))
+            {
+                // Stream hoặc consumer group bị xóa (vd: FLUSHALL/redis restart) → tạo lại group tại 0-0
+                // để đọc lại toàn bộ backlog còn trong stream, giống cơ chế của EventConsumerBase.
+                _logger.LogWarning("Consumer group '{Group}' on stream '{Stream}' is missing. Re-creating it...",
+                    _options.ConsumerGroup, _options.StreamName);
+                await EnsureConsumerGroupCreatedAsync(stoppingToken);
+                await Task.Delay(500, stoppingToken);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in UserRegisteredConsumerWorker loop. Backing off for 2 seconds...");
@@ -197,6 +206,11 @@ public class UserRegisteredConsumerWorker : BackgroundService
 
                 await ProcessStreamEntryAsync(db, claimedEntry, ct);
             }
+        }
+        catch (RedisServerException ex) when (ex.Message.Contains("NOGROUP"))
+        {
+            // Để vòng lặp chính bắt NOGROUP và tạo lại consumer group.
+            throw;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

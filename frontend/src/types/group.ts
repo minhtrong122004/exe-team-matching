@@ -14,6 +14,7 @@ export interface GroupMemberResponse {
   fullName?: string;
   email?: string;
   studentCode?: string;
+  major?: string;
 }
 
 export interface RecruitmentSlotResponse {
@@ -290,6 +291,25 @@ export interface FinalizeSpaceResponse {
   rejectedRequestsCount: number;
   finalizedAt: string;
   unmatchedStudentsCount?: number;
+}
+
+export interface AiRecommendedTopicDto {
+  title: string;
+  description: string;
+  targetMarket: string;
+  businessModel: string;
+}
+
+export interface AiMentorResponse {
+  groupId: string;
+  overallAssessment: string;
+  strengths: string[];
+  blindSpots: string[];
+  recommendedTopics: AiRecommendedTopicDto[];
+  firstMonthRoadmap: string[];
+  synergyScore: number;
+  isAiGenerated: boolean;
+  modelName: string;
 }
 
 
