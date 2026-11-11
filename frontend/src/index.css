@@ -1018,11 +1018,13 @@ input, select, textarea {
 
 /* 2. Page Content & Staggered Section/Grid Entrance */
 .motion-page-enter {
-  animation: motionPageEnter var(--motion-page) var(--ease-out) both;
+  /* backwards (không phải both): chạy xong thì bỏ transform, nếu không mọi phần tử position: fixed
+     bên trong (hộp thoại, toast) bị giới hạn trong khung trang thay vì phủ toàn màn hình. */
+  animation: motionPageEnter var(--motion-page) var(--ease-out) backwards;
 }
 
 .motion-stagger-item {
-  animation: motionStaggerEnter var(--motion-page) var(--ease-out) both;
+  animation: motionStaggerEnter var(--motion-page) var(--ease-out) backwards;
   animation-delay: calc(var(--stagger-index, 0) * var(--motion-stagger));
 }
 
