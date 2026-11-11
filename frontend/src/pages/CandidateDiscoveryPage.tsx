@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import apiClient from '../api/client';
 import type {
   CandidateProfileResponse,
@@ -20,7 +21,6 @@ import {
   Tag,
   RotateCcw,
   UserCheck,
-  UserX,
   Eye,
   AlertCircle,
   Sparkles,
@@ -86,24 +86,45 @@ export const CandidateDiscoveryPage: React.FC = () => {
 
   // GSAP animation for grid cards
   useEffect(() => {
-    if (gridRef.current && candidates.length > 0) {
+    if (!gridRef.current || candidates.length === 0) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
       gsap.fromTo(
-        gridRef.current.children,
-        { opacity: 0, y: 14 },
-        { opacity: 1, y: 0, duration: 0.28, stagger: 0.035, ease: 'power2.out' }
+        gridRef.current!.children,
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.25, stagger: 0.03, ease: 'power2.out', clearProps: 'transform,opacity' }
       );
-    }
+    }, gridRef);
+    return () => ctx.revert();
   }, [candidates]);
 
-  // GSAP animation for modal popup
+  // GSAP animation + Escape key + body scroll lock for modal popup
   useEffect(() => {
-    if (modalRef.current && selectedCandidate) {
-      gsap.fromTo(
-        modalRef.current,
-        { opacity: 0, scale: 0.96, y: 10 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'cubic-bezier(0.23, 1, 0.32, 1)' }
-      );
+    if (!selectedCandidate) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedCandidate(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    let ctx: gsap.Context | null = null;
+    if (modalRef.current && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ctx = gsap.context(() => {
+        gsap.fromTo(
+          modalRef.current,
+          { opacity: 0, scale: 0.96, y: 10 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power3.out', clearProps: 'transform,opacity' }
+        );
+      });
     }
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+      if (ctx) ctx.revert();
+    };
   }, [selectedCandidate]);
   // Debounce search input
   useEffect(() => {
@@ -199,85 +220,52 @@ export const CandidateDiscoveryPage: React.FC = () => {
     return MAJOR_OPTIONS.find((m) => m.value === major) || {
       value: major,
       label: major,
-      color: '#475569',
+      color: 'var(--text-secondary, #334155)',
       bg: '#f1f5f9',
     };
   };
 
   const renderAvailabilityBadge = (availability: UserAvailability) => {
-    if (availability === 'LookingForTeam') {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: 9999,
-            fontSize: '0.875rem',
-            fontWeight: 700,
-            background: '#dcfce7',
-            color: '#15803d',
-            border: '1px solid #bbf7d0',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#16a34a',
-              boxShadow: '0 0 0 2px rgba(34, 197, 94, 0.3)',
-            }}
-          />
-          Đang tìm nhóm
-        </span>
-      );
-    }
-    if (availability === 'InTeam') {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.35rem',
-            padding: '0.25rem 0.65rem',
-            borderRadius: 9999,
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            background: '#e0f2fe',
-            color: '#0369a1',
-            border: '1px solid #bae6fd',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          <UserCheck size={12} />
-          Đã có nhóm
-        </span>
-      );
-    }
+    const dotColor =
+      availability === 'LookingForTeam'
+        ? '#10B981'
+        : availability === 'InTeam'
+        ? 'var(--accent-color, #F26F21)'
+        : '#94A3B8';
+    const label =
+      availability === 'LookingForTeam'
+        ? 'Đang tìm nhóm'
+        : availability === 'InTeam'
+        ? 'Đã có nhóm'
+        : 'Tạm dừng';
+
     return (
       <span
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: '0.35rem',
-          padding: '0.25rem 0.65rem',
+          gap: '0.4rem',
+          padding: '0.24rem 0.65rem',
           borderRadius: 9999,
-          fontSize: '0.875rem',
+          fontSize: '0.78rem',
           fontWeight: 600,
-          background: '#f1f5f9',
-          color: '#64748b',
-          border: '1px solid #e2e8f0',
+          background: 'var(--bg-subtle, #F8FAFC)',
+          color: 'var(--text-secondary, #334155)',
+          border: '1px solid var(--border-light, #E2E8F0)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
         }}
       >
-        <UserX size={12} />
-        Tạm dừng
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: dotColor,
+            flexShrink: 0,
+          }}
+        />
+        {label}
       </span>
     );
   };
@@ -310,42 +298,29 @@ export const CandidateDiscoveryPage: React.FC = () => {
       <div style={{ marginBottom: '1.75rem' }}>
         <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.25rem 0.75rem',
-            borderRadius: 9999,
-            background: isStaff ? 'rgba(0, 84, 166, 0.08)' : 'rgba(242, 111, 33, 0.08)',
-            border: `1px solid ${isStaff ? 'rgba(0, 84, 166, 0.2)' : 'rgba(242, 111, 33, 0.2)'}`,
-            marginBottom: '0.65rem',
+            gap: '6px',
+            fontSize: '12.5px',
+            fontWeight: 500,
+            color: 'var(--text-muted, #64748B)',
+            marginBottom: '0.45rem',
           }}
         >
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: isStaff ? 'var(--fpt-blue, #0054a6)' : 'var(--fpt-orange, #f26f21)',
-            }}
-          />
-          <span
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              color: isStaff ? 'var(--fpt-blue, #0054a6)' : 'var(--fpt-orange, #f26f21)',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {isStaff ? 'QUẢN TRỊ & GIÁM SÁT HỌC VIÊN • FPT EDUCATION' : 'TÌM BẠN GHÉP ĐỘI KHỞI NGHIỆP • EXE101'}
+          <span>{isStaff ? 'Giám sát học vụ' : 'Không gian học phần'}</span>
+          <span style={{ color: 'var(--border-medium, #CBD5E1)' }}>/</span>
+          <span style={{ color: 'var(--text-secondary, #334155)', fontWeight: 600 }}>
+            {isStaff ? 'Danh bạ sinh viên' : 'Tìm bạn ghép đội'}
           </span>
         </div>
 
         <h1
           style={{
-            fontSize: '28px',
-            fontWeight: 700,
+            fontSize: '1.75rem',
+            fontWeight: 650,
             color: 'var(--text-main)',
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.25,
             margin: 0,
           }}
         >
@@ -354,7 +329,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
 
         <p
           style={{
-            fontSize: '15.5px',
+            fontSize: '0.925rem',
             color: 'var(--text-muted)',
             marginTop: '6px',
             maxWidth: 820,
@@ -395,8 +370,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '12px',
-                background: 'rgba(0, 84, 166, 0.1)',
-                color: 'var(--fpt-blue, #0054a6)',
+                background: 'var(--bg-tag, #F1F5F9)',
+                color: 'var(--text-secondary, #475569)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -410,7 +385,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               <div
                 style={{
                   fontSize: '22px',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: 'var(--text-main)',
                   fontFamily: 'var(--font-mono)',
                   fontVariantNumeric: 'tabular-nums',
@@ -436,7 +411,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               alignItems: 'center',
               gap: '0.9rem',
               cursor: 'pointer',
-              borderColor: onlyLookingForTeam ? 'var(--fpt-green, #008837)' : 'var(--border-light)',
+              borderColor: onlyLookingForTeam ? 'var(--border-medium, #CBD5E1)' : 'var(--border-light)',
             }}
             onClick={() => {
               setOnlyLookingForTeam(true);
@@ -448,23 +423,23 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '12px',
-                background: 'rgba(0, 136, 55, 0.1)',
-                color: 'var(--fpt-green, #008837)',
+                background: 'var(--bg-tag, #F1F5F9)',
+                color: 'var(--text-secondary, #475569)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <Sparkles size={22} />
+              <Sparkles size={20} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Đang tìm nhóm</div>
               <div
                 style={{
                   fontSize: '22px',
-                  fontWeight: 800,
-                  color: '#15803d',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
                   fontFamily: 'var(--font-mono)',
                   fontVariantNumeric: 'tabular-nums',
                   lineHeight: 1.2,
@@ -472,7 +447,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               >
                 {lookingCount}
               </div>
-              <div style={{ fontSize: '11.5px', color: '#16a34a', marginTop: '2px', fontWeight: 600 }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Cần ghép đội (LookingForTeam)
               </div>
             </div>
@@ -489,7 +464,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               alignItems: 'center',
               gap: '0.9rem',
               cursor: 'pointer',
-              borderColor: !onlyLookingForTeam ? 'var(--fpt-blue, #0054a6)' : 'var(--border-light)',
+              borderColor: !onlyLookingForTeam ? 'var(--border-medium, #CBD5E1)' : 'var(--border-light)',
             }}
             onClick={() => {
               setOnlyLookingForTeam(false);
@@ -501,23 +476,23 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '12px',
-                background: 'rgba(2, 132, 199, 0.1)',
-                color: '#0284c7',
+                background: 'var(--bg-tag, #F1F5F9)',
+                color: 'var(--text-secondary, #475569)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <UserCheck size={22} />
+              <UserCheck size={20} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Đã có nhóm</div>
               <div
                 style={{
                   fontSize: '22px',
-                  fontWeight: 800,
-                  color: '#0369a1',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
                   fontFamily: 'var(--font-mono)',
                   fontVariantNumeric: 'tabular-nums',
                   lineHeight: 1.2,
@@ -525,7 +500,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               >
                 {inTeamCount}
               </div>
-              <div style={{ fontSize: '11.5px', color: '#0284c7', marginTop: '2px', fontWeight: 600 }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Đã vào phòng / nhóm
               </div>
             </div>
@@ -548,23 +523,23 @@ export const CandidateDiscoveryPage: React.FC = () => {
                 width: 44,
                 height: 44,
                 borderRadius: '12px',
-                background: 'rgba(242, 111, 33, 0.1)',
-                color: 'var(--fpt-orange, #f26f21)',
+                background: 'var(--bg-tag, #F1F5F9)',
+                color: 'var(--text-secondary, #475569)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <ShieldCheck size={22} />
+              <ShieldCheck size={20} />
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Hoàn tất 5 kỹ năng</div>
               <div
                 style={{
                   fontSize: '22px',
-                  fontWeight: 800,
-                  color: 'var(--fpt-orange, #f26f21)',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
                   fontFamily: 'var(--font-mono)',
                   fontVariantNumeric: 'tabular-nums',
                   lineHeight: 1.2,
@@ -598,21 +573,46 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={searchInputId}
-              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '0.4rem' }}
             >
               Tìm kiếm theo tên / định hướng
             </label>
-            <div style={{ position: 'relative' }}>
-              <Search size={17} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+            <div className="motion-search-wrap" style={{ position: 'relative' }}>
+              <Search className="motion-search-icon" size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light, #94A3B8)', pointerEvents: 'none' }} />
               <input
                 id={searchInputId}
                 type="text"
-                className="form-control"
+                className="form-control motion-search-input"
                 placeholder="Nhập họ tên, vị trí (Frontend, AI...)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ paddingLeft: '2.4rem', height: 40 }}
+                style={{ paddingLeft: '2.4rem', paddingRight: searchTerm ? '2.2rem' : '0.85rem', height: 40 }}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="motion-clear-btn"
+                  aria-label="Xóa từ khóa tìm kiếm"
+                  onClick={() => setSearchTerm('')}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 24,
+                    height: 24,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -620,12 +620,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={majorSelectId}
-              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '0.4rem' }}
             >
               Chuyên ngành
             </label>
             <div style={{ position: 'relative' }}>
-              <GraduationCap size={17} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+              <GraduationCap size={17} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-light, #94A3B8)' }} />
               <select
                 id={majorSelectId}
                 className="form-control"
@@ -650,12 +650,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={skillSelectId}
-              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '0.4rem' }}
             >
               Kỹ năng công nghệ
             </label>
             <div style={{ position: 'relative' }}>
-              <Tag size={17} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+              <Tag size={17} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-light, #94A3B8)' }} />
               <select
                 id={skillSelectId}
                 className="form-control"
@@ -680,12 +680,12 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <div>
             <label
               htmlFor={availabilitySelectId}
-              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}
+              style={{ display: 'block', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary, #334155)', marginBottom: '0.4rem' }}
             >
               Trạng thái ghép nhóm
             </label>
             <div style={{ position: 'relative' }}>
-              <Users size={17} style={{ position: 'absolute', left: 12, top: 12, color: '#94a3b8' }} />
+              <Users size={17} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-light, #94A3B8)' }} />
               <select
                 id={availabilitySelectId}
                 className="form-control"
@@ -712,7 +712,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             flexWrap: 'wrap',
             gap: '0.75rem',
             paddingTop: '0.75rem',
-            borderTop: '1px solid #f1f5f9',
+            borderTop: '1px solid var(--border-subtle, #F1F5F9)',
           }}
         >
           {/* Quick major pill buttons */}
@@ -802,13 +802,13 @@ export const CandidateDiscoveryPage: React.FC = () => {
           padding: '0 0.5rem',
         }}
       >
-        <div style={{ fontSize: '0.95rem', color: '#334155', fontWeight: 600 }}>
-          Tìm thấy <span style={{ color: '#0F172A', fontWeight: 700 }}>{totalCount}</span> ứng viên
+        <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary, #334155)', fontWeight: 600 }}>
+          Tìm thấy <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 700 }}>{totalCount}</span> ứng viên
           {selectedMajor !== 'ALL' && ` ngành ${selectedMajor}`}
           {selectedSkill && ` với kỹ năng "${selectedSkill}"`}
           {onlyLookingForTeam && ' đang tìm nhóm'}
         </div>
-        <div style={{ fontSize: '0.95rem', color: '#64748b' }}>
+        <div style={{ fontSize: '0.95rem', color: 'var(--text-muted, #64748B)' }}>
           Trang {page} / {totalPages}
         </div>
       </div>
@@ -817,7 +817,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
       {feedback && (
         <div
           style={{
-            background: '#ecfdf5',
+            background: 'rgba(16, 185, 129, 0.10)',
             border: '1px solid #86efac',
             color: '#065f46',
             padding: '1rem 1.25rem',
@@ -845,7 +845,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
       {error && (
         <div
           style={{
-            background: '#fef2f2',
+            background: 'rgba(239, 68, 68, 0.10)',
             border: '1px solid #fecaca',
             color: '#dc2626',
             padding: '1rem',
@@ -868,7 +868,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(390px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(390px, 100%), 1fr))',
             gap: '1.5rem',
             minHeight: 300,
           }}
@@ -930,7 +930,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
           <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
             Không tìm thấy ứng viên phù hợp
           </h3>
-          <p style={{ color: '#64748b', fontSize: '1.025rem', maxWidth: 420, margin: '0 auto 1.5rem' }}>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '1.025rem', maxWidth: 420, margin: '0 auto 1.5rem' }}>
             Thử mở rộng tiêu chí tìm kiếm, chọn &quot;Tất cả chuyên ngành&quot; hoặc tắt điều kiện &quot;Chỉ hiện người đang tìm nhóm&quot;.
           </p>
           <button
@@ -947,26 +947,27 @@ export const CandidateDiscoveryPage: React.FC = () => {
           ref={gridRef}
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(390px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(390px, 100%), 1fr))',
             gap: '1.5rem',
           }}
         >
-          {candidates.map((c, idx) => {
+          {candidates.map((c) => {
             const majorMeta = getMajorMeta(c.major);
 
             return (
               <div
                 key={c.userId}
+                className="motion-card-interactive"
                 style={{
                   backgroundColor: 'var(--bg-card)',
                   borderRadius: '20px',
                   border: '1px solid var(--border-light)',
                   padding: '22px',
+                  height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   boxShadow: 'var(--shadow-sm)',
-                  transition: 'all 0.2s ease',
                   cursor: 'pointer',
                 }}
                 onClick={() => setSelectedCandidate(c)}
@@ -976,15 +977,17 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', gap: '10px' }}>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0, flex: 1 }}>
                       <div
-                        className={`avatar-pastel-${idx % 5}`}
                         style={{
                           width: 44,
                           height: 44,
                           borderRadius: '9999px',
+                          backgroundColor: 'var(--bg-tag)',
+                          color: 'var(--text-secondary)',
+                          border: '1px solid var(--border-light)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '17px',
+                          fontSize: '16px',
                           fontWeight: 700,
                           flexShrink: 0,
                         }}
@@ -1057,7 +1060,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                           borderRadius: 6,
                           fontSize: '0.875rem',
                           fontWeight: 700,
-                          background: '#fff7ed',
+                          background: 'rgba(242, 111, 33, 0.10)',
                           color: '#c2410c',
                           border: '1px solid #fed7aa',
                           fontFamily: 'var(--font-mono, monospace)',
@@ -1133,8 +1136,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                             }}
                           >
                             <span>{s.skillName}</span>
-                            <span style={{ fontSize: '13px', color: '#F27024', fontWeight: 700 }}>
-                              ★{s.level}
+                            <span style={{ fontSize: '12px', color: 'var(--accent-color, #F26F21)', fontWeight: 700, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                              Lv.{s.level}
                             </span>
                           </span>
                         ))}
@@ -1183,31 +1186,31 @@ export const CandidateDiscoveryPage: React.FC = () => {
                       }}
                     >
                       <div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Tech</div>
-                        <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--fpt-orange, #f26f21)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Tech</div>
+                        <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--accent-color, #f26f21)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                           {c.techScore ?? 0}%
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Mgmt</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Mgmt</div>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                           {c.managementScore ?? 0}%
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Design</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Design</div>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                           {c.graphicDesignScore ?? 0}%
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Mkt</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Mkt</div>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                           {c.marketingScore ?? 0}%
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Sale</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Sale</div>
                         <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                           {c.saleScore ?? 0}%
                         </div>
@@ -1261,8 +1264,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         setSelectedCandidate(c);
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--fpt-blue, #0054a6)';
-                        e.currentTarget.style.color = 'var(--fpt-blue, #0054a6)';
+                        e.currentTarget.style.borderColor = 'var(--accent-color, #f26f21)';
+                        e.currentTarget.style.color = 'var(--accent-color, #f26f21)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = 'var(--border-medium)';
@@ -1355,13 +1358,14 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   onClick={() => setPage(p)}
                   style={{
                     width: 38,
-                    height: 44,
+                    height: 38,
                     borderRadius: 10,
-                    fontSize: '0.975rem',
+                    fontSize: '0.925rem',
                     fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
                     border: p === page ? 'none' : '1px solid var(--border-medium)',
-                    background: p === page ? 'var(--primary)' : 'var(--bg-card)',
-                    color: p === page ? '#ffffff' : 'var(--text-main)',
+                    background: p === page ? 'var(--accent-color, var(--primary))' : 'var(--bg-card)',
+                    color: p === page ? '#FFFFFF' : 'var(--text-main)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}
@@ -1372,7 +1376,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             }
             if (p === page - 2 || p === page + 2) {
               return (
-                <span key={p} style={{ padding: '0 0.25rem', color: '#94a3b8' }}>
+                <span key={p} style={{ padding: '0 0.25rem', color: 'var(--text-light, #94A3B8)' }}>
                   ...
                 </span>
               );
@@ -1395,23 +1399,27 @@ export const CandidateDiscoveryPage: React.FC = () => {
       {/* ══════════════════════════════════════════════════════════════
           CANDIDATE DETAIL MODAL
          ══════════════════════════════════════════════════════════════ */}
-      {selectedCandidate && (
+      {selectedCandidate && createPortal(
         <div
           style={{
             position: 'fixed',
             inset: 0,
             background: 'rgba(15, 23, 42, 0.65)',
             backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
+            zIndex: 9999,
             padding: '1rem',
           }}
           onClick={() => setSelectedCandidate(null)}
         >
           <div
             ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Chi tiết ứng viên ${selectedCandidate.fullName}`}
             style={{
               background: 'var(--bg-card)',
               borderRadius: 20,
@@ -1421,7 +1429,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
               overflowY: 'auto',
               padding: '2rem',
               position: 'relative',
-              boxShadow: '0 20px 30px rgba(0, 0, 0, 0.3)',
+              boxShadow: '0 24px 48px rgba(0, 0, 0, 0.32)',
               border: '1px solid var(--border-light)',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -1429,6 +1437,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
             {/* Close button */}
             <button
               type="button"
+              aria-label="Đóng cửa sổ"
               onClick={() => setSelectedCandidate(null)}
               style={{
                 position: 'absolute',
@@ -1450,25 +1459,27 @@ export const CandidateDiscoveryPage: React.FC = () => {
             </button>
 
             {/* Header with Avatar & Meta */}
-            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', marginBottom: '1.5rem', paddingRight: '2.5rem' }}>
               <div
-                className="avatar-pastel-0"
                 style={{
                   width: 64,
                   height: 64,
                   borderRadius: '9999px',
+                  backgroundColor: 'var(--bg-tag)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border-light)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.4rem',
-                  fontWeight: 800,
+                  fontSize: '1.35rem',
+                  fontWeight: 700,
                   flexShrink: 0,
                 }}
               >
                 {getInitials(selectedCandidate.fullName)}
               </div>
-              <div>
-                <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.25rem 0' }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main)', margin: '0 0 0.25rem 0' }}>
                   {selectedCandidate.fullName}
                 </h2>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1557,7 +1568,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   <div key={idx} style={{ background: 'var(--bg-subtle)', padding: '0.65rem 0.85rem', borderRadius: 10, border: '1px solid var(--border-subtle)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.925rem', marginBottom: 4 }}>
                       <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{s.name}</span>
-                      <span style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--accent-color, var(--primary))', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>
                         {s.score}%
                       </span>
                     </div>
@@ -1566,7 +1577,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                         style={{
                           width: `${Math.min(100, Math.max(0, s.score))}%`,
                           height: '100%',
-                          background: 'linear-gradient(90deg, #f26f21 0%, #ea580c 100%)',
+                          background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                           borderRadius: 999,
                         }}
                       />
@@ -1626,7 +1637,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                           style={{
                             height: '100%',
                             width: `${(s.level / 5) * 100}%`,
-                            background: 'linear-gradient(90deg, #f26f21 0%, #ea580c 100%)',
+                            background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                             borderRadius: 9999,
                           }}
                         />
@@ -1635,7 +1646,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.95rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                <div style={{ fontSize: '0.95rem', color: 'var(--text-light, #94A3B8)', fontStyle: 'italic' }}>
                   Chưa cập nhật kỹ năng công nghệ.
                 </div>
               )}
@@ -1675,8 +1686,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '0.6rem',
-                  background: 'rgba(0, 84, 166, 0.05)',
-                  border: '1px solid rgba(0, 84, 166, 0.2)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)',
                   padding: '0.8rem 1rem',
                   borderRadius: 12,
                   fontSize: '0.825rem',
@@ -1685,7 +1696,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                   marginBottom: '1.5rem',
                 }}
               >
-                <ShieldCheck size={18} color="#0054a6" style={{ flexShrink: 0, marginTop: 1 }} />
+                <ShieldCheck size={18} color="var(--accent-color, #F26F21)" style={{ flexShrink: 0, marginTop: 1 }} />
                 <span>
                   <strong>Hồ sơ Quản trị & Điều phối Học kỳ:</strong> Dữ liệu sinh viên được đồng bộ từ FAP và hệ thống khảo sát 5 kỹ năng cốt lõi môn EXE101, phục vụ công tác điều phối học kỳ và kiểm tra cân bằng đội hình.
                 </span>
@@ -1744,7 +1755,7 @@ export const CandidateDiscoveryPage: React.FC = () => {
                     borderRadius: 12,
                     padding: '0.65rem 1.45rem',
                     fontWeight: 600,
-                    boxShadow: '0 4px 14px rgba(242, 111, 33, 0.35)',
+                    boxShadow: '0 4px 14px var(--accent-shadow, rgba(242, 111, 33, 0.3))',
                   }}
                 >
                   Mời vào nhóm
@@ -1752,7 +1763,8 @@ export const CandidateDiscoveryPage: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

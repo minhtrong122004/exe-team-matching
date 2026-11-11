@@ -52,20 +52,20 @@ const AVAILABILITY_OPTIONS: { value: UserAvailability; label: string; color: str
   {
     value: 'LookingForTeam',
     label: 'Đang tìm nhóm (Looking for team)',
-    color: '#16a34a',
-    bg: '#f0fdf4',
+    color: '#10b981',
+    bg: 'var(--bg-subtle, #f8fafc)',
   },
   {
     value: 'InTeam',
     label: 'Đã có nhóm (In a team)',
-    color: '#2563eb',
-    bg: '#eff6ff',
+    color: 'var(--accent-color, #f26f21)',
+    bg: 'var(--bg-subtle, #f8fafc)',
   },
   {
     value: 'NotLooking',
     label: 'Tạm ngưng tìm (Not looking)',
-    color: '#64748b',
-    bg: '#f8fafc',
+    color: '#94a3b8',
+    bg: 'var(--bg-subtle, #f8fafc)',
   },
 ];
 
@@ -86,24 +86,24 @@ const SKILL_CATEGORIES: { value: SkillCategory | 'ALL'; label: string }[] = [
 ];
 
 const PROFICIENCY_LABELS: Record<number, { text: string; color: string }> = {
-  1: { text: '1 - Cơ bản (Beginner)', color: '#94a3b8' },
-  2: { text: '2 - Sơ cấp (Elementary)', color: '#60a5fa' },
-  3: { text: '3 - Trung cấp (Intermediate)', color: '#3b82f6' },
-  4: { text: '4 - Thành thạo (Advanced)', color: '#f59e0b' },
-  5: { text: '5 - Chuyên gia (Expert)', color: '#ef4444' },
+  1: { text: '1 - Cơ bản (Beginner)', color: 'var(--text-muted, #64748b)' },
+  2: { text: '2 - Sơ cấp (Elementary)', color: 'var(--text-secondary, #475569)' },
+  3: { text: '3 - Trung cấp (Intermediate)', color: 'var(--text-main, #0f172a)' },
+  4: { text: '4 - Thành thạo (Advanced)', color: 'var(--text-main, #0f172a)' },
+  5: { text: '5 - Chuyên gia (Expert)', color: 'var(--text-main, #0f172a)' },
 };
 
 const getScoreTier = (score: number) => {
   if (score >= 80) {
-    return { label: 'Xuất sắc / Chuyên sâu', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' };
+    return { label: 'Xuất sắc / Chuyên sâu', color: 'var(--text-secondary, #334155)', bg: 'var(--bg-card, #ffffff)', border: 'var(--border-light, #e2e8f0)' };
   }
   if (score >= 50) {
-    return { label: 'Khá / Thành thạo', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' };
+    return { label: 'Khá / Thành thạo', color: 'var(--text-secondary, #334155)', bg: 'var(--bg-card, #ffffff)', border: 'var(--border-light, #e2e8f0)' };
   }
   if (score >= 25) {
-    return { label: 'Trung bình', color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' };
+    return { label: 'Trung bình', color: 'var(--text-secondary, #475569)', bg: 'var(--bg-card, #ffffff)', border: 'var(--border-light, #e2e8f0)' };
   }
-  return { label: 'Cơ bản / Nhập môn', color: '#64748b', bg: '#f8fafc', border: '#e2e8f0' };
+  return { label: 'Cơ bản / Nhập môn', color: 'var(--text-muted, #64748b)', bg: 'var(--bg-card, #ffffff)', border: 'var(--border-light, #e2e8f0)' };
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -116,11 +116,11 @@ const RadarChart5: React.FC<{
   marketing: number;
   sale: number;
 }> = ({ tech, management, graphicDesign, marketing, sale }) => {
-  const width = 390;
+  const width = 430;
   const height = 340;
   const cx = width / 2;
   const cy = height / 2 + 6;
-  const R = 114;
+  const R = 108;
 
   // 5 trục: Tech (-90°), Management (-18°), Graphic Design (54°), Marketing (126°), Sale (198°)
   const angles = [
@@ -203,7 +203,7 @@ const RadarChart5: React.FC<{
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '4px 0' }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          style={{ width: '100%', maxWidth: 380, height: 'auto', overflow: 'visible' }}
+          style={{ width: '100%', maxWidth: 420, height: 'auto', overflow: 'visible' }}
           role="img"
           aria-label="Biểu đồ radar 5 kỹ năng sinh viên"
         >
@@ -248,8 +248,8 @@ const RadarChart5: React.FC<{
             strokeDasharray="4 3"
           />
 
-          {/* Nhãn mốc thang điểm (20, 40, 60, 80, 100) trên trục đứng */}
-          {gridLevels.map((level) => {
+          {/* Nhãn mốc thang điểm (40, 60, 80, 100) trên trục đứng */}
+          {gridLevels.filter((level) => level > 0.2).map((level) => {
             const yPos = cy - level * R;
             return (
               <text
@@ -881,13 +881,13 @@ export const ProfilePage: React.FC = () => {
         }}
       >
         <div
+          className="spinner-smooth"
           style={{
-            width: 44,
-            height: 44,
-            border: '4px solid #fed7aa',
-            borderTopColor: '#f26f21',
+            width: 40,
+            height: 40,
+            border: '3px solid var(--accent-soft, rgba(242, 111, 33, 0.18))',
+            borderTopColor: 'var(--accent-color, #f26f21)',
             borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
             marginBottom: '1rem',
           }}
         />
@@ -926,10 +926,10 @@ export const ProfilePage: React.FC = () => {
           >
             <AlertCircle size={28} />
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.5rem' }}>
             Không tìm thấy hồ sơ cá nhân
           </h2>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.9rem', marginBottom: '1.75rem', lineHeight: 1.5 }}>
             {error}
           </p>
           <button
@@ -952,15 +952,15 @@ export const ProfilePage: React.FC = () => {
   const currentMajorLabel = MAJORS.find((m) => m.value === (profile?.major || major))?.label || profile?.major || 'Chưa cập nhật';
 
   return (
-    <div style={{ maxWidth: 1040, margin: '0 auto', paddingBottom: '3rem' }}>
+    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3rem' }}>
       {/* ══════════════════════════════════════════════════════════════
           CẢNH BÁO HỒ SƠ 5 KỸ NĂNG CHƯA HOÀN TẤT (BR-07)
          ══════════════════════════════════════════════════════════════ */}
       {isStudent && !profile?.isProfileCompleted && (
         <div
           style={{
-            background: 'linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%)',
-            border: '1px solid #fed7aa',
+            background: 'var(--bg-card, #ffffff)',
+            border: '1px solid var(--border-light, #e2e8f0)',
             borderRadius: 14,
             padding: '1.1rem 1.35rem',
             marginBottom: '1.5rem',
@@ -969,31 +969,31 @@ export const ProfilePage: React.FC = () => {
             justifyContent: 'space-between',
             gap: '1rem',
             flexWrap: 'wrap',
-            boxShadow: '0 2px 8px rgba(242, 111, 33, 0.08)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 280 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 'min(100%, 260px)' }}>
             <div
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: '#f26f21',
-                color: '#ffffff',
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: 'var(--bg-subtle, #f8fafc)',
+                border: '1px solid var(--border-light, #e2e8f0)',
+                color: 'var(--text-secondary, #334155)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 2px 6px rgba(242, 111, 33, 0.3)',
               }}
             >
-              <AlertCircle size={24} />
+              <AlertCircle size={20} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, color: '#9a3412', fontSize: '0.98rem' }}>
+              <div style={{ fontWeight: 700, color: 'var(--text-main, #0f172a)', fontSize: '0.96rem' }}>
                 Hồ sơ 5 kỹ năng chưa hoàn tất
               </div>
-              <div style={{ fontSize: '0.86rem', color: '#7c2d12', marginTop: '0.2rem', lineHeight: 1.45 }}>
+              <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary, #475569)', marginTop: '0.2rem', lineHeight: 1.45 }}>
                 Bạn cần hoàn thành tự đánh giá 5 kỹ năng cốt lõi (Tech, Management, Graphic Design, Marketing, Sale) và xác nhận cam kết trung thực để đủ điều kiện tham gia phòng chờ (Room) và đề xuất đề tài khởi nghiệp.
               </div>
             </div>
@@ -1005,7 +1005,7 @@ export const ProfilePage: React.FC = () => {
             className="btn btn-primary"
             style={{
               fontSize: '0.875rem',
-              fontWeight: 700,
+              fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.45rem',
@@ -1020,88 +1020,59 @@ export const ProfilePage: React.FC = () => {
       )}
 
       {/* ══════════════════════════════════════════════════════════════
-          PAGE HEADER & OVERVIEW BANNER
-         ══════════════════════════════════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════════════
-          HEADER BANNER: TAILORED PER ROLE (STUDENT / MODERATOR / LECTURER)
+          PAGE HEADER & OVERVIEW BANNER (CALM ENTERPRISE SURFACE)
          ══════════════════════════════════════════════════════════════ */}
       <div
         className="card"
         style={{
-          background: isModerator
-            ? 'linear-gradient(135deg, #0a192f 0%, #0054a6 100%)'
-            : isLecturer
-            ? 'linear-gradient(135deg, #0054a6 0%, #008837 100%)'
-            : 'linear-gradient(135deg, #061325 0%, #0054a6 60%, #f26f21 150%)',
-          color: '#ffffff',
-          padding: '2rem 2.25rem',
-          borderRadius: 16,
+          background: 'var(--bg-card, #ffffff)',
+          border: '1px solid var(--border-light, #e2e8f0)',
+          padding: '1.75rem 2rem',
+          borderRadius: 18,
           marginBottom: '1.5rem',
-          boxShadow: isModerator
-            ? '0 10px 25px -5px rgba(10, 25, 47, 0.35)'
-            : isLecturer
-            ? '0 10px 25px -5px rgba(0, 84, 166, 0.25)'
-            : '0 10px 25px -5px rgba(0, 84, 166, 0.25)',
+          boxShadow: 'var(--shadow-sm)',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            right: '-40px',
-            bottom: '-40px',
-            width: 220,
-            height: 220,
-            borderRadius: '50%',
-            background: isModerator
-              ? 'radial-gradient(circle, rgba(0, 84, 166, 0.3) 0%, transparent 70%)'
-              : isLecturer
-              ? 'radial-gradient(circle, rgba(0, 136, 55, 0.3) 0%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(242, 111, 33, 0.25) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }}
-        />
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.15rem', flexWrap: 'wrap' }}>
             {/* Avatar Circle */}
             <div
               style={{
-                width: 76,
-                height: 76,
+                width: 68,
+                height: 68,
                 borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(10px)',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
+                background: 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '1.85rem',
-                fontWeight: 800,
+                fontSize: '1.55rem',
+                fontWeight: 700,
                 color: '#ffffff',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                boxShadow: 'var(--accent-shadow, 0 4px 12px rgba(242, 111, 33, 0.22))',
+                flexShrink: 0,
               }}
             >
               {isModerator ? 'ĐP' : isLecturer ? 'GV' : (profile?.fullName ? profile.fullName.charAt(0).toUpperCase() : 'SV')}
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '1.65rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 650, margin: 0, color: 'var(--text-main, #0f172a)', letterSpacing: '-0.025em' }}>
                   {profile?.fullName || authUser?.fullName}
                 </h1>
                 <span
                   style={{
-                    padding: '0.2rem 0.65rem',
+                    padding: '0.22rem 0.65rem',
                     borderRadius: 999,
-                    fontSize: '0.725rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(6px)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    background: 'var(--bg-tag, #f1f5f9)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {isModerator
@@ -1115,15 +1086,16 @@ export const ProfilePage: React.FC = () => {
                 {isStudent && profile?.cohort && (
                   <span
                     style={{
-                      padding: '0.2rem 0.65rem',
+                      padding: '0.22rem 0.65rem',
                       borderRadius: 999,
-                      fontSize: '0.725rem',
-                      fontWeight: 800,
-                      background: '#f26f21',
-                      color: '#ffffff',
-                      boxShadow: '0 2px 6px rgba(242, 111, 33, 0.4)',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      background: 'var(--bg-tag, #f1f5f9)',
+                      color: 'var(--text-secondary, #334155)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
                       fontFamily: 'var(--font-mono, monospace)',
                       fontVariantNumeric: 'tabular-nums',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Khóa {profile.cohort}
@@ -1132,87 +1104,90 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               {/* Sub-details tailored per role */}
-              <div style={{ fontSize: '0.875rem', color: '#e2e8f0', marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.9rem', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748b)', marginTop: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
                 <span>{profile?.email || authUser?.email}</span>
 
                 {isStudent && profile?.studentCode && (
                   <span>
-                    • MSSV: <strong style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>{profile.studentCode}</strong>
+                    • MSSV: <strong style={{ color: 'var(--text-main, #0f172a)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>{profile.studentCode}</strong>
                   </span>
                 )}
                 {isStudent && profile?.major && (
-                  <span>• Chuyên ngành: <strong>{currentMajorLabel}</strong></span>
+                  <span>• Chuyên ngành: <strong style={{ color: 'var(--text-main, #0f172a)' }}>{currentMajorLabel}</strong></span>
                 )}
 
                 {isModerator && (
-                  <span>• Đơn vị: <strong>Ban Đào tạo & Điều phối Khởi nghiệp FPT</strong></span>
+                  <span>• Đơn vị: <strong style={{ color: 'var(--text-main, #0f172a)' }}>Ban Đào tạo & Điều phối Khởi nghiệp FPT</strong></span>
                 )}
 
                 {isLecturer && (
-                  <span>• Bộ môn: <strong>Khởi nghiệp & Đổi mới sáng tạo (EXE)</strong></span>
+                  <span>• Bộ môn: <strong style={{ color: 'var(--text-main, #0f172a)' }}>Khởi nghiệp & Đổi mới sáng tạo (EXE)</strong></span>
                 )}
 
-                <span>• Cơ sở: <strong>{profile?.campus || 'TP. Hồ Chí Minh (HCM)'}</strong></span>
+                <span>• Cơ sở: <strong style={{ color: 'var(--text-main, #0f172a)' }}>{profile?.campus || 'TP. Hồ Chí Minh (HCM)'}</strong></span>
               </div>
             </div>
           </div>
 
-          {/* Quick Badges: Role-specific */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+          {/* Quick Badges: Role-specific — Minimal Enterprise Neutral Pills */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.45rem' }}>
             {isStudent && (
               <>
                 <div
                   style={{
-                    padding: '0.45rem 0.95rem',
-                    borderRadius: 10,
-                    background: currentAvailability.bg,
-                    color: currentAvailability.color,
-                    fontWeight: 700,
-                    fontSize: '0.825rem',
+                    padding: '0.32rem 0.8rem',
+                    borderRadius: 999,
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontWeight: 600,
+                    fontSize: '0.785rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: currentAvailability.color }} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: currentAvailability.color, flexShrink: 0 }} />
                   {currentAvailability.label}
                 </div>
 
                 {profile?.isProfileCompleted ? (
                   <div
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: 10,
-                      background: 'rgba(240, 253, 244, 0.95)',
-                      color: '#15803d',
-                      border: '1px solid #bbf7d0',
-                      fontWeight: 700,
+                      padding: '0.32rem 0.8rem',
+                      borderRadius: 999,
+                      background: 'var(--bg-subtle, #f8fafc)',
+                      color: 'var(--text-secondary, #334155)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
+                      fontWeight: 600,
                       fontSize: '0.775rem',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
+                      gap: '0.45rem',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <CheckCircle2 size={14} color="#16a34a" />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
                     <span>5 Kỹ năng: Đã hoàn tất</span>
                   </div>
                 ) : (
                   <div
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: 10,
-                      background: 'rgba(254, 242, 242, 0.95)',
-                      color: '#b91c1c',
-                      border: '1px solid #fecaca',
-                      fontWeight: 700,
+                      padding: '0.32rem 0.8rem',
+                      borderRadius: 999,
+                      background: 'var(--bg-subtle, #f8fafc)',
+                      color: 'var(--text-secondary, #334155)',
+                      border: '1px solid var(--border-light, #e2e8f0)',
+                      fontWeight: 600,
                       fontSize: '0.775rem',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '0.4rem',
+                      gap: '0.45rem',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <AlertCircle size={14} color="#ef4444" />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
                     <span>5 Kỹ năng: Chưa hoàn tất</span>
                   </div>
                 )}
@@ -1223,31 +1198,32 @@ export const ProfilePage: React.FC = () => {
               <>
                 <div
                   style={{
-                    padding: '0.45rem 0.95rem',
-                    borderRadius: 10,
-                    background: 'rgba(240, 253, 244, 0.95)',
-                    color: '#15803d',
-                    fontWeight: 700,
-                    fontSize: '0.825rem',
+                    padding: '0.32rem 0.8rem',
+                    borderRadius: 999,
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontWeight: 600,
+                    fontSize: '0.785rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <ShieldCheck size={16} color="#16a34a" />
-                  <span>Quyền Quản trị Tối cao (Super Admin)</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                  <span>Quyền Điều phối Học kỳ (Moderator)</span>
                 </div>
                 <div
                   style={{
-                    padding: '0.35rem 0.85rem',
-                    borderRadius: 10,
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(6px)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    fontWeight: 700,
+                    padding: '0.32rem 0.8rem',
+                    borderRadius: 999,
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-muted, #64748b)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontWeight: 600,
                     fontSize: '0.775rem',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Kỳ học FA26 • Phân bổ & Ghép nhóm
@@ -1259,31 +1235,32 @@ export const ProfilePage: React.FC = () => {
               <>
                 <div
                   style={{
-                    padding: '0.45rem 0.95rem',
-                    borderRadius: 10,
-                    background: 'rgba(238, 242, 255, 0.95)',
-                    color: '#0054a6',
-                    fontWeight: 700,
-                    fontSize: '0.825rem',
+                    padding: '0.32rem 0.8rem',
+                    borderRadius: 999,
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontWeight: 600,
+                    fontSize: '0.785rem',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.45rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <GraduationCap size={16} color="#0054a6" />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-color, #f26f21)', flexShrink: 0 }} />
                   <span>Cố vấn Học phần (Mentor & Evaluator)</span>
                 </div>
                 <div
                   style={{
-                    padding: '0.35rem 0.85rem',
-                    borderRadius: 10,
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(6px)',
-                    color: '#ffffff',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    fontWeight: 700,
+                    padding: '0.32rem 0.8rem',
+                    borderRadius: 999,
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-muted, #64748b)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
+                    fontWeight: 600,
                     fontSize: '0.775rem',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Học phần EXE101 / EXE201
@@ -1301,11 +1278,11 @@ export const ProfilePage: React.FC = () => {
       {successMsg && (
         <div
           style={{
-            background: '#f0fdf4',
-            border: '1px solid #bbf7d0',
+            background: 'var(--bg-card, #ffffff)',
+            border: '1px solid var(--border-light, #e2e8f0)',
             borderRadius: 10,
             padding: '0.85rem 1.25rem',
-            color: '#15803d',
+            color: 'var(--text-main, #0f172a)',
             fontSize: '0.875rem',
             display: 'flex',
             alignItems: 'center',
@@ -1314,12 +1291,12 @@ export const ProfilePage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <CheckCircle2 size={18} />
+            <CheckCircle2 size={18} color="#10b981" />
             <span>{successMsg}</span>
           </div>
           <button
             onClick={() => setSuccessMsg(null)}
-            style={{ background: 'transparent', border: 'none', color: '#15803d', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #64748b)', cursor: 'pointer' }}
           >
             <X size={16} />
           </button>
@@ -1329,11 +1306,11 @@ export const ProfilePage: React.FC = () => {
       {error && (
         <div
           style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
+            background: 'var(--bg-card, #ffffff)',
+            border: '1px solid var(--border-light, #e2e8f0)',
             borderRadius: 10,
             padding: '0.85rem 1.25rem',
-            color: '#b91c1c',
+            color: 'var(--text-main, #0f172a)',
             fontSize: '0.875rem',
             display: 'flex',
             alignItems: 'center',
@@ -1342,12 +1319,12 @@ export const ProfilePage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <AlertCircle size={18} />
+            <AlertCircle size={18} color="#ef4444" />
             <span>{error}</span>
           </div>
           <button
             onClick={() => setError(null)}
-            style={{ background: 'transparent', border: 'none', color: '#b91c1c', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-muted, #64748b)', cursor: 'pointer' }}
           >
             <X size={16} />
           </button>
@@ -1363,6 +1340,7 @@ export const ProfilePage: React.FC = () => {
           gap: '0.5rem',
           borderBottom: '1px solid var(--border-light, #e2e8f0)',
           marginBottom: '1.5rem',
+          overflowX: 'auto',
         }}
       >
         {/* MODERATOR TABS */}
@@ -1375,14 +1353,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'mod_info' ? '2.5px solid #0054a6' : '2.5px solid transparent',
-                color: activeTab === 'mod_info' ? '#0054a6' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'mod_info' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'mod_info' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'mod_info' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1397,14 +1376,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'mod_roles' ? '2.5px solid #0054a6' : '2.5px solid transparent',
-                color: activeTab === 'mod_roles' ? '#0054a6' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'mod_roles' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'mod_roles' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'mod_roles' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1424,14 +1404,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'lec_info' ? '2.5px solid #008837' : '2.5px solid transparent',
-                color: activeTab === 'lec_info' ? '#008837' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'lec_info' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'lec_info' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'lec_info' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1446,14 +1427,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'lec_roles' ? '2.5px solid #008837' : '2.5px solid transparent',
-                color: activeTab === 'lec_roles' ? '#008837' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'lec_roles' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'lec_roles' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'lec_roles' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1474,14 +1456,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'info' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-                color: activeTab === 'info' ? '#f26f21' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'info' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'info' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'info' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1497,14 +1480,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'skills' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-                color: activeTab === 'skills' ? '#f26f21' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'skills' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'skills' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'skills' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1519,14 +1503,15 @@ export const ProfilePage: React.FC = () => {
                 padding: '0.75rem 1.25rem',
                 border: 'none',
                 background: 'transparent',
-                borderBottom: activeTab === 'security' ? '2.5px solid #f26f21' : '2.5px solid transparent',
-                color: activeTab === 'security' ? '#f26f21' : 'var(--text-muted, #64748b)',
-                fontWeight: 700,
+                borderBottom: activeTab === 'security' ? '2.5px solid var(--accent-color, #f26f21)' : '2.5px solid transparent',
+                color: activeTab === 'security' ? 'var(--accent-color, #f26f21)' : 'var(--text-muted, #64748b)',
+                fontWeight: activeTab === 'security' ? 600 : 500,
                 fontSize: '0.925rem',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
+                whiteSpace: 'nowrap',
                 transition: 'color 150ms ease, border-color 150ms ease',
               }}
             >
@@ -1545,7 +1530,7 @@ export const ProfilePage: React.FC = () => {
         <div className="card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                 Thông tin Điều phối viên Học kỳ
               </h2>
               <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
@@ -1569,8 +1554,8 @@ export const ProfilePage: React.FC = () => {
                 onClick={handleCancelEdit}
                 className="btn"
                 style={{
-                  background: '#f1f5f9',
-                  color: '#475569',
+                  background: 'var(--bg-tag, #f1f5f9)',
+                  color: 'var(--text-secondary, #475569)',
                   border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1601,7 +1586,7 @@ export const ProfilePage: React.FC = () => {
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Email quản trị</span>
-                  <span style={{ fontSize: '0.72rem', color: '#0054a6', fontWeight: 700 }}>Hệ thống cấp</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 700 }}>Hệ thống cấp</span>
                 </label>
                 <input
                   type="email"
@@ -1656,7 +1641,7 @@ export const ProfilePage: React.FC = () => {
                   type="button"
                   onClick={handleCancelEdit}
                   className="btn"
-                  style={{ background: '#f1f5f9', color: '#475569' }}
+                  style={{ background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)' }}
                 >
                   Hủy bỏ
                 </button>
@@ -1687,7 +1672,7 @@ export const ProfilePage: React.FC = () => {
                 ROLE: MODERATOR (FULL ADMIN)
               </span>
             </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
               Thẩm quyền & Trách nhiệm Điều phối Học kỳ
             </h2>
             <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.875rem', maxWidth: 800, lineHeight: 1.5, margin: 0 }}>
@@ -1700,10 +1685,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f26f21' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Layers size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Giai đoạn 3 • Đã kích hoạt
                   </span>
                 </div>
@@ -1729,10 +1714,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054a6' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-tag, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #475569)' }}>
                     <Shield size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Giai đoạn 1 • Đã kích hoạt
                   </span>
                 </div>
@@ -1758,10 +1743,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#008837' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <FileText size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)', fontWeight: 700, fontSize: '0.72rem' }}>
                     Báo cáo học kỳ
                   </span>
                 </div>
@@ -1787,10 +1772,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Compass size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Học vụ
                   </span>
                 </div>
@@ -1816,10 +1801,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ea580c' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Sparkles size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Giai đoạn 5 • Kế tiếp
                   </span>
                 </div>
@@ -1830,7 +1815,7 @@ export const ProfilePage: React.FC = () => {
                   Chạy thuật toán Matching tự động phân bổ toàn bộ sinh viên lẻ còn lại vào các Room chưa đủ sĩ số sau khi hết hạn ghép tự do.
                 </p>
               </div>
-              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: '#b45309', fontWeight: 600 }}>
+              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
                 • Kích hoạt tự động khi hết hạn ghép tự do
               </div>
             </div>
@@ -1839,10 +1824,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284c7' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Users size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Giai đoạn 6 • Kế tiếp
                   </span>
                 </div>
@@ -1853,7 +1838,7 @@ export const ProfilePage: React.FC = () => {
                   Tiếp nhận, thẩm định và phê duyệt các yêu cầu hoán đổi hoặc rút/chuyển thành viên sau thời điểm chốt danh sách chính thức (Post-Lock Transfer).
                 </p>
               </div>
-              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: '#0284c7', fontWeight: 600 }}>
+              <div style={{ marginTop: '1.25rem', fontSize: '0.775rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
                 • Thẩm quyền phê duyệt thuộc về Điều phối viên
               </div>
             </div>
@@ -1868,7 +1853,7 @@ export const ProfilePage: React.FC = () => {
         <div className="card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                 Thông tin Giảng viên Hướng dẫn
               </h2>
               <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
@@ -1892,8 +1877,8 @@ export const ProfilePage: React.FC = () => {
                 onClick={handleCancelEdit}
                 className="btn"
                 style={{
-                  background: '#f1f5f9',
-                  color: '#475569',
+                  background: 'var(--bg-tag, #f1f5f9)',
+                  color: 'var(--text-secondary, #475569)',
                   border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1924,7 +1909,7 @@ export const ProfilePage: React.FC = () => {
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Email giảng viên</span>
-                  <span style={{ fontSize: '0.72rem', color: '#008837', fontWeight: 700 }}>Hệ thống cấp</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>Hệ thống cấp</span>
                 </label>
                 <input
                   type="email"
@@ -1979,7 +1964,7 @@ export const ProfilePage: React.FC = () => {
                   type="button"
                   onClick={handleCancelEdit}
                   className="btn"
-                  style={{ background: '#f1f5f9', color: '#475569' }}
+                  style={{ background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)' }}
                 >
                   Hủy bỏ
                 </button>
@@ -2010,7 +1995,7 @@ export const ProfilePage: React.FC = () => {
                 ROLE: LECTURER (MENTOR & EVALUATOR)
               </span>
             </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: '0 0 0.4rem 0' }}>
               Vai trò Giảng viên & Hướng dẫn môn EXE
             </h2>
             <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.875rem', maxWidth: 800, lineHeight: 1.5, margin: 0 }}>
@@ -2023,10 +2008,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0054a6' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-tag, #f1f5f9)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #475569)' }}>
                     <Layers size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)', fontWeight: 700, fontSize: '0.72rem' }}>
                     Quan sát Room
                   </span>
                 </div>
@@ -2052,10 +2037,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#008837' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <FileText size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#f0fdf4', color: '#15803d', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Xuất CSV
                   </span>
                 </div>
@@ -2081,10 +2066,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f26f21' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Compass size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#eff6ff', color: '#0054a6', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)', fontWeight: 700, fontSize: '0.72rem' }}>
                     Đội ngũ
                   </span>
                 </div>
@@ -2110,10 +2095,10 @@ export const ProfilePage: React.FC = () => {
             <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ca8a04' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--bg-subtle, #f8fafc)', border: '1px solid var(--border-light, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary, #334155)' }}>
                     <Lightbulb size={20} />
                   </div>
-                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: '0.72rem' }}>
+                  <span style={{ padding: '0.2rem 0.55rem', borderRadius: 6, background: 'var(--bg-tag, #f1f5f9)', border: '1px solid var(--border-light, #e2e8f0)', color: 'var(--text-secondary, #334155)', fontWeight: 600, fontSize: '0.72rem' }}>
                     Khởi nghiệp
                   </span>
                 </div>
@@ -2145,7 +2130,7 @@ export const ProfilePage: React.FC = () => {
         <div className="card" style={{ padding: '2rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                 Chi tiết hồ sơ học thuật & Cá nhân
               </h2>
               <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginTop: '0.2rem' }}>
@@ -2169,8 +2154,8 @@ export const ProfilePage: React.FC = () => {
                 onClick={handleCancelEdit}
                 className="btn"
                 style={{
-                  background: '#f1f5f9',
-                  color: '#475569',
+                  background: 'var(--bg-tag, #f1f5f9)',
+                  color: 'var(--text-secondary, #475569)',
                   border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -2204,7 +2189,7 @@ export const ProfilePage: React.FC = () => {
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Mã số sinh viên (MSSV)</span>
                   {isStudent && (
-                    <span style={{ fontSize: '0.72rem', color: '#0054a6', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 700 }}>
                       Cố định từ FAP
                     </span>
                   )}
@@ -2223,7 +2208,7 @@ export const ProfilePage: React.FC = () => {
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Khóa học (Cohort)</span>
-                  <span style={{ fontSize: '0.72rem', color: '#f26f21', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 600 }}>
                     Tự động từ MSSV
                   </span>
                 </label>
@@ -2232,7 +2217,7 @@ export const ProfilePage: React.FC = () => {
                   className="form-control"
                   value={profile?.cohort ? `Khóa ${profile.cohort}` : 'Chưa xác định'}
                   disabled
-                  style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', background: '#f8fafc' }}
+                  style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', background: 'var(--bg-subtle, #f8fafc)' }}
                 />
               </div>
 
@@ -2241,7 +2226,7 @@ export const ProfilePage: React.FC = () => {
                 <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Chuyên ngành học (Major)</span>
                   {isStudent && (
-                    <span style={{ fontSize: '0.72rem', color: '#0054a6', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary, #475569)', fontWeight: 700 }}>
                       Cố định từ FAP
                     </span>
                   )}
@@ -2251,7 +2236,7 @@ export const ProfilePage: React.FC = () => {
                     className="form-control"
                     value={currentMajorLabel}
                     disabled
-                    style={{ background: '#f8fafc', fontWeight: 600 }}
+                    style={{ background: 'var(--bg-subtle, #f8fafc)', fontWeight: 600 }}
                   />
               </div>
 
@@ -2379,11 +2364,11 @@ export const ProfilePage: React.FC = () => {
                         gap: '0.35rem',
                         padding: '0.35rem 0.75rem',
                         borderRadius: 999,
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
+                        background: 'var(--bg-tag, #f1f5f9)',
+                        color: 'var(--text-secondary, #334155)',
                         fontSize: '0.8rem',
                         fontWeight: 600,
-                        border: '1px solid #bfdbfe',
+                        border: '1px solid var(--border-light, #e2e8f0)',
                       }}
                     >
                       <Tag size={13} />
@@ -2391,11 +2376,12 @@ export const ProfilePage: React.FC = () => {
                       {isEditing && (
                         <button
                           type="button"
+                          aria-label={`Xóa ${item}`}
                           onClick={() => handleRemoveInterest(item)}
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            color: '#1d4ed8',
+                            color: 'var(--text-muted, #64748b)',
                             cursor: 'pointer',
                             padding: 0,
                             display: 'flex',
@@ -2412,13 +2398,13 @@ export const ProfilePage: React.FC = () => {
 
             {/* Action Buttons khi đang ở chế độ chỉnh sửa */}
             {isEditing && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-subtle, #f1f5f9)', paddingTop: '1.25rem' }}>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
                   className="btn"
                   disabled={savingProfile}
-                  style={{ background: '#f1f5f9', color: '#475569', border: 'none' }}
+                  style={{ background: 'var(--bg-tag, #f1f5f9)', color: 'var(--text-secondary, #475569)', border: 'none' }}
                 >
                   Hủy thay đổi
                 </button>
@@ -2449,8 +2435,8 @@ export const ProfilePage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  <Award size={20} color="#f26f21" />
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                  <Award size={20} color="var(--accent-color, #f26f21)" />
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                     Hồ sơ 5 Kỹ năng Cốt lõi & Biểu đồ Radar
                   </h2>
                 </div>
@@ -2462,37 +2448,37 @@ export const ProfilePage: React.FC = () => {
               {profile?.isProfileCompleted ? (
                 <div
                   style={{
-                    padding: '0.4rem 0.85rem',
+                    padding: '0.35rem 0.85rem',
                     borderRadius: 999,
-                    background: '#f0fdf4',
-                    color: '#15803d',
-                    border: '1px solid #bbf7d0',
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
                     fontSize: '0.8rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
+                    gap: '0.45rem',
                   }}
                 >
-                  <CheckCircle2 size={16} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
                   <span>Hồ sơ 5 kỹ năng đã hoàn tất</span>
                 </div>
               ) : (
                 <div
                   style={{
-                    padding: '0.4rem 0.85rem',
+                    padding: '0.35rem 0.85rem',
                     borderRadius: 999,
-                    background: '#fff7ed',
-                    color: '#c2410c',
-                    border: '1px solid #fed7aa',
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
                     fontSize: '0.8rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
+                    gap: '0.45rem',
                   }}
                 >
-                  <AlertCircle size={16} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
                   <span>Chưa hoàn tất (Cần đánh giá & cam kết)</span>
                 </div>
               )}
@@ -2502,7 +2488,7 @@ export const ProfilePage: React.FC = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
                 gap: '2rem',
                 alignItems: 'center',
                 marginBottom: '2rem',
@@ -2519,20 +2505,21 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                       1. Kỹ thuật & Lập trình (Tech)
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
                         style={{
                           fontSize: '0.725rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '0.15rem 0.45rem',
                           borderRadius: 6,
                           background: getScoreTier(techScore).bg,
                           color: getScoreTier(techScore).color,
                           border: `1px solid ${getScoreTier(techScore).border}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {getScoreTier(techScore).label}
@@ -2540,9 +2527,9 @@ export const ProfilePage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '1rem',
-                          color: '#f26f21',
+                          color: 'var(--accent-color, #f26f21)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: 42,
                           textAlign: 'right',
@@ -2554,6 +2541,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <input
                     type="range"
+                    aria-label="Điểm Kỹ thuật và Lập trình (Tech)"
                     min={0}
                     max={100}
                     step={1}
@@ -2562,9 +2550,9 @@ export const ProfilePage: React.FC = () => {
                       setTechScore(Number(e.target.value));
                       setSkills5Changed(true);
                     }}
-                    style={{ width: '100%', accentColor: '#f26f21', cursor: 'pointer' }}
+                    style={{ width: '100%', accentColor: 'var(--accent-color, #f26f21)', cursor: 'pointer' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.35rem' }}>
                     Lập trình Backend/Frontend, Mobile, AI/Data, Database, Cloud & DevOps
                   </div>
                 </div>
@@ -2578,20 +2566,21 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                       2. Quản trị & Dự án (Management)
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
                         style={{
                           fontSize: '0.725rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '0.15rem 0.45rem',
                           borderRadius: 6,
                           background: getScoreTier(managementScore).bg,
                           color: getScoreTier(managementScore).color,
                           border: `1px solid ${getScoreTier(managementScore).border}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {getScoreTier(managementScore).label}
@@ -2599,9 +2588,9 @@ export const ProfilePage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '1rem',
-                          color: '#f26f21',
+                          color: 'var(--accent-color, #f26f21)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: 42,
                           textAlign: 'right',
@@ -2613,6 +2602,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <input
                     type="range"
+                    aria-label="Điểm Quản trị và Dự án (Management)"
                     min={0}
                     max={100}
                     step={1}
@@ -2621,9 +2611,9 @@ export const ProfilePage: React.FC = () => {
                       setManagementScore(Number(e.target.value));
                       setSkills5Changed(true);
                     }}
-                    style={{ width: '100%', accentColor: '#f26f21', cursor: 'pointer' }}
+                    style={{ width: '100%', accentColor: 'var(--accent-color, #f26f21)', cursor: 'pointer' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.35rem' }}>
                     Lập kế hoạch Scrum/Kanban, phân công công việc, quản lý tiến độ & điều phối thành viên
                   </div>
                 </div>
@@ -2637,20 +2627,21 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                       3. Thiết kế & UI/UX (Graphic Design)
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
                         style={{
                           fontSize: '0.725rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '0.15rem 0.45rem',
                           borderRadius: 6,
                           background: getScoreTier(graphicDesignScore).bg,
                           color: getScoreTier(graphicDesignScore).color,
                           border: `1px solid ${getScoreTier(graphicDesignScore).border}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {getScoreTier(graphicDesignScore).label}
@@ -2658,9 +2649,9 @@ export const ProfilePage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '1rem',
-                          color: '#f26f21',
+                          color: 'var(--accent-color, #f26f21)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: 42,
                           textAlign: 'right',
@@ -2672,6 +2663,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <input
                     type="range"
+                    aria-label="Điểm Thiết kế và UI/UX (Graphic Design)"
                     min={0}
                     max={100}
                     step={1}
@@ -2680,9 +2672,9 @@ export const ProfilePage: React.FC = () => {
                       setGraphicDesignScore(Number(e.target.value));
                       setSkills5Changed(true);
                     }}
-                    style={{ width: '100%', accentColor: '#f26f21', cursor: 'pointer' }}
+                    style={{ width: '100%', accentColor: 'var(--accent-color, #f26f21)', cursor: 'pointer' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.35rem' }}>
                     Thiết kế giao diện Figma, trải nghiệm người dùng UI/UX, ấn phẩm truyền thông & Pitch Deck
                   </div>
                 </div>
@@ -2696,20 +2688,21 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                       4. Tiếp thị & Tăng trưởng (Marketing)
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
                         style={{
                           fontSize: '0.725rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '0.15rem 0.45rem',
                           borderRadius: 6,
                           background: getScoreTier(marketingScore).bg,
                           color: getScoreTier(marketingScore).color,
                           border: `1px solid ${getScoreTier(marketingScore).border}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {getScoreTier(marketingScore).label}
@@ -2717,9 +2710,9 @@ export const ProfilePage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '1rem',
-                          color: '#f26f21',
+                          color: 'var(--accent-color, #f26f21)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: 42,
                           textAlign: 'right',
@@ -2731,6 +2724,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <input
                     type="range"
+                    aria-label="Điểm Tiếp thị và Tăng trưởng (Marketing)"
                     min={0}
                     max={100}
                     step={1}
@@ -2739,9 +2733,9 @@ export const ProfilePage: React.FC = () => {
                       setMarketingScore(Number(e.target.value));
                       setSkills5Changed(true);
                     }}
-                    style={{ width: '100%', accentColor: '#f26f21', cursor: 'pointer' }}
+                    style={{ width: '100%', accentColor: 'var(--accent-color, #f26f21)', cursor: 'pointer' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.35rem' }}>
                     Nghiên cứu thị trường, chiến dịch số, SEO, sáng tạo nội dung truyền thông & thu hút user
                   </div>
                 </div>
@@ -2755,20 +2749,21 @@ export const ProfilePage: React.FC = () => {
                     border: '1px solid var(--border-light, #e2e8f0)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.925rem', color: '#0f172a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.4rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                       5. Bán hàng & Đàm phán (Sale)
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span
                         style={{
                           fontSize: '0.725rem',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           padding: '0.15rem 0.45rem',
                           borderRadius: 6,
                           background: getScoreTier(saleScore).bg,
                           color: getScoreTier(saleScore).color,
                           border: `1px solid ${getScoreTier(saleScore).border}`,
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         {getScoreTier(saleScore).label}
@@ -2776,9 +2771,9 @@ export const ProfilePage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '1rem',
-                          color: '#f26f21',
+                          color: 'var(--accent-color, #f26f21)',
                           fontVariantNumeric: 'tabular-nums',
                           minWidth: 42,
                           textAlign: 'right',
@@ -2790,6 +2785,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <input
                     type="range"
+                    aria-label="Điểm Bán hàng và Đàm phán (Sale)"
                     min={0}
                     max={100}
                     step={1}
@@ -2798,9 +2794,9 @@ export const ProfilePage: React.FC = () => {
                       setSaleScore(Number(e.target.value));
                       setSkills5Changed(true);
                     }}
-                    style={{ width: '100%', accentColor: '#f26f21', cursor: 'pointer' }}
+                    style={{ width: '100%', accentColor: 'var(--accent-color, #f26f21)', cursor: 'pointer' }}
                   />
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.35rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.35rem' }}>
                     Thuyết trình Pitching gọi vốn, bán hàng B2B/B2C, đàm phán hợp tác & chốt đơn hàng
                   </div>
                 </div>
@@ -2821,8 +2817,8 @@ export const ProfilePage: React.FC = () => {
                ────────────────────────────────────────────────────────── */}
             <div
               style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: 'var(--bg-subtle, #f8fafc)',
+                border: '1px solid var(--border-light, #e2e8f0)',
                 borderRadius: 12,
                 padding: '1.25rem 1.5rem',
                 display: 'flex',
@@ -2850,30 +2846,30 @@ export const ProfilePage: React.FC = () => {
                     width: 18,
                     height: 18,
                     marginTop: 3,
-                    accentColor: '#f26f21',
+                    accentColor: 'var(--accent-color, #f26f21)',
                     cursor: 'pointer',
                     flexShrink: 0,
                   }}
                 />
-                <div style={{ fontSize: '0.875rem', color: '#1e293b', lineHeight: 1.5 }}>
-                  <strong style={{ color: '#0f172a' }}>Cam kết trung thực về năng lực:</strong> Tôi hoàn toàn chịu trách nhiệm về tính xác thực của thang điểm 5 kỹ năng đã tự đánh giá. Tôi hiểu rằng dữ liệu này là cơ sở quan trọng để thuật toán Matching phân bổ và tối ưu hóa cân bằng năng lực thành viên khi ghép nhóm đề tài EXE.
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #334155)', lineHeight: 1.5 }}>
+                  <strong style={{ color: 'var(--text-main, #0f172a)' }}>Cam kết trung thực về năng lực:</strong> Tôi hoàn toàn chịu trách nhiệm về tính xác thực của thang điểm 5 kỹ năng đã tự đánh giá. Tôi hiểu rằng dữ liệu này là cơ sở quan trọng để thuật toán Matching phân bổ và tối ưu hóa cân bằng năng lực thành viên khi ghép nhóm đề tài EXE.
                 </div>
               </label>
 
               {committedAt && (
-                <div style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingLeft: '2.1rem' }}>
-                  <ShieldCheck size={14} color="#16a34a" />
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #64748b)', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingLeft: '2.1rem' }}>
+                  <ShieldCheck size={14} color="#10b981" />
                   <span>
-                    Đã xác nhận cam kết lúc: <strong style={{ fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>{new Date(committedAt).toLocaleString('vi-VN')}</strong>
+                    Đã xác nhận cam kết lúc: <strong style={{ color: 'var(--text-main, #0f172a)', fontFamily: 'var(--font-mono, monospace)', fontVariantNumeric: 'tabular-nums' }}>{new Date(committedAt).toLocaleString('vi-VN')}</strong>
                   </span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div style={{ fontSize: '0.825rem', color: skills5Changed ? '#c2410c' : '#64748b', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light, #e2e8f0)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.825rem', color: skills5Changed ? 'var(--accent-color, #c2410c)' : 'var(--text-muted, #64748b)', fontWeight: 600 }}>
                   {skills5Changed ? '• Có thay đổi điểm số chưa được lưu lên hệ thống' : isProfileCompleted ? '• Hồ sơ 5 kỹ năng đã được lưu và có hiệu lực' : '• Vui lòng chọn điểm và lưu hồ sơ'}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {skills5Changed && (
                     <button
                       type="button"
@@ -2888,8 +2884,8 @@ export const ProfilePage: React.FC = () => {
                           setSkills5Changed(false);
                         }
                       }}
-                      className="btn"
-                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.85rem' }}
                     >
                       Khôi phục điểm cũ
                     </button>
@@ -2905,7 +2901,7 @@ export const ProfilePage: React.FC = () => {
                       gap: '0.5rem',
                       padding: '0.65rem 1.5rem',
                       fontSize: '0.9rem',
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
                     <Save size={16} />
@@ -2920,7 +2916,7 @@ export const ProfilePage: React.FC = () => {
               PHẦN 2: DANH MỤC KỸ NĂNG BỔ TRỢ & CHUYÊN MÔN (CATALOG SKILLS)
              ────────────────────────────────────────────────────────── */}
           <div className="card" style={{ padding: '1.75rem' }}>
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', marginBottom: '0.35rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', marginBottom: '0.35rem' }}>
               Danh mục Kỹ năng Bổ trợ & Chuyên sâu
             </h2>
             <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
@@ -2933,6 +2929,7 @@ export const ProfilePage: React.FC = () => {
               <input
                 type="text"
                 className="form-control"
+                aria-label="Tìm kiếm kỹ năng trong danh mục"
                 placeholder="Tìm kiếm kỹ năng trong danh mục..."
                 value={skillSearchQuery}
                 onChange={(e) => setSkillSearchQuery(e.target.value)}
@@ -2953,9 +2950,9 @@ export const ProfilePage: React.FC = () => {
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 120ms ease',
-                    border: selectedCategory === cat.value ? '1px solid var(--primary)' : '1px solid var(--border-light)',
-                    background: selectedCategory === cat.value ? 'var(--primary-light)' : 'var(--bg-card)',
-                    color: selectedCategory === cat.value ? 'var(--primary)' : 'var(--text-secondary)',
+                    border: selectedCategory === cat.value ? '1px solid var(--accent-color, #f26f21)' : '1px solid var(--border-light)',
+                    background: selectedCategory === cat.value ? 'var(--accent-soft, rgba(242, 111, 33, 0.12))' : 'var(--bg-card)',
+                    color: selectedCategory === cat.value ? 'var(--accent-color, #f26f21)' : 'var(--text-secondary)',
                   }}
                 >
                   {cat.label}
@@ -2964,13 +2961,14 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             {/* Add Skill Controls */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px auto', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+              <div className="form-group" style={{ marginBottom: 0, flex: '1 1 240px', minWidth: 0 }}>
                 <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
                   Chọn kỹ năng ({filteredCatalogSkills.length} kỹ năng khả dụng)
                 </label>
                 <select
                   className="form-control"
+                  aria-label="Chọn kỹ năng từ danh mục"
                   value={selectedSkillIdToAdd}
                   onChange={(e) => setSelectedSkillIdToAdd(e.target.value)}
                 >
@@ -2983,12 +2981,13 @@ export const ProfilePage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group" style={{ marginBottom: 0, flex: '0 1 215px', minWidth: 180 }}>
                 <label className="form-label" style={{ fontSize: '0.825rem', fontWeight: 600 }}>
                   Mức độ thành thạo (1-5)
                 </label>
                 <select
                   className="form-control"
+                  aria-label="Chọn mức độ thành thạo"
                   value={selectedSkillLevel}
                   onChange={(e) => setSelectedSkillLevel(Number(e.target.value))}
                 >
@@ -3005,7 +3004,7 @@ export const ProfilePage: React.FC = () => {
                 onClick={handleAddSkillToUser}
                 className="btn btn-primary"
                 disabled={!selectedSkillIdToAdd}
-                style={{ height: 42, display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0 1.25rem' }}
+                style={{ height: 42, display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0 1.25rem', whiteSpace: 'nowrap' }}
               >
                 <Plus size={16} />
                 <span>Thêm vào hồ sơ</span>
@@ -3013,9 +3012,9 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             {/* User Skills List */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', borderTop: '1px solid var(--border-subtle, #f1f5f9)', paddingTop: '1.25rem' }}>
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                   Kỹ năng bổ trợ đã lưu ({userSkills.length})
                 </h3>
               </div>
@@ -3072,8 +3071,8 @@ export const ProfilePage: React.FC = () => {
                         gap: '0.75rem',
                       }}
                     >
-                      <div style={{ minWidth: 200 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
+                      <div style={{ minWidth: 180 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.925rem', color: 'var(--text-main, #0f172a)' }}>
                           {skill.skillName}
                         </div>
                         <span
@@ -3084,22 +3083,9 @@ export const ProfilePage: React.FC = () => {
                             borderRadius: 6,
                             fontSize: '0.7rem',
                             fontWeight: 600,
-                            background:
-                              skill.category === 'Technical'
-                                ? '#eff6ff'
-                                : skill.category === 'Design'
-                                ? '#fdf2f8'
-                                : skill.category === 'Business'
-                                ? '#f0fdf4'
-                                : '#fff7ed',
-                            color:
-                              skill.category === 'Technical'
-                                ? '#1d4ed8'
-                                : skill.category === 'Design'
-                                ? '#be185d'
-                                : skill.category === 'Business'
-                                ? '#15803d'
-                                : '#c2410c',
+                            background: 'var(--bg-tag, #f1f5f9)',
+                            color: 'var(--text-secondary, #475569)',
+                            border: '1px solid var(--border-light, #e2e8f0)',
                           }}
                         >
                           {skill.category}
@@ -3134,7 +3120,7 @@ export const ProfilePage: React.FC = () => {
                                 <Star
                                   size={18}
                                   weight={isFilled ? 'fill' : 'regular'}
-                                  color={isFilled ? '#f59e0b' : '#cbd5e1'}
+                                  color={isFilled ? 'var(--accent-color, #f59e0b)' : 'var(--border-medium, #cbd5e1)'}
                                 />
                               </button>
                             );
@@ -3143,12 +3129,13 @@ export const ProfilePage: React.FC = () => {
 
                         <select
                           className="form-control"
+                          aria-label={`Mức độ thành thạo của ${skill.skillName}`}
                           value={skill.level}
                           onChange={(e) => handleSkillLevelChange(skill.skillId, Number(e.target.value))}
                           style={{
                             height: 32,
                             fontSize: '0.78rem',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             color: prof.color,
                             background: 'var(--bg-card, #ffffff)',
                             border: '1px solid var(--border-light, #e2e8f0)',
@@ -3171,6 +3158,7 @@ export const ProfilePage: React.FC = () => {
                         type="button"
                         onClick={() => handleRemoveSkill(skill.skillId)}
                         title="Xóa kỹ năng này"
+                        aria-label={`Xóa kỹ năng ${skill.skillName}`}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -3183,7 +3171,7 @@ export const ProfilePage: React.FC = () => {
                           justifyContent: 'center',
                           transition: 'background 120ms ease',
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         <Trash2 size={16} />
@@ -3211,9 +3199,9 @@ export const ProfilePage: React.FC = () => {
                     width: 42,
                     height: 42,
                     borderRadius: 10,
-                    background: authUser?.hasAcceptedTerms ? '#f0fdf4' : '#fff7ed',
-                    color: authUser?.hasAcceptedTerms ? '#008837' : '#f26f21',
-                    border: authUser?.hasAcceptedTerms ? '1px solid #bbf7d0' : '1px solid #fed7aa',
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -3223,7 +3211,7 @@ export const ProfilePage: React.FC = () => {
                   <ShieldCheck size={22} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0 }}>
                     Cam kết Quy định Ghép nhóm & Điều phối Môn EXE
                   </h2>
                   <p style={{ color: 'var(--text-muted, #64748b)', fontSize: '0.86rem', margin: '0.35rem 0 0', lineHeight: 1.55, maxWidth: 680 }}>
@@ -3237,18 +3225,18 @@ export const ProfilePage: React.FC = () => {
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.4rem 0.85rem',
+                    gap: '0.45rem',
+                    padding: '0.35rem 0.85rem',
                     borderRadius: 999,
-                    background: '#f0fdf4',
-                    color: '#008837',
-                    border: '1px solid #bbf7d0',
+                    background: 'var(--bg-subtle, #f8fafc)',
+                    color: 'var(--text-secondary, #334155)',
+                    border: '1px solid var(--border-light, #e2e8f0)',
                     fontSize: '0.8rem',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <CheckCircle2 size={15} />
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
                   <span>Đã xác nhận đồng ý</span>
                 </span>
               ) : (

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, AlertCircle, X, Info } from '../../utils/icons';
+import { CheckCircle2, AlertCircle, AlertTriangle, Layers, X, Info } from '../../utils/icons';
 
 /**
  * Thành phần giao diện dùng chung cho các màn hình Học kỳ / Phòng / Nhóm.
@@ -87,7 +87,7 @@ export const CardTitle: React.FC<{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--accent-color, #F26F21)',
+            color: 'var(--text-secondary, #334155)',
             flexShrink: 0,
           }}
         >
@@ -207,10 +207,10 @@ export const Pill: React.FC<{ children: React.ReactNode; dot?: string; tone?: 'n
 
 export const ROOM_STATUS_DOT: Record<string, string> = {
   Empty: '#94A3B8',
-  Forming: '#F59E0B',
-  Recruiting: '#10B981',
-  Closed: '#6366F1',
-  Locked: '#0F172A',
+  Forming: '#10B981',
+  Recruiting: 'var(--status-recruiting, #F26F21)',
+  Closed: '#64748B',
+  Locked: '#64748B',
   Disbanded: '#EF4444',
   Pending: '#F59E0B',
   Accepted: '#10B981',
@@ -237,7 +237,27 @@ export const StateBox: React.FC<{
     }}
   >
     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, color: kind === 'error' ? '#DC2626' : 'var(--text-light, #94A3B8)' }}>
-      {kind === 'loading' ? <Spinner size={22} /> : kind === 'error' ? <AlertCircle size={26} /> : null}
+      {kind === 'loading' ? (
+        <Spinner size={22} />
+      ) : kind === 'error' ? (
+        <AlertCircle size={26} />
+      ) : (
+        <div
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 12,
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-muted, #64748B)',
+          }}
+        >
+          <Layers size={20} />
+        </div>
+      )}
     </div>
     {title && <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: 6 }}>{title}</div>}
     {message && <div style={{ fontSize: 14.5, lineHeight: 1.55, maxWidth: 620, margin: '0 auto' }}>{message}</div>}
@@ -249,22 +269,25 @@ export const Banner: React.FC<{ tone?: 'success' | 'error' | 'info' | 'warning';
   tone = 'info',
   children,
 }) => {
-  const tones = {
-    success: { bg: 'rgba(5, 150, 105, 0.08)', border: 'rgba(5, 150, 105, 0.25)', color: '#047857' },
-    error: { bg: '#FEF2F2', border: '#FECACA', color: '#B91C1C' },
-    info: { bg: 'var(--bg-subtle, #F8FAFC)', border: 'var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)' },
-    warning: { bg: '#FFFBEB', border: '#FDE68A', color: '#92400E' },
-  }[tone];
+  const iconColor =
+    tone === 'success'
+      ? '#10B981'
+      : tone === 'error'
+      ? '#EF4444'
+      : tone === 'warning'
+      ? 'var(--accent-color, #F26F21)'
+      : 'var(--text-secondary, #334155)';
+  const IconComp = tone === 'success' ? CheckCircle2 : tone === 'error' ? AlertCircle : tone === 'warning' ? AlertTriangle : Info;
   return (
     <div
       style={{
         padding: '12px 16px',
         borderRadius: 12,
-        backgroundColor: tones.bg,
-        border: `1px solid ${tones.border}`,
-        color: tones.color,
-        fontSize: 14.5,
-        fontWeight: 550,
+        backgroundColor: 'var(--bg-card, #FFFFFF)',
+        border: '1px solid var(--border-light, #E2E8F0)',
+        color: 'var(--text-main, #0F172A)',
+        fontSize: 14,
+        fontWeight: 500,
         lineHeight: 1.5,
         display: 'flex',
         alignItems: 'flex-start',
@@ -272,7 +295,7 @@ export const Banner: React.FC<{ tone?: 'success' | 'error' | 'info' | 'warning';
         marginBottom: '1rem',
       }}
     >
-      {tone === 'success' ? <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 1 }} /> : <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />}
+      <IconComp size={18} style={{ flexShrink: 0, marginTop: 2, color: iconColor }} />
       <div style={{ minWidth: 0 }}>{children}</div>
     </div>
   );
@@ -357,7 +380,7 @@ export const Modal: React.FC<{
   return createPortal(
     <div
       onClick={onClose}
-      className="modal-overlay"
+      className="modal-overlay motion-modal-backdrop"
       style={{
         position: 'fixed',
         inset: 0,
@@ -375,7 +398,7 @@ export const Modal: React.FC<{
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
-        className="modal-content"
+        className="modal-content motion-modal-dialog"
         style={{
           width: '100%',
           maxWidth: width,
@@ -390,14 +413,14 @@ export const Modal: React.FC<{
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           <div>
-            <h3 style={{ fontSize: 19, fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>{title}</h3>
+            <h3 style={{ fontSize: 18.5, fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>{title}</h3>
             {subtitle && <div style={{ fontSize: 14, color: 'var(--text-muted, #64748B)', marginTop: 4 }}>{subtitle}</div>}
           </div>
           <button
             type="button"
-            aria-label="Đóng"
+            aria-label="Đóng hộp thoại"
             onClick={onClose}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted, #64748B)', padding: 4, display: 'flex' }}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted, #64748B)', padding: 6, borderRadius: 8, display: 'flex' }}
           >
             <X size={18} />
           </button>

@@ -151,6 +151,15 @@ export const LecturerDashboardPage: React.FC = () => {
     };
   }, [load]);
 
+  useEffect(() => {
+    if (!selectedGroupModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedGroupModal(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedGroupModal]);
+
   const LECTURER_GROUPS = useMemo(() => toLecturerGroups(roster), [roster]);
 
   // Số liệu thống kê
@@ -214,35 +223,36 @@ export const LecturerDashboardPage: React.FC = () => {
               gap: '6px',
               fontSize: '13px',
               fontWeight: 500,
-              color: '#64748B',
+              color: 'var(--text-muted, #64748B)',
               marginBottom: '6px',
             }}
           >
             <span>Giảng viên & Chấm điểm</span>
-            <span style={{ color: '#CBD5E1' }}>/</span>
-            <span style={{ color: '#334155', fontWeight: 600 }}>Dashboard giám sát & Xuất báo cáo</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 600 }}>Dashboard giám sát & Xuất báo cáo</span>
           </div>
-          <h1 style={{ fontSize: '24px', fontWeight: 650, color: '#0F172A', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
             Dashboard Giảng viên & Xuất Báo cáo Chấm điểm
           </h1>
-          <p style={{ color: '#64748B', fontSize: '14.5px', margin: 0, lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: 0, lineHeight: 1.5 }}>
             Theo dõi tiến độ ghép nhóm học phần EXE, giám sát cơ cấu đa ngành và tải danh sách nhóm chính thức phục vụ công tác chấm điểm.
           </p>
         </div>
 
         {/* Course Select & CSV Export Button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
+            aria-label="Chọn học kỳ môn học"
             style={{
               height: 40,
               padding: '0 12px',
-              borderRadius: 12,
+              borderRadius: 10,
               border: '1px solid var(--border-medium, #CBD5E1)',
               backgroundColor: 'var(--bg-card, #FFFFFF)',
-              fontSize: '15px',
-              fontWeight: 700,
+              fontSize: '14px',
+              fontWeight: 600,
               color: 'var(--text-main, #0F172A)',
               outline: 'none',
               cursor: 'pointer',
@@ -257,22 +267,15 @@ export const LecturerDashboardPage: React.FC = () => {
 
           <button
             type="button"
+            className="btn btn-primary"
             onClick={handleExportCSV}
             style={{
               height: 40,
-              padding: '0 18px',
-              borderRadius: 12,
-              backgroundColor: '#15803D',
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: '15px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 2px 6px rgba(21, 128, 61, 0.25)',
-              transition: 'all 0.15s ease',
+              padding: '0 16px',
+              borderRadius: 10,
+              fontSize: '14px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
             }}
           >
             <Download size={16} />
@@ -282,35 +285,35 @@ export const LecturerDashboardPage: React.FC = () => {
       </div>
 
       {loadError && (
-        <div style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', marginBottom: '1.25rem', fontSize: '14.5px', fontWeight: 600 }}>
+        <div style={{ padding: '12px 16px', borderRadius: 12, backgroundColor: 'var(--danger-light)', border: '1px solid rgba(239, 68, 68, 0.35)', color: 'var(--danger)', marginBottom: '1.25rem', fontSize: '14.5px', fontWeight: 600 }}>
           {loadError}
         </div>
       )}
 
       {/* 4 Overview Statistics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
         {/* Card 1 */}
         <div
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
             borderRadius: '20px',
-            padding: '26px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
               Tổng SV Đủ Điều Kiện
             </span>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
-              <Users size={18} />
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
+              <Users size={17} />
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
             {totalStudents}
           </div>
-          <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+          <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
             <CheckCircle2 size={13} color="#10B981" /> Sinh viên có tên trên danh sách FAP
           </span>
         </div>
@@ -321,22 +324,22 @@ export const LecturerDashboardPage: React.FC = () => {
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
             borderRadius: '20px',
-            padding: '26px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
               Tỷ lệ Đã Ghép Nhóm
             </span>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
-              <CheckCircle2 size={18} />
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
+              <CheckCircle2 size={17} />
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
             {groupedPercent}%
           </div>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginTop: '4px', display: 'block', fontVariantNumeric: 'tabular-nums' }}>
             {groupedStudents}/{totalStudents} sinh viên đã có nhóm
           </span>
         </div>
@@ -347,22 +350,22 @@ export const LecturerDashboardPage: React.FC = () => {
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
             borderRadius: '20px',
-            padding: '26px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
               Tổng Số Nhóm Hoàn Chỉnh
             </span>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
-              <Layers size={18} />
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
+              <Layers size={17} />
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>
             {LECTURER_GROUPS.length} nhóm
           </div>
-          <span style={{ fontSize: '14px', color: 'var(--text-muted, #64748B)', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', marginTop: '4px', display: 'block', fontVariantNumeric: 'tabular-nums' }}>
             {fullGroups}/{LECTURER_GROUPS.length} nhóm đạt sĩ số tối đa
           </span>
         </div>
@@ -373,22 +376,22 @@ export const LecturerDashboardPage: React.FC = () => {
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
             borderRadius: '20px',
-            padding: '26px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
+            <span style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-muted, #64748B)' }}>
               Cân Bằng Đa Ngành TB
             </span>
-            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
-              <TrendingUp size={18} />
+            <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-color, #F26F21)' }}>
+              <TrendingUp size={17} />
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#C2410C', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent-color, #F26F21)', fontVariantNumeric: 'tabular-nums' }}>
             {LECTURER_GROUPS.length ? `${avgBalance}%` : '—'}
           </div>
-          <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+          <span style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
             <Sparkles size={13} color="var(--accent-color, #F26F21)" /> Đạt tiêu chuẩn đánh giá EXE
           </span>
         </div>
@@ -400,11 +403,11 @@ export const LecturerDashboardPage: React.FC = () => {
           backgroundColor: 'var(--bg-card, #FFFFFF)',
           border: '1px solid var(--border-light, #E2E8F0)',
           borderRadius: '20px',
-          padding: '26px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          padding: '24px',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: 0 }}>
               Danh sách Toàn bộ Các Nhóm Trong Môn ({filteredGroups.length} nhóm)
@@ -415,8 +418,8 @@ export const LecturerDashboardPage: React.FC = () => {
           </div>
 
           {/* Search box */}
-          <div style={{ position: 'relative', width: 300 }}>
-            <Search size={15} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-light, #94A3B8)' }} />
+          <div style={{ position: 'relative', width: 'min(100%, 320px)' }}>
+            <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light, #94A3B8)' }} />
             <input
               type="text"
               placeholder="Tìm theo mã nhóm, tên đề tài hoặc trưởng nhóm..."
@@ -424,13 +427,14 @@ export const LecturerDashboardPage: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                height: 36,
-                paddingLeft: '2rem',
+                height: 38,
+                paddingLeft: '2.1rem',
                 paddingRight: '10px',
                 borderRadius: 10,
                 border: '1px solid var(--border-medium, #CBD5E1)',
                 backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                fontSize: '15px',
+                color: 'var(--text-main)',
+                fontSize: '14px',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
@@ -440,17 +444,17 @@ export const LecturerDashboardPage: React.FC = () => {
 
         {/* Table */}
         <div style={{ overflowX: 'auto', border: '1px solid var(--border-light, #E2E8F0)', borderRadius: 12 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '15px' }}>
+          <table style={{ width: '100%', minWidth: 820, borderCollapse: 'collapse', textAlign: 'left', fontSize: '14.5px' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--bg-subtle, #F8FAFC)', borderBottom: '1px solid var(--border-light, #E2E8F0)' }}>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Mã nhóm</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Đề tài dự kiến</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Sĩ số</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Trưởng nhóm</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Cơ cấu chuyên ngành</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Cân bằng kỹ năng</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)' }}>Trạng thái</th>
-                <th style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--text-main, #0F172A)', textAlign: 'center' }}>Chi tiết</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Mã nhóm</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Đề tài dự kiến</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Sĩ số</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Trưởng nhóm</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Cơ cấu chuyên ngành</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Cân bằng kỹ năng</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap' }}>Trạng thái</th>
+                <th style={{ padding: '10px 14px', fontWeight: 650, color: 'var(--text-main, #0F172A)', textAlign: 'center', whiteSpace: 'nowrap' }}>Chi tiết</th>
               </tr>
             </thead>
             <tbody>
@@ -461,7 +465,22 @@ export const LecturerDashboardPage: React.FC = () => {
                   </td>
                 </tr>
               )}
-              {filteredGroups.map((g) => (
+              {filteredGroups.map((g) => {
+                const statusInfo = (() => {
+                  switch (g.status) {
+                    case 'Forming':
+                      return { label: 'Đang lập nhóm', dot: '#10B981' };
+                    case 'Recruiting':
+                      return { label: 'Đang tuyển', dot: 'var(--status-recruiting, #F26F21)' };
+                    case 'Closed':
+                      return { label: 'Đã đủ người', dot: '#64748B' };
+                    case 'Locked':
+                    default:
+                      return { label: 'Đã chốt sổ', dot: '#64748B' };
+                  }
+                })();
+
+                return (
                 <tr
                   key={g.id}
                   onClick={() => setSelectedGroupModal(g)}
@@ -473,35 +492,35 @@ export const LecturerDashboardPage: React.FC = () => {
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle, #F8FAFC)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, color: '#C2410C' }}>
+                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
                     {g.code}
                   </td>
                   <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-main, #0F172A)', maxWidth: 260 }}>
                     {g.topic}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '13px', fontWeight: 600, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', color: '#334155', fontVariantNumeric: 'tabular-nums' }}>
+                  <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '13px', fontWeight: 600, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                       {g.memberCount}/{g.maxMembers}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', color: 'var(--text-main, #0F172A)', fontWeight: 600 }}>
+                  <td style={{ padding: '12px 14px', color: 'var(--text-main, #0F172A)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {g.leaderName}
                   </td>
-                  <td style={{ padding: '12px 14px', color: 'var(--text-muted, #64748B)', fontSize: '14px' }}>
+                  <td style={{ padding: '12px 14px', color: 'var(--text-muted, #64748B)', fontSize: '13.5px' }}>
                     {g.majorsSummary}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: '13.5px', fontWeight: 700, backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', color: '#C2410C', fontVariantNumeric: 'tabular-nums' }}>
+                  <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: '13px', fontWeight: 700, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--accent-color, #F26F21)', fontVariantNumeric: 'tabular-nums' }}>
                       {g.balanceScore}%
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '2px 9px', borderRadius: 999, fontSize: '13px', fontWeight: 600, backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', color: '#334155' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: '#10B981' }} />
-                      Đã chốt sổ
+                  <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 9px', borderRadius: 6, fontSize: '13px', fontWeight: 500, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: statusInfo.dot }} />
+                      {statusInfo.label}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                  <td style={{ padding: '12px 14px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -514,7 +533,7 @@ export const LecturerDashboardPage: React.FC = () => {
                         border: '1px solid var(--border-medium, #CBD5E1)',
                         backgroundColor: 'var(--bg-card, #FFFFFF)',
                         color: 'var(--text-main, #0F172A)',
-                        fontSize: '14px',
+                        fontSize: '13.5px',
                         fontWeight: 600,
                         cursor: 'pointer',
                         display: 'inline-flex',
@@ -527,7 +546,8 @@ export const LecturerDashboardPage: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
@@ -536,19 +556,22 @@ export const LecturerDashboardPage: React.FC = () => {
       {/* Group Detail & Radar Chart Modal */}
       {selectedGroupModal && (
         <div
+          className="motion-modal-backdrop"
           style={{
             position: 'fixed',
             inset: 0,
             zIndex: 9999,
             backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '26px',
+            padding: '16px',
           }}
           onClick={() => setSelectedGroupModal(null)}
         >
           <div
+            className="motion-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
@@ -559,33 +582,36 @@ export const LecturerDashboardPage: React.FC = () => {
               border: '1px solid var(--border-light, #E2E8F0)',
               borderRadius: '20px',
               padding: '24px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: 'var(--shadow-xl)',
             }}
           >
             {/* Modal Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-light, #E2E8F0)', paddingBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px', borderBottom: '1px solid var(--border-light, #E2E8F0)', paddingBottom: '14px' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 800, fontSize: '17px', color: '#0054A6', backgroundColor: '#EFF6FF', padding: '3px 10px', borderRadius: 6, border: '1px solid #BFDBFE' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontWeight: 700, fontSize: '14px', color: 'var(--text-main)', backgroundColor: 'var(--bg-tag)', padding: '3px 10px', borderRadius: 6, border: '1px solid var(--border-light)', fontVariantNumeric: 'tabular-nums' }}>
                     {selectedGroupModal.code}
                   </span>
-                  <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 700, backgroundColor: 'rgba(5, 150, 105, 0.12)', color: '#059669' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: '13px', fontWeight: 600, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                     Sĩ số: {selectedGroupModal.memberCount}/{selectedGroupModal.maxMembers} thành viên
                   </span>
-                  <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: '14px', fontWeight: 800, backgroundColor: 'rgba(124, 58, 237, 0.12)', color: '#7C3AED' }}>
+                  <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: '13px', fontWeight: 700, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-light)', color: 'var(--accent-color, #F26F21)', fontVariantNumeric: 'tabular-nums' }}>
                     Cân bằng: {selectedGroupModal.balanceScore}%
                   </span>
                 </div>
-                <h2 style={{ fontSize: '19px', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '4px 0' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '4px 0' }}>
                   {selectedGroupModal.topic}
                 </h2>
-                <p style={{ fontSize: '15px', color: 'var(--text-muted, #64748B)', margin: 0 }}>
-                  {selectedGroupModal.topicDesc}
-                </p>
+                {selectedGroupModal.topicDesc && (
+                  <p style={{ fontSize: '14.5px', color: 'var(--text-muted, #64748B)', margin: 0 }}>
+                    {selectedGroupModal.topicDesc}
+                  </p>
+                )}
               </div>
 
               <button
                 type="button"
+                aria-label="Đóng chi tiết nhóm"
                 onClick={() => setSelectedGroupModal(null)}
                 style={{
                   width: 32,
@@ -598,6 +624,7 @@ export const LecturerDashboardPage: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--text-muted, #64748B)',
+                  flexShrink: 0,
                 }}
               >
                 <X size={18} />
@@ -605,10 +632,10 @@ export const LecturerDashboardPage: React.FC = () => {
             </div>
 
             {/* Split: Member Table vs Radar Chart */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '20px', marginBottom: '16px' }}>
               {/* Member List */}
               <div>
-                <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px' }}>
                   Danh sách Thành viên Chính thức ({selectedGroupModal.members.length} SV)
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -622,20 +649,20 @@ export const LecturerDashboardPage: React.FC = () => {
                         border: '1px solid var(--border-light, #E2E8F0)',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                        <span style={{ fontWeight: 650, fontSize: '15px', color: 'var(--text-main, #0F172A)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '2px' }}>
+                        <span style={{ fontWeight: 650, fontSize: '14.5px', color: 'var(--text-main, #0F172A)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <span>{m.fullName}</span>
                           {m.role === 'Leader' && (
-                            <span style={{ fontSize: '11.5px', fontWeight: 600, padding: '1px 7px', borderRadius: 5, backgroundColor: '#F1F5F9', border: '1px solid #E2E8F0', color: '#334155' }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: 600, padding: '1px 7px', borderRadius: 5, backgroundColor: 'var(--bg-tag)', border: '1px solid var(--border-light)', color: 'var(--text-secondary)' }}>
                               Trưởng nhóm
                             </span>
                           )}
                         </span>
-                        <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13.5px', fontWeight: 600, color: '#475569' }}>
+                        <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
                           {m.studentCode}
                         </span>
                       </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', wordBreak: 'break-word' }}>
                         {m.major} • Lớp {m.classCode} • {m.email}
                       </div>
                     </div>
@@ -645,15 +672,14 @@ export const LecturerDashboardPage: React.FC = () => {
 
               {/* 5-Skills Radar Chart */}
               <div>
-                <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text-main, #0F172A)', marginBottom: '10px' }}>
                   Biểu đồ Ngũ giác Năng lực Nhóm (SVG Radar)
                 </h4>
                 {(() => {
                   const avg = computeGroupAverageSkills(selectedGroupModal.members);
-                  // Radar geometry: center at (150, 130), radius = 80
                   const cx = 150;
                   const cy = 130;
-                  const r = 75;
+                  const r = 72;
                   const angles = [-90, -18, 54, 126, 198].map((deg) => (deg * Math.PI) / 180);
                   const skillValues = [
                     avg.tech,
@@ -664,7 +690,6 @@ export const LecturerDashboardPage: React.FC = () => {
                   ];
                   const labels = ['Tech', 'Management', 'Graphic Design', 'Marketing', 'Sale'];
 
-                  // Calculate polygon points
                   const points = angles.map((ang, i) => {
                     const dist = (skillValues[i] / 100) * r;
                     const x = cx + dist * Math.cos(ang);
@@ -672,12 +697,11 @@ export const LecturerDashboardPage: React.FC = () => {
                     return `${x},${y}`;
                   }).join(' ');
 
-                  // Grid background rings
                   const rings = [0.25, 0.5, 0.75, 1.0];
 
                   return (
                     <div style={{ textAlign: 'center', backgroundColor: 'var(--bg-subtle, #F8FAFC)', padding: '16px', borderRadius: 12, border: '1px solid var(--border-light, #E2E8F0)' }}>
-                      <svg width="300" height="260" viewBox="0 0 300 260" style={{ overflow: 'visible', margin: '0 auto' }}>
+                      <svg width="330" height="260" viewBox="-15 0 330 260" style={{ maxWidth: '100%', height: 'auto', margin: '0 auto', display: 'block' }}>
                         {/* Rings */}
                         {rings.map((factor, idx) => {
                           const ringPoints = angles.map((ang) => {

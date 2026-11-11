@@ -69,7 +69,7 @@ export const FPT_CAMPUSES: CampusItem[] = [
     image: '/campuses/qn.jpg',
     pinX: '66%',
     pinY: '50%',
-    cardPos: { top: '38%', left: '46%' },
+    cardPos: { top: '38%', left: '38%' },
     recruitingCount: 7,
     tags: ['+1 AI', '+1 SE'],
     lat: 13.7830,
@@ -127,13 +127,19 @@ export const ExeNetworkGlobe: React.FC = () => {
 
       globeRef.current = globe;
 
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
       // ── Continuous 60fps Rotation Animation Loop ──
       const animate = () => {
-        if (!pointerInteracting.current) {
+        if (!pointerInteracting.current && !prefersReducedMotion) {
           phiRef.current += 0.003; // Smooth continuous rotation
         }
         globe.update({ phi: phiRef.current });
-        animId = requestAnimationFrame(animate);
+        if (!prefersReducedMotion) {
+          animId = requestAnimationFrame(animate);
+        }
       };
 
       animId = requestAnimationFrame(animate);
@@ -299,7 +305,16 @@ export const ExeNetworkGlobe: React.FC = () => {
           return (
             <div
               key={campus.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Chọn ${campus.name}`}
               onClick={() => handleSelectCampus(idx)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectCampus(idx);
+                }
+              }}
               style={{
                 position: 'absolute',
                 left: campus.pinX,
@@ -371,14 +386,14 @@ export const ExeNetworkGlobe: React.FC = () => {
             position: 'absolute',
             top: activeCampus.cardPos.top,
             left: activeCampus.cardPos.left,
-            width: '210px',
+            width: '198px',
             backgroundColor: '#FFFFFF',
             borderRadius: '14px',
             padding: '8px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 16px 36px -6px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.9)',
             zIndex: 30,
-            transition: 'top 0.4s cubic-bezier(0.16, 1, 0.3, 1), left 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'top 0.3s cubic-bezier(0.16, 1, 0.3, 1), left 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
             pointerEvents: 'auto',
           }}
         >

@@ -56,27 +56,27 @@ const getNotificationTypeConfig = (type: string) => {
       return {
         label: 'Đã duyệt vào nhóm',
         icon: CheckCircle2,
-        color: '#16A34A',
-        bg: '#DCFCE7',
-        border: '#BBF7D0',
+        color: '#10B981',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'GROUP_REQUEST':
     case 'GROUP_INVITE':
       return {
         label: 'Đơn ứng tuyển mới',
         icon: Mail,
-        color: '#EA580C',
-        bg: '#FFEDD5',
-        border: '#FED7AA',
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'ELECTION_OPEN':
     case 'MATCHING_FOUND':
       return {
         label: 'Biểu quyết nội bộ',
         icon: Sparkles,
-        color: '#7C3AED',
-        bg: '#EDE9FE',
-        border: '#DDD6FE',
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'SYSTEM_ACCOUNT':
     case 'SYSTEM':
@@ -84,9 +84,9 @@ const getNotificationTypeConfig = (type: string) => {
       return {
         label: 'Thông báo học vụ',
         icon: Bell,
-        color: '#0054A6',
-        bg: '#EFF6FF',
-        border: '#BFDBFE',
+        color: 'var(--text-secondary, #475569)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
   }
 };
@@ -97,6 +97,9 @@ export const MainLayout: React.FC = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [spaceMenuOpen, setSpaceMenuOpen] = useState(false);
@@ -331,30 +334,32 @@ export const MainLayout: React.FC = () => {
     ];
   };
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobileViewport(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const navSections: NavSection[] = getNavSectionsForRole(user?.role);
   const sidebarWidth = isCollapsed ? 76 : 272;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-main, #f4f6fa)' }}>
       {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.5)',
-            backdropFilter: 'blur(3px)',
-            zIndex: 40,
-          }}
-        />
-      )}
+      <div
+        className={`app-sidebar-backdrop${sidebarOpen ? ' is-open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* ══════════════════════════════════════════════════════════════
           SIDEBAR: Linear / Vercel / Cal.com Inspired Precision Layout
          ══════════════════════════════════════════════════════════════ */}
       <aside
-        className="motion-sidebar-shell"
+        className={`motion-sidebar-shell app-sidebar${sidebarOpen ? ' is-mobile-open' : ''}`}
         style={{
           width: sidebarWidth,
           background: 'var(--bg-sidebar, #ffffff)',
@@ -489,7 +494,7 @@ export const MainLayout: React.FC = () => {
                       borderRadius: 999,
                       backgroundColor:
                         step <= spacePhase
-                          ? 'var(--status-progress, #7C3AED)'
+                          ? 'var(--accent-color, #F26F21)'
                           : isDarkMode
                           ? '#334155'
                           : '#E2E8F0',
@@ -564,7 +569,7 @@ export const MainLayout: React.FC = () => {
                         key={item.to}
                         to={item.to}
                         className={({ isActive }) => {
-                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          const activeState = isNotifItem ? isActive || notifOpen : isActive && !notifOpen;
                           return `motion-sidebar-link${activeState ? ' is-active-nav' : ''}`;
                         }}
                         data-sidebar-tooltip={isCollapsed ? item.label : undefined}
@@ -573,7 +578,7 @@ export const MainLayout: React.FC = () => {
                           setNotifOpen(false);
                         }}
                         style={({ isActive }) => {
-                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          const activeState = isNotifItem ? isActive || notifOpen : isActive && !notifOpen;
                           return {
                             display: 'flex',
                             alignItems: 'center',
@@ -584,7 +589,7 @@ export const MainLayout: React.FC = () => {
                             borderRadius: 8,
                             fontSize: '14px',
                             letterSpacing: '-0.01em',
-                            fontWeight: activeState ? 550 : 450,
+                            fontWeight: activeState ? 600 : 450,
                             color: activeState
                               ? isDarkMode
                                 ? '#FFFFFF'
@@ -601,16 +606,16 @@ export const MainLayout: React.FC = () => {
                           };
                         }}
                         onMouseEnter={(e) => {
-                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page' && !notifOpen;
-                          const activeState = isNotifItem ? notifOpen : isCurrentActive;
+                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page';
+                          const activeState = isNotifItem ? isCurrentActive || notifOpen : isCurrentActive && !notifOpen;
                           if (!activeState) {
                             e.currentTarget.style.background = isDarkMode ? 'rgba(30, 41, 59, 0.45)' : '#F8FAFC';
                             e.currentTarget.style.color = isDarkMode ? '#F8FAFC' : '#0F172A';
                           }
                         }}
                         onMouseLeave={(e) => {
-                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page' && !notifOpen;
-                          const activeState = isNotifItem ? notifOpen : isCurrentActive;
+                          const isCurrentActive = e.currentTarget.getAttribute('aria-current') === 'page';
+                          const activeState = isNotifItem ? isCurrentActive || notifOpen : isCurrentActive && !notifOpen;
                           if (!activeState) {
                             e.currentTarget.style.background = 'transparent';
                             e.currentTarget.style.color = 'var(--text-muted, #475569)';
@@ -618,7 +623,7 @@ export const MainLayout: React.FC = () => {
                         }}
                       >
                         {({ isActive }) => {
-                          const activeState = isNotifItem ? notifOpen : isActive && !notifOpen;
+                          const activeState = isNotifItem ? isActive || notifOpen : isActive && !notifOpen;
                           return (
                             <>
                               <div style={{ display: 'flex', alignItems: 'center', gap: isCollapsed ? 0 : '10px', minWidth: 0 }}>
@@ -648,7 +653,7 @@ export const MainLayout: React.FC = () => {
                                         borderRadius: 999,
                                         background: 'var(--accent-color, #F26F21)',
                                         color: '#FFFFFF',
-                                        fontSize: '10px',
+                                        fontSize: '11px',
                                         fontWeight: 600,
                                         display: 'flex',
                                         alignItems: 'center',
@@ -771,18 +776,20 @@ export const MainLayout: React.FC = () => {
           MAIN CONTENT AREA
          ══════════════════════════════════════════════════════════════ */}
       <div
-        className="motion-main-content-shell"
+        className="motion-main-content-shell app-main-shell"
         style={{
           flex: 1,
-          marginLeft: sidebarWidth,
+          marginLeft: isMobileViewport ? 0 : sidebarWidth,
           display: 'flex',
           flexDirection: 'column',
+          minWidth: 0,
         }}
       >
         {/* ══════════════════════════════════════════════════════════════
             TOPBAR — Visual Hierarchy: Context first → Utilities → User last
            ══════════════════════════════════════════════════════════════ */}
         <header
+          className="app-topbar"
           style={{
             height: 64,
             background: 'var(--bg-header, #ffffff)',
@@ -790,6 +797,7 @@ export const MainLayout: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '0.5rem',
             padding: '0 2rem',
             position: 'sticky',
             top: 0,
@@ -798,10 +806,19 @@ export const MainLayout: React.FC = () => {
           }}
         >
           {/* 1. CONTEXT FIRST: Ghost Sidebar Toggle + Unified Semester/Subject Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: '1 1 auto', overflow: 'hidden' }}>
             <button
+              type="button"
+              aria-label="Đóng mở thanh điều hướng"
               className="motion-topbar-btn"
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  setIsCollapsed(false);
+                  setSidebarOpen((prev) => !prev);
+                } else {
+                  setIsCollapsed((prev) => !prev);
+                }
+              }}
               title={isCollapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
               style={{
                 width: 36,
@@ -814,22 +831,25 @@ export const MainLayout: React.FC = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               <Menu size={18} />
             </button>
 
             <div
+              className="topbar-context-divider"
               style={{
                 width: 1,
                 height: 18,
                 backgroundColor: 'var(--border-light, #E2E8F0)',
                 margin: '0 0.25rem',
+                flexShrink: 0,
               }}
             />
 
             {/* Unified Semester / Subject Switcher */}
-            <div style={{ position: 'relative' }} ref={spaceMenuRef}>
+            <div style={{ position: 'relative', minWidth: 0, flex: '0 1 auto' }} ref={spaceMenuRef}>
               <button
                 type="button"
                 className="motion-topbar-btn"
@@ -844,6 +864,8 @@ export const MainLayout: React.FC = () => {
                   gap: '0.55rem',
                   padding: '6px 10px',
                   height: 36,
+                  minWidth: 0,
+                  maxWidth: '100%',
                   borderRadius: 8,
                   backgroundColor: spaceMenuOpen
                     ? isDarkMode
@@ -855,22 +877,28 @@ export const MainLayout: React.FC = () => {
                 }}
               >
                 <span
+                  className="topbar-semester-prefix"
                   style={{
                     fontSize: '13.5px',
                     fontWeight: 500,
                     color: 'var(--text-muted, #64748B)',
                     whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
                   {currentSpace?.semesterCode ?? 'Học kỳ'}
                 </span>
-                <span style={{ color: 'var(--text-light, #CBD5E1)', fontSize: '13px' }}>/</span>
+                <span className="topbar-semester-prefix" style={{ color: 'var(--text-light, #CBD5E1)', fontSize: '13px', flexShrink: 0 }}>/</span>
                 <span
+                  className="topbar-space-title"
                   style={{
                     fontSize: '13.5px',
                     fontWeight: 600,
                     color: 'var(--text-main, #0F172A)',
                     whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    minWidth: 0,
                     letterSpacing: '-0.01em',
                   }}
                 >
@@ -893,6 +921,7 @@ export const MainLayout: React.FC = () => {
                   size={14}
                   color="var(--text-light, #64748B)"
                   style={{
+                    flexShrink: 0,
                     transform: spaceMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                     transition: 'transform 180ms cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
@@ -901,13 +930,12 @@ export const MainLayout: React.FC = () => {
 
               {spaceMenuOpen && (
                 <div
-                  className="motion-dropdown-menu-left"
+                  className="motion-dropdown-menu-left topbar-popover-left"
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 8px)',
                     left: 0,
-                    width: 450,
-                    maxWidth: '92vw',
+                    width: 'min(420px, calc(100vw - 32px))',
                     backgroundColor: 'var(--bg-card, #FFFFFF)',
                     border: '1px solid var(--border-light, #E2E8F0)',
                     borderRadius: 14,
@@ -968,14 +996,14 @@ export const MainLayout: React.FC = () => {
                           gap: '12px',
                           padding: '10px',
                           borderRadius: 10,
-                          border: isSelected ? '1px solid #E2E8F0' : '1px solid transparent',
-                          backgroundColor: isSelected ? '#F8FAFC' : 'transparent',
+                          border: isSelected ? '1px solid var(--border-light, #E2E8F0)' : '1px solid transparent',
+                          backgroundColor: isSelected ? 'var(--bg-subtle, #F8FAFC)' : 'transparent',
                           cursor: 'pointer',
                           textAlign: 'left',
                           marginBottom: '2px',
                         }}
                         onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                          if (!isSelected) e.currentTarget.style.backgroundColor = isDarkMode ? '#1E293B' : '#F8FAFC';
                         }}
                         onMouseLeave={(e) => {
                           if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -989,8 +1017,8 @@ export const MainLayout: React.FC = () => {
                               borderRadius: 8,
                               background: isSelected
                                 ? 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))'
-                                : '#F1F5F9',
-                              color: isSelected ? '#FFFFFF' : '#334155',
+                                : 'var(--bg-tag, #F1F5F9)',
+                              color: isSelected ? '#FFFFFF' : 'var(--text-secondary, #334155)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -1009,7 +1037,7 @@ export const MainLayout: React.FC = () => {
                                 style={{
                                   fontSize: '13.5px',
                                   fontWeight: 600,
-                                  color: '#0F172A',
+                                  color: 'var(--text-main, #0F172A)',
                                   letterSpacing: '-0.01em',
                                 }}
                               >
@@ -1019,7 +1047,7 @@ export const MainLayout: React.FC = () => {
                             <div
                               style={{
                                 fontSize: '12px',
-                                color: '#64748B',
+                                color: 'var(--text-muted, #64748B)',
                                 marginTop: '3px',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1032,7 +1060,7 @@ export const MainLayout: React.FC = () => {
                                   alignItems: 'center',
                                   gap: '4px',
                                   fontWeight: 500,
-                                  color: '#334155',
+                                  color: 'var(--text-secondary, #334155)',
                                 }}
                               >
                                 <span
@@ -1079,7 +1107,7 @@ export const MainLayout: React.FC = () => {
           </div>
 
           {/* 2. UTILITIES SECOND → 3. USER LAST: Simple icon buttons + Clean User Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
             {/* Theme Toggle: Simple Ghost Icon Button */}
             <button
               className="motion-topbar-btn motion-theme-btn"
@@ -1140,7 +1168,7 @@ export const MainLayout: React.FC = () => {
                       borderRadius: 999,
                       background: 'var(--accent-color, #F26F21)',
                       color: '#ffffff',
-                      fontSize: '10px',
+                      fontSize: '11px',
                       fontWeight: 600,
                       display: 'flex',
                       alignItems: 'center',
@@ -1157,12 +1185,12 @@ export const MainLayout: React.FC = () => {
               {/* Notification Popover Dropdown */}
               {notifOpen && (
                 <div
-                  className="motion-dropdown-menu"
+                  className="motion-dropdown-menu topbar-popover-right"
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 10px)',
                     right: 0,
-                    width: 420,
+                    width: 'min(420px, calc(100vw - 24px))',
                     backgroundColor: 'var(--bg-card, #FFFFFF)',
                     borderRadius: 16,
                     border: '1px solid var(--border-light, #E2E8F0)',
@@ -1252,7 +1280,7 @@ export const MainLayout: React.FC = () => {
                         gap: '4px',
                         padding: '3px',
                         borderRadius: 8,
-                        backgroundColor: '#F1F5F9',
+                        backgroundColor: 'var(--bg-tag, #F1F5F9)',
                       }}
                     >
                       <button
@@ -1265,8 +1293,8 @@ export const MainLayout: React.FC = () => {
                           fontSize: '12px',
                           fontWeight: notifFilter === 'all' ? 600 : 450,
                           cursor: 'pointer',
-                          backgroundColor: notifFilter === 'all' ? '#FFFFFF' : 'transparent',
-                          color: notifFilter === 'all' ? '#0F172A' : '#64748B',
+                          backgroundColor: notifFilter === 'all' ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                          color: notifFilter === 'all' ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
                           boxShadow: notifFilter === 'all' ? '0 1px 2px rgba(15, 23, 42, 0.06)' : 'none',
                           border: 'none',
                         }}
@@ -1283,8 +1311,8 @@ export const MainLayout: React.FC = () => {
                           fontSize: '12px',
                           fontWeight: notifFilter === 'unread' ? 600 : 450,
                           cursor: 'pointer',
-                          backgroundColor: notifFilter === 'unread' ? '#FFFFFF' : 'transparent',
-                          color: notifFilter === 'unread' ? '#0F172A' : '#64748B',
+                          backgroundColor: notifFilter === 'unread' ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                          color: notifFilter === 'unread' ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
                           boxShadow: notifFilter === 'unread' ? '0 1px 2px rgba(15, 23, 42, 0.06)' : 'none',
                           border: 'none',
                         }}
@@ -1297,8 +1325,8 @@ export const MainLayout: React.FC = () => {
                   {/* Notification Items List */}
                   <div style={{ maxHeight: 380, overflowY: 'auto' }}>
                     {displayedNotifs.length === 0 ? (
-                      <div style={{ padding: '32px 20px', textAlign: 'center', color: '#64748B', fontSize: '13.5px' }}>
-                        Không có thông báo chưa đọc nào.
+                      <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--text-muted, #64748B)', fontSize: '13.5px' }}>
+                        {notifFilter === 'unread' ? 'Không có thông báo chưa đọc nào.' : 'Chưa có thông báo nào.'}
                       </div>
                     ) : (
                       displayedNotifs.map((n, idx) => {
@@ -1411,7 +1439,7 @@ export const MainLayout: React.FC = () => {
             {/* 3. USER LAST: Clean Avatar + Name + Dropdown */}
             <div style={{ position: 'relative' }} ref={userMenuRef}>
               <button
-                className="motion-topbar-btn"
+                className="motion-topbar-btn topbar-user-btn"
                 onClick={() => {
                   setUserMenuOpen(!userMenuOpen);
                   setNotifOpen(false);
@@ -1435,6 +1463,7 @@ export const MainLayout: React.FC = () => {
                 />
 
                 <span
+                  className="topbar-user-meta"
                   title={user?.fullName || 'Người dùng'}
                   style={{
                     fontSize: '13.5px',
@@ -1450,6 +1479,7 @@ export const MainLayout: React.FC = () => {
                 </span>
 
                 <ChevronDown
+                  className="topbar-user-meta"
                   size={14}
                   color="var(--text-muted, #64748b)"
                   style={{
@@ -1486,7 +1516,7 @@ export const MainLayout: React.FC = () => {
                   >
                     <div
                       style={{
-                        fontWeight: 800,
+                        fontWeight: 700,
                         fontSize: '14.5px',
                         color: 'var(--text-main, #0f172a)',
                         whiteSpace: 'nowrap',
@@ -1635,7 +1665,7 @@ export const MainLayout: React.FC = () => {
                       whiteSpace: 'nowrap',
                       cursor: 'pointer',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF1F2')}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = isDarkMode ? 'rgba(225, 29, 72, 0.14)' : '#FFF1F2')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                   >
                     <LogOut size={16} style={{ flexShrink: 0 }} />
@@ -1650,7 +1680,7 @@ export const MainLayout: React.FC = () => {
         {/* ══════════════════════════════════════════════════════════════
             PAGE CONTENT (Handles FAP Eligibility Check)
            ══════════════════════════════════════════════════════════════ */}
-        <main style={{ flex: 1, padding: '2.25rem 2.75rem' }}>
+        <main className="app-main-content" style={{ flex: 1, padding: '2.25rem 2.75rem', minWidth: 0 }}>
           <div key={`${location.pathname}-${currentSpace?.id ?? "none"}`} className="motion-page-enter">
             <Outlet />
           </div>
@@ -1683,8 +1713,9 @@ export const MainLayout: React.FC = () => {
             style={{
               width: '100%',
               maxWidth: 580,
+              maxHeight: '90vh',
+              overflowY: 'auto',
               padding: 0,
-              overflow: 'hidden',
               border: '1px solid var(--border-light, #E2E8F0)',
               borderRadius: '20px',
               backgroundColor: 'var(--bg-card, #FFFFFF)',

@@ -10,8 +10,10 @@ import {
   RefreshCw,
   Mail,
   FileSpreadsheet,
-  Crown,
   Search,
+  Users,
+  Vote,
+  ShieldAlert,
 } from '../utils/icons';
 import { notificationsApi } from '../api/notifications';
 import { reportsApi } from '../api/reports';
@@ -40,34 +42,51 @@ const getNotificationTypeConfig = (type: string) => {
       return {
         label: 'Đã duyệt vào nhóm',
         icon: CheckCircle2,
-        color: '#16A34A',
-        bg: '#DCFCE7',
-        border: '#BBF7D0',
+        color: '#10B981',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'GROUP_INVITE':
+    case 'GROUP_REQUEST':
       return {
-        label: 'Lời mời mới',
-        icon: Mail,
-        color: '#EA580C',
-        bg: '#FFEDD5',
-        border: '#FED7AA',
+        label: type === 'GROUP_REQUEST' ? 'Đơn ứng tuyển' : 'Lời mời mới',
+        icon: type === 'GROUP_REQUEST' ? Users : Mail,
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
+      };
+    case 'ELECTION_OPEN':
+      return {
+        label: 'Bầu Trưởng nhóm',
+        icon: Vote,
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'MATCHING_FOUND':
       return {
         label: 'Gợi ý ghép nhóm',
         icon: Sparkles,
-        color: '#7C3AED',
-        bg: '#EDE9FE',
-        border: '#DDD6FE',
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-subtle, #F8FAFC)',
+        border: 'var(--border-light, #E2E8F0)',
+      };
+    case 'SYSTEM_ACCOUNT':
+      return {
+        label: 'Tài khoản',
+        icon: ShieldAlert,
+        color: 'var(--text-secondary, #334155)',
+        bg: 'var(--bg-tag, #F1F5F9)',
+        border: 'var(--border-light, #E2E8F0)',
       };
     case 'SYSTEM':
     default:
       return {
         label: 'Hệ thống',
         icon: Bell,
-        color: '#2563EB',
-        bg: '#DBEAFE',
-        border: '#BFDBFE',
+        color: 'var(--text-secondary, #475569)',
+        bg: 'var(--bg-tag, #F1F5F9)',
+        border: 'var(--border-light, #E2E8F0)',
       };
   }
 };
@@ -129,7 +148,7 @@ export const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <div>
+    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header */}
       <div
         style={{
@@ -138,15 +157,20 @@ export const NotificationsPage: React.FC = () => {
           alignItems: 'flex-start',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.75rem',
+          marginBottom: '1.5rem',
         }}
       >
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted, #64748B)', marginBottom: '0.4rem' }}>
+            <span>Cá nhân</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Thông báo</span>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main)', letterSpacing: '-0.022em', margin: 0, fontVariantNumeric: 'tabular-nums' }}>
             Thông báo Hệ thống ({unreadCount} chưa đọc)
           </h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginTop: '4px', margin: 0 }}>
-            Cập nhật trạng thái ghép nhóm, lời mời và kết quả dự án môn EXE của bạn
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)', marginTop: '4px', marginBottom: 0 }}>
+            Cập nhật trạng thái ghép nhóm, lời mời và kết quả dự án môn EXE của bạn.
           </p>
         </div>
 
@@ -335,7 +359,7 @@ export const NotificationsPage: React.FC = () => {
                             width: '7px',
                             height: '7px',
                             borderRadius: '50%',
-                            backgroundColor: '#F27024',
+                            backgroundColor: 'var(--accent-color, #F26F21)',
                             display: 'inline-block',
                             flexShrink: 0,
                           }}
@@ -597,21 +621,29 @@ export const ReportsPage: React.FC = () => {
     totalStudents > 0 ? ((studentsInGroup / totalStudents) * 100).toFixed(1) : '0.0';
 
   return (
-    <div>
+    <div style={{ maxWidth: 1560, margin: '0 auto', paddingBottom: '3rem' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '2rem',
+          marginBottom: '1.75rem',
         }}
       >
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-main, #0f172a)', margin: 0, letterSpacing: '-0.02em' }}>
-            Báo cáo thống kê
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--text-muted, #64748B)', marginBottom: '0.4rem' }}>
+            <span>Học phần</span>
+            <span style={{ color: 'var(--text-light, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-main, #0F172A)', fontWeight: 500 }}>Báo cáo & Bảng điểm</span>
+          </div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0f172a)', margin: '0 0 4px 0', letterSpacing: '-0.022em' }}>
+            Báo cáo Thống kê & Bảng điểm Roster
           </h1>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted, #64748B)', margin: 0 }}>
+            Theo dõi tiến độ ghép nhóm toàn khóa, lịch sử snapshot và xuất danh sách Roster chuẩn hóa.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -628,7 +660,7 @@ export const ReportsPage: React.FC = () => {
             onClick={() => void handleGenerateSnapshot()}
             disabled={loading}
           >
-            <Zap size={17} color="#f26f21" />
+            <Zap size={17} color="var(--accent-color, #f26f21)" />
             Chụp Snapshot ngay
           </button>
           <button
@@ -648,8 +680,8 @@ export const ReportsPage: React.FC = () => {
           style={{
             marginBottom: '1.25rem',
             padding: '0.9rem 1.15rem',
-            borderLeft: '3px solid #ef4444',
-            color: '#ef4444',
+            border: '1px solid var(--border-light, #e2e8f0)',
+            color: 'var(--text-main, #0f172a)',
             fontSize: '0.875rem',
           }}
         >
@@ -670,7 +702,7 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             TỔNG SINH VIÊN
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {totalStudents}
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
@@ -681,10 +713,10 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             ĐÃ CÓ NHÓM
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {studentsInGroup}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
             {totalStudents > 0 ? `${inGroupPercent}% tổng số` : '—'}
           </div>
         </div>
@@ -692,10 +724,10 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             CHƯA CÓ NHÓM
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {studentsWithoutGroup}
           </div>
-          <div style={{ fontSize: '0.75rem', color: studentsWithoutGroup > 0 ? '#ef4444' : 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
             {studentsWithoutGroup > 0 ? 'Cần ghép nhóm' : '—'}
           </div>
         </div>
@@ -703,10 +735,10 @@ export const ReportsPage: React.FC = () => {
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', fontWeight: 600 }}>
             TỔNG SỐ NHÓM
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#6366f1', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--text-main, #0f172a)', marginTop: '0.25rem' }}>
             {totalGroups}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
             {fullGroups} nhóm đủ người
           </div>
         </div>
@@ -729,11 +761,11 @@ export const ReportsPage: React.FC = () => {
                   border: '1px solid var(--border-light, #e2e8f0)',
                 }}
               >
-                <div style={{ fontWeight: 700, color: '#f26f21', fontSize: '0.9rem' }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main, #0f172a)', fontSize: '0.9rem' }}>
                   Ngành {m.major}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  Tổng: <strong>{m.totalStudents}</strong> • Có nhóm: <strong style={{ color: '#10b981' }}>{m.studentsInGroup}</strong> • Chưa: <strong style={{ color: '#ef4444' }}>{m.studentsWithoutGroup}</strong>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem', fontVariantNumeric: 'tabular-nums' }}>
+                  Tổng: <strong>{m.totalStudents}</strong> • Có nhóm: <strong>{m.studentsInGroup}</strong> • Chưa: <strong>{m.studentsWithoutGroup}</strong>
                 </div>
               </div>
             ))}
@@ -743,7 +775,7 @@ export const ReportsPage: React.FC = () => {
 
       {/* Detail Tabs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
             className={activeTab === 'students' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'}
             onClick={() => setActiveTab('students')}
@@ -978,7 +1010,7 @@ export const ReportsPage: React.FC = () => {
                   className="btn btn-primary btn-sm"
                   onClick={handleExportRosterCsv}
                   disabled={exportingRosterCsv || !roster || roster.totalStudents === 0}
-                  style={{ gap: '0.4rem', fontWeight: 700, background: '#059669', borderColor: '#059669' }}
+                  style={{ gap: '0.4rem', fontWeight: 600 }}
                 >
                   <Download size={15} />
                   <span>{exportingRosterCsv ? 'Đang xuất CSV...' : 'Xuất CSV Bảng điểm (UTF-8 BOM)'}</span>
@@ -991,25 +1023,25 @@ export const ReportsPage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
                 <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG NHÓM</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-blue)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalGroups}
                   </div>
                 </div>
                 <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TỔNG SINH VIÊN</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#059669', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalStudents}
                   </div>
                 </div>
                 <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>SĨ SỐ BÌNH QUÂN</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--fpt-orange)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
                     {roster.totalGroups > 0 ? (roster.totalStudents / roster.totalGroups).toFixed(1) : '0'} SV/nhóm
                   </div>
                 </div>
                 <div style={{ padding: '0.85rem', borderRadius: 8, background: 'var(--bg-main)', border: '1px solid var(--border-light)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TRẠNG THÁI</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: roster.status === 'Locked' ? '#dc2626' : 'var(--text-main)', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-main)', marginTop: '0.25rem' }}>
                     {roster.status === 'Locked' ? 'Đã Chốt sổ (Locked)' : roster.status}
                   </div>
                 </div>
@@ -1049,9 +1081,9 @@ export const ReportsPage: React.FC = () => {
                   })
                   .map((grp) => (
                     <div key={grp.groupId} style={{ border: '1px solid var(--border-light)', borderRadius: 8, padding: '1rem', background: 'var(--bg-main)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--fpt-blue)', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.65rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                             {grp.roomCode}
                           </span>
                           <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>{grp.groupName}</strong>
@@ -1061,32 +1093,33 @@ export const ReportsPage: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color: 'var(--fpt-orange)', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-color, #f26f21)', fontVariantNumeric: 'tabular-nums' }}>
                           {grp.memberCount} / {grp.maxMembers} SV
                         </span>
                       </div>
 
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: 'var(--bg-card)', borderRadius: 6, overflow: 'hidden' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', fontSize: '0.8rem', background: 'var(--bg-card)', borderRadius: 6, overflow: 'hidden' }}>
                         <thead>
                           <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                            <th style={{ padding: '0.45rem 0.65rem' }}>MSSV</th>
-                            <th style={{ padding: '0.45rem 0.65rem' }}>Họ và tên</th>
-                            <th style={{ padding: '0.45rem 0.65rem' }}>Ngành</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>Vai trò</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#0284c7' }}>Tech</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#f59e0b' }}>Quản lý</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#ec4899' }}>Design</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#8b5cf6' }}>Mkt</th>
-                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: '#10b981' }}>Sale</th>
+                            <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>MSSV</th>
+                            <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Họ và tên</th>
+                            <th style={{ padding: '0.45rem 0.65rem', whiteSpace: 'nowrap' }}>Ngành</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', whiteSpace: 'nowrap' }}>Vai trò</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Tech</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Quản lý</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Design</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Mkt</th>
+                            <th style={{ padding: '0.45rem 0.65rem', textAlign: 'center', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Sale</th>
                           </tr>
                         </thead>
                         <tbody>
                           {grp.members.map((m) => (
                             <tr key={m.studentId} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                              <td style={{ padding: '0.45rem 0.65rem', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                              <td style={{ padding: '0.45rem 0.65rem', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.studentCode}
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', fontWeight: 600 }}>{m.fullName}</td>
+                              <td style={{ padding: '0.45rem 0.65rem', fontWeight: 600, color: 'var(--text-main)' }}>{m.fullName}</td>
                               <td style={{ padding: '0.45rem 0.65rem' }}>
                                 <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>
                                   {m.major}
@@ -1094,32 +1127,33 @@ export const ReportsPage: React.FC = () => {
                               </td>
                               <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center' }}>
                                 {m.role === 'Leader' ? (
-                                  <span className="badge badge-warning" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 700 }}>
-                                    <Crown size={11} /> Leader
+                                  <span className="badge badge-domain" style={{ fontSize: '0.7rem', fontWeight: 600 }}>
+                                    Trưởng nhóm
                                   </span>
                                 ) : (
                                   <span className="badge badge-secondary" style={{ fontSize: '0.7rem' }}>Thành viên</span>
                                 )}
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.techScore}%
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: '#f59e0b' }}>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.managementScore}%
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.graphicDesignScore}%
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.marketingScore}%
                               </td>
-                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                              <td style={{ padding: '0.45rem 0.65rem', textAlign: 'center', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                                 {m.saleScore}%
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   ))}
               </div>

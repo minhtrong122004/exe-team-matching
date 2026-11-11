@@ -16,9 +16,7 @@ import {
   X,
   Search,
   Clock,
-  DoorOpen,
-  Crown,
-  Info,
+  DoorOpen,  Info,
   RotateCcw,
 } from '../../utils/icons';
 import { useSelectedSpace, reloadSpaces } from '../../hooks/useSelectedSpace';
@@ -61,25 +59,25 @@ const FloatingToast: React.FC<{
       ref={toastRef}
       style={{
         position: 'fixed',
-        top: 24,
-        right: 24,
+        top: 20,
+        right: 16,
         zIndex: 10000,
-        maxWidth: 480,
+        maxWidth: 'min(520px, calc(100vw - 32px))',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
         padding: '12px 18px',
         borderRadius: 14,
-        backgroundColor: isSuccess ? '#059669' : isError ? '#DC2626' : '#0054A6',
+        backgroundColor: isSuccess ? '#059669' : isError ? '#DC2626' : '#334155',
         color: '#FFFFFF',
         boxShadow: isSuccess
-          ? '0 10px 30px rgba(5, 150, 105, 0.35)'
+          ? '0 10px 30px rgba(5, 150, 105, 0.32)'
           : isError
-          ? '0 10px 30px rgba(220, 38, 38, 0.35)'
-          : '0 10px 30px rgba(0, 84, 166, 0.35)',
+          ? '0 10px 30px rgba(220, 38, 38, 0.32)'
+          : '0 10px 30px rgba(15, 23, 42, 0.32)',
         border: '1px solid rgba(255, 255, 255, 0.2)',
         fontSize: '14px',
-        fontWeight: 650,
+        fontWeight: 600,
         lineHeight: 1.4,
       }}
     >
@@ -122,16 +120,29 @@ const AnimatedDialog: React.FC<{
 }> = ({ children, maxWidth = 480, onClose, disabled }) => {
   const ref = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!ref.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ref.current,
-        { opacity: 0, scale: 0.95, y: 8 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out' }
-      );
-    });
-    return () => ctx.revert();
-  }, []);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !disabled) onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    let ctx: gsap.Context | null = null;
+    if (ref.current && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      ctx = gsap.context(() => {
+        gsap.fromTo(
+          ref.current,
+          { opacity: 0, scale: 0.96, y: 8 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.22, ease: 'power2.out', clearProps: 'transform,opacity' }
+        );
+      });
+    }
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+      if (ctx) ctx.revert();
+    };
+  }, [disabled, onClose]);
 
   return createPortal(
     <div
@@ -156,11 +167,12 @@ const AnimatedDialog: React.FC<{
         style={{
           width: '100%',
           maxWidth,
+          maxHeight: '90vh',
+          overflowY: 'auto',
           backgroundColor: 'var(--bg-card, #FFFFFF)',
           borderRadius: 20,
           border: '1px solid var(--border-light, #E2E8F0)',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
         }}
       >
         {children}
@@ -509,34 +521,35 @@ export const ModeratorDistributionPage: React.FC = () => {
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: 'rgba(0, 84, 166, 0.1)',
-                color: 'var(--fpt-blue, #0054a6)',
+                background: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #334155)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 1.15rem auto',
               }}
             >
-              <Cpu size={28} strokeWidth={2} />
+              <Cpu size={26} strokeWidth={2} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
               Chạy thuật toán Ghép nhóm gRPC?
             </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
               Hệ thống sẽ kết nối đến <strong>Matching Service</strong> để tính toán phương án phân bổ tối ưu cho{' '}
-              <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+              <strong style={{ color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)' }}>
                 {unassignedList.length} sinh viên lẻ
               </strong>{' '}
               vào các phòng chưa đủ sĩ số và phòng trống.
             </p>
             <div
               style={{
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: '13px',
-                color: '#475569',
+                color: 'var(--text-secondary, #334155)',
                 textAlign: 'left',
                 marginBottom: '1.25rem',
                 lineHeight: 1.45,
@@ -557,7 +570,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 10,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   background: 'transparent',
-                  color: '#64748B',
+                  color: 'var(--text-muted, #64748B)',
                   fontWeight: 650,
                   cursor: 'pointer',
                 }}
@@ -573,7 +586,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   padding: '0.65rem 1rem',
                   borderRadius: 10,
                   border: 'none',
-                  background: 'var(--fpt-blue, #0054a6)',
+                  background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   cursor: busy ? 'wait' : 'pointer',
@@ -600,7 +613,8 @@ export const ModeratorDistributionPage: React.FC = () => {
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: 'rgba(5, 150, 105, 0.1)',
+                background: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 color: '#059669',
                 display: 'flex',
                 alignItems: 'center',
@@ -608,36 +622,36 @@ export const ModeratorDistributionPage: React.FC = () => {
                 margin: '0 auto 1.15rem auto',
               }}
             >
-              <CheckCircle2 size={28} strokeWidth={2} />
+              <CheckCircle2 size={26} strokeWidth={2} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
               Xác nhận Thực thi Phân phối?
             </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
               Bạn có chắc chắn muốn áp dụng phương án phân bổ{' '}
-              <strong style={{ color: '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+              <strong style={{ color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)' }}>
                 {preview?.totalDistributed} sinh viên lẻ
               </strong>{' '}
               vào{' '}
-              <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+              <strong style={{ color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)' }}>
                 {preview?.roomPlans.length} phòng học phần
               </strong>{' '}
               trên Database không?
             </p>
             <div
               style={{
-                backgroundColor: '#ECFDF5',
-                border: '1px solid #A7F3D0',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: '13px',
-                color: '#065F46',
+                color: 'var(--text-secondary, #334155)',
                 textAlign: 'left',
                 marginBottom: '1.25rem',
                 lineHeight: 1.45,
               }}
             >
-              <strong>Lưu ý quan trọng:</strong> Sau khi xác nhận, sinh viên sẽ chính thức được ghi danh vào nhóm và nhận thông báo kết quả.
+              <strong style={{ color: 'var(--text-main, #0F172A)' }}>Lưu ý quan trọng:</strong> Sau khi xác nhận, sinh viên sẽ chính thức được ghi danh vào nhóm và nhận thông báo kết quả.
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
               <button
@@ -650,7 +664,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 10,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   background: 'transparent',
-                  color: '#64748B',
+                  color: 'var(--text-muted, #64748B)',
                   fontWeight: 650,
                   cursor: 'pointer',
                 }}
@@ -693,31 +707,32 @@ export const ModeratorDistributionPage: React.FC = () => {
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: 'rgba(217, 119, 6, 0.1)',
-                color: '#D97706',
+                background: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #334155)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 1.15rem auto',
               }}
             >
-              <Lock size={28} strokeWidth={2} />
+              <Lock size={26} strokeWidth={2} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
               Đóng cổng đăng ký tự do?
             </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
               Không gian <strong style={{ color: 'var(--text-main, #0F172A)' }}>"{space.name}"</strong> sẽ chuyển sang trạng thái{' '}
-              <strong style={{ color: '#D97706' }}>Đóng đăng ký (ClosedRegistration)</strong>.
+              <strong style={{ color: 'var(--text-main, #0F172A)' }}>Đóng đăng ký (ClosedRegistration)</strong>.
             </p>
             <div
               style={{
-                backgroundColor: '#FFFBEB',
-                border: '1px solid #FDE68A',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: '13px',
-                color: '#92400E',
+                color: 'var(--text-secondary, #334155)',
                 textAlign: 'left',
                 marginBottom: '1.25rem',
                 lineHeight: 1.45,
@@ -736,7 +751,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 10,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   background: 'transparent',
-                  color: '#64748B',
+                  color: 'var(--text-muted, #64748B)',
                   fontWeight: 650,
                   cursor: 'pointer',
                 }}
@@ -752,7 +767,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   padding: '0.65rem 1rem',
                   borderRadius: 10,
                   border: 'none',
-                  background: '#D97706',
+                  background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   cursor: busy ? 'wait' : 'pointer',
@@ -779,7 +794,8 @@ export const ModeratorDistributionPage: React.FC = () => {
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: 'rgba(220, 38, 38, 0.1)',
+                background: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 color: '#DC2626',
                 display: 'flex',
                 alignItems: 'center',
@@ -787,32 +803,32 @@ export const ModeratorDistributionPage: React.FC = () => {
                 margin: '0 auto 1.15rem auto',
               }}
             >
-              <ShieldCheck size={28} strokeWidth={2} />
+              <ShieldCheck size={26} strokeWidth={2} />
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main, #0F172A)', margin: '0 0 0.5rem 0' }}>
               Chốt sổ & Khóa danh sách toàn kỳ?
             </h3>
-            <p style={{ fontSize: '0.875rem', color: '#64748B', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #64748B)', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
               Toàn bộ nhóm học phần trong học kỳ{' '}
               <strong style={{ color: 'var(--text-main, #0F172A)' }}>
                 {space.semesterCode} • {space.subjectCode}
               </strong>{' '}
-              sẽ chuyển sang trạng thái <strong style={{ color: '#DC2626' }}>Khóa chốt sổ (Locked)</strong>.
+              sẽ chuyển sang trạng thái <strong style={{ color: 'var(--text-main, #0F172A)' }}>Khóa chốt sổ (Locked)</strong>.
             </p>
             <div
               style={{
-                backgroundColor: '#FEF2F2',
-                border: '1px solid #FECACA',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
                 borderRadius: 10,
                 padding: '10px 14px',
                 fontSize: '13px',
-                color: '#991B1B',
+                color: 'var(--text-secondary, #334155)',
                 textAlign: 'left',
                 marginBottom: '1.25rem',
                 lineHeight: 1.45,
               }}
             >
-              <strong>Lưu ý:</strong> Mọi đơn xin gia nhập tồn đọng sẽ tự động bị từ chối. Sinh viên không thể thay đổi nhóm trừ khi nộp đơn Điều chuyển (Phase 6) được Điều phối viên phê duyệt. Thao tác không thể hoàn tác.
+              <strong style={{ color: 'var(--text-main, #0F172A)' }}>Lưu ý:</strong> Mọi đơn xin gia nhập tồn đọng sẽ tự động bị từ chối. Sinh viên không thể thay đổi nhóm trừ khi nộp đơn Điều chuyển (Phase 6) được Điều phối viên phê duyệt. Thao tác không thể hoàn tác.
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
               <button
@@ -825,7 +841,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 10,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   background: 'transparent',
-                  color: '#64748B',
+                  color: 'var(--text-muted, #64748B)',
                   fontWeight: 650,
                   cursor: 'pointer',
                 }}
@@ -859,19 +875,16 @@ export const ModeratorDistributionPage: React.FC = () => {
         </AnimatedDialog>
       )}
 
-      {/* FPT Tricolor Brand Identity Line */}
-      <div className="fpt-tricolor-bar" style={{ height: 3.5, borderRadius: 2, marginBottom: '1.25rem' }} />
-
       {/* Header — Enterprise Hierarchy */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: '#64748B', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: 'var(--text-muted, #64748B)', marginBottom: '6px' }}>
             <span>Điều phối & Học kỳ</span>
-            <span style={{ color: '#CBD5E1' }}>/</span>
-            <span style={{ color: '#334155', fontWeight: 600 }}>Điều phối sinh viên lẻ & Chốt sổ</span>
+            <span style={{ color: 'var(--border-medium, #CBD5E1)' }}>/</span>
+            <span style={{ color: 'var(--text-secondary, #334155)', fontWeight: 600 }}>Điều phối sinh viên lẻ & Chốt sổ</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0, letterSpacing: '-0.025em', lineHeight: 1.25 }}>
               Điều phối Sinh viên lẻ & Chốt sổ Học kỳ
             </h1>
             <span
@@ -881,15 +894,15 @@ export const ModeratorDistributionPage: React.FC = () => {
                 fontWeight: 700,
                 padding: '3px 10px',
                 borderRadius: '999px',
-                background: 'rgba(0, 84, 166, 0.08)',
-                color: 'var(--fpt-blue, #0054a6)',
-                border: '1px solid rgba(0, 84, 166, 0.2)',
+                background: 'var(--bg-tag, #F1F5F9)',
+                color: 'var(--text-main, #0F172A)',
+                border: '1px solid var(--border-light, #E2E8F0)',
               }}
             >
               {space.semesterCode} • {space.subjectCode}
             </span>
           </div>
-          <p style={{ color: '#64748B', fontSize: '14.5px', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--text-muted, #64748B)', fontSize: '14.5px', margin: '4px 0 0 0', lineHeight: 1.5 }}>
             Tự động phân bổ sinh viên chưa có nhóm vào các phòng còn thiếu hoặc tạo nhóm mới tối ưu theo 5 chỉ số năng lực, sau đó chốt sổ học kỳ.
           </p>
         </div>
@@ -905,15 +918,15 @@ export const ModeratorDistributionPage: React.FC = () => {
               padding: '0 16px',
               borderRadius: 10,
               border: 'none',
-              background: '#D97706',
+              background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
               color: '#FFFFFF',
               fontSize: '13.5px',
-              fontWeight: 700,
+              fontWeight: 650,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.25)',
+              boxShadow: 'var(--accent-shadow, 0 2px 8px rgba(242, 111, 33, 0.22))',
             }}
             title="Đóng cổng đăng ký tự do để bắt đầu phân phối sinh viên lẻ"
           >
@@ -927,38 +940,54 @@ export const ModeratorDistributionPage: React.FC = () => {
       {space.status === 'Open' && (
         <div
           style={{
-            padding: '12px 18px',
+            padding: '12px 16px',
             borderRadius: 12,
-            backgroundColor: '#FFFBEB',
-            border: '1px solid #FDE68A',
-            color: '#92400E',
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
+            color: 'var(--text-secondary, #334155)',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
             flexWrap: 'wrap',
-            fontSize: '14px',
-            fontWeight: 600,
+            fontSize: '13.5px',
+            fontWeight: 500,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Clock size={16} style={{ color: '#D97706', flexShrink: 0 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #334155)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={15} />
+            </div>
             <span>
-              Học kỳ đang mở đăng ký tự nguyện. Cần đóng cổng đăng ký trước khi chạy thuật toán ghép nhóm tự động.
+              <strong style={{ color: 'var(--text-main, #0F172A)', fontWeight: 650 }}>Học kỳ đang mở đăng ký tự nguyện.</strong>{' '}
+              Cần đóng cổng đăng ký trước khi chạy thuật toán ghép nhóm tự động.
             </span>
           </div>
           <button
             type="button"
             onClick={() => setConfirmCloseRegOpen(true)}
             style={{
-              padding: '5px 12px',
+              padding: '6px 12px',
               borderRadius: 8,
-              border: '1px solid #D97706',
-              background: '#FFFFFF',
-              color: '#D97706',
-              fontSize: '13px',
-              fontWeight: 700,
+              border: '1px solid var(--border-medium, #CBD5E1)',
+              background: 'var(--bg-subtle, #F8FAFC)',
+              color: 'var(--text-main, #0F172A)',
+              fontSize: '12.5px',
+              fontWeight: 650,
               cursor: 'pointer',
             }}
           >
@@ -973,13 +1002,14 @@ export const ModeratorDistributionPage: React.FC = () => {
           style={{
             padding: '16px 20px',
             borderRadius: 14,
-            backgroundColor: 'rgba(5, 150, 105, 0.08)',
-            border: '1px solid rgba(5, 150, 105, 0.25)',
+            backgroundColor: 'var(--bg-card, #FFFFFF)',
+            border: '1px solid var(--border-light, #E2E8F0)',
             marginBottom: '1.5rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
+            flexWrap: 'wrap',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -988,8 +1018,9 @@ export const ModeratorDistributionPage: React.FC = () => {
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                backgroundColor: '#059669',
-                color: '#FFFFFF',
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #334155)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -999,113 +1030,113 @@ export const ModeratorDistributionPage: React.FC = () => {
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h4 style={{ fontSize: '15.5px', fontWeight: 800, color: '#059669', margin: 0 }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                 Học kỳ {space.semesterCode} • {space.subjectCode} đã Chốt sổ Chính thức (Locked)
               </h4>
-              <p style={{ fontSize: '13.5px', color: '#475569', margin: '2px 0 0 0' }}>
+              <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #64748B)', margin: '2px 0 0 0' }}>
                 Toàn bộ nhóm học phần đã được khóa cứng. Mọi sự thay đổi thành viên sau thời điểm này đều phải qua màn hình Quản lý Chuyển nhóm (Phase 6).
               </p>
             </div>
           </div>
           <span
             style={{
-              padding: '6px 14px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '5px 12px',
               borderRadius: 999,
-              backgroundColor: '#059669',
-              color: '#FFFFFF',
-              fontWeight: 700,
-              fontSize: '13px',
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              color: 'var(--text-secondary, #334155)',
+              fontWeight: 600,
+              fontSize: '12.5px',
               whiteSpace: 'nowrap',
             }}
           >
-            ĐÃ KHÓA SỔ
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', flexShrink: 0 }} />
+            Đã khóa sổ
           </span>
         </div>
       )}
 
-      {/* 5 KPI Stat Cards Chuẩn Nhánh Cũ */}
+      {/* 5 KPI Stat Cards — Minimal Enterprise Neutral Surface */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
         <div
           style={{
-            padding: '1rem',
+            padding: '1rem 1.15rem',
             borderRadius: 12,
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderLeft: '4px solid var(--fpt-blue, #0054a6)',
           }}
         >
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-muted, #64748B)', fontWeight: 650, letterSpacing: '0.04em' }}>
             Tổng SV FAP Ghi danh
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#0F172A', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-main, #0F172A)', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
             {summary?.totalEnrolled ?? 0}
           </div>
         </div>
 
         <div
           style={{
-            padding: '1rem',
+            padding: '1rem 1.15rem',
             borderRadius: 12,
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderLeft: '4px solid #059669',
           }}
         >
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-muted, #64748B)', fontWeight: 650, letterSpacing: '0.04em' }}>
             SV Đã có nhóm
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#059669', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-main, #0F172A)', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
             {summary?.totalMatched ?? 0}
           </div>
         </div>
 
         <div
           style={{
-            padding: '1rem',
+            padding: '1rem 1.15rem',
             borderRadius: 12,
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderLeft: '4px solid #EF4444',
           }}
         >
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-muted, #64748B)', fontWeight: 650, letterSpacing: '0.04em' }}>
             SV Chưa có nhóm (Lẻ)
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#EF4444', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-main, #0F172A)', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
             {summary?.totalUnmatched ?? 0}
           </div>
         </div>
 
         <div
           style={{
-            padding: '1rem',
+            padding: '1rem 1.15rem',
             borderRadius: 12,
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderLeft: '4px solid #D97706',
           }}
         >
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-muted, #64748B)', fontWeight: 650, letterSpacing: '0.04em' }}>
             Phòng cần lấp (1-4 SV)
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#D97706', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-main, #0F172A)', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
             {incompleteCount}
           </div>
         </div>
 
         <div
           style={{
-            padding: '1rem',
+            padding: '1rem 1.15rem',
             borderRadius: 12,
             backgroundColor: 'var(--bg-card, #FFFFFF)',
             border: '1px solid var(--border-light, #E2E8F0)',
-            borderLeft: '4px solid #64748B',
           }}
         >
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em' }}>
+          <div style={{ fontSize: '11.5px', textTransform: 'uppercase', color: 'var(--text-muted, #64748B)', fontWeight: 650, letterSpacing: '0.04em' }}>
             Phòng trống (0 SV)
           </div>
-          <div style={{ fontSize: '24px', fontWeight: 900, fontFamily: 'var(--font-mono, monospace)', color: '#64748B', marginTop: '4px', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, fontFamily: 'var(--font-mono, monospace)', color: 'var(--text-main, #0F172A)', marginTop: '6px', fontVariantNumeric: 'tabular-nums' }}>
             {emptyCount}
           </div>
         </div>
@@ -1119,28 +1150,45 @@ export const ModeratorDistributionPage: React.FC = () => {
           borderRadius: 16,
           padding: '18px 20px',
           marginBottom: '1.5rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0 }}>
               Quy trình 3 Bước Điều phối Tự động & Khóa sổ
             </h3>
-            <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>
               Thực hiện tuần tự sau khi đóng cổng đăng ký tự do
             </span>
           </div>
           <span
             style={{
-              padding: '3px 10px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 10px',
               borderRadius: 999,
               fontSize: '12px',
-              fontWeight: 700,
-              backgroundColor: canDistribute ? 'rgba(0, 84, 166, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-              color: canDistribute ? 'var(--fpt-blue, #0054a6)' : '#64748B',
+              fontWeight: 600,
+              backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+              border: '1px solid var(--border-light, #E2E8F0)',
+              color: 'var(--text-secondary, #334155)',
             }}
           >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: isSemesterLocked
+                  ? '#10B981'
+                  : canDistribute
+                  ? 'var(--accent-color, #F26F21)'
+                  : '#94A3B8',
+                flexShrink: 0,
+              }}
+            />
             {isSemesterLocked
               ? 'Đã hoàn tất vòng đời'
               : canDistribute
@@ -1149,35 +1197,36 @@ export const ModeratorDistributionPage: React.FC = () => {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
           {/* BƯỚC 1: Chạy thuật toán Ghép nhóm Tự động */}
           <div
             style={{
-              padding: '12px 14px',
+              padding: '14px 16px',
               borderRadius: 12,
-              border: planGenerated ? '1.5px solid var(--fpt-blue, #0054a6)' : '1px solid var(--border-light, #E2E8F0)',
-              backgroundColor: planGenerated ? 'rgba(0, 84, 166, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
+              border: !step1Disabled && !planGenerated ? '1px solid var(--border-medium, #CBD5E1)' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: !step1Disabled && !planGenerated ? 'var(--bg-card, #FFFFFF)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              gap: 8,
+              gap: 10,
             }}
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--fpt-blue, #0054a6)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Bước 1 • Tính toán
                 </span>
                 {planGenerated && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #334155)', background: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '2px 7px', borderRadius: 999 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
                     Đã có phương án
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text-main, #0F172A)' }}>
                 Chạy gRPC Matching Service
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: '3px 0 0 0', lineHeight: 1.4 }}>
                 Xem trước phương án phân bổ 5 kỹ năng vào phòng thiếu và phòng trống.
               </p>
             </div>
@@ -1187,20 +1236,19 @@ export const ModeratorDistributionPage: React.FC = () => {
               disabled={step1Disabled}
               style={{
                 width: '100%',
-                padding: '7px 12px',
+                padding: '8px 12px',
                 borderRadius: 8,
-                border: 'none',
-                background: planGenerated ? 'var(--fpt-blue, #0054a6)' : 'var(--accent-gradient, linear-gradient(135deg, #f26f21 0%, #ea580c 100%))',
-                color: '#FFFFFF',
+                border: step1Disabled ? '1px solid var(--border-light, #E2E8F0)' : 'none',
+                background: step1Disabled ? 'var(--bg-card, #FFFFFF)' : 'var(--accent-gradient, var(--accent-color, #F26F21))',
+                color: step1Disabled ? 'var(--text-light, #94A3B8)' : '#FFFFFF',
                 fontSize: '13px',
-                fontWeight: 700,
+                fontWeight: 650,
                 cursor: step1Disabled ? 'not-allowed' : 'pointer',
-                opacity: step1Disabled ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                boxShadow: step1Disabled ? 'none' : 'var(--accent-shadow, 0 2px 6px rgba(242, 111, 33, 0.2))',
               }}
             >
               <Cpu size={14} />
@@ -1211,31 +1259,32 @@ export const ModeratorDistributionPage: React.FC = () => {
           {/* BƯỚC 2: Xác nhận Thực thi Phân phối */}
           <div
             style={{
-              padding: '12px 14px',
+              padding: '14px 16px',
               borderRadius: 12,
-              border: executed ? '1.5px solid #059669' : '1px solid var(--border-light, #E2E8F0)',
-              backgroundColor: executed ? 'rgba(5, 150, 105, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
+              border: !step2Disabled ? '1px solid var(--border-medium, #CBD5E1)' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: !step2Disabled ? 'var(--bg-card, #FFFFFF)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              gap: 8,
+              gap: 10,
             }}
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Bước 2 • Thực thi
                 </span>
                 {executed && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#059669', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #334155)', background: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '2px 7px', borderRadius: 999 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
                     Đã thực thi
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text-main, #0F172A)' }}>
                 Xác nhận Áp dụng Phân phối
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: '3px 0 0 0', lineHeight: 1.4 }}>
                 Ghi danh chính thức vào Database và gửi thông báo cho sinh viên.
               </p>
             </div>
@@ -1245,20 +1294,19 @@ export const ModeratorDistributionPage: React.FC = () => {
               disabled={step2Disabled}
               style={{
                 width: '100%',
-                padding: '7px 12px',
+                padding: '8px 12px',
                 borderRadius: 8,
-                border: 'none',
-                background: '#059669',
-                color: '#FFFFFF',
+                border: step2Disabled ? '1px solid var(--border-light, #E2E8F0)' : 'none',
+                background: step2Disabled ? 'var(--bg-card, #FFFFFF)' : 'var(--accent-gradient, var(--accent-color, #F26F21))',
+                color: step2Disabled ? 'var(--text-light, #94A3B8)' : '#FFFFFF',
                 fontSize: '13px',
-                fontWeight: 700,
+                fontWeight: 650,
                 cursor: step2Disabled ? 'not-allowed' : 'pointer',
-                opacity: step2Disabled ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                boxShadow: '0 1px 3px rgba(5, 150, 105, 0.2)',
+                boxShadow: step2Disabled ? 'none' : 'var(--accent-shadow, 0 2px 6px rgba(242, 111, 33, 0.2))',
               }}
             >
               <Send size={14} />
@@ -1269,31 +1317,32 @@ export const ModeratorDistributionPage: React.FC = () => {
           {/* BƯỚC 3: Chốt sổ & Khóa toàn kỳ */}
           <div
             style={{
-              padding: '12px 14px',
+              padding: '14px 16px',
               borderRadius: 12,
-              border: isSemesterLocked ? '1.5px solid #DC2626' : '1px solid var(--border-light, #E2E8F0)',
-              backgroundColor: isSemesterLocked ? 'rgba(220, 38, 38, 0.04)' : 'var(--bg-subtle, #F8FAFC)',
+              border: !step3Disabled ? '1px solid var(--border-medium, #CBD5E1)' : '1px solid var(--border-light, #E2E8F0)',
+              backgroundColor: !step3Disabled ? 'var(--bg-card, #FFFFFF)' : 'var(--bg-subtle, #F8FAFC)',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              gap: 8,
+              gap: 10,
             }}
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted, #64748B)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Bước 3 • Khóa cứng
                 </span>
                 {isSemesterLocked && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#DC2626', background: '#FEF2F2', padding: '1px 6px', borderRadius: 4 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #334155)', background: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '2px 7px', borderRadius: 999 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981' }} />
                     Đã khóa sổ
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+              <div style={{ fontSize: '14px', fontWeight: 650, color: 'var(--text-main, #0F172A)' }}>
                 Chốt sổ & Khóa danh sách kỳ
               </div>
-              <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.35 }}>
+              <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: '3px 0 0 0', lineHeight: 1.4 }}>
                 Khóa tự ý rời nhóm, từ chối đơn chờ và chốt dữ liệu báo cáo.
               </p>
             </div>
@@ -1303,20 +1352,18 @@ export const ModeratorDistributionPage: React.FC = () => {
               disabled={step3Disabled}
               style={{
                 width: '100%',
-                padding: '7px 12px',
+                padding: '8px 12px',
                 borderRadius: 8,
-                border: 'none',
-                background: '#DC2626',
-                color: '#FFFFFF',
+                border: step3Disabled ? '1px solid var(--border-light, #E2E8F0)' : '1px solid var(--border-medium, #CBD5E1)',
+                background: step3Disabled ? 'var(--bg-card, #FFFFFF)' : 'var(--text-main, #0F172A)',
+                color: step3Disabled ? 'var(--text-light, #94A3B8)' : 'var(--bg-card, #FFFFFF)',
                 fontSize: '13px',
-                fontWeight: 700,
+                fontWeight: 650,
                 cursor: step3Disabled ? 'not-allowed' : 'pointer',
-                opacity: step3Disabled ? 0.5 : 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 6,
-                boxShadow: '0 1px 3px rgba(220, 38, 38, 0.2)',
               }}
               title={
                 unassignedList.length > 0
@@ -1336,11 +1383,11 @@ export const ModeratorDistributionPage: React.FC = () => {
         <div
           style={{
             backgroundColor: 'var(--bg-card, #FFFFFF)',
-            border: '2px solid var(--fpt-blue, #0054a6)',
+            border: '1px solid var(--border-medium, #CBD5E1)',
             borderRadius: 16,
             padding: '20px',
             marginBottom: '1.5rem',
-            boxShadow: '0 6px 20px rgba(0, 84, 166, 0.08)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
@@ -1350,8 +1397,9 @@ export const ModeratorDistributionPage: React.FC = () => {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: 'var(--fpt-blue, #0054a6)',
-                  color: '#FFFFFF',
+                  backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  border: '1px solid var(--border-light, #E2E8F0)',
+                  color: 'var(--text-secondary, #334155)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1361,16 +1409,16 @@ export const ModeratorDistributionPage: React.FC = () => {
                 <Sparkles size={18} />
               </div>
               <div>
-                <h3 style={{ fontSize: '15.5px', fontWeight: 800, color: 'var(--fpt-blue, #0054a6)', margin: 0 }}>
+                <h3 style={{ fontSize: '15.5px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Phương án Phân bổ Thông minh (Đề xuất từ gRPC Matching Service)
                 </h3>
-                <span style={{ fontSize: '13px', color: '#64748B' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)' }}>
                   Phân bổ{' '}
-                  <strong style={{ color: '#059669', fontFamily: 'var(--font-mono, monospace)' }}>
+                  <strong style={{ color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)' }}>
                     {preview?.totalDistributed} / {preview?.totalUnmatched} sinh viên lẻ
                   </strong>{' '}
                   vào{' '}
-                  <strong style={{ color: 'var(--fpt-blue, #0054a6)', fontFamily: 'var(--font-mono, monospace)' }}>
+                  <strong style={{ color: 'var(--text-main, #0F172A)', fontFamily: 'var(--font-mono, monospace)' }}>
                     {preview?.roomPlans.length} phòng
                   </strong>{' '}
                   (Còn lại: {preview?.totalRemaining} SV)
@@ -1387,15 +1435,15 @@ export const ModeratorDistributionPage: React.FC = () => {
                 padding: '0 16px',
                 borderRadius: 8,
                 border: 'none',
-                background: '#059669',
+                background: 'var(--accent-gradient, var(--accent-color, #F26F21))',
                 color: '#FFFFFF',
                 fontSize: '13px',
-                fontWeight: 700,
+                fontWeight: 650,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                boxShadow: 'var(--accent-shadow, 0 2px 6px rgba(242, 111, 33, 0.2))',
               }}
             >
               <CheckCircle2 size={15} />
@@ -1407,10 +1455,10 @@ export const ModeratorDistributionPage: React.FC = () => {
           {previewPlan.priority1.length > 0 && (
             <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(0, 84, 166, 0.12)', color: 'var(--fpt-blue, #0054a6)' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 700, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)' }}>
                   ƯU TIÊN 1
                 </span>
-                <strong style={{ fontSize: '14px', color: '#0F172A' }}>
+                <strong style={{ fontSize: '14px', color: 'var(--text-main, #0F172A)' }}>
                   Lấp đầy các phòng đang thiếu người từ 1–4/5 thành viên trước:
                 </strong>
               </div>
@@ -1437,42 +1485,44 @@ export const ModeratorDistributionPage: React.FC = () => {
                           width: 24,
                           height: 24,
                           borderRadius: 999,
-                          backgroundColor: 'var(--fpt-blue, #0054a6)',
-                          color: '#FFFFFF',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
+                          color: 'var(--text-secondary, #334155)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 700,
                           fontSize: '12px',
+                          fontVariantNumeric: 'tabular-nums',
                         }}
                       >
                         {idx + 1}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#0F172A' }}>
+                        <div style={{ fontWeight: 650, fontSize: '14px', color: 'var(--text-main, #0F172A)' }}>
                           {p.student.name} ({p.student.studentCode} • {p.student.major})
                         </div>
-                        <div style={{ fontSize: '12.5px', color: '#64748B' }}>{p.reason}</div>
+                        <div style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>{p.reason}</div>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <ArrowRight size={14} color="#94A3B8" />
+                      <ArrowRight size={14} color="var(--text-light, #94A3B8)" />
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '13.5px',
-                          color: 'var(--fpt-blue, #0054a6)',
-                          backgroundColor: '#EFF6FF',
+                          color: 'var(--text-main, #0F172A)',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
                           padding: '2px 8px',
                           borderRadius: 6,
-                          border: '1px solid #BFDBFE',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                         }}
                       >
                         {p.targetRoom}
                       </span>
-                      <span style={{ fontSize: '12px', color: '#059669', fontWeight: 650, backgroundColor: 'rgba(5, 150, 105, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary, #334155)', fontWeight: 600, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '2px 8px', borderRadius: 6 }}>
                         {p.existingLeader}
                       </span>
                     </div>
@@ -1486,10 +1536,10 @@ export const ModeratorDistributionPage: React.FC = () => {
           {previewPlan.priority2.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 800, backgroundColor: 'rgba(242, 111, 33, 0.12)', color: 'var(--fpt-orange, #f26f21)' }}>
+                <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: '11px', fontWeight: 700, backgroundColor: 'var(--bg-tag, #F1F5F9)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)' }}>
                   ƯU TIÊN 2
                 </span>
-                <strong style={{ fontSize: '14px', color: '#0F172A' }}>
+                <strong style={{ fontSize: '14px', color: 'var(--text-main, #0F172A)' }}>
                   Tạo nhóm mới từ các phòng trống cho số sinh viên lẻ còn dư:
                 </strong>
               </div>
@@ -1500,8 +1550,8 @@ export const ModeratorDistributionPage: React.FC = () => {
                   style={{
                     padding: '12px 14px',
                     borderRadius: 10,
-                    backgroundColor: 'rgba(242, 111, 33, 0.04)',
-                    border: '1px solid rgba(242, 111, 33, 0.2)',
+                    backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                    border: '1px solid var(--border-light, #E2E8F0)',
                     marginBottom: '8px',
                   }}
                 >
@@ -1510,32 +1560,32 @@ export const ModeratorDistributionPage: React.FC = () => {
                       <span
                         style={{
                           fontFamily: 'var(--font-mono, monospace)',
-                          fontWeight: 800,
+                          fontWeight: 700,
                           fontSize: '13.5px',
-                          color: '#0F172A',
-                          backgroundColor: '#FFFFFF',
+                          color: 'var(--text-main, #0F172A)',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
                           padding: '2px 8px',
                           borderRadius: 6,
-                          border: '1px solid #E2E8F0',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                         }}
                       >
                         {group.targetRoom}
                       </span>
-                      <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#0F172A' }}>
+                      <span style={{ fontSize: '13.5px', fontWeight: 650, color: 'var(--text-main, #0F172A)' }}>
                         Nhóm mới thành lập ({group.students.length} thành viên)
                       </span>
                     </div>
                     {group.newLeader && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', padding: '3px 8px', borderRadius: 6 }}>
-                        <Crown size={13} style={{ color: 'var(--fpt-orange, #f26f21)' }} />
-                        <span style={{ fontSize: '12px', fontWeight: 650, color: '#334155' }}>
-                          Trưởng nhóm đề cử (Quản lý: {group.newLeader.management}/100): <strong style={{ color: '#0F172A' }}>{group.newLeader.name}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)', padding: '3px 8px', borderRadius: 6 }}>
+                        <ShieldCheck size={13} style={{ color: 'var(--text-secondary, #334155)' }} />
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary, #334155)' }}>
+                          Trưởng nhóm đề cử (Quản lý: {group.newLeader.management}/100): <strong style={{ color: 'var(--text-main, #0F172A)' }}>{group.newLeader.name}</strong>
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <p style={{ fontSize: '12.5px', color: '#64748B', margin: '0 0 8px 0' }}>
+                  <p style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)', margin: '0 0 8px 0' }}>
                     {group.reason}
                   </p>
 
@@ -1546,20 +1596,20 @@ export const ModeratorDistributionPage: React.FC = () => {
                         style={{
                           padding: '6px 8px',
                           borderRadius: 8,
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           fontSize: '12.5px',
                         }}
                       >
-                        <div style={{ fontWeight: 650, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ fontWeight: 650, color: 'var(--text-main, #0F172A)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span>{st.name}</span>
                           {st.isLeader && (
-                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, backgroundColor: 'rgba(242, 111, 33, 0.1)', color: 'var(--fpt-orange, #f26f21)' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '1px 6px', borderRadius: 4, backgroundColor: 'var(--bg-subtle, #F8FAFC)', border: '1px solid var(--border-light, #E2E8F0)', color: 'var(--text-secondary, #334155)' }}>
                               Trưởng nhóm
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '11.5px', color: '#64748B' }}>
+                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted, #64748B)' }}>
                           {st.studentCode} • {st.major}
                         </div>
                       </div>
@@ -1595,21 +1645,22 @@ export const ModeratorDistributionPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                  border: '1px solid var(--border-light, #E2E8F0)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#EF4444',
+                  color: 'var(--text-secondary, #334155)',
                   flexShrink: 0,
                 }}
               >
                 <Users size={17} />
               </div>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Sinh viên Chưa có Nhóm ({unassignedList.length} bạn)
                 </h3>
-                <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>
                   Hết hạn tự do nhưng chưa tham gia phòng nào
                 </span>
               </div>
@@ -1617,14 +1668,27 @@ export const ModeratorDistributionPage: React.FC = () => {
 
             <span
               style={{
-                padding: '3px 9px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '3px 10px',
                 borderRadius: 999,
                 fontSize: '12px',
-                fontWeight: 700,
-                backgroundColor: unassignedList.length === 0 ? 'rgba(5, 150, 105, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                color: unassignedList.length === 0 ? '#059669' : '#EF4444',
+                fontWeight: 600,
+                backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                color: 'var(--text-secondary, #334155)',
               }}
             >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: unassignedList.length === 0 ? '#10B981' : 'var(--accent-color, #F26F21)',
+                  flexShrink: 0,
+                }}
+              />
               {unassignedList.length === 0 ? 'Đã ghép 100%' : `${unassignedList.length} SV chờ`}
             </span>
           </div>
@@ -1632,7 +1696,7 @@ export const ModeratorDistributionPage: React.FC = () => {
           {/* Bộ lọc Tìm kiếm & Ngành */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
-              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light, #94A3B8)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 placeholder="Tìm tên, MSSV..."
@@ -1640,13 +1704,24 @@ export const ModeratorDistributionPage: React.FC = () => {
                 onChange={(e) => setStudentSearch(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '6px 10px 6px 30px',
+                  padding: studentSearch ? '6px 28px 6px 30px' : '6px 10px 6px 30px',
                   borderRadius: 8,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   fontSize: '12.5px',
                   backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  color: 'var(--text-main, #0F172A)',
                 }}
               />
+              {studentSearch && (
+                <button
+                  type="button"
+                  aria-label="Xóa từ khóa"
+                  onClick={() => setStudentSearch('')}
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #64748B)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
             <select
               value={studentMajorFilter}
@@ -1657,7 +1732,7 @@ export const ModeratorDistributionPage: React.FC = () => {
                 border: '1px solid var(--border-light, #E2E8F0)',
                 fontSize: '12.5px',
                 backgroundColor: 'var(--bg-subtle, #F8FAFC)',
-                color: '#334155',
+                color: 'var(--text-secondary, #334155)',
                 fontWeight: 600,
               }}
             >
@@ -1673,17 +1748,17 @@ export const ModeratorDistributionPage: React.FC = () => {
           {/* Danh sách Sinh viên Cuộn được */}
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
             {unassignedList.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#059669', margin: 'auto 0' }}>
-                <CheckCircle2 size={42} style={{ margin: '0 auto 10px auto' }} />
-                <div style={{ fontWeight: 800, fontSize: '15.5px' }}>Tất cả sinh viên đã được ghép nhóm!</div>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0 0' }}>
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-main, #0F172A)', margin: 'auto 0' }}>
+                <CheckCircle2 size={38} style={{ margin: '0 auto 10px auto', color: '#10B981' }} />
+                <div style={{ fontWeight: 650, fontSize: '15px' }}>Tất cả sinh viên đã được ghép nhóm!</div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted, #64748B)', margin: '4px 0 0 0' }}>
                   Không còn sinh viên nào bị lẻ trong học kỳ này.
                 </p>
               </div>
             ) : filteredStudents.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8', margin: 'auto 0' }}>
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-light, #94A3B8)', margin: 'auto 0' }}>
                 <Search size={32} style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
-                <div style={{ fontWeight: 650, fontSize: '14px', color: '#475569' }}>Không tìm thấy sinh viên phù hợp</div>
+                <div style={{ fontWeight: 650, fontSize: '14px', color: 'var(--text-secondary, #334155)' }}>Không tìm thấy sinh viên phù hợp</div>
                 <p style={{ fontSize: '12.5px', margin: '4px 0 0 0' }}>Thử xóa bộ lọc để xem toàn bộ danh sách.</p>
               </div>
             ) : (
@@ -1699,10 +1774,10 @@ export const ModeratorDistributionPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', gap: '8px' }}>
                     <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <span style={{ fontWeight: 750, fontSize: '14px', color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-main, #0F172A)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {st.name}
                       </span>
-                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', color: 'var(--fpt-blue, #0054a6)', fontWeight: 700 }}>
+                      <span style={{ marginLeft: '6px', fontFamily: 'var(--font-mono, monospace)', fontSize: '12.5px', color: 'var(--text-main, #0F172A)', fontWeight: 700 }}>
                         {st.studentCode}
                       </span>
                     </div>
@@ -1711,11 +1786,11 @@ export const ModeratorDistributionPage: React.FC = () => {
                         style={{
                           fontSize: '11px',
                           fontWeight: 700,
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           padding: '1px 6px',
                           borderRadius: 4,
-                          color: '#334155',
+                          color: 'var(--text-secondary, #334155)',
                         }}
                       >
                         {st.major}
@@ -1724,9 +1799,9 @@ export const ModeratorDistributionPage: React.FC = () => {
                         style={{
                           fontSize: '11px',
                           fontWeight: 600,
-                          color: '#64748B',
-                          backgroundColor: '#FFFFFF',
-                          border: '1px solid #E2E8F0',
+                          color: 'var(--text-muted, #64748B)',
+                          backgroundColor: 'var(--bg-card, #FFFFFF)',
+                          border: '1px solid var(--border-light, #E2E8F0)',
                           padding: '1px 6px',
                           borderRadius: 4,
                         }}
@@ -1747,25 +1822,25 @@ export const ModeratorDistributionPage: React.FC = () => {
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                      <span style={{ color: '#64748B', fontSize: '10px' }}>TEC: </span>
-                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.tech}</strong>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                      <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '11px' }}>TEC: </span>
+                      <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{st.skills.tech}</strong>
                     </div>
-                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'rgba(242, 111, 33, 0.08)', border: '1px solid rgba(242, 111, 33, 0.25)' }} title="Điểm Quản lý (Tiêu chuẩn chỉ định Trưởng nhóm)">
-                      <span style={{ color: 'var(--fpt-orange, #f26f21)', fontSize: '10px', fontWeight: 700 }}>MGT: </span>
-                      <strong style={{ color: 'var(--fpt-orange, #f26f21)', fontVariantNumeric: 'tabular-nums', fontWeight: 800 }}>{st.skills.management}</strong>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }} title="Điểm Quản lý (Tiêu chuẩn chỉ định Trưởng nhóm)">
+                      <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '11px' }}>MGT: </span>
+                      <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{st.skills.management}</strong>
                     </div>
-                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                      <span style={{ color: '#64748B', fontSize: '10px' }}>DES: </span>
-                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.graphicDesign}</strong>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                      <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '11px' }}>DES: </span>
+                      <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{st.skills.graphicDesign}</strong>
                     </div>
-                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                      <span style={{ color: '#64748B', fontSize: '10px' }}>MKT: </span>
-                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.marketing}</strong>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                      <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '11px' }}>MKT: </span>
+                      <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{st.skills.marketing}</strong>
                     </div>
-                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0' }}>
-                      <span style={{ color: '#64748B', fontSize: '10px' }}>SAL: </span>
-                      <strong style={{ color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{st.skills.sale}</strong>
+                    <div style={{ padding: '2px 4px', borderRadius: 4, backgroundColor: 'var(--bg-card, #FFFFFF)', border: '1px solid var(--border-light, #E2E8F0)' }}>
+                      <span style={{ color: 'var(--text-muted, #64748B)', fontSize: '11px' }}>SAL: </span>
+                      <strong style={{ color: 'var(--text-main, #0F172A)', fontVariantNumeric: 'tabular-nums' }}>{st.skills.sale}</strong>
                     </div>
                   </div>
                 </div>
@@ -1795,35 +1870,57 @@ export const ModeratorDistributionPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  backgroundColor: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
+                  backgroundColor: 'var(--bg-tag, #F1F5F9)',
+                  border: '1px solid var(--border-light, #E2E8F0)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#0F172A',
+                  color: 'var(--text-secondary, #334155)',
                   flexShrink: 0,
                 }}
               >
                 <Layers size={17} />
               </div>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 750, color: 'var(--text-main, #0F172A)', margin: 0 }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 650, color: 'var(--text-main, #0F172A)', margin: 0 }}>
                   Hiện trạng Các Phòng Trong Môn ({roomsList.length} phòng)
                 </h3>
-                <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted, #64748B)' }}>
                   Phòng chưa đủ sĩ số (1-4/5) và phòng trống (0/5)
                 </span>
               </div>
             </div>
 
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#D97706', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '3px 8px', borderRadius: 999 }}>
-              Cần điều phối
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: '12px',
+                fontWeight: 600,
+                color: 'var(--text-secondary, #334155)',
+                background: 'var(--bg-subtle, #F8FAFC)',
+                border: '1px solid var(--border-light, #E2E8F0)',
+                padding: '3px 10px',
+                borderRadius: 999,
+              }}
+            >
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: roomsList.length === 0 ? '#10B981' : 'var(--accent-color, #F26F21)',
+                  flexShrink: 0,
+                }}
+              />
+              {roomsList.length === 0 ? 'Đã đủ sĩ số' : 'Cần điều phối'}
             </span>
           </div>
 
           {/* Bộ lọc Tab & Tìm kiếm Phòng */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 4, background: '#F1F5F9', padding: 3, borderRadius: 8 }}>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--bg-tag, #F1F5F9)', padding: 3, borderRadius: 8 }}>
               <button
                 type="button"
                 onClick={() => setRoomFilterTab('ALL')}
@@ -1832,10 +1929,10 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 6,
                   border: 'none',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 650,
                   cursor: 'pointer',
-                  backgroundColor: roomFilterTab === 'ALL' ? '#FFFFFF' : 'transparent',
-                  color: roomFilterTab === 'ALL' ? '#0F172A' : '#64748B',
+                  backgroundColor: roomFilterTab === 'ALL' ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                  color: roomFilterTab === 'ALL' ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
                   boxShadow: roomFilterTab === 'ALL' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -1849,10 +1946,10 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 6,
                   border: 'none',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 650,
                   cursor: 'pointer',
-                  backgroundColor: roomFilterTab === 'INCOMPLETE' ? '#FFFFFF' : 'transparent',
-                  color: roomFilterTab === 'INCOMPLETE' ? '#D97706' : '#64748B',
+                  backgroundColor: roomFilterTab === 'INCOMPLETE' ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                  color: roomFilterTab === 'INCOMPLETE' ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
                   boxShadow: roomFilterTab === 'INCOMPLETE' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -1866,10 +1963,10 @@ export const ModeratorDistributionPage: React.FC = () => {
                   borderRadius: 6,
                   border: 'none',
                   fontSize: '12px',
-                  fontWeight: 700,
+                  fontWeight: 650,
                   cursor: 'pointer',
-                  backgroundColor: roomFilterTab === 'EMPTY' ? '#FFFFFF' : 'transparent',
-                  color: roomFilterTab === 'EMPTY' ? '#64748B' : '#64748B',
+                  backgroundColor: roomFilterTab === 'EMPTY' ? 'var(--bg-card, #FFFFFF)' : 'transparent',
+                  color: roomFilterTab === 'EMPTY' ? 'var(--text-main, #0F172A)' : 'var(--text-muted, #64748B)',
                   boxShadow: roomFilterTab === 'EMPTY' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
                 }}
               >
@@ -1878,7 +1975,7 @@ export const ModeratorDistributionPage: React.FC = () => {
             </div>
 
             <div style={{ position: 'relative', flex: 1, minWidth: 140 }}>
-              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light, #94A3B8)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 placeholder="Tìm mã phòng..."
@@ -1886,23 +1983,40 @@ export const ModeratorDistributionPage: React.FC = () => {
                 onChange={(e) => setRoomSearch(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '6px 10px 6px 30px',
+                  padding: roomSearch ? '6px 28px 6px 30px' : '6px 10px 6px 30px',
                   borderRadius: 8,
                   border: '1px solid var(--border-light, #E2E8F0)',
                   fontSize: '12.5px',
                   backgroundColor: 'var(--bg-subtle, #F8FAFC)',
+                  color: 'var(--text-main, #0F172A)',
                 }}
               />
+              {roomSearch && (
+                <button
+                  type="button"
+                  aria-label="Xóa từ khóa phòng"
+                  onClick={() => setRoomSearch('')}
+                  style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #64748B)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
           </div>
 
           {/* Danh sách Phòng Cuộn được */}
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
             {filteredRooms.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94A3B8', margin: 'auto 0' }}>
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-light, #94A3B8)', margin: 'auto 0' }}>
                 <DoorOpen size={32} style={{ margin: '0 auto 8px auto', opacity: 0.6 }} />
-                <div style={{ fontWeight: 650, fontSize: '14px', color: '#475569' }}>Không có phòng phù hợp</div>
-                <p style={{ fontSize: '12.5px', margin: '4px 0 0 0' }}>Toàn bộ phòng đã đầy hoặc không khớp bộ lọc.</p>
+                <div style={{ fontWeight: 650, fontSize: '14px', color: 'var(--text-secondary, #334155)' }}>
+                  {roomsList.length === 0 ? 'Chưa có phòng học phần nào' : 'Không có phòng phù hợp'}
+                </div>
+                <p style={{ fontSize: '12.5px', margin: '4px 0 0 0', color: 'var(--text-muted, #64748B)' }}>
+                  {roomsList.length === 0
+                    ? 'Hãy sang mục Không gian & Danh sách FAP để khởi tạo phòng tự động trước khi điều phối.'
+                    : 'Toàn bộ phòng đã đủ sĩ số hoặc không khớp bộ lọc hiện tại.'}
+                </p>
               </div>
             ) : (
               filteredRooms.map((room) => {
@@ -1923,22 +2037,23 @@ export const ModeratorDistributionPage: React.FC = () => {
                         <span
                           style={{
                             fontFamily: 'var(--font-mono, monospace)',
-                            fontWeight: 800,
+                            fontWeight: 700,
                             fontSize: '13.5px',
-                            color: '#0F172A',
+                            color: 'var(--text-main, #0F172A)',
                           }}
                         >
                           {room.code}
                         </span>
                         <span
                           style={{
-                            padding: '1px 7px',
+                            padding: '1px 8px',
                             borderRadius: 999,
                             fontSize: '11.5px',
-                            fontWeight: 700,
-                            backgroundColor: room.currentCount === 0 ? '#F1F5F9' : '#FFFBEB',
-                            border: room.currentCount === 0 ? '1px solid #E2E8F0' : '1px solid #FDE68A',
-                            color: room.currentCount === 0 ? '#64748B' : '#D97706',
+                            fontWeight: 600,
+                            fontVariantNumeric: 'tabular-nums',
+                            backgroundColor: 'var(--bg-card, #FFFFFF)',
+                            border: '1px solid var(--border-light, #E2E8F0)',
+                            color: room.currentCount === 0 ? 'var(--text-muted, #64748B)' : 'var(--text-secondary, #334155)',
                           }}
                         >
                           {room.currentCount}/{room.maxCount} thành viên
@@ -1959,8 +2074,8 @@ export const ModeratorDistributionPage: React.FC = () => {
                                 backgroundColor: isFilled
                                   ? current >= max
                                     ? '#059669'
-                                    : 'var(--fpt-orange, #f26f21)'
-                                  : '#E2E8F0',
+                                    : 'var(--accent-color, #f26f21)'
+                                  : 'var(--border-light, #E2E8F0)',
                               }}
                               title={isFilled ? `Chỗ ${slotIdx + 1}: Đã có thành viên` : `Chỗ ${slotIdx + 1}: Còn trống`}
                             />
@@ -1970,9 +2085,9 @@ export const ModeratorDistributionPage: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '12px' }}>
-                      <div style={{ color: '#64748B' }}>
+                      <div style={{ color: 'var(--text-muted, #64748B)' }}>
                         Trưởng nhóm:{' '}
-                        <strong style={{ color: room.leaderName === '(Chưa có)' ? '#94A3B8' : '#0F172A' }}>
+                        <strong style={{ color: room.leaderName === '(Chưa có)' ? 'var(--text-light, #94A3B8)' : 'var(--text-main, #0F172A)' }}>
                           {room.leaderName}
                         </strong>
                       </div>
@@ -1985,9 +2100,9 @@ export const ModeratorDistributionPage: React.FC = () => {
                               fontSize: '11px',
                               padding: '1px 6px',
                               borderRadius: 4,
-                              backgroundColor: '#FFFFFF',
-                              border: '1px solid #E2E8F0',
-                              color: '#475569',
+                              backgroundColor: 'var(--bg-card, #FFFFFF)',
+                              border: '1px solid var(--border-light, #E2E8F0)',
+                              color: 'var(--text-secondary, #334155)',
                               fontWeight: 600,
                             }}
                           >
